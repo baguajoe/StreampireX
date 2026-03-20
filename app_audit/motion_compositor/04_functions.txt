@@ -1,0 +1,184 @@
+===== FUNCTIONS =====
+src/front/js/component/motionstudio/MotionPathPanel.js:3:export default function MotionPathPanel({
+src/front/js/component/motionstudio/MotionTimelinePanel.js:7:export default function MotionTimelinePanel({
+src/front/js/component/motionstudio/MotionTimelinePanel.js:28:  const sortedLayers = useMemo(() => {
+src/front/js/component/motionstudio/MotionTimelinePanel.js:32:  const beginClipDrag = (e, layer, type) => {
+src/front/js/component/motionstudio/MotionTimelinePanel.js:45:  const beginKeyframeDrag = (e, layerId, prop, keyframeIndex, keyframeTime) => {
+src/front/js/component/motionstudio/MotionTimelinePanel.js:63:  useEffect(() => {
+src/front/js/component/motionstudio/MotionTimelinePanel.js:66:    const onMove = (e) => {
+src/front/js/component/motionstudio/MotionTimelinePanel.js:95:          const end = (layer.startTime || 0) + nextDuration;
+src/front/js/component/motionstudio/MotionTimelinePanel.js:132:    const onUp = () => setDragState(null);
+src/front/js/component/motionstudio/MotionTimelinePanel.js:136:    return () => {
+src/front/js/component/motionstudio/MotionTimelinePanel.js:142:  const onTimelineClick = (e) => {
+src/front/js/component/motionstudio/MotionTimelinePanel.js:150:  const addKeyframeAtPlayhead = (layer, prop) => {
+src/front/js/component/motionstudio/MotionTimelinePanel.js:244:            {sortedLayers.map((layer) => {
+src/front/js/component/motionstudio/MotionTimelinePanel.js:245:              const left = (layer.startTime || 0) * PX_PER_SEC;
+src/front/js/component/motionstudio/MotionTimelinePanel.js:293:                      {KEYFRAME_PROPS.map((prop) => {
+src/front/js/component/motionstudio/MotionTimelinePanel.js:299:                              {track.map((kf, index) => {
+src/front/js/component/motionstudio/MotionPropertyInspector.js:3:export default function MotionPropertyInspector({ selectedLayer, updateLayer }) {
+src/front/js/component/motionstudio/MotionPropertyInspector.js:13:  const set = (key, value) => updateLayer(selectedLayer.id, { [key]: value });
+src/front/js/component/motionstudio/MotionTemplatePanel.js:4:export default function MotionTemplatePanel({ setLayers }) {
+src/front/js/component/motionstudio/MotionTemplatePanel.js:5:  const applyTemplate = (template) => {
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:6:export default function MotionGraphEditorPanel({
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:16:  useEffect(() => {
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:26:  const track = useMemo(() => {
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:32:  const selectedSegmentIndex = useMemo(() => {
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:64:  useEffect(() => {
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:78:      const y = (h / 4) * i;
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:85:      const x = (w / 4) * i;
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:135:  const updateSegment = (patch) => {
+src/front/js/component/motionstudio/useMotionStudioState.js:11:const makeId = (prefix = "id") =>
+src/front/js/component/motionstudio/useMotionStudioState.js:14:export default function useMotionStudioState() {
+src/front/js/component/motionstudio/useMotionStudioState.js:83:  const updateLayer = useCallback((layerId, patch) => {
+src/front/js/component/motionstudio/useMotionStudioState.js:87:  const addTextLayer = useCallback(() => {
+src/front/js/component/motionstudio/useMotionStudioState.js:118:  const addLowerThirdLayer = useCallback(() => {
+src/front/js/component/motionstudio/useMotionStudioState.js:149:  const removeLayer = useCallback((layerId) => {
+src/front/js/component/motionstudio/useMotionStudioState.js:155:  const addKeyframeToSelected = useCallback((property, value, easing = "easeInOut") => {
+src/front/js/component/motionstudio/useMotionStudioState.js:169:  const removeKeyframeFromSelected = useCallback((keyframeId) => {
+src/front/js/component/motionstudio/useMotionStudioState.js:180:  const applyPathPresetToSelected = useCallback(() => {
+src/front/js/component/motionstudio/useMotionStudioState.js:200:  const clearPathFromSelected = useCallback(() => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:9:function getPresetStyle(animationId, elapsed, duration) {
+src/front/js/component/motionstudio/MotionPreviewStage.js:14:  preset.enter.forEach((rule) => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:38:export default function MotionPreviewStage({
+src/front/js/component/motionstudio/MotionPreviewStage.js:53:  useEffect(() => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:55:    const id = setInterval(() => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:56:      setCurrentTime((t) => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:64:  useEffect(() => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:67:    const onMove = (e) => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:119:    const onUp = () => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:127:    return () => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:133:  const renderedLayers = useMemo(() => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:135:      .map((layer) => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:211:        {renderedLayers.map(({ layer, lowerThird, style }) => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:219:              onMouseDown={(e) => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:246:                    onMouseDown={(e) => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:253:                    onMouseDown={(e) => {
+src/front/js/component/motionstudio/MotionPresetBrowser.js:3:export default function MotionPresetBrowser({
+src/front/js/component/motionstudio/MotionPresetBrowser.js:13:  const applyTextPreset = () => {
+src/front/js/component/motionstudio/MotionPresetBrowser.js:18:  const applyLowerThirdTemplate = () => {
+src/front/js/component/motionstudio/MotionLayerPanel.js:3:export default function MotionLayerPanel({
+src/front/js/component/motionstudio/MotionLayerPanel.js:24:              onClick={(e) => {
+src/front/js/component/motionstudio/MotionKeyframePanel.js:4:export default function MotionKeyframePanel({
+src/front/js/component/motionstudio/MotionKeyframePanel.js:30:            onAdd={(clipId, keyframe) => {
+src/front/js/component/motionstudio/MotionKeyframePanel.js:33:            onRemove={(clipId, keyframeId) => {
+src/front/js/component/motionstudio/MotionCameraPanel.js:3:export default function MotionCameraPanel({
+src/front/js/component/motionstudio/useKeyframeEngine.js:6:  bounce: (t) => {
+src/front/js/component/motionstudio/useKeyframeEngine.js:21:function clamp(v, min = 0, max = 1) {
+src/front/js/component/motionstudio/useKeyframeEngine.js:25:function applyCurveStrength(t, strength = 0.5, mode = "easeInOut") {
+src/front/js/component/motionstudio/useKeyframeEngine.js:45:export function interpolate(track, time) {
+src/front/js/component/motionstudio/useKeyframeEngine.js:61:      const rawT = (time - prev.time) / span;
+src/front/js/component/motionstudio/MotionToolbar.js:3:export default function MotionToolbar({
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:6:export default function MotionKeyframeEditorPanel({
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:16:  const track = useMemo(() => {
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:22:  useEffect(() => {
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:35:  useEffect(() => {
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:37:      setSelectedKeyframeRef((prev) => {
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:46:  const patchTrack = (nextTrack) => {
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:56:  const updateSelected = (patch) => {
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:64:  const deleteSelected = () => {
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:71:  const addAtPlayhead = () => {
+src/front/js/component/nodecompositor/AIAutoEditToolPanel.js:3:export default function AIAutoEditToolPanel() {
+src/front/js/component/nodecompositor/MinimapPanel.js:3:export default function MinimapPanel({ nodes = [], selectedNodeId = null }) {
+src/front/js/component/nodecompositor/MinimapPanel.js:34:                    nodes.map((node) => {
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:4:function Field({ label, children }) {
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:13:function NumberField({ label, value, onChange, step = 1 }) {
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:21:function TextField({ label, value, onChange }) {
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:29:function ColorField({ label, value, onChange }) {
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:37:function CheckboxField({ label, checked, onChange }) {
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:45:function renderNodeSpecificFields(node, onChange) {
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:219:function KeyframePanel({ selectedNode, currentTime, addKeyframeToSelectedNode, removeKeyframeFromSelectedNode }) {
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:226:  const addCurrent = () => {
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:271:export default function NodeInspectorPanel({
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:305:  const onChange = (key, value) => {
+src/front/js/component/nodecompositor/VideoExportPanel.js:3:export default function VideoExportPanel({ nodes = [], edges = [], currentTime = 0 }) {
+src/front/js/component/nodecompositor/VideoExportPanel.js:8:  const handleExport = () => {
+src/front/js/component/nodecompositor/NodeLibraryPanel.js:4:export default function NodeLibraryPanel({ addNode }) {
+src/front/js/component/nodecompositor/graphSerializer.js:1:export function serializeGraph(nodes, edges) {
+src/front/js/component/nodecompositor/graphSerializer.js:14:export function deserializeGraph(jsonText) {
+src/front/js/component/nodecompositor/graphSerializer.js:27:export function downloadGraphJSON(filename, jsonText) {
+src/front/js/component/nodecompositor/nodeAnimation.js:8:export function createNodeKeyframe(time, property, value, easing = "easeInOut") {
+src/front/js/component/nodecompositor/nodeAnimation.js:18:export function interpolateNodeKeyframes(keyframes = [], time) {
+src/front/js/component/nodecompositor/nodeAnimation.js:22:  keyframes.forEach((kf) => {
+src/front/js/component/nodecompositor/nodeAnimation.js:27:  Object.entries(grouped).forEach(([prop, frames]) => {
+src/front/js/component/nodecompositor/nodeAnimation.js:46:        const rawT = (time - a.time) / span;
+src/front/js/component/nodecompositor/nodeAnimation.js:62:export function applyAnimatedProps(properties = {}, keyframes = [], currentTime = 0) {
+src/front/js/component/nodecompositor/BeatSyncToolPanel.js:3:export default function BeatSyncToolPanel() {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:3:function getPortPosition(node, side, index) {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:12:function buildPortMap(nodes) {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:14:  nodes.forEach((node) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:15:    node.inputs.forEach((input, i) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:18:    node.outputs.forEach((output, i) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:25:function NodeCard({
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:33:  const handleMouseDown = (e) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:42:    const onMove = (ev) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:48:    const onUp = () => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:79:                  onMouseDown={(e) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:96:                  onMouseDown={(e) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:111:function EdgeLayer({
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:121:  const edgePath = (a, b) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:129:      {edges.map((edge) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:139:            onMouseDown={(e) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:158:export default function NodeGraphCanvas({
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:175:  const handleCanvasMouseMove = (e) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:188:  const clearPending = () => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:193:  const handleCanvasMouseDown = () => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:224:            onSelect={(id) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:229:            onPortMouseDown={(e, nodeId, portName) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:242:            onPortMouseUp={(nodeId, portName) => {
+src/front/js/component/nodecompositor/graphEvaluator.js:3:function buildInputMap(edges) {
+src/front/js/component/nodecompositor/graphEvaluator.js:5:  edges.forEach((edge) => {
+src/front/js/component/nodecompositor/graphEvaluator.js:15:function getNodeById(nodes, nodeId) {
+src/front/js/component/nodecompositor/graphEvaluator.js:19:function clamp(n, min, max) {
+src/front/js/component/nodecompositor/graphEvaluator.js:23:function buildFilterString(props = {}) {
+src/front/js/component/nodecompositor/graphEvaluator.js:33:function buildTransformString(props = {}) {
+src/front/js/component/nodecompositor/graphEvaluator.js:41:function applyPropsToVisual(visual, props = {}) {
+src/front/js/component/nodecompositor/graphEvaluator.js:50:function pathOffset(props = {}, time = 0) {
+src/front/js/component/nodecompositor/graphEvaluator.js:72:function evaluateNode(node, nodes, edges, memo, visiting, currentTime = 0) {
+src/front/js/component/nodecompositor/graphEvaluator.js:219:export function evaluateGraph(nodes, edges, currentTime = 0) {
+src/front/js/component/nodecompositor/VideoExportToolPanel.js:3:export default function VideoExportToolPanel({ projectName = "Untitled", currentTime = 0, duration = 10 }) {
+src/front/js/component/nodecompositor/NodePreviewPanel.js:5:function maskToStyle(mask) {
+src/front/js/component/nodecompositor/NodePreviewPanel.js:26:function VisualLayer({ visual }) {
+src/front/js/component/nodecompositor/NodePreviewPanel.js:155:export default function NodePreviewPanel({
+src/front/js/component/nodecompositor/NodePreviewPanel.js:172:  const handleExportFrame = () => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:29:function cloneNode(node) {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:46:export default function useNodeCompositorState() {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:56:  useEffect(() => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:58:    const id = setInterval(() => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:59:      setCurrentTime((t) => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:77:  const addNode = useCallback((type, x = 140, y = 140) => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:86:  const duplicateSelectedNode = useCallback(() => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:94:  const updateNodePosition = useCallback((nodeId, x, y) => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:100:  const updateNodeProperties = useCallback((nodeId, patch) => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:110:  const addKeyframeToSelectedNode = useCallback((property, value, easing = "easeInOut") => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:124:  const removeKeyframeFromSelectedNode = useCallback((keyframeId) => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:135:  const removeNode = useCallback((nodeId) => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:142:  const addEdge = useCallback((fromNodeId, fromPort, toNodeId, toPort) => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:175:  const removeEdge = useCallback((edgeId) => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:180:  const clearGraph = useCallback(() => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:187:  const exportGraph = useCallback(() => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:191:  const importGraph = useCallback((jsonText) => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:193:    const hydrated = (parsed.nodes || []).map((n) => ({
+src/front/js/component/nodecompositor/BeatSyncPanel.js:3:export default function BeatSyncPanel({ nodes = [], currentTime = 0 }) {
+src/front/js/component/nodecompositor/BeatSyncPanel.js:8:  const handleAnalyze = () => {
+src/front/js/component/nodecompositor/AIAutoEditPanel.js:3:export default function AIAutoEditPanel({ nodes = [], edges = [] }) {
+src/front/js/component/nodecompositor/AIAutoEditPanel.js:9:  const handleGenerate = () => {
+src/front/js/component/nodecompositor/nodeTypes.js:176:export const createNodeFromType = (type, x = 120, y = 120) => {
+src/front/js/component/nodecompositor/KeyboardShortcuts.js:3:export default function useKeyboardShortcuts({
+src/front/js/component/nodecompositor/KeyboardShortcuts.js:10:    useEffect(() => {
+src/front/js/component/nodecompositor/KeyboardShortcuts.js:11:        const handleKeyDown = (e) => {
+src/front/js/component/nodecompositor/NodeTimelinePanel.js:3:export default function NodeTimelinePanel({
+src/front/js/component/nodecompositor/NodeTimelinePanel.js:10:  const handleScrub = (e) => {
+src/front/js/component/nodecompositor/renderEngine.js:1:export function renderToImage(element, filename = "frame.png") {
+src/front/js/pages/MotionStudioPage.js:18:export default function MotionStudioPage() {
+src/front/js/pages/NodeCompositorPage.js:11:const makeNodeId = (type) => `${type}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+src/front/js/pages/NodeCompositorPage.js:27:export default function NodeCompositorPage() {
+src/front/js/pages/NodeCompositorPage.js:46:  useEffect(() => {
+src/front/js/pages/NodeCompositorPage.js:48:    const timer = setInterval(() => {
+src/front/js/pages/NodeCompositorPage.js:49:      setCurrentTime((t) => {
+src/front/js/pages/NodeCompositorPage.js:57:  const addNode = useCallback((type, x = 120, y = 120) => {
+src/front/js/pages/NodeCompositorPage.js:106:  const updateSelectedNode = useCallback((patch) => {
+src/front/js/pages/NodeCompositorPage.js:117:  const removeSelectedNode = useCallback(() => {
+src/front/js/pages/NodeCompositorPage.js:124:  const duplicateSelectedNode = useCallback(() => {
+src/front/js/pages/NodeCompositorPage.js:136:  const importMotionMedia = useCallback(() => {
+src/front/js/pages/NodeCompositorPage.js:161:  const seedStarterGraph = useCallback(() => {
+src/front/js/utils/motionHelpers.js:1:export function sendToMotion(actions, navigate, payload) {

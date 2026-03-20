@@ -1,0 +1,5 @@
+
+> react-hello-webapp@1.0.1 build
+> webpack --config webpack.prod.js
+
+Terminated

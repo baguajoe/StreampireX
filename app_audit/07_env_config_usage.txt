@@ -1,0 +1,1294 @@
+===== 7. ENV / KEYS / CONFIG USAGE =====
+src/app.py:18:from api.r2_upload_routes import r2_upload_bp
+src/app.py:152:FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+src/app.py:154:allowed_origins = [FRONTEND_URL] + [origin.strip() for origin in additional_origins if origin.strip()]
+src/app.py:475:        recipient_id = conversation.user2_id if conversation.user1_id == sender_id else conversation.user1_id
+src/app.py:578:app.register_blueprint(r2_upload_bp)
+src/app.py:586:    PORT = int(os.environ.get('PORT', 3001))
+src/app.py:591:    print(f"🔗 Frontend URL: {os.getenv('FRONTEND_URL')}")
+src/celery_app.py:5:    broker = os.environ.get("CELERY_BROKER_URL", os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
+src/celery_app.py:6:    backend = os.environ.get("CELERY_RESULT_BACKEND", os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
+src/api/fan_subscription_routes.py:8:stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', '')
+src/api/fan_subscription_routes.py:18:    stripe_price_id = db.Column(db.String(200))
+src/api/fan_subscription_routes.py:28:    stripe_sub_id = db.Column(db.String(200))
+src/api/fan_subscription_routes.py:39:        'stripe_price_id': t.stripe_price_id,
+src/api/fan_subscription_routes.py:61:    stripe_price_id = None
+src/api/fan_subscription_routes.py:70:        stripe_price_id = sp.id
+src/api/fan_subscription_routes.py:77:        stripe_price_id=stripe_price_id,
+src/api/fan_subscription_routes.py:112:    stripe_sub_id = None
+src/api/fan_subscription_routes.py:114:        if pm_id and tier.stripe_price_id:
+src/api/fan_subscription_routes.py:121:                items=[{'price': tier.stripe_price_id}],
+src/api/fan_subscription_routes.py:123:            stripe_sub_id = sub.id
+src/api/fan_subscription_routes.py:129:        tier_id=tier_id, stripe_sub_id=stripe_sub_id,
+src/api/music_upload.py:14:    from api.r2_storage_setup import uploadFile as r2_upload
+src/api/ai_mastering.py:48:    from api.r2_storage_setup import uploadFile
+src/api/models.py:1240:    stripe_subscription_id = db.Column(db.String(255), unique=True, nullable=True)  # Stripe subscription tracking
+src/api/models.py:1252:            "stripe_subscription_id": self.stripe_subscription_id,
+src/api/models.py:1489:    stripe_product_id = db.Column(db.String(255), nullable=True)  # Stripe product ID
+src/api/models.py:1499:    stripe_transaction_ids = db.Column(db.JSON, default=[])  # Store Stripe transactions as an array
+src/api/models.py:1558:            "stripe_product_id": self.stripe_product_id,
+src/api/models.py:1581:            "stripe_transaction_ids": self.stripe_transaction_ids,
+src/api/models.py:3027:    stripe_subscription_id = db.Column(db.String(255), unique=True, nullable=True)
+src/api/models.py:3028:    stripe_checkout_session_id = db.Column(db.String(255), unique=True, nullable=True)
+src/api/models.py:3061:            "stripe_subscription_id": self.stripe_subscription_id,
+src/api/models.py:3062:            "stripe_checkout_session_id": self.stripe_checkout_session_id,
+src/api/models.py:3084:    stripe_subscription_id = db.Column(db.String(255), unique=True, nullable=True)
+src/api/models.py:3100:            "stripe_subscription_id": self.stripe_subscription_id,
+src/api/models.py:3521:    stripe_payment_id = db.Column(db.String(255), nullable=True)  # Stripe transaction ID
+src/api/models.py:3538:            "stripe_payment_id": self.stripe_payment_id
+src/api/models.py:3678:# stripe.api_key = "your_stripe_secret_key"
+src/api/models.py:4284:    stripe_payment_intent_id = db.Column(db.String(255), nullable=True)
+src/api/models.py:4352:    stripe_enabled = db.Column(db.Boolean, default=True)
+src/api/models.py:4353:    stripe_account_id = db.Column(db.String(255), nullable=True)  # For Stripe Connect
+src/api/models.py:4381:        if self.stripe_enabled:
+src/api/models.py:4401:            "stripe_enabled": self.stripe_enabled,
+src/api/models.py:4553:    stripe_payment_intent_id = db.Column(db.String(100), nullable=True)
+src/api/models.py:4711:    user2_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+src/api/models.py:4717:    user2 = db.relationship('User', foreign_keys=[user2_id])
+src/api/models.py:4723:            'user2_id': self.user2_id,
+src/api/models.py:7447:    stripe_checkout_session_id = db.Column(db.String(200))
+src/api/models.py:7448:    stripe_payment_intent_id = db.Column(db.String(200))
+src/api/models.py:7676:    stripe_payment_intent = db.Column(db.String(200))
+src/api/video_editor_routes.py:14:R2_ENDPOINT   = os.environ.get('R2_ENDPOINT_URL', '')
+src/api/video_editor_routes.py:15:R2_ACCESS_KEY = os.environ.get('R2_ACCESS_KEY', '')
+src/api/video_editor_routes.py:16:R2_SECRET_KEY = os.environ.get('R2_SECRET_KEY', '')
+src/api/video_editor_routes.py:17:R2_BUCKET     = os.environ.get('R2_BUCKET_NAME', 'streampirex-media')
+src/api/video_editor_routes.py:18:R2_PUBLIC_URL = os.environ.get('R2_PUBLIC_URL', 'https://pub-3a956be9429449469ec53b73495e.r2.dev')
+src/api/video_editor_routes.py:25:def get_r2_client():
+src/api/video_editor_routes.py:28:        endpoint_url=R2_ENDPOINT,
+src/api/video_editor_routes.py:29:        aws_access_key_id=R2_ACCESS_KEY,
+src/api/video_editor_routes.py:30:        aws_secret_access_key=R2_SECRET_KEY,
+src/api/video_editor_routes.py:35:def upload_to_r2(local_path, r2_key, content_type='video/mp4'):
+src/api/video_editor_routes.py:37:        client = get_r2_client()
+src/api/video_editor_routes.py:39:            client.put_object(Bucket=R2_BUCKET, Key=r2_key, Body=f, ContentType=content_type)
+src/api/video_editor_routes.py:40:        return f"{R2_PUBLIC_URL}/{r2_key}"
+src/api/video_editor_routes.py:46:def download_from_r2(r2_key, local_path):
+src/api/video_editor_routes.py:48:        client = get_r2_client()
+src/api/video_editor_routes.py:49:        client.download_file(R2_BUCKET, r2_key, local_path)
+src/api/video_editor_routes.py:90:    r2_key = f'editor/{user_id}/{uid}_{filename}'
+src/api/video_editor_routes.py:104:        url = upload_to_r2(tmp_path, r2_key, content_type)
+src/api/video_editor_routes.py:110:                'id': uid, 'r2_key': r2_key, 'url': url,
+src/api/video_editor_routes.py:127:    r2_key     = data.get('r2_key') or data.get('public_id', '')
+src/api/video_editor_routes.py:131:    if not (r2_key or source_url):
+src/api/video_editor_routes.py:132:        return jsonify({'error': 'r2_key or source_url required'}), 400
+src/api/video_editor_routes.py:146:            if not download_from_r2(r2_key, input_path):
+src/api/video_editor_routes.py:155:        return jsonify({'success': True, 'trimmed_url': url, 'r2_key': out_key}), 200
+src/api/video_editor_routes.py:164:    r2_key     = data.get('r2_key', '')
+src/api/video_editor_routes.py:170:    if not (source_url or r2_key):
+src/api/video_editor_routes.py:171:        return jsonify({'error': 'source_url or r2_key required'}), 400
+src/api/video_editor_routes.py:182:            if not download_from_r2(r2_key, input_path):
+src/api/video_editor_routes.py:208:        return jsonify({'success': True, 'transformed_url': url, 'r2_key': out_key}), 200
+src/api/video_editor_routes.py:304:            'success': True, 'export_url': url, 'r2_key': out_key,
+src/api/video_editor_routes.py:317:    r2_key     = data.get('r2_key', data.get('public_id', ''))
+src/api/video_editor_routes.py:319:    if not (source_url or r2_key):
+src/api/video_editor_routes.py:320:        return jsonify({'error': 'source_url or r2_key required'}), 400
+src/api/video_editor_routes.py:331:            if not download_from_r2(r2_key, input_path):
+src/api/video_editor_routes.py:340:        return jsonify({'success': True, 'thumbnail_url': url, 'r2_key': out_key}), 200
+src/api/video_editor_routes.py:349:    r2_key     = data.get('r2_key', data.get('public_id', ''))
+src/api/video_editor_routes.py:356:    if not (source_url or r2_key):
+src/api/video_editor_routes.py:357:        return jsonify({'error': 'source_url or r2_key required'}), 400
+src/api/video_editor_routes.py:377:            if not download_from_r2(r2_key, input_path):
+src/api/video_editor_routes.py:391:        return jsonify({'success': True, 'text_overlay_url': url, 'r2_key': out_key}), 200
+src/api/video_editor_routes.py:399:        client = get_r2_client()
+src/api/video_editor_routes.py:401:        resp = client.list_objects_v2(Bucket=R2_BUCKET, Prefix=prefix)
+src/api/video_editor_routes.py:412:                'r2_key': key,
+src/api/video_editor_routes.py:413:                'url': f"{R2_PUBLIC_URL}/{key}",
+src/api/video_editor_routes.py:462:    r2_key = f'projects/{user_id}/{project_id}.json'
+src/api/video_editor_routes.py:464:        client = get_r2_client()
+src/api/video_editor_routes.py:465:        client.put_object(Bucket=R2_BUCKET, Key=r2_key, Body=project_data.encode('utf-8'), ContentType='application/json')
+src/api/celery_app.py:5:    broker = os.environ.get("CELERY_BROKER_URL") or os.environ.get("REDIS_URL") or "redis://127.0.0.1:6379/0"
+src/api/celery_app.py:6:    backend = os.environ.get("CELERY_RESULT_BACKEND") or os.environ.get("REDIS_URL") or "redis://127.0.0.1:6379/0"
+src/api/rss_routes.py:20:    ET.SubElement(channel, "link").text = f"{os.getenv('FRONTEND_URL')}/station/{station_id}"
+src/api/rss_routes.py:48:    fg.link(href=f"{os.getenv('FRONTEND_URL')}/station/{station_id}", rel='alternate')
+src/api/clip_sharing_routes.py:9:R2_ENDPOINT   = os.environ.get('R2_ENDPOINT_URL', '')
+src/api/clip_sharing_routes.py:10:R2_ACCESS_KEY = os.environ.get('R2_ACCESS_KEY', '')
+src/api/clip_sharing_routes.py:11:R2_SECRET_KEY = os.environ.get('R2_SECRET_KEY', '')
+src/api/clip_sharing_routes.py:12:R2_BUCKET     = os.environ.get('R2_BUCKET_NAME', 'streampirex-media')
+src/api/clip_sharing_routes.py:13:R2_PUBLIC_URL = os.environ.get('R2_PUBLIC_URL', 'https://pub-3a956be9429449469ec53b73495e.r2.dev')
+src/api/clip_sharing_routes.py:21:    r2_key       = db.Column(db.String(300))
+src/api/clip_sharing_routes.py:32:    return boto3.client('s3', endpoint_url=R2_ENDPOINT,
+src/api/clip_sharing_routes.py:33:                        aws_access_key_id=R2_ACCESS_KEY,
+src/api/clip_sharing_routes.py:34:                        aws_secret_access_key=R2_SECRET_KEY,
+src/api/clip_sharing_routes.py:80:        r2_key = f'clips/{creator_id}/{uid}.mp3'
+src/api/clip_sharing_routes.py:85:                client.put_object(Bucket=R2_BUCKET, Key=r2_key,
+src/api/clip_sharing_routes.py:87:            clip_url = f"{R2_PUBLIC_URL}/{r2_key}"
+src/api/clip_sharing_routes.py:93:            clip_url=clip_url, r2_key=r2_key, title=title,
+src/api/ai_stem_separation.py:36:    from api.r2_storage_setup import uploadFile
+src/api/email_service.py:165:                <a href="{os.getenv('FRONTEND_URL')}/subscription" class="button">Manage Subscription</a>
+src/api/sound_kit_routes.py:27:    from api.r2_storage_setup import uploadFile as r2_upload
+src/api/sound_kit_routes.py:162:            audio_url = r2_upload(audio_file, filename)
+src/api/beat_store_models.py:282:    stripe_payment_id = db.Column(db.String(255), nullable=True)
+src/api/beat_store_models.py:283:    stripe_session_id = db.Column(db.String(255), nullable=True)
+src/api/voice_clone_services.py:51:    from api.r2_storage_setup import uploadFile
+src/api/voice_clone_services.py:102:    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
+src/api/voice_clone_services.py:133:        r2_filename = f"{filename_prefix}_{uid}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.mp3"
+src/api/voice_clone_services.py:135:            audio_url = uploadFile(f, r2_filename)
+src/api/voice_clone_services.py:140:        print(f"🎤 Voice audio generated → R2: {r2_filename}")
+src/api/voice_clone_services.py:158:    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
+src/api/voice_clone_services.py:824:    has_elevenlabs = bool(os.environ.get("ELEVENLABS_API_KEY"))
+src/api/podcast_studio_phase2_routes.py:20:ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+src/api/podcast_studio_phase2_routes.py:21:OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+src/api/podcast_studio_phase2_routes.py:110:    elif OPENAI_API_KEY:
+src/api/podcast_studio_phase2_routes.py:114:                'Authorization': f'Bearer {OPENAI_API_KEY}',
+src/api/podcast_studio_phase2_routes.py:353:    base_url = os.environ.get('APP_URL', 'https://streampirex.com')
+src/api/podcast_studio_phase2_routes.py:578:        r2_endpoint = os.environ.get('R2_ENDPOINT')
+src/api/podcast_studio_phase2_routes.py:579:        r2_access_key = os.environ.get('R2_ACCESS_KEY')
+src/api/podcast_studio_phase2_routes.py:580:        r2_secret_key = os.environ.get('R2_SECRET_KEY')
+src/api/podcast_studio_phase2_routes.py:581:        r2_bucket = os.environ.get('R2_BUCKET', 'streampirex')
+src/api/podcast_studio_phase2_routes.py:583:        if r2_endpoint and r2_access_key:
+src/api/podcast_studio_phase2_routes.py:585:                endpoint_url=r2_endpoint,
+src/api/podcast_studio_phase2_routes.py:586:                aws_access_key_id=r2_access_key,
+src/api/podcast_studio_phase2_routes.py:587:                aws_secret_access_key=r2_secret_key
+src/api/podcast_studio_phase2_routes.py:590:            s3.upload_file(file_path, r2_bucket, key)
+src/api/podcast_studio_phase2_routes.py:591:            public_url = f"{os.environ.get('R2_PUBLIC_URL', r2_endpoint)}/{key}"
+src/api/fan_membership_routes.py:10:stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+src/api/fan_membership_routes.py:47:        tier.stripe_price_id = price_obj.id
+src/api/fan_membership_routes.py:158:    stripe_subscription_id = None
+src/api/fan_membership_routes.py:161:    if tier.stripe_price_id and payment_method_id:
+src/api/fan_membership_routes.py:170:            stripe_sub = stripe.Subscription.create(
+src/api/fan_membership_routes.py:172:                items=[{'price': tier.stripe_price_id}],
+src/api/fan_membership_routes.py:175:            stripe_subscription_id = stripe_sub.id
+src/api/fan_membership_routes.py:185:        stripe_subscription_id=stripe_subscription_id,
+src/api/fan_membership_routes.py:204:    if hasattr(sub, 'stripe_subscription_id') and sub.stripe_subscription_id:
+src/api/fan_membership_routes.py:206:            stripe.Subscription.delete(sub.stripe_subscription_id)
+src/api/film_routes.py:34:stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', '')
+src/api/film_routes.py:41:R2_ENDPOINT   = os.environ.get('R2_ENDPOINT_URL', '')
+src/api/film_routes.py:42:R2_ACCESS_KEY = os.environ.get('R2_ACCESS_KEY', '')
+src/api/film_routes.py:43:R2_SECRET_KEY = os.environ.get('R2_SECRET_KEY', '')
+src/api/film_routes.py:44:R2_BUCKET     = os.environ.get('R2_BUCKET_NAME', 'streampirex-media')
+src/api/film_routes.py:45:R2_PUBLIC_URL = os.environ.get('R2_PUBLIC_URL', '')
+src/api/film_routes.py:48:def get_r2_client():
+src/api/film_routes.py:51:        endpoint_url=R2_ENDPOINT,
+src/api/film_routes.py:52:        aws_access_key_id=R2_ACCESS_KEY,
+src/api/film_routes.py:53:        aws_secret_access_key=R2_SECRET_KEY,
+src/api/film_routes.py:60:        client = get_r2_client()
+src/api/film_routes.py:64:            R2_BUCKET,
+src/api/film_routes.py:68:        return f"{R2_PUBLIC_URL}/{key}"
+src/api/film_routes.py:690:    frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+src/api/film_routes.py:707:            success_url=f"{frontend_url}/film/{film_id}?purchase=success&type={purchase_type}",
+src/api/film_routes.py:708:            cancel_url=f"{frontend_url}/film/{film_id}",
+src/api/film_routes.py:725:    webhook_secret = os.environ.get('STRIPE_FILM_WEBHOOK_SECRET', '')
+src/api/film_routes.py:750:                stripe_session_id=session.get('id'),
+src/api/film_routes.py:868:    frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+src/api/film_routes.py:884:            success_url=f"{frontend_url}/screening/{screening_id}?ticket=success",
+src/api/film_routes.py:885:            cancel_url=f"{frontend_url}/screening/{screening_id}",
+src/api/sample_marketplace_routes.py:18:R2_BUCKET = os.environ.get('R2_BUCKET_NAME', 'streampirex-media')
+src/api/sample_marketplace_routes.py:24:        endpoint_url=os.environ.get('R2_ENDPOINT_URL') or os.environ.get('R2_ENDPOINT', ''),
+src/api/sample_marketplace_routes.py:25:        aws_access_key_id=os.environ.get('R2_ACCESS_KEY_ID', ''),
+src/api/sample_marketplace_routes.py:26:        aws_secret_access_key=os.environ.get('R2_SECRET_ACCESS_KEY', ''),
+src/api/sample_marketplace_routes.py:31:def r2_presigned_url(key, expiry=3600):
+src/api/sample_marketplace_routes.py:35:            Params={'Bucket': R2_BUCKET, 'Key': key},
+src/api/sonosuite_routes.py:9:SONOSUITE_SHARED_SECRET = os.environ.get("SONOSUITE_SHARED_SECRET", "")
+src/api/sonosuite_routes.py:10:SONOSUITE_BASE_URL      = os.environ.get("SONOSUITE_BASE_URL", "https://streampirex.sonosuite.com")
+src/api/sonosuite_routes.py:11:FRONTEND_URL            = os.environ.get("FRONTEND_URL", "https://streampirex.sonosuite.com")
+src/api/sonosuite_routes.py:35:        next_url = f"{FRONTEND_URL}/login?next=/sonosuite-redirect"
+src/api/sonosuite_routes.py:46:            return redirect(f"{FRONTEND_URL}/login?error=user_not_found")
+src/api/sonosuite_routes.py:48:        return redirect(f"{FRONTEND_URL}/login?error=session_expired")
+src/api/podcast_studio_ai_routes.py:30:DEEPGRAM_API_KEY = os.environ.get('DEEPGRAM_API_KEY', '')
+src/api/podcast_studio_ai_routes.py:31:OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+src/api/podcast_studio_ai_routes.py:32:ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+src/api/podcast_studio_ai_routes.py:35:CHUNK_STORAGE = os.environ.get('CHUNK_STORAGE_PATH', '/tmp/podcast_chunks')
+src/api/podcast_studio_ai_routes.py:40:    from api.r2_storage_setup import uploadFile as r2_upload
+src/api/podcast_studio_ai_routes.py:71:        elif OPENAI_API_KEY:
+src/api/podcast_studio_ai_routes.py:157:        headers = {'Authorization': f'Bearer {OPENAI_API_KEY}'}
+src/api/podcast_studio_ai_routes.py:553:        elif OPENAI_API_KEY:
+src/api/podcast_studio_ai_routes.py:646:        'Authorization': f'Bearer {OPENAI_API_KEY}',
+src/api/podcast_studio_ai_routes.py:679:                url = r2_upload(f, filename)
+src/api/podcast_studio_ai_routes.py:686:    # ── Try R2 via boto3 direct (fallback if r2_storage_setup unavailable) ──
+src/api/podcast_studio_ai_routes.py:689:        r2_endpoint = os.environ.get('R2_ENDPOINT')
+src/api/podcast_studio_ai_routes.py:690:        r2_access_key = os.environ.get('R2_ACCESS_KEY')
+src/api/podcast_studio_ai_routes.py:691:        r2_secret_key = os.environ.get('R2_SECRET_KEY')
+src/api/podcast_studio_ai_routes.py:692:        r2_bucket = os.environ.get('R2_BUCKET', 'streampirex')
+src/api/podcast_studio_ai_routes.py:694:        if r2_endpoint and r2_access_key:
+src/api/podcast_studio_ai_routes.py:696:                endpoint_url=r2_endpoint,
+src/api/podcast_studio_ai_routes.py:697:                aws_access_key_id=r2_access_key,
+src/api/podcast_studio_ai_routes.py:698:                aws_secret_access_key=r2_secret_key
+src/api/podcast_studio_ai_routes.py:701:            s3.upload_file(file_path, r2_bucket, key)
+src/api/podcast_studio_ai_routes.py:702:            public_url = f"{os.environ.get('R2_PUBLIC_URL', r2_endpoint)}/{key}"
+src/api/messages_routes.py:37:                    Conversation.user2_id == user_id
+src/api/messages_routes.py:44:                other_user_id = conv.user2_id if conv.user1_id == user_id else conv.user1_id
+src/api/messages_routes.py:283:                    and_(Conversation.user1_id == user_id, Conversation.user2_id == recipient_id),
+src/api/messages_routes.py:284:                    and_(Conversation.user1_id == recipient_id, Conversation.user2_id == user_id)
+src/api/messages_routes.py:293:                    user2_id=max(user_id, recipient_id),
+src/api/messages_routes.py:530:                    and_(Conversation.user1_id == user_id, Conversation.user2_id == other_user_id),
+src/api/messages_routes.py:531:                    and_(Conversation.user1_id == other_user_id, Conversation.user2_id == user_id)
+src/api/ai_content_routes.py:55:        api_key = os.environ.get('ANTHROPIC_API_KEY')
+src/api/support_routes.py:52:    frontend_url = os.getenv('FRONTEND_URL', 'https://streampirex.com')
+src/api/support_routes.py:67:            <p>You can check the status of your ticket anytime from your <a href="{frontend_url}/support">Support page</a>.</p>
+src/api/support_routes.py:85:        frontend_url = os.getenv('FRONTEND_URL', 'https://streampirex.com')
+src/api/support_routes.py:98:                <p><a href="{frontend_url}/support">View Full Ticket</a></p>
+src/api/mic_simulator_routes.py:23:    from api.r2_storage_setup import uploadFile as r2_upload
+src/api/mic_simulator_routes.py:326:            audio_url = r2_upload(audio_file, mic_filename)
+src/api/freesound_api.py:26:    return os.environ.get('FREESOUND_API_KEY', '')
+src/api/contact_routes.py:47:        <p>In the meantime, explore StreamPireX at <a href="{os.getenv('FRONTEND_URL', 'https://streampirex.sonosuite.com')}" style="color:#00ffc8;">streampirex.sonosuite.com</a></p>
+src/api/contact_routes.py:94:            <a href="{os.getenv('FRONTEND_URL', 'https://streampirex.sonosuite.com')}" 
+src/api/contact_routes.py:101:            <a href="{os.getenv('FRONTEND_URL')}/unsubscribe" style="color:#5a7088;">Unsubscribe</a>
+src/api/ai_credits_routes.py:36:stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+src/api/ai_credits_routes.py:235:    stripe_checkout_session_id VARCHAR(200),
+src/api/ai_credits_routes.py:236:    stripe_payment_intent_id VARCHAR(200),
+src/api/ai_credits_routes.py:394:        from .r2_storage_setup import s3_client, R2_BUCKET_NAME, R2_PUBLIC_URL
+src/api/ai_credits_routes.py:399:        r2_key = f"ai-outputs/{uid}_{filename}"
+src/api/ai_credits_routes.py:402:            BytesIO(file_bytes), R2_BUCKET_NAME, r2_key,
+src/api/ai_credits_routes.py:406:        url = f"{R2_PUBLIC_URL.rstrip('/')}/{r2_key}" if R2_PUBLIC_URL else \
+src/api/ai_credits_routes.py:407:              f"https://{R2_BUCKET_NAME}.r2.dev/{r2_key}"
+src/api/ai_credits_routes.py:684:        frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+src/api/ai_credits_routes.py:706:            success_url=f"{frontend_url}/ai-credits/success?session_id={{CHECKOUT_SESSION_ID}}",
+src/api/ai_credits_routes.py:707:            cancel_url=f"{frontend_url}/ai-credits",
+src/api/ai_credits_routes.py:714:            stripe_checkout_session_id=checkout_session.id, status='pending',
+src/api/ai_credits_routes.py:779:            stripe_checkout_session_id=session['id']
+src/api/ai_credits_routes.py:790:                purchase.stripe_payment_intent_id = session['payment_intent']
+src/api/printful_models.py:48:    stripe_payment_intent = db.Column(db.String(200))
+src/api/printful_oauth_routes.py:15:def _frontend_url():
+src/api/printful_oauth_routes.py:16:    return os.getenv("FRONTEND_URL") or os.getenv("REACT_APP_BACKEND_URL", "").replace(":3001", ":3000").replace("-3001.", "-3000.") or "http://localhost:3000"
+src/api/printful_oauth_routes.py:56:        return redirect(f"{_frontend_url()}/settings?printful=denied")
+src/api/printful_oauth_routes.py:59:        return redirect(f"{_frontend_url()}/settings?printful=error")
+src/api/printful_oauth_routes.py:75:            return redirect(f"{_frontend_url()}/settings?printful=token_error")
+src/api/printful_oauth_routes.py:79:            return redirect(f"{_frontend_url()}/settings?printful=user_missing")
+src/api/printful_oauth_routes.py:93:        return redirect(f"{_frontend_url()}/settings?printful=connected")
+src/api/printful_oauth_routes.py:96:        return redirect(f"{_frontend_url()}/settings?printful=server_error")
+src/api/r2_upload_routes.py:7:r2_upload_bp = Blueprint('r2_upload', __name__)
+src/api/r2_upload_routes.py:9:def get_r2_client():
+src/api/r2_upload_routes.py:11:        endpoint_url=os.environ.get('R2_ENDPOINT_URL'),
+src/api/r2_upload_routes.py:12:        aws_access_key_id=os.environ.get('R2_ACCESS_KEY'),
+src/api/r2_upload_routes.py:13:        aws_secret_access_key=os.environ.get('R2_SECRET_KEY'),
+src/api/r2_upload_routes.py:18:@r2_upload_bp.route('/api/r2/presign', methods=['POST'])
+src/api/r2_upload_routes.py:30:    bucket = os.environ.get('R2_BUCKET_NAME', 'streampirex-media')
+src/api/r2_upload_routes.py:31:    public_base = os.environ.get('R2_PUBLIC_URL', '').rstrip('/')
+src/api/r2_upload_routes.py:33:        client = get_r2_client()
+src/api/r2_upload_routes.py:41:@r2_upload_bp.route('/api/r2/delete', methods=['DELETE'])
+src/api/r2_upload_routes.py:43:def delete_r2_object():
+src/api/r2_upload_routes.py:49:        get_r2_client().delete_object(Bucket=os.environ.get('R2_BUCKET_NAME', 'streampirex-media'), Key=key)
+src/api/suno_gap_routes.py:10:R2_BUCKET = os.environ.get('R2_BUCKET_NAME', 'streampirex-media')
+src/api/suno_gap_routes.py:17:        endpoint_url=os.environ.get('R2_ENDPOINT_URL') or os.environ.get('R2_ENDPOINT') or None,
+src/api/suno_gap_routes.py:18:        aws_access_key_id=os.environ.get('R2_ACCESS_KEY_ID', ''),
+src/api/suno_gap_routes.py:19:        aws_secret_access_key=os.environ.get('R2_SECRET_ACCESS_KEY', ''),
+src/api/ai_mastering_phase3.py:32:    from api.r2_storage_setup import uploadFile
+src/api/jam_tracks_routes.py:9:R2_BUCKET = os.environ.get('R2_BUCKET_NAME', 'streampirex-media')
+src/api/jam_tracks_routes.py:16:        endpoint_url=os.environ.get('R2_ENDPOINT_URL') or os.environ.get('R2_ENDPOINT', ''),
+src/api/jam_tracks_routes.py:17:        aws_access_key_id=os.environ.get('R2_ACCESS_KEY_ID', ''),
+src/api/jam_tracks_routes.py:18:        aws_secret_access_key=os.environ.get('R2_SECRET_ACCESS_KEY', ''),
+src/api/beat_store_routes.py:11:    from api.r2_storage_setup import uploadFile, getSignedUrl
+src/api/beat_store_routes.py:16:stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+src/api/beat_store_routes.py:338:            success_url=f"{os.getenv('FRONTEND_URL')}/beats/purchase-success?session_id={{CHECKOUT_SESSION_ID}}",
+src/api/beat_store_routes.py:339:            cancel_url=f"{os.getenv('FRONTEND_URL')}/beats/{beat_id}",
+src/api/beat_store_routes.py:351:            stripe_session_id=checkout_session.id, payment_status='pending',
+src/api/beat_store_routes.py:372:    purchase = BeatPurchase.query.filter_by(stripe_session_id=session_id, buyer_id=user_id).first()
+src/api/beat_store_routes.py:381:            purchase.stripe_payment_id = session.payment_intent
+src/api/beat_store_routes.py:575:Transaction: {purchase.stripe_payment_id or purchase.stripe_session_id or 'Pending'}
+src/api/r2_storage_setup.py:8:R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID")
+src/api/r2_storage_setup.py:9:R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID")
+src/api/r2_storage_setup.py:10:R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
+src/api/r2_storage_setup.py:11:R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME", "streampirex-media")
+src/api/r2_storage_setup.py:12:R2_PUBLIC_URL = os.getenv("R2_PUBLIC_URL", "")
+src/api/r2_storage_setup.py:13:R2_ENDPOINT = f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+src/api/r2_storage_setup.py:17:    endpoint_url=R2_ENDPOINT,
+src/api/r2_storage_setup.py:18:    aws_access_key_id=R2_ACCESS_KEY_ID,
+src/api/r2_storage_setup.py:19:    aws_secret_access_key=R2_SECRET_ACCESS_KEY,
+src/api/r2_storage_setup.py:50:        r2_key = f"{folder}/{base}_{uid}.{ext}"
+src/api/r2_storage_setup.py:62:        s3_client.upload_fileobj(file, R2_BUCKET_NAME, r2_key, ExtraArgs=extra)
+src/api/r2_storage_setup.py:64:        if R2_PUBLIC_URL:
+src/api/r2_storage_setup.py:65:            url = f"{R2_PUBLIC_URL.rstrip('/')}/{r2_key}"
+src/api/r2_storage_setup.py:67:            url = f"https://{R2_BUCKET_NAME}.{R2_ACCOUNT_ID}.r2.dev/{r2_key}"
+src/api/r2_storage_setup.py:69:        print(f"✅ R2 Upload: {r2_key}")
+src/api/r2_storage_setup.py:78:        r2_key = _url_to_key(file_url)
+src/api/r2_storage_setup.py:79:        if not r2_key: return False
+src/api/r2_storage_setup.py:80:        s3_client.delete_object(Bucket=R2_BUCKET_NAME, Key=r2_key)
+src/api/r2_storage_setup.py:89:        r2_key = _url_to_key(file_url)
+src/api/r2_storage_setup.py:90:        if not r2_key: return file_url
+src/api/r2_storage_setup.py:92:            "get_object", Params={"Bucket": R2_BUCKET_NAME, "Key": r2_key}, ExpiresIn=expires_in
+src/api/r2_storage_setup.py:103:        for page in paginator.paginate(Bucket=R2_BUCKET_NAME):
+src/api/r2_storage_setup.py:121:    if R2_PUBLIC_URL and file_url.startswith(R2_PUBLIC_URL):
+src/api/r2_storage_setup.py:122:        return file_url.replace(R2_PUBLIC_URL.rstrip("/") + "/", "")
+src/api/r2_storage_setup.py:123:    r2_dev = f"https://{R2_BUCKET_NAME}.{R2_ACCOUNT_ID}.r2.dev/"
+src/api/r2_storage_setup.py:124:    if file_url.startswith(r2_dev):
+src/api/r2_storage_setup.py:125:        return file_url.replace(r2_dev, "")
+src/api/audio_routes.py:54:                "r2_url": url,
+src/api/audio_routes.py:85:                        "r2_url": beat_url,
+src/api/audio_routes.py:121:            file_url = data.get('file_url') or data.get('r2_url') or data.get('url')
+src/api/ai_video_tools.py:23:    from api.r2_storage_setup import uploadFile
+src/api/ai_video_tools.py:215:        r2_name = f"trimmed_{uid}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.mp4"
+src/api/ai_video_tools.py:217:            result_url = uploadFile(f, r2_name)
+src/api/ai_video_tools.py:315:            r2_name = f"thumb_{uid}_{i}.jpg"
+src/api/ai_video_tools.py:317:                thumb_url = uploadFile(f, r2_name)
+src/api/ai_video_tools.py:347:# Set WHISPER_MODE=api to use OpenAI API (requires OPENAI_API_KEY)
+src/api/ai_video_tools.py:366:    whisper_mode = os.environ.get('WHISPER_MODE', 'api')
+src/api/ai_video_tools.py:413:            api_key = os.environ.get('OPENAI_API_KEY')
+src/api/ai_video_tools.py:417:                return jsonify({'error': 'OPENAI_API_KEY not configured for caption generation'}), 400
+src/api/ai_video_tools.py:555:    has_whisper_api = bool(os.environ.get('OPENAI_API_KEY'))
+src/api/ai_video_tools.py:556:    whisper_mode = os.environ.get('WHISPER_MODE', 'api')
+src/api/patch_mix_assistant.py:106:R2_IMPORT = """
+src/api/patch_mix_assistant.py:109:    from api.r2_storage import upload_to_r2
+src/api/patch_mix_assistant.py:115:R2_SAVE_SNIPPET = '''
+src/api/patch_mix_assistant.py:136:        print(R2_IMPORT)
+src/api/patch_mix_assistant.py:137:        print(R2_SAVE_SNIPPET)
+src/api/patch_mix_assistant.py:150:        content = content[:insert_after] + "\n" + R2_IMPORT + content[insert_after:]
+src/api/patch_mix_assistant.py:155:        content = content[:first_route] + R2_SAVE_SNIPPET + "\n\n" + content[first_route:]
+src/api/printful_routes.py:11:    key = os.environ.get('PRINTFUL_API_KEY')
+src/api/printful_routes.py:231:    stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+src/api/printful_routes.py:253:            stripe_payment_intent=intent.id,
+src/api/sampler_storage_routes.py:8:#   r2_client.upload_fileobj() → Cloudinary fallback → local fallback
+src/api/sampler_storage_routes.py:64:        from api.r2_storage_setup import r2_client, R2_BUCKET, R2_PUBLIC_URL
+src/api/sampler_storage_routes.py:65:        if r2_client and R2_BUCKET and R2_PUBLIC_URL:
+src/api/sampler_storage_routes.py:66:            r2_key = f"sampler/{user_id}/{project_id}/{file_type}_{pad_index}_{unique_id}.{ext}"
+src/api/sampler_storage_routes.py:67:            r2_client.upload_fileobj(
+src/api/sampler_storage_routes.py:69:                R2_BUCKET,
+src/api/sampler_storage_routes.py:70:                r2_key,
+src/api/sampler_storage_routes.py:73:            return f"{R2_PUBLIC_URL}/{r2_key}"
+src/api/sampler_storage_routes.py:74:    except Exception as r2_err:
+src/api/sampler_storage_routes.py:75:        print(f"R2 sampler upload failed: {r2_err}")
+src/api/sampler_storage_routes.py:83:        from api.r2_storage_setup import uploadFile as r2_upload
+src/api/sampler_storage_routes.py:85:        url = r2_upload(file, f"sampler_{file_type}_{pad_index}_{unique_id}.{ext}")
+src/api/sampler_storage_routes.py:153:        from api.r2_storage_setup import r2_client, R2_BUCKET, R2_PUBLIC_URL
+src/api/sampler_storage_routes.py:154:        if r2_client and R2_BUCKET and R2_PUBLIC_URL and url.startswith(R2_PUBLIC_URL):
+src/api/sampler_storage_routes.py:155:            key = url.replace(R2_PUBLIC_URL.rstrip("/") + "/", "")
+src/api/sampler_storage_routes.py:156:            r2_client.delete_object(Bucket=R2_BUCKET, Key=key)
+src/api/sampler_storage_routes.py:163:        from api.r2_storage_setup import deleteFile as r2_delete
+src/api/sampler_storage_routes.py:164:        if r2_delete(url):
+src/api/epk_collab_routes.py:334:                    from api.r2_storage_setup import uploadFile as r2Upload
+src/api/epk_collab_routes.py:337:                    r2_url = r2Upload(video_bytes, video_bytes.name)
+src/api/epk_collab_routes.py:338:                    final_url = r2_url if isinstance(r2_url, str) else r2_url.get('secure_url', '')
+src/api/epk_collab_routes.py:339:                except Exception as r2_err:
+src/api/epk_collab_routes.py:340:                    print(f"R2 upload failed, using Replicate URL: {r2_err}")
+src/api/epk_collab_routes.py:434:            ((Conversation.user1_id == uid) & (Conversation.user2_id == recipient_id)) |
+src/api/epk_collab_routes.py:435:            ((Conversation.user1_id == recipient_id) & (Conversation.user2_id == uid))
+src/api/epk_collab_routes.py:439:            conv = Conversation(user1_id=uid, user2_id=recipient_id)
+src/api/epk_collab_routes.py:590:            from api.r2_storage_setup import uploadFile
+src/api/epk_collab_routes.py:593:        except (ImportError, Exception) as r2_err:
+src/api/epk_collab_routes.py:594:            print(f"R2 upload failed, trying Cloudinary: {r2_err}")
+src/api/epk_collab_routes.py:601:                return jsonify({"error": f"Both R2 and Cloudinary failed. R2: {str(r2_err)}, Cloudinary: {str(cloud_err)}"}), 500
+src/api/ai_radio_dj.py:58:    from api.r2_storage_setup import uploadFile
+src/api/ai_radio_dj.py:295:    openai_key = os.environ.get("OPENAI_API_KEY")
+src/api/ai_radio_dj.py:296:    if openai_key:
+src/api/ai_radio_dj.py:298:            script = _generate_with_openai(prompt, openai_key)
+src/api/ai_radio_dj.py:305:    anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
+src/api/ai_radio_dj.py:424:    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
+src/api/ai_radio_dj.py:436:    openai_key = os.environ.get("OPENAI_API_KEY")
+src/api/ai_radio_dj.py:437:    if openai_key:
+src/api/ai_radio_dj.py:439:            result = _tts_openai(script, persona["voice"], output_path, openai_key)
+src/api/ai_radio_dj.py:1415:    has_openai = bool(os.environ.get("OPENAI_API_KEY"))
+src/api/ai_radio_dj.py:1416:    has_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY"))
+src/api/ai_radio_dj.py:1417:    has_elevenlabs = bool(os.environ.get("ELEVENLABS_API_KEY"))
+src/api/ai_radio_dj.py:1451:    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
+src/api/ai_radio_dj.py:1572:    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
+src/api/ai_radio_dj.py:1631:        elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
+src/api/admin.py:7:    app.secret_key = os.environ.get('FLASK_APP_KEY', 'sample key')
+src/api/academy_routes.py:33:            endpoint_url=os.environ.get("R2_ENDPOINT_URL"),
+src/api/academy_routes.py:34:            aws_access_key_id=os.environ.get("R2_ACCESS_KEY_ID"),
+src/api/academy_routes.py:35:            aws_secret_access_key=os.environ.get("R2_SECRET_ACCESS_KEY"),
+src/api/academy_routes.py:37:        bucket = os.environ.get("R2_BUCKET_NAME", "streampirex-media")
+src/api/academy_routes.py:40:        return f"{os.environ.get('R2_PUBLIC_URL', '')}/{key}"
+src/api/academy_routes.py:289:        stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+src/api/academy_routes.py:321:        stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+src/api/utils/gamerAPI.js:2://   const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/gamer-profile/${userId}`);
+src/api/utils/gamerAPI.js:7:  const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/gamer-profile/${userId}`);
+src/api/recording_studio_routes.py:210:        from api.r2_storage_setup import r2_client, R2_BUCKET, R2_PUBLIC_URL
+src/api/recording_studio_routes.py:211:        if r2_client and R2_BUCKET and R2_PUBLIC_URL:
+src/api/recording_studio_routes.py:212:            r2_key = f"studio/{user_id}/{project_id}/{file_type}_{track_index}_{unique_id}.{ext}"
+src/api/recording_studio_routes.py:213:            r2_client.upload_fileobj(
+src/api/recording_studio_routes.py:215:                R2_BUCKET,
+src/api/recording_studio_routes.py:216:                r2_key,
+src/api/recording_studio_routes.py:219:            return f"{R2_PUBLIC_URL}/{r2_key}"
+src/api/recording_studio_routes.py:220:    except Exception as r2_err:
+src/api/recording_studio_routes.py:221:        print(f"R2 upload failed: {r2_err}")
+src/api/recording_studio_routes.py:289:        from api.r2_storage_setup import r2_client, R2_BUCKET, R2_PUBLIC_URL
+src/api/recording_studio_routes.py:290:        if r2_client and R2_BUCKET and R2_PUBLIC_URL and url.startswith(R2_PUBLIC_URL):
+src/api/recording_studio_routes.py:291:            key = url.replace(R2_PUBLIC_URL.rstrip("/") + "/", "")
+src/api/recording_studio_routes.py:292:            r2_client.delete_object(Bucket=R2_BUCKET, Key=key)
+src/api/ai_video_generation_routes.py:9:#   REPLICATE_API_TOKEN - Your Replicate API token
+src/api/ai_video_generation_routes.py:10:#   R2_ENDPOINT_URL, R2_ACCESS_KEY, R2_SECRET_KEY, R2_BUCKET_NAME - R2 config
+src/api/ai_video_generation_routes.py:59:REPLICATE_MODELS = {
+src/api/ai_video_generation_routes.py:110:            endpoint_url=os.environ.get('R2_ENDPOINT_URL'),
+src/api/ai_video_generation_routes.py:111:            aws_access_key_id=os.environ.get('R2_ACCESS_KEY'),
+src/api/ai_video_generation_routes.py:112:            aws_secret_access_key=os.environ.get('R2_SECRET_KEY'),
+src/api/ai_video_generation_routes.py:116:        bucket = os.environ.get('R2_BUCKET_NAME', 'streampirex')
+src/api/ai_video_generation_routes.py:127:        r2_public_url = os.environ.get('R2_PUBLIC_URL', '').rstrip('/')
+src/api/ai_video_generation_routes.py:128:        if r2_public_url:
+src/api/ai_video_generation_routes.py:129:            return f'{r2_public_url}/{key}'
+src/api/ai_video_generation_routes.py:132:        endpoint = os.environ.get('R2_ENDPOINT_URL', '').rstrip('/')
+src/api/ai_video_generation_routes.py:206:        model_config = PREMIUM_MODELS['text_to_video'] if quality == 'premium' else REPLICATE_MODELS['text_to_video']
+src/api/ai_video_generation_routes.py:227:            replicate_client = replicate.Client(api_token=os.environ.get('REPLICATE_API_TOKEN'))
+src/api/ai_video_generation_routes.py:230:            output = replicate_client.run(
+src/api/ai_video_generation_routes.py:261:            r2_filename = f'{user_id}_{uid}_text2vid.mp4'
+src/api/ai_video_generation_routes.py:262:            r2_url = upload_to_r2(video_bytes, r2_filename, 'video/mp4')
+src/api/ai_video_generation_routes.py:264:            if not r2_url:
+src/api/ai_video_generation_routes.py:268:            generation.video_url = r2_url
+src/api/ai_video_generation_routes.py:277:                'video_url': r2_url,
+src/api/ai_video_generation_routes.py:388:        model_config = PREMIUM_MODELS['image_to_video'] if quality == 'premium' else REPLICATE_MODELS['image_to_video']
+src/api/ai_video_generation_routes.py:410:            replicate_client = replicate.Client(api_token=os.environ.get('REPLICATE_API_TOKEN'))
+src/api/ai_video_generation_routes.py:423:            output = replicate_client.run(
+src/api/ai_video_generation_routes.py:449:            r2_filename = f'{user_id}_{uid}_img2vid.mp4'
+src/api/ai_video_generation_routes.py:450:            r2_url = upload_to_r2(video_bytes, r2_filename, 'video/mp4')
+src/api/ai_video_generation_routes.py:452:            if not r2_url:
+src/api/ai_video_generation_routes.py:456:            generation.video_url = r2_url
+src/api/ai_video_generation_routes.py:465:                'video_url': r2_url,
+src/api/ai_video_generation_routes.py:627:            'replicate_configured': bool(os.environ.get('REPLICATE_API_TOKEN')),
+src/api/ai_video_generation_routes.py:628:            'r2_configured': bool(os.environ.get('R2_ENDPOINT_URL')),
+src/api/ai_video_generation_routes.py:631:                    'standard': REPLICATE_MODELS['text_to_video']['name'],
+src/api/ai_video_generation_routes.py:635:                    'standard': REPLICATE_MODELS['image_to_video']['name'],
+src/api/film_models.py:282:    stripe_price_id = db.Column(db.String(200), nullable=True)
+src/api/film_models.py:329:    stripe_session_id = db.Column(db.String(300), nullable=True)
+src/api/film_models.py:354:    stripe_session_id = db.Column(db.String(300), nullable=True)
+src/api/ai_video_credits_routes.py:25:stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+src/api/ai_video_credits_routes.py:191:        frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+src/api/ai_video_credits_routes.py:207:            success_url=f'{frontend_url}/ai-video-studio?purchase=success&pack={pack_id}&session_id={{CHECKOUT_SESSION_ID}}',
+src/api/ai_video_credits_routes.py:208:            cancel_url=f'{frontend_url}/ai-video-studio?purchase=cancelled',
+src/api/ai_video_credits_routes.py:225:            stripe_checkout_session_id=checkout_session.id,
+src/api/ai_video_credits_routes.py:265:            stripe_checkout_session_id=session['id']
+src/api/ai_video_credits_routes.py:272:                purchase.stripe_payment_intent_id = session['payment_intent']
+src/api/ai_video_credits_routes.py:314:                stripe_checkout_session_id=session_id
+src/api/podcast_studio_routes.py:28:        r2_account_id = os.environ.get("R2_ACCOUNT_ID")
+src/api/podcast_studio_routes.py:29:        r2_access_key = os.environ.get("R2_ACCESS_KEY_ID")
+src/api/podcast_studio_routes.py:30:        r2_secret_key = os.environ.get("R2_SECRET_ACCESS_KEY")
+src/api/podcast_studio_routes.py:31:        r2_bucket = os.environ.get("R2_BUCKET_NAME", "streampirex-media")
+src/api/podcast_studio_routes.py:33:        if r2_account_id and r2_access_key and r2_secret_key:
+src/api/podcast_studio_routes.py:36:                endpoint_url=f"https://{r2_account_id}.r2.cloudflarestorage.com",
+src/api/podcast_studio_routes.py:37:                aws_access_key_id=r2_access_key,
+src/api/podcast_studio_routes.py:38:                aws_secret_access_key=r2_secret_key,
+src/api/podcast_studio_routes.py:41:            return ("r2", s3, r2_bucket)
+src/api/podcast_studio_routes.py:63:        r2_public_url = os.environ.get("R2_PUBLIC_URL", f"https://pub-{os.environ.get('R2_ACCOUNT_ID', '')}.r2.dev")
+src/api/podcast_studio_routes.py:64:        return f"{r2_public_url}/{key}"
+src/api/epk_collab.py:334:                    from api.r2_storage_setup import uploadFile as r2Upload
+src/api/epk_collab.py:337:                    r2_url = r2Upload(video_bytes, video_bytes.name)
+src/api/epk_collab.py:338:                    final_url = r2_url if isinstance(r2_url, str) else r2_url.get('secure_url', '')
+src/api/epk_collab.py:339:                except Exception as r2_err:
+src/api/epk_collab.py:340:                    print(f"R2 upload failed, using Replicate URL: {r2_err}")
+src/api/epk_collab.py:434:            ((Conversation.user1_id == uid) & (Conversation.user2_id == recipient_id)) |
+src/api/epk_collab.py:435:            ((Conversation.user1_id == recipient_id) & (Conversation.user2_id == uid))
+src/api/epk_collab.py:439:            conv = Conversation(user1_id=uid, user2_id=recipient_id)
+src/api/epk_collab.py:590:            from api.r2_storage_setup import uploadFile
+src/api/epk_collab.py:593:        except (ImportError, Exception) as r2_err:
+src/api/epk_collab.py:594:            print(f"R2 upload failed, trying Cloudinary: {r2_err}")
+src/api/epk_collab.py:601:                return jsonify({"error": f"Both R2 and Cloudinary failed. R2: {str(r2_err)}, Cloudinary: {str(cloud_err)}"}), 500
+src/api/routes.py:18:stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+src/api/routes.py:78:    from api.r2_storage_setup import uploadFile
+src/api/routes.py:1889:                stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+src/api/routes.py:1893:                stripe_customer_id = getattr(user, 'stripe_customer_id', None)
+src/api/routes.py:1895:                if not stripe_customer_id:
+src/api/routes.py:1900:                    stripe_customer_id = customer.id
+src/api/routes.py:1901:                    user.stripe_customer_id = stripe_customer_id
+src/api/routes.py:1906:                    customer=stripe_customer_id,
+src/api/routes.py:1925:                    stripe_subscription_id=subscription.id,
+src/api/routes.py:1939:            except Exception as stripe_error:
+src/api/routes.py:1940:                return jsonify({"error": f"Payment setup failed: {str(stripe_error)}"}), 500
+src/api/routes.py:2554:                    success_url=f"{os.getenv('FRONTEND_URL')}/subscription/success?session_id={{CHECKOUT_SESSION_ID}}",
+src/api/routes.py:2555:                    cancel_url=f"{os.getenv('FRONTEND_URL')}/pricing",
+src/api/routes.py:2584:                    success_url=f"{os.getenv('FRONTEND_URL')}/subscription/success?session_id={{CHECKOUT_SESSION_ID}}",
+src/api/routes.py:2585:                    cancel_url=f"{os.getenv('FRONTEND_URL')}/pricing",
+src/api/routes.py:2602:                stripe_checkout_session_id=checkout_session.id
+src/api/routes.py:2683:    # stripe.Subscription.delete(subscription.stripe_subscription_id)
+src/api/routes.py:3888:    stripe_charge =stripe.PaymentIntent.create(
+src/api/routes.py:3914:    stripe_charge = stripe.PaymentIntent.create(
+src/api/routes.py:4160:            licensing_entry.stripe_payment_id = session['id']
+src/api/routes.py:4861:            stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+src/api/routes.py:4877:                success_url=f"{os.getenv('FRONTEND_URL')}/podcast/purchase-success?session_id={{CHECKOUT_SESSION_ID}}",
+src/api/routes.py:4878:                cancel_url=f"{os.getenv('FRONTEND_URL')}/podcast/{podcast_id}",
+src/api/routes.py:4893:        except Exception as stripe_error:
+src/api/routes.py:4894:            return jsonify({"error": f"Payment failed: {str(stripe_error)}"}), 500
+src/api/routes.py:5687:        success_url=f"{os.getenv('FRONTEND_URL')}/success?session_id={{CHECKOUT_SESSION_ID}}",
+src/api/routes.py:5688:        cancel_url=f"{os.getenv('FRONTEND_URL')}/cancel"
+src/api/routes.py:6748:    if settings.stripe_enabled:
+src/api/routes.py:7006:            success_url=f"{os.getenv('FRONTEND_URL')}/podcast/thank-you?session_id={{CHECKOUT_SESSION_ID}}",
+src/api/routes.py:7007:            cancel_url=f"{os.getenv('FRONTEND_URL')}/podcast/cancel",
+src/api/routes.py:7197:STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "your_webhook_secret_here")
+src/api/routes.py:7200:def stripe_webhook():
+src/api/routes.py:7216:        endpoint_secret = current_app.config.get('STRIPE_WEBHOOK_SECRET') or STRIPE_WEBHOOK_SECRET
+src/api/routes.py:7307:                stripe_subscription = stripe.Subscription.retrieve(session['subscription'])
+src/api/routes.py:7308:                subscription.stripe_subscription_id = stripe_subscription.id
+src/api/routes.py:7361:            stripe_subscription_id=subscription['id']
+src/api/routes.py:7391:            stripe_subscription_id=subscription['id']
+src/api/routes.py:7396:            stripe_status = subscription['status']
+src/api/routes.py:7398:            if stripe_status == 'active':
+src/api/routes.py:7400:            elif stripe_status == 'canceled':
+src/api/routes.py:7404:            elif stripe_status == 'past_due':
+src/api/routes.py:7408:            elif stripe_status == 'incomplete':
+src/api/routes.py:7410:            elif stripe_status == 'trialing':
+src/api/routes.py:7416:            if stripe_status == 'canceled':
+src/api/routes.py:7422:            current_app.logger.info(f"✅ Subscription {subscription['id']} updated to {stripe_status}")
+src/api/routes.py:7440:            stripe_subscription_id=subscription['id']
+src/api/routes.py:7478:            stripe_subscription_id=subscription_id
+src/api/routes.py:7525:            stripe_subscription_id=subscription_id
+src/api/routes.py:7602:            stripe_payment_intent_id=session.get('payment_intent'),
+src/api/routes.py:8003:        ((Conversation.user1_id == user_id) & (Conversation.user2_id == recipient_id)) |
+src/api/routes.py:8004:        ((Conversation.user1_id == recipient_id) & (Conversation.user2_id == user_id))
+src/api/routes.py:8008:        conversation = Conversation(user1_id=user_id, user2_id=recipient_id)
+src/api/routes.py:8055:        (Conversation.user1_id == user_id) | (Conversation.user2_id == user_id)
+src/api/routes.py:8060:        partner_id = convo.user2_id if convo.user1_id == user_id else convo.user1_id
+src/api/routes.py:8082:    if conversation.user1_id != current_user_id and conversation.user2_id != current_user_id:
+src/api/routes.py:21957:        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+src/api/routes.py:21973:            success_url=f"{frontend_url}/wallet/success?session_id={{CHECKOUT_SESSION_ID}}&amount={amount}",
+src/api/routes.py:21974:            cancel_url=f"{frontend_url}/wallet",
+src/api/routes.py:22024:        tip.stripe_payment_intent_id = session.get('payment_intent')
+src/api/routes.py:22085:            stripe_payment_intent_id=session.get('payment_intent'),
+src/api/routes.py:22197:        tip.stripe_payment_intent_id = payment_intent.id
+src/api/routes.py:22235:        if tip.stripe_payment_intent_id:
+src/api/routes.py:22236:            payment_intent = stripe.PaymentIntent.retrieve(tip.stripe_payment_intent_id)
+src/api/routes.py:23998:    printful_key = os.environ.get('PRINTFUL_API_KEY')
+src/front/js/StoryUpload.js:167:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/StoryUpload.js:172:      formData.append('upload_preset', process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET || 'streampirex');
+src/front/js/StoryUpload.js:175:      const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+src/front/js/StoryUpload.js:194:      const storyResponse = await fetch(`${backendUrl}/api/stories`, {
+src/front/js/layout.js:117:import { BackendURL } from "./component/backendURL";
+src/front/js/layout.js:306:        const backendUrl = process.env.BACKEND_URL || "";
+src/front/js/layout.js:309:            const response = await fetch(`${backendUrl}/api/waitlist`, {
+src/front/js/layout.js:650:        BackendURL();
+src/front/js/pages/BrowsePodcasts.js:5:    fetch(process.env.REACT_APP_BACKEND_URL + "/api/like", {
+src/front/js/pages/BrowsePodcasts.js:19:    fetch(process.env.REACT_APP_BACKEND_URL + "/api/favorite", {
+src/front/js/pages/FanMembership.js:26:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/FanMembership.js:394:stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+src/front/js/pages/FanMembership.js:436:    tier.stripe_price_id = price.id
+src/front/js/pages/FanMembership.js:530:    if not tier.stripe_price_id:
+src/front/js/pages/FanMembership.js:535:        line_items=[{'price': tier.stripe_price_id, 'quantity': 1}],
+src/front/js/pages/FanMembership.js:537:        success_url=f"{os.getenv('FRONTEND_URL')}/fan/membership/success?session_id={{CHECKOUT_SESSION_ID}}",
+src/front/js/pages/FanMembership.js:538:        cancel_url=f"{os.getenv('FRONTEND_URL')}/creator/{data['creator_id']}",
+src/front/js/pages/FilmTheatrePage.js:12:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/Contact.js:14:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/contact`, {
+src/front/js/pages/AnalyticsDashboard.js:9:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/analytics`, {
+src/front/js/pages/AnalyticsDashboard.js:20:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/share-analytics`, {
+src/front/js/pages/AICreditLedger.js:2:import { BackendURL } from "../component/backendURL";
+src/front/js/pages/AICreditLedger.js:21:      const res = await fetch(`${BackendURL}/api/advanced-ai/credit-transactions?${qs.toString()}`, {
+src/front/js/pages/NotificationsPage.js:5:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/ProductUploadForm.js:38:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/products/${productId}`, {
+src/front/js/pages/ProductUploadForm.js:175:                ? `${process.env.REACT_APP_BACKEND_URL}/api/products/${productId}`
+src/front/js/pages/ProductUploadForm.js:176:                : `${process.env.REACT_APP_BACKEND_URL}/api/storefront/add-product`;
+src/front/js/pages/PodcastCategoryPage.js:9:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcast-category/${categoryName}`)
+src/front/js/pages/CreateAvatarPage.js:35:        `${process.env.REACT_APP_API_URL}/save-avatar`, // Your backend API URL
+src/front/js/pages/CreateAvatarPage.js:51:      await axios.delete(`${process.env.REACT_APP_API_URL}/delete-avatar`, {
+src/front/js/pages/CreatorAnalytics.js:9:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/analytics/creator/${creatorId}`, {
+src/front/js/pages/ProfilePage.js:24:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/ProfilePage.js:25:const SOCKET_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/FilmFestivalBoard.js:11:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/MusicDistribution.js:105:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/MusicDistribution.js:106:      const response = await fetch(`${backendUrl}/api/user/plan-status`, {
+src/front/js/pages/MusicDistribution.js:160:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/MusicDistribution.js:162:        `${backendUrl}/api/sonosuite/redirect?return_to=${encodeURIComponent(returnTo)}`,
+src/front/js/pages/MusicDistribution.js:198:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/MusicDistribution.js:199:      const response = await fetch(`${backendUrl}/api/sonosuite/status`, {
+src/front/js/pages/MusicDistribution.js:233:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/MusicDistribution.js:236:        fetch(`${backendUrl}/api/distribution/stats`, {
+src/front/js/pages/MusicDistribution.js:239:        fetch(`${backendUrl}/api/distribution/releases`, {
+src/front/js/pages/MusicDistribution.js:263:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/MusicDistribution.js:265:      const response = await fetch(`${backendUrl}/api/music/user`, {
+src/front/js/pages/MusicDistribution.js:285:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/MusicDistribution.js:287:      const response = await fetch(`${backendUrl}/api/sonosuite/connect`, {
+src/front/js/pages/MusicDistribution.js:329:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/MusicDistribution.js:331:      const response = await fetch(`${backendUrl}/api/sonosuite/connect`, {
+src/front/js/pages/MusicDistribution.js:373:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/MusicDistribution.js:375:      const response = await fetch(`${backendUrl}/api/sonosuite/disconnect`, {
+src/front/js/pages/MusicDistribution.js:411:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/MusicDistribution.js:413:      const response = await fetch(`${backendUrl}/api/music/distribute`, {
+src/front/js/pages/AIVideoStudio.js:33:  const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/AIVideoStudio.js:44:      const res = await fetch(`${backendUrl}/api/ai-video/studio-status`, { headers: getHeaders() });
+src/front/js/pages/AIVideoStudio.js:49:  }, [backendUrl, getHeaders]);
+src/front/js/pages/AIVideoStudio.js:53:      const res = await fetch(`${backendUrl}/api/ai-video/my-videos?page=${page}&per_page=12`, { headers: getHeaders() });
+src/front/js/pages/AIVideoStudio.js:57:  }, [backendUrl, getHeaders]);
+src/front/js/pages/AIVideoStudio.js:61:      const res = await fetch(`${backendUrl}/api/ai-video/credit-packs`, { headers: getHeaders() });
+src/front/js/pages/AIVideoStudio.js:65:  }, [backendUrl, getHeaders]);
+src/front/js/pages/AIVideoStudio.js:69:      const res = await fetch(`${backendUrl}/api/ai-video/credit-history`, { headers: getHeaders() });
+src/front/js/pages/AIVideoStudio.js:73:  }, [backendUrl, getHeaders]);
+src/front/js/pages/AIVideoStudio.js:77:      const res = await fetch(`${backendUrl}/api/ai-video/verify-purchase`, {
+src/front/js/pages/AIVideoStudio.js:111:      const res = await fetch(`${backendUrl}/api/ai-video/generate/text`, {
+src/front/js/pages/AIVideoStudio.js:135:      const res = await fetch(`${backendUrl}/api/ai-video/generate/image`, {
+src/front/js/pages/AIVideoStudio.js:150:      const res = await fetch(`${backendUrl}/api/ai-video/purchase-credits`, {
+src/front/js/pages/AIVideoStudio.js:178:      const res = await fetch(`${backendUrl}/api/ai-video/delete/${id}`, { method: 'DELETE', headers: getHeaders() });
+src/front/js/pages/ProductDetailPage.js:19:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/products/${id}`, {
+src/front/js/pages/ProductDetailPage.js:42:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/products/buy/${id}`, {
+src/front/js/pages/ProductDetailPage.js:74:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/checkout`, {
+src/front/js/pages/VoiceCloneServices.js:20:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/ProducerProfilePage.js:5:const BACKEND = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/VideoChannelDashboard.js:83:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/me`, {
+src/front/js/pages/VideoChannelDashboard.js:113:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/user`, {
+src/front/js/pages/VideoChannelDashboard.js:145:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/analytics`, {
+src/front/js/pages/VideoChannelDashboard.js:174:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/recent-activity`, {
+src/front/js/pages/VideoChannelDashboard.js:195:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/create`, {
+src/front/js/pages/PayoutDashboard.js:23:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/PayoutDashboard.js:111:  const connected = data?.stripe_connected;
+src/front/js/pages/PayoutDashboard.js:112:  const verified = data?.stripe_status === 'verified';
+src/front/js/pages/PayoutDashboard.js:152:                Stripe is reviewing your account ({data?.stripe_status}). Payouts will be available once verified.{' '}
+src/front/js/pages/PayoutDashboard.js:346:stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+src/front/js/pages/PayoutDashboard.js:356:#     stripe_payout_id = db.Column(db.String(255), nullable=True)
+src/front/js/pages/PayoutDashboard.js:372:#   stripe_connect_id = db.Column(db.String(255), nullable=True)
+src/front/js/pages/PayoutDashboard.js:373:#   stripe_connect_status = db.Column(db.String(50), default='not_connected')
+src/front/js/pages/PayoutDashboard.js:380:    frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+src/front/js/pages/PayoutDashboard.js:383:    if not getattr(user, 'stripe_connect_id', None):
+src/front/js/pages/PayoutDashboard.js:391:        user.stripe_connect_id = acct['id']
+src/front/js/pages/PayoutDashboard.js:392:        user.stripe_connect_status = 'pending'
+src/front/js/pages/PayoutDashboard.js:397:        account=user.stripe_connect_id,
+src/front/js/pages/PayoutDashboard.js:398:        refresh_url=f'{frontend_url}/creator/payouts?reconnect=1',
+src/front/js/pages/PayoutDashboard.js:399:        return_url=f'{frontend_url}/creator/payouts?connected=1',
+src/front/js/pages/PayoutDashboard.js:421:    stripe_status = 'not_connected'
+src/front/js/pages/PayoutDashboard.js:422:    if getattr(user, 'stripe_connect_id', None):
+src/front/js/pages/PayoutDashboard.js:424:            acct = stripe.Account.retrieve(user.stripe_connect_id)
+src/front/js/pages/PayoutDashboard.js:425:            stripe_status = 'verified' if acct['charges_enabled'] else 'pending'
+src/front/js/pages/PayoutDashboard.js:426:            user.stripe_connect_status = stripe_status
+src/front/js/pages/PayoutDashboard.js:437:        'stripe_connected': bool(getattr(user, 'stripe_connect_id', None)),
+src/front/js/pages/PayoutDashboard.js:438:        'stripe_status': stripe_status,
+src/front/js/pages/PayoutDashboard.js:459:    if not getattr(user, 'stripe_connect_id', None):
+src/front/js/pages/PayoutDashboard.js:469:            destination=user.stripe_connect_id,
+src/front/js/pages/PayoutDashboard.js:474:                        status='pending', stripe_payout_id=transfer['id'], fee=fee)
+src/front/js/pages/PayoutDashboard.js:515:#   stripe_connect_id = db.Column(db.String(255), nullable=True)
+src/front/js/pages/PayoutDashboard.js:516:#   stripe_connect_status = db.Column(db.String(50), default='not_connected')
+src/front/js/pages/PayoutDashboard.js:519:#   flask db migrate -m "add payout and tax_info tables, stripe_connect to user"
+src/front/js/pages/TipJarPage.js:20:const backendURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+src/front/js/pages/TipJarPage.js:68:      const res = await fetch(`${backendURL}/api/users/username/${username}`);
+src/front/js/pages/TipJarPage.js:84:        const settingsRes = await fetch(`${backendURL}/api/tips/creator/${data.id}`, {
+src/front/js/pages/TipJarPage.js:97:        const tipsRes = await fetch(`${backendURL}/api/tips/creator/${data.id}/recent`);
+src/front/js/pages/TipJarPage.js:200:      const res = await fetch(`${backendURL}/api/tips/quick-pay`, {
+src/front/js/pages/TipJarPage.js:222:        const confirmRes = await fetch(`${backendURL}/api/tips/confirm/${data.tip_id}`, {
+src/front/js/pages/TipJarPage.js:247:      const res = await fetch(`${backendURL}/api/tips/external`, {
+src/front/js/pages/AIStemSeparation.js:22:  process.env.REACT_APP_BACKEND_URL ||
+src/front/js/pages/FilmUploadForm.js:11:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/PodcastDashboard.js:42:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/PodcastDashboard.js:45:      const podcastsResponse = await fetch(`${backendUrl}/api/podcast/dashboard`, {
+src/front/js/pages/PodcastDashboard.js:112:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/PodcastDashboard.js:114:      const podcastsResponse = await fetch(`${backendUrl}/api/podcast/dashboard`, {
+src/front/js/pages/PodcastDashboard.js:171:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/PodcastDashboard.js:173:      const response = await fetch(`${backendUrl}/api/podcast/${podcastId}`, {
+src/front/js/pages/PodcastDashboard.js:215:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/PodcastDashboard.js:217:      const response = await fetch(`${backendUrl}/api/podcast/${podcastId}/status`, {
+src/front/js/pages/GamerProfilePage.js:209:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/steam/profile`, {
+src/front/js/pages/GamerProfilePage.js:243:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/steam/connect`, {
+src/front/js/pages/GamerProfilePage.js:277:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/steam/disconnect`, {
+src/front/js/pages/LabelDashboard.js:38:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/label-dashboard`, {
+src/front/js/pages/LabelDashboard.js:74:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/label/revenue`, {
+src/front/js/pages/LabelDashboard.js:101:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/label/add-artist`, {
+src/front/js/pages/LabelDashboard.js:143:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/label/remove-artist/${artistId}`, {
+src/front/js/pages/StoryViewer.js:42:  const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/StoryViewer.js:57:      await fetch(`${backendUrl}/api/stories/${storyId}/view`, {
+src/front/js/pages/StoryViewer.js:64:  }, [backendUrl]);
+src/front/js/pages/StoryViewer.js:235:      await fetch(`${backendUrl}/api/stories/${currentStory.id}/react`, {
+src/front/js/pages/StoryViewer.js:261:      const response = await fetch(`${backendUrl}/api/stories/${currentStory.id}/viewers`, {
+src/front/js/pages/StoryViewer.js:284:      const response = await fetch(`${backendUrl}/api/stories/${currentStory.id}`, {
+src/front/js/pages/StoryViewer.js:311:      await fetch(`${backendUrl}/api/stories/${currentStory.id}/highlight`, {
+src/front/js/pages/StoryViewer.js:655:  const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/StoryViewer.js:707:      const response = await fetch(`${backendUrl}/api/stories/user/${userId}`, {
+src/front/js/pages/StoryViewer.js:734:      await fetch(`${backendUrl}/api/stories/${storyId}/view`, {
+src/front/js/pages/StoryViewer.js:843:      const response = await fetch(`${backendUrl}/api/stories/${currentStory.id}/react`, {
+src/front/js/pages/StoryViewer.js:867:      await fetch(`${backendUrl}/api/stories/${currentStory.id}/react`, {
+src/front/js/pages/StoryViewer.js:885:      const response = await fetch(`${backendUrl}/api/stories/${currentStory.id}/viewers`, {
+src/front/js/pages/StoryViewer.js:907:      const response = await fetch(`${backendUrl}/api/stories/${currentStory.id}`, {
+src/front/js/pages/StoryViewer.js:935:      await fetch(`${backendUrl}/api/stories/${currentStory.id}/highlight`, {
+src/front/js/pages/CollabFeed.js:4:const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/BrowseProducersPage.js:5:const BACKEND = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/DigitalProducts.js:7:        fetch(`${process.env.REACT_APP_BACKEND_URL}/digital-products`)
+src/front/js/pages/DigitalProducts.js:15:        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/download/${id}`, {
+src/front/js/pages/LiveStreams.js:25:  const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/LiveStreams.js:44:        { url: `${backendUrl}/api/streams/live`, setter: setLiveStreams, key: 'streams' },
+src/front/js/pages/LiveStreams.js:45:        { url: `${backendUrl}/api/live-streams`, setter: setLiveStreams, key: 'streams' },
+src/front/js/pages/AdminDashboard.js:15:  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/GlobalSearch.js:22:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/OrderHistoryPage.js:34:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/OrderHistoryPage.js:35:      const response = await fetch(`${backendUrl}/api/user/orders`, {
+src/front/js/pages/OrderHistoryPage.js:51:        const altResponse = await fetch(`${backendUrl}/api/marketplace/my-orders`, {
+src/front/js/pages/OrderHistoryPage.js:80:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/OrderHistoryPage.js:82:      const response = await fetch(`${backendUrl}/api/download/${productId}`, {
+src/front/js/pages/OrderHistoryPage.js:120:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/OrderHistoryPage.js:122:      const response = await fetch(`${backendUrl}/api/refund/request`, {
+src/front/js/pages/AIContentWriter.js:84:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/AIContentWriter.js:86:      const response = await fetch(`${backendUrl}/api/ai/generate-content`, {
+src/front/js/pages/PodcastCreate.js:62:    const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/PodcastCreate.js:63:    fetch(`${backendUrl}/api/podcasts/categories`)
+src/front/js/pages/PodcastCreate.js:230:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/PodcastCreate.js:272:      const response = await fetch(`${backendUrl}/api/upload_podcast`, {
+src/front/js/pages/ScreeningScheduler.js:11:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/PodcastGuestJoin.js:78:  const backendUrl = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/PodcastGuestJoin.js:131:    socketRef.current = io(backendUrl, {
+src/front/js/pages/PodcastGuestJoin.js:206:  }, [guestName, initMic, backendUrl, sessionId, inviteCode, getCtx]);
+src/front/js/pages/PodcastGuestJoin.js:219:      xhr.open("POST", `${backendUrl}/api/podcast-studio/upload-track`);
+src/front/js/pages/PodcastGuestJoin.js:233:  }, [guestName, sessionId, backendUrl]);
+src/front/js/pages/CreateReleasePage.js:21:        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/tracks`, {
+src/front/js/pages/CreateReleasePage.js:56:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/create-release`, {
+src/front/js/pages/WebRTCPage.js:27:  const [backendUrl, setBackendUrl] = useState(null);
+src/front/js/pages/WebRTCPage.js:32:      setBackendUrl(config.backendUrl);
+src/front/js/pages/WebRTCPage.js:59:    if (!backendUrl) return;
+src/front/js/pages/WebRTCPage.js:74:      console.log(`Connecting to WebRTC socket at: ${backendUrl}`);
+src/front/js/pages/WebRTCPage.js:76:      socketRef.current = io(backendUrl, {
+src/front/js/pages/WebRTCPage.js:150:  }, [backendUrl, roomId, userId, userName, reconnectAttempts]);
+src/front/js/pages/WebRTCPage.js:649:    if (backendUrl) {
+src/front/js/pages/WebRTCPage.js:666:  }, [backendUrl, initializeSocket, endCall, getAvailableDevices, screenStream]);
+src/front/js/pages/StorefrontPage.js:17:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/storefront`, {
+src/front/js/pages/StorefrontPage.js:51:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/products/upload`, {
+src/front/js/pages/BeatStorePage.js:49:    const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/BeatStorePage.js:73:            const res = await fetch(`${backendUrl}/api/beats?${params}`);
+src/front/js/pages/BeatStorePage.js:102:    }, [backendUrl, page, searchTerm, genre, mood, bpmRange, keyFilter, sortBy, showFreeOnly, activeCategory]);
+src/front/js/pages/BeatStorePage.js:106:        fetch(`${backendUrl}/api/beats/genres`)
+src/front/js/pages/BeatStorePage.js:110:    }, [backendUrl]);
+src/front/js/pages/BeatStorePage.js:163:            const res = await fetch(`${backendUrl}/api/beats/${beat.id}/purchase`, {
+src/front/js/pages/BeatStorePage.js:463:                    backendUrl={backendUrl}
+src/front/js/pages/BeatStorePage.js:477:const LicenseModal = ({ beat, backendUrl, onClose, onPurchase }) => {
+src/front/js/pages/BeatStorePage.js:483:        fetch(`${backendUrl}/api/beats/${beat.id}/licenses`)
+src/front/js/pages/BeatStorePage.js:490:    }, [backendUrl, beat.id]);
+src/front/js/pages/MerchDesigner.js:3:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/AlbumCreatePage.js:32:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/create-album`, {
+src/front/js/pages/MyLearning.js:7:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/UserSearchProfilePage.js:93:        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/${identifier}`, {
+src/front/js/pages/UserSearchProfilePage.js:157:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/${id}/playlists/public`);
+src/front/js/pages/UserSearchProfilePage.js:170:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/${id}/activity/public`);
+src/front/js/pages/UserSearchProfilePage.js:183:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/${id}/inner-circle/public`);
+src/front/js/pages/UserSearchProfilePage.js:206:        ? `${process.env.REACT_APP_BACKEND_URL}/api/unfollow/${userInfo.id}`
+src/front/js/pages/UserSearchProfilePage.js:207:        : `${process.env.REACT_APP_BACKEND_URL}/api/follow/${userInfo.id}`;
+src/front/js/pages/ListenerDashboard.js:21:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
+src/front/js/pages/ListenerDashboard.js:24:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/followed-podcasts`, {
+src/front/js/pages/ListenerDashboard.js:27:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/followed-artists`, {
+src/front/js/pages/ListenerDashboard.js:30:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/liked-tracks`, {
+src/front/js/pages/CoursePlayer.js:12:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/CheckoutPage.js:45:    const getBackendUrl = () => {
+src/front/js/pages/CheckoutPage.js:46:        return process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/CheckoutPage.js:81:            const backendUrl = getBackendUrl();
+src/front/js/pages/CheckoutPage.js:82:            const response = await fetch(`${backendUrl}/api/user/profile`, {
+src/front/js/pages/CheckoutPage.js:167:            const backendUrl = getBackendUrl();
+src/front/js/pages/CheckoutPage.js:172:                const response = await fetch(`${backendUrl}/api/marketplace/checkout`, {
+src/front/js/pages/CheckoutPage.js:211:            const backendUrl = getBackendUrl();
+src/front/js/pages/CheckoutPage.js:214:                const response = await fetch(`${backendUrl}/api/products/buy/${item.id}`, {
+src/front/js/pages/AICreditsPanel.js:12:const BACKEND = process.env.REACT_APP_BACKEND_URL || 'https://streampirex-api.up.railway.app';
+src/front/js/pages/LyricsUploadPage.js:11:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/upload-lyrics`, {
+src/front/js/pages/StoryUpload.js:181:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/StoryUpload.js:189:      const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+src/front/js/pages/StoryUpload.js:205:      const storyResponse = await fetch(`${backendUrl}/api/stories`, {
+src/front/js/pages/PodcastProfile.js:12:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcast/${username}/${podcastId}`)
+src/front/js/pages/LiveConcerts.js:8:    fetch(process.env.REACT_APP_BACKEND_URL + "/api/artist/concerts", {
+src/front/js/pages/LiveConcerts.js:17:    fetch(process.env.REACT_APP_BACKEND_URL + "/api/concerts/create", {
+src/front/js/pages/HybridLessonComposer.js:3:import { BackendURL } from "../component/backendURL";
+src/front/js/pages/HybridLessonComposer.js:60:      const res = await fetch(`${BackendURL}/api/advanced-ai/lesson-timeline/${lessonId}`, {
+src/front/js/pages/HybridLessonComposer.js:79:      const saveRes = await fetch(`${BackendURL}/api/advanced-ai/lesson-timeline/${lessonId}`, {
+src/front/js/pages/HybridLessonComposer.js:87:      const res = await fetch(`${BackendURL}/api/advanced-ai/lesson-timeline/${lessonId}/compose`, {
+src/front/js/pages/HybridLessonComposer.js:105:      const res = await fetch(`${BackendURL}/api/advanced-ai/jobs/${job.id}/${action}`, {
+src/front/js/pages/HybridLessonComposer.js:122:        const res = await fetch(`${BackendURL}/api/advanced-ai/lesson-timeline/${lessonId}`, {
+src/front/js/pages/HybridLessonComposer.js:135:    const backendOrigin = new URL(BackendURL).origin;
+src/front/js/pages/DJMixer.js:6:const BACKEND = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/DJMixer.js:363:        initAudio(); const url = t.audio_url || t.file_url || t.r2_url; if (!url) return;
+src/front/js/pages/MyVideoChannel.js:36:          `${process.env.REACT_APP_BACKEND_URL}/api/video/channel/${channelId}`,
+src/front/js/pages/MyVideoChannel.js:47:          `${process.env.REACT_APP_BACKEND_URL}/api/video/channel/me`,
+src/front/js/pages/MyVideoChannel.js:87:        `${process.env.REACT_APP_BACKEND_URL}/api/video/user?user_id=${userId || store.user?.id}`,
+src/front/js/pages/MyVideoChannel.js:108:        `${process.env.REACT_APP_BACKEND_URL}/api/clips/user`,
+src/front/js/pages/MyVideoChannel.js:129:        `${process.env.REACT_APP_BACKEND_URL}/api/video/channel/${channelId}/subscribers`,
+src/front/js/pages/MyVideoChannel.js:150:        `${process.env.REACT_APP_BACKEND_URL}/api/video/channel/analytics`,
+src/front/js/pages/MyVideoChannel.js:171:        `${process.env.REACT_APP_BACKEND_URL}/api/video/channel/create`,
+src/front/js/pages/VideoSeriesBuilder.js:22:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/PodcastStudio.js:507:    const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/PodcastStudio.js:508:    if (!backendUrl || socketRef.current?.connected) return;
+src/front/js/pages/PodcastStudio.js:510:    socketRef.current = io(backendUrl, {
+src/front/js/pages/PodcastStudio.js:728:      const bu = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/RevenueAnalytics.js:12:                const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/revenue-analytics`, {
+src/front/js/pages/CreateClipPage.js:41:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/user`, {
+src/front/js/pages/CreateClipPage.js:160:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/clips/create`, {
+src/front/js/pages/SubscriptionSuccess.js:26:  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/SubscriptionSuccess.js:45:        `${backendUrl}/api/subscriptions/verify-session?session_id=${sessionId}`,
+src/front/js/pages/SubscriptionSuccess.js:79:          `${backendUrl}/api/sonosuite/redirect?return_to=${encodeURIComponent('/albums')}`,
+src/front/js/pages/ReelsPage.js:12:const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/RadioStations.js:14:    fetch(process.env.REACT_APP_BACKEND_URL + "/api/radio-stations")
+src/front/js/pages/RadioStations.js:22:    fetch(process.env.REACT_APP_BACKEND_URL + "/api/radio/categories")
+src/front/js/pages/HomeFeed.js:33:        const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/HomeFeed.js:35:        console.log("Backend URL:", backendUrl);
+src/front/js/pages/HomeFeed.js:37:        if (!backendUrl) {
+src/front/js/pages/HomeFeed.js:43:          const postsRes = await fetch(`${backendUrl}/api/home-feed?type=${activeFilter}`, {
+src/front/js/pages/HomeFeed.js:67:          const usersRes = await fetch(`${backendUrl}/api/suggested-users`, {
+src/front/js/pages/HomeFeed.js:86:          const trendingRes = await fetch(`${backendUrl}/api/discover-feed?type=all&per_page=5`, {
+src/front/js/pages/HomeFeed.js:105:          const profileRes = await fetch(`${backendUrl}/api/user/profile`, {
+src/front/js/pages/HomeFeed.js:149:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/HomeFeed.js:151:      if (backendUrl && token) {
+src/front/js/pages/HomeFeed.js:153:          const response = await fetch(`${backendUrl}/api/posts/create`, {
+src/front/js/pages/HomeFeed.js:206:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/HomeFeed.js:208:      const response = await fetch(`${backendUrl}/api/posts/${postId}/like`, {
+src/front/js/pages/HomeFeed.js:235:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/HomeFeed.js:237:      const response = await fetch(`${backendUrl}/api/posts/${postId}/comments`, {
+src/front/js/pages/HomeFeed.js:283:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/HomeFeed.js:290:      const response = await fetch(`${backendUrl}/api/follow/${userId}`, {
+src/front/js/pages/VideoUpload.js:90:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/me`, {
+src/front/js/pages/VideoUpload.js:113:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/create`, {
+src/front/js/pages/VideoUpload.js:231:    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/upload/cloudinary`, {
+src/front/js/pages/VideoUpload.js:312:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/upload`, {
+src/front/js/pages/PublicEPK.js:13:const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/SellBeatsPage.js:5:const BACKEND = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/RevenueDashboard.js:15:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator-revenue`, {
+src/front/js/pages/FavoritePage.js:19:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
+src/front/js/pages/FavoritePage.js:39:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/follow`, {
+src/front/js/pages/FavoritePage.js:56:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/followers`, {
+src/front/js/pages/FavoritePage.js:68:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/following`, {
+src/front/js/pages/BrowsePodcastCategories.js:101:      const backendUrl =
+src/front/js/pages/BrowsePodcastCategories.js:102:        process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/BrowsePodcastCategories.js:104:      const response = await fetch(`${backendUrl}/api/podcasts/browse`, {
+src/front/js/pages/ContentLibrary.js:33:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/all-content`, {
+src/front/js/pages/SellerDashboard.js:15:    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/seller/orders`, {
+src/front/js/pages/SellerDashboard.js:30:      `${process.env.REACT_APP_BACKEND_URL}/api/marketplace/orders/${orderId}/fulfill`,
+src/front/js/pages/CollabRequests.js:23:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/SonosuiteRedirect.js:7:  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/SonosuiteRedirect.js:21:          `${backendUrl}/api/sonosuite/redirect?return_to=${encodeURIComponent(snsReturnTo)}`,
+src/front/js/pages/TechSupportPage.js:63:  const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/TechSupportPage.js:82:        `${backendUrl}/api/support/tickets?${params.toString()}`,
+src/front/js/pages/TechSupportPage.js:99:  }, [backendUrl, statusFilter, navigate]);
+src/front/js/pages/TechSupportPage.js:129:      const response = await fetch(`${backendUrl}/api/support/tickets`, {
+src/front/js/pages/TechSupportPage.js:179:      const response = await fetch(`${backendUrl}/api/support/tickets/${ticketId}`, {
+src/front/js/pages/TechSupportPage.js:203:        `${backendUrl}/api/support/tickets/${selectedTicket.id}/reply`,
+src/front/js/pages/TechSupportPage.js:234:        `${backendUrl}/api/support/tickets/${selectedTicket.id}/close`,
+src/front/js/pages/TechSupportPage.js:257:        `${backendUrl}/api/support/tickets/${selectedTicket.id}/reopen`,
+src/front/js/pages/MembersPage.js:11:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/products`)
+src/front/js/pages/PodcastDetailPage.js:29:        const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/PodcastDetailPage.js:32:        if (!backendUrl) {
+src/front/js/pages/PodcastDetailPage.js:37:        const podcastRes = await fetch(`${backendUrl}/api/podcasts/${id}`, {
+src/front/js/pages/PodcastDetailPage.js:52:        const episodesRes = await fetch(`${backendUrl}/api/podcast/${id}/episodes`, {
+src/front/js/pages/PodcastDetailPage.js:181:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/PodcastDetailPage.js:183:      if (token && backendUrl) {
+src/front/js/pages/PodcastDetailPage.js:184:        await fetch(`${backendUrl}/api/podcast/${id}/like`, {
+src/front/js/pages/PodcastDetailPage.js:206:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/PodcastDetailPage.js:213:      const response = await fetch(`${backendUrl}/api/podcast/${id}/subscribe`, {
+src/front/js/pages/EPKCollabHub.js:17:const BACKEND = process.env.REACT_APP_BACKEND_URL || 'https://streampirex-api.up.railway.app';
+src/front/js/pages/FavoritesPage.js:22:  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev";
+src/front/js/pages/RadioSchedule.js:30:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/${id}`, {
+src/front/js/pages/RadioSchedule.js:48:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/${id}/schedule`, {
+src/front/js/pages/RadioSchedule.js:73:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/${id}/schedule/add`, {
+src/front/js/pages/RadioSchedule.js:107:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/${id}/schedule/${slotIndex}`, {
+src/front/js/pages/Dashboard/DashboardPodcasts.js:37:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/Dashboard/DashboardPodcasts.js:38:      const response = await fetch(`${backendUrl}/api/podcast/dashboard`, {
+src/front/js/pages/Dashboard/DashboardPodcasts.js:94:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcast/${podcastId}`, {
+src/front/js/pages/Dashboard/DashboardPodcasts.js:114:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcast/${podcastId}/status`, {
+src/front/js/pages/Dashboard/DashboardRadio.js:34:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio-stations`, {
+src/front/js/pages/Dashboard/DashboardRadio.js:69:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/${stationId}`, {
+src/front/js/pages/Dashboard/DashboardRadio.js:89:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/${stationId}/toggle-live`, {
+src/front/js/pages/Dashboard/DashboardMusic.js:126:      const tracksRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/tracks`, {
+src/front/js/pages/Dashboard/DashboardMusic.js:134:      const analyticsRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/analytics`, {
+src/front/js/pages/Dashboard/DashboardMusic.js:150:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/categories`);
+src/front/js/pages/Dashboard/DashboardMusic.js:163:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/concerts`, {
+src/front/js/pages/Dashboard/DashboardMusic.js:178:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/recent-activity`, {
+src/front/js/pages/Dashboard/DashboardMusic.js:223:      await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/tracks/${trackId}/play`, {
+src/front/js/pages/Dashboard/DashboardMusic.js:237:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/tracks/${trackId}`, {
+src/front/js/pages/Dashboard/DashboardMusic.js:341:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/upload-track`, {
+src/front/js/pages/Dashboard/DashboardMusic.js:379:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/concerts/create`, {
+src/front/js/pages/Dashboard/DashboardMusic.js:401:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/concerts/${concertId}`, {
+src/front/js/pages/Dashboard/DashboardVideos.js:30:      const videosRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/videos/my-videos`, {
+src/front/js/pages/Dashboard/DashboardVideos.js:53:      const statsRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video-channel/stats`, {
+src/front/js/pages/Dashboard/DashboardVideos.js:77:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/videos/${videoId}`, {
+src/front/js/pages/Dashboard/DashboardStore.js:44:        `${process.env.REACT_APP_BACKEND_URL}/api/revenue-analytics?period=${timeFilter}`,
+src/front/js/pages/Dashboard/DashboardStore.js:67:        `${process.env.REACT_APP_BACKEND_URL}/api/user/sales?limit=10`,
+src/front/js/pages/Dashboard/DashboardStore.js:83:        `${process.env.REACT_APP_BACKEND_URL}/api/storefront`,
+src/front/js/pages/Dashboard/DashboardStore.js:99:        `${process.env.REACT_APP_BACKEND_URL}/api/marketplace/seller/orders`,
+src/front/js/pages/Dashboard/DashboardStore.js:115:        `${process.env.REACT_APP_BACKEND_URL}/api/marketplace/orders/${orderId}/fulfill`,
+src/front/js/pages/Dashboard/DashboardOverview.js:51:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/profile`, { headers }),
+src/front/js/pages/Dashboard/DashboardOverview.js:52:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/social-shares`, { headers }),
+src/front/js/pages/Dashboard/DashboardOverview.js:53:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/content-breakdown`, { headers }),
+src/front/js/pages/Dashboard/DashboardOverview.js:54:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/earnings`, { headers }),
+src/front/js/pages/Dashboard/DashboardOverview.js:55:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/my-products`, { headers }),
+src/front/js/pages/Dashboard/DashboardOverview.js:56:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/recent-activity`, { headers }),
+src/front/js/pages/Dashboard/DashboardOverview.js:57:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/monthly-growth`, { headers })
+src/front/js/pages/Dashboard/DashboardOverview.js:119:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/recent-activity`, {
+src/front/js/pages/Dashboard/Dashboard.js:43:      const profileRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
+src/front/js/pages/CourseBuilder.js:12:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/ArtistDashboard.js:142:      const profileRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
+src/front/js/pages/ArtistDashboard.js:151:      const tracksRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/tracks`, {
+src/front/js/pages/ArtistDashboard.js:160:      const analyticsRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/analytics`, {
+src/front/js/pages/ArtistDashboard.js:177:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/categories`);
+src/front/js/pages/ArtistDashboard.js:192:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/recent-activity`, {
+src/front/js/pages/ArtistDashboard.js:216:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/upcoming-events`, {
+src/front/js/pages/ArtistDashboard.js:238:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/concerts`, {
+src/front/js/pages/ArtistDashboard.js:269:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/concerts/create`, {
+src/front/js/pages/ArtistDashboard.js:307:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/concerts/${concertBeingEdited.id}`, {
+src/front/js/pages/ArtistDashboard.js:340:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/concerts/${concertId}`, {
+src/front/js/pages/ArtistDashboard.js:428:      await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/tracks/${trackId}/play`, {
+src/front/js/pages/ArtistDashboard.js:462:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/upload-track`, {
+src/front/js/pages/ArtistDashboard.js:493:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/tracks/${trackId}`, {
+src/front/js/pages/VirtualTheatreRoom.js:11:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/EmbeddablePlayer.js:4:const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/DiscoverCreators.js:14:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creators/discover?${params}`)
+src/front/js/pages/SettingsPage.js:93:  const [backendUrl, setBackendUrl] = useState(null);
+src/front/js/pages/SettingsPage.js:99:      setBackendUrl(config.backendUrl);
+src/front/js/pages/SettingsPage.js:107:    if (!backendUrl) return;
+src/front/js/pages/SettingsPage.js:112:        return await ErrorHandler.fetchWithErrorHandling(`${backendUrl}/api/user/settings`, {
+src/front/js/pages/SettingsPage.js:117:        return await ErrorHandler.fetchWithErrorHandling(`${backendUrl}/api/user/earnings`, {
+src/front/js/pages/SettingsPage.js:129:  }, [backendUrl, navigate]);
+src/front/js/pages/SettingsPage.js:132:    if (backendUrl) loadUserData();
+src/front/js/pages/SettingsPage.js:133:  }, [backendUrl, loadUserData]);
+src/front/js/pages/SettingsPage.js:136:    if (!backendUrl) return;
+src/front/js/pages/SettingsPage.js:139:      await ErrorHandler.fetchWithErrorHandling(`${backendUrl}/api/user/settings`, {
+src/front/js/pages/SettingsPage.js:152:  }, [backendUrl, navigate]);
+src/front/js/pages/SettingsPage.js:169:    if (!backendUrl) return;
+src/front/js/pages/SettingsPage.js:178:      await ErrorHandler.fetchWithErrorHandling(`${backendUrl}/api/user/delete-account`, {
+src/front/js/pages/SettingsPage.js:191:  }, [backendUrl, deleteConfirmation]);
+src/front/js/pages/SettingsPage.js:194:    if (!backendUrl) return;
+src/front/js/pages/SettingsPage.js:196:      const response = await fetch(`${backendUrl}/api/user/export-data`, {
+src/front/js/pages/SettingsPage.js:213:  }, [backendUrl, navigate]);
+src/front/js/pages/SettingsPage.js:216:    if (!backendUrl) return;
+src/front/js/pages/SettingsPage.js:219:      const response = await fetch(`${backendUrl}/api/health`);
+src/front/js/pages/SettingsPage.js:229:  }, [backendUrl]);
+src/front/js/pages/UploadReel.js:32:  const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/UploadReel.js:164:      xhr.open('POST', `${backendUrl}/api/upload/media`);
+src/front/js/pages/UploadReel.js:177:      const reelResponse = await fetch(`${backendUrl}/api/reels/upload`, {
+src/front/js/pages/BrowseVideosPage.js:54:  const baseUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/BrowseLicensing.js:7:    fetch(process.env.REACT_APP_BACKEND_URL + "/api/licensing/tracks")
+src/front/js/pages/ClipView.js:4:const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/CreatorDashboard.js:35:const B   = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/FreeTrial.js:10:        const res = await fetch(process.env.REACT_APP_BACKEND_URL + "/free-trial-status", {
+src/front/js/pages/FreeTrial.js:20:        const res = await fetch(process.env.REACT_APP_BACKEND_URL + "/free-trial", {
+src/front/js/pages/BrowseRadioStations.js:64:      const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/BrowseRadioStations.js:65:      const res = await fetch(`${backendUrl}/api/radio-stations`);
+src/front/js/pages/GoLivePage.js:225:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/live/start`, {
+src/front/js/pages/GoLivePage.js:265:            const wsUrl = process.env.REACT_APP_WS_URL || process.env.REACT_APP_BACKEND_URL?.replace('http', 'ws');
+src/front/js/pages/GoLivePage.js:304:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/live/stop`, {
+src/front/js/pages/BrowseFilmsPage.js:11:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/EditArtistProfilePage.js:58:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
+src/front/js/pages/EditArtistProfilePage.js:228:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
+src/front/js/pages/MyReels.js:22:  const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/MyReels.js:35:        `${backendUrl}/api/reels/my?page=${pageNum}&per_page=20`,
+src/front/js/pages/MyReels.js:50:  }, [backendUrl, navigate]);
+src/front/js/pages/MyReels.js:60:      const res = await fetch(`${backendUrl}/api/reels/${reelId}`, {
+src/front/js/pages/MyReels.js:79:      const res = await fetch(`${backendUrl}/api/reels/${reelId}/toggle-visibility`, {
+src/front/js/pages/StemsStore.js:22:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/VideoChannelProfile.js:40:        `${process.env.REACT_APP_BACKEND_URL}/api/video/channel/${targetChannelId}`,
+src/front/js/pages/VideoChannelProfile.js:55:          `${process.env.REACT_APP_BACKEND_URL}/api/video/user?user_id=${channel.user_id}`,
+src/front/js/pages/VideoChannelProfile.js:97:        `${process.env.REACT_APP_BACKEND_URL}/api/video/channel/${channelId}/subscription-status`,
+src/front/js/pages/VideoChannelProfile.js:124:        `${process.env.REACT_APP_BACKEND_URL}/api/video/channel/${channelData.id}/subscribe`,
+src/front/js/pages/VideoChannelProfile.js:156:        `${process.env.REACT_APP_BACKEND_URL}/api/reels/feed?type=foryou&per_page=50`,
+src/front/js/pages/ProductPage.js:9:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcasts`)
+src/front/js/pages/ProductPage.js:17:        const shareUrl = encodeURIComponent(`${process.env.REACT_APP_BACKEND_URL}/${clipUrl}`);
+src/front/js/pages/CreateRadioStation.js:106:        const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/CreateRadioStation.js:107:        const response = await fetch(`${backendUrl}/api/radio/categories`);
+src/front/js/pages/CreateRadioStation.js:424:      const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/CreateRadioStation.js:427:      let response = await fetch(`${backendUrl}/api/profile/radio/create`, {
+src/front/js/pages/CreateRadioStation.js:437:        response = await fetch(`${backendUrl}/api/radio/create`, {
+src/front/js/pages/CommentsPage.js:8:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/comments/${contentType}/${contentId}`)
+src/front/js/pages/CommentsPage.js:15:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/comments`, {
+src/front/js/pages/RadioStationDashboard.js:37:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/RadioStationDashboard.js:40:      const response = await fetch(`${backendUrl}/api/radio-stations`, {
+src/front/js/pages/RadioStationDashboard.js:85:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/RadioStationDashboard.js:87:      const response = await fetch(`${backendUrl}/api/radio/${stationId}`, {
+src/front/js/pages/RadioStationDashboard.js:120:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/RadioStationDashboard.js:122:      const response = await fetch(`${backendUrl}/api/radio/${stationId}/toggle-live`, {
+src/front/js/pages/PaymentProcessing.js:25:    const res = await fetch(process.env.REACT_APP_BACKEND_URL + "/api/create-payment-intent", {
+src/front/js/pages/ShoppingCart.js:49:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/products/${productId}`, {
+src/front/js/pages/ShoppingCart.js:125:                const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/checkout`, {
+src/front/js/pages/ReleaseList.js:14:        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/releases`, {
+src/front/js/pages/EpisodePage.js:6:        fetch(`${process.env.REACT_APP_BACKEND_URL}/podcast/${episode.podcast_id}/purchase`, {
+src/front/js/pages/EpisodePage.js:9:            body: JSON.stringify({ episode_id: episode.id, stripe_token: token.id }),
+src/front/js/pages/EpisodePage.js:20:                    stripeKey="your_stripe_public_key"
+src/front/js/pages/VirtualTheatreRoom_v2.js:20:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/MusicLicensing.js:9:    fetch(process.env.REACT_APP_BACKEND_URL + "/api/artist/tracks", {
+src/front/js/pages/MusicLicensing.js:20:    fetch(process.env.REACT_APP_BACKEND_URL + "/api/licensing/submit", {
+src/front/js/pages/LiveShowPage.js:38:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/live-streams/${id}`);
+src/front/js/pages/LiveShowPage.js:49:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio-stations/${id}`);
+src/front/js/pages/LiveShowPage.js:64:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio-stations/${id}/now-playing`);
+src/front/js/pages/LiveShowPage.js:75:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
+src/front/js/pages/LiveShowPage.js:95:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/start-broadcast`, {
+src/front/js/pages/LiveShowPage.js:125:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/stop-broadcast`, {
+src/front/js/pages/BrowseProfile.js:25:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/profiles`);
+src/front/js/pages/RecordingStudio.js:1491:      const bu = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/RecordingStudio.js:1643:          const bu = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/RecordingStudio.js:1842:      const bu = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/RecordingStudio.js:1894:      const bu = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/RecordingStudio.js:1941:      const bu = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/CreatorAcademy.js:44:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/SPXVectorPage.js:6:const backendURL = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/SPXVectorPage.js:317:      const res = await fetch(`${backendURL}/api/spx-vector/templates`);
+src/front/js/pages/SPXVectorPage.js:327:      const res = await fetch(`${backendURL}/api/spx-vector/projects`, {
+src/front/js/pages/SPXVectorPage.js:339:      const res = await fetch(`${backendURL}/api/spx-vector/assets`, {
+src/front/js/pages/SPXVectorPage.js:503:        ? `${backendURL}/api/spx-vector/projects/${project.id}`
+src/front/js/pages/SPXVectorPage.js:504:        : `${backendURL}/api/spx-vector/projects`;
+src/front/js/pages/SPXVectorPage.js:535:      const res = await fetch(`${backendURL}/api/spx-vector/projects/${id}`, {
+src/front/js/pages/SPXVectorPage.js:566:      const res = await fetch(`${backendURL}/api/spx-vector/assets`, {
+src/front/js/pages/RefundProcessing.js:7:        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/refunds`, {
+src/front/js/pages/RefundProcessing.js:15:        await fetch(`${process.env.REACT_APP_BACKEND_URL}/refunds/${id}`, {
+src/front/js/pages/ShortFilmHub.js:11:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/CollaboratorSplitPage.js:21:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/add-collaborator`, {
+src/front/js/pages/UploadMusic.js:39:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/stations/detailed`, {
+src/front/js/pages/UploadMusic.js:50:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/stations`, {
+src/front/js/pages/UploadMusic.js:191:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/upload_music`, {
+src/front/js/pages/AlbumDetailPage.js:54:      const albumResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/albums/${albumId}`, {
+src/front/js/pages/AlbumDetailPage.js:66:      const tracksResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/albums/${albumId}/tracks`, {
+src/front/js/pages/AlbumDetailPage.js:77:        const artistResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artists/${albumData.artist_id}`, {
+src/front/js/pages/AlbumDetailPage.js:89:        const likeResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/albums/${albumId}/like-status`, {
+src/front/js/pages/AlbumDetailPage.js:153:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/albums/${albumId}/like`, {
+src/front/js/pages/ArtistProfilePage.js:162:        const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/ArtistProfilePage.js:210:      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/ArtistProfilePage.js:316:  const fetchOptionalData = async (backendUrl, token) => {
+src/front/js/pages/ArtistProfilePage.js:319:      const albumsRes = await fetch(`${backendUrl}/api/artist/albums`, {
+src/front/js/pages/ArtistProfilePage.js:331:        const fallbackRes = await fetch(`${backendUrl}/api/my-albums`, {
+src/front/js/pages/ArtistProfilePage.js:349:      const playlistsRes = await fetch(`${backendUrl}/api/playlists`, {
+src/front/js/pages/ArtistProfilePage.js:357:        const fallbackRes = await fetch(`${backendUrl}/api/artist/playlists`, {
+src/front/js/pages/ArtistProfilePage.js:371:      const activityRes = await fetch(`${backendUrl}/api/artist/activity`, {
+src/front/js/pages/ArtistProfilePage.js:396:      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/ArtistProfilePage.js:476:      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/ArtistProfilePage.js:549:      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/ArtistProfilePage.js:581:      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/ArtistProfilePage.js:609:      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/ArtistProfilePage.js:651:      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/ArtistProfilePage.js:698:      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/ArtistProfilePage.js:753:      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/MerchStore.js:3:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/SalesDashboard.js:50:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/revenue-analytics?period=${timeFilter}`, {
+src/front/js/pages/SalesDashboard.js:77:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/sales?limit=10`, {
+src/front/js/pages/SalesDashboard.js:95:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/storefront`, {
+src/front/js/pages/SalesDashboard.js:115:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/seller/orders`, {
+src/front/js/pages/SalesDashboard.js:137:                `${process.env.REACT_APP_BACKEND_URL}/api/marketplace/orders/${orderId}/fulfill`,
+src/front/js/pages/ReelsFeed.js:57:  const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/pages/ReelsFeed.js:70:        `${backendUrl}/api/reels/feed?type=${feedType}&page=${pageNum}&per_page=10`,
+src/front/js/pages/ReelsFeed.js:89:  }, [backendUrl, feedType]);
+src/front/js/pages/ReelsFeed.js:135:      await fetch(`${backendUrl}/api/clips/${reelId}/view`, {
+src/front/js/pages/ReelsFeed.js:140:  }, [backendUrl]);
+src/front/js/pages/ReelsFeed.js:297:      const response = await fetch(`${backendUrl}/api/clips/${reelId}/like`, {
+src/front/js/pages/ReelsFeed.js:322:      await fetch(`${backendUrl}/api/clips/${reelId}/dislike`, {
+src/front/js/pages/ReelsFeed.js:344:      const res = await fetch(`${backendUrl}/api/clips/${reelId}/comments`, {
+src/front/js/pages/ReelsFeed.js:361:      const res = await fetch(`${backendUrl}/api/clips/${commentDrawerReelId}/comments`, {
+src/front/js/pages/ReelsFeed.js:447:      const res = await fetch(`${backendUrl}/api/follow/${userId}`, {
+src/front/js/pages/RoleManagement.js:8:        fetch(process.env.REACT_APP_BACKEND_URL + "/api/roles", {
+src/front/js/pages/RoleManagement.js:17:        fetch(process.env.REACT_APP_BACKEND_URL + "/api/roles", {
+src/front/js/pages/RoleManagement.js:34:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/roles/${roleId}`, {
+src/front/js/pages/TeamRoomPage.js:23:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/pages/ArtistRadioStation.js:9:    fetch(process.env.REACT_APP_BACKEND_URL + "/api/artist/radio", {
+src/front/js/pages/ArtistRadioStation.js:18:    fetch(process.env.REACT_APP_BACKEND_URL + "/api/radio/create", {
+src/front/js/pages/UserProfile.js:9:    fetch(process.env.REACT_APP_BACKEND_URL + "/api/user/profile", {
+src/front/js/pages/UserProfile.js:35:    fetch(process.env.REACT_APP_BACKEND_URL + "/api/user/update-profile", {
+src/front/js/pages/DiscoverUsersPage.js:32:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/pages/DiscoverUsersPage.js:34:      if (!backendUrl) {
+src/front/js/pages/DiscoverUsersPage.js:46:      const response = await fetch(`${backendUrl}/api/users/discover?${params}`, {
+src/front/js/pages/GamersChatroomPage.js:10:const socket = io(process.env.REACT_APP_BACKEND_URL || "http://localhost:3001", {
+src/front/js/pages/LiveStreamViewer.js:46:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/live/stream/${id}`);
+src/front/js/pages/LiveStreamViewer.js:76:            const wsUrl = process.env.REACT_APP_WS_URL || process.env.REACT_APP_BACKEND_URL?.replace('http', 'ws');
+src/front/js/pages/FilmDetailPage.js:11:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/pages/Messages.js:19:    const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+src/front/js/pages/Messages.js:20:    const newSocket = io(backendUrl, {
+src/front/js/pages/Messages.js:34:    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/messages/conversations`, {
+src/front/js/pages/Messages.js:44:    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/messages/conversation/${userId}`, {
+src/front/js/pages/Messages.js:57:    await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/messages/send`, {
+src/front/js/pages/PricingPlans.js:43:        const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+src/front/js/pages/PricingPlans.js:44:        const response = await fetch(`${backendUrl}/api/user/subscription`, {
+src/front/js/pages/PricingPlans.js:110:      const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+src/front/js/pages/PricingPlans.js:123:      const response = await fetch(`${backendUrl}/api/subscriptions/subscribe`, {
+src/front/js/pages/AIJobsMonitor.js:2:import { BackendURL } from "../component/backendURL";
+src/front/js/pages/AIJobsMonitor.js:14:      const txRes = await fetch(`${BackendURL}/api/advanced-ai/credit-transactions?per_page=50`, {
+src/front/js/pages/AIJobsMonitor.js:28:        const jr = await fetch(`${BackendURL}/api/advanced-ai/jobs/${id}`, {
+src/front/js/pages/AIJobsMonitor.js:45:      const res = await fetch(`${BackendURL}/api/advanced-ai/jobs/${id}/${action}`, {
+src/front/js/pages/AIJobsMonitor.js:59:    const backendOrigin = new URL(BackendURL).origin;
+src/front/js/pages/BeatDetailPage.js:6:const BACKEND = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/component/AddVocalsToTrack.js:230:  const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/AIRadioDJ.js:67:  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/component/ProductUploadForm.js:105:      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/products`, {
+src/front/js/component/AddBeatToVocals.js:199:  const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/WebRTCChat.js:5:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://streampirex-api.up.railway.app";
+src/front/js/component/SongExtender.js:187:  const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/PodcastCollabRoom.js:32:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://streampirex-api.up.railway.app";
+src/front/js/component/StudioBrandingAndAsync.js:32:      const bu = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/component/StudioBrandingAndAsync.js:219:      const bu = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/component/backendURL.js:5:export const BackendURL = () => (
+src/front/js/component/ShareToStoryButton.js:25:  const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/ShareToStoryButton.js:42:      const response = await fetch(`${backendUrl}/api/stories/share`, {
+src/front/js/component/SessionVersionControl.js:28:const BASE_URL = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/BeatCart.js:5:const BACKEND = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/component/TipJar.js:20:const backendURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+src/front/js/component/TipJar.js:135:      const res = await fetch(`${backendURL}/api/tips/creator/${creatorId}`, {
+src/front/js/component/TipJar.js:229:      const res = await fetch(`${backendURL}/api/tips/quick-pay`, {
+src/front/js/component/TipJar.js:262:        const confirmRes = await fetch(`${backendURL}/api/tips/confirm/${data.tip_id}`, {
+src/front/js/component/TipJar.js:293:      const res = await fetch(`${backendURL}/api/tips/external`, {
+src/front/js/component/LiveStudio.js:81:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/live/start`, {
+src/front/js/component/LiveStudio.js:110:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/live/end`, {
+src/front/js/component/HumToSong.js:209:  const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/PodcastEpisode.js:6:const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY); // or process.env...
+src/front/js/component/PodcastEpisode.js:53:        stripe_token: null // Replace if collecting token manually
+src/front/js/component/NotificationsWidget.js:5:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/component/ScheduleEpisodeForm.js:7:        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcast/${podcastId}/episode/schedule`, {
+src/front/js/component/StoriesBar.js:23:  const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/StoriesBar.js:38:      const response = await fetch(`${backendUrl}/api/stories/feed`, {
+src/front/js/component/GamerGate.js:31:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/gamer-profile`, {
+src/front/js/component/audio/plugins/presets/presetStore.js:129:      const bu = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/audio/plugins/presets/presetStore.js:142:      const bu = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/SamplerBeatMaker.js:141:const R2_KIT_URLS = {
+src/front/js/component/SamplerBeatMaker.js:383:  const STEM_BACKEND = process.env.REACT_APP_BACKEND_URL || 'https://streampirex-api.up.railway.app';
+src/front/js/component/SamplerBeatMaker.js:3029:                            const realUrl = R2_KIT_URLS[s];
+src/front/js/component/SamplerBeatMaker.js:3041:                          const firstUrl = R2_KIT_URLS[sounds[0]];
+src/front/js/component/SamplerBeatMaker.js:3064:                            const realUrl = R2_KIT_URLS[s];
+src/front/js/component/useSamplerStorage.js:12:const API = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/PodcastActions.js:5:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/like`, {
+src/front/js/component/PodcastActions.js:19:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/favorite`, {
+src/front/js/component/AILessonTools.js:2:import { BackendURL } from "./backendURL";
+src/front/js/component/AILessonTools.js:33:      const vidsRes = await fetch(`${BackendURL}/api/ai-video/my-videos?status=completed&per_page=50`, {
+src/front/js/component/AILessonTools.js:52:          fetch(`${BackendURL}/api/ai-video/studio-status`, {
+src/front/js/component/AILessonTools.js:55:          fetch(`${BackendURL}/api/ai-video/my-videos?status=completed&per_page=50`, {
+src/front/js/component/AILessonTools.js:95:      const res = await fetch(`${BackendURL}/api/academy/lessons/${selectedLessonId}/script`, {
+src/front/js/component/AILessonTools.js:137:      const res = await fetch(`${BackendURL}/api/academy/lessons/${selectedLessonId}/attach-ai-video`, {
+src/front/js/component/AILessonTools.js:179:      const res = await fetch(`${BackendURL}/api/academy/lessons/${selectedLessonId}/attach-ai-audio`, {
+src/front/js/component/AILessonTools.js:225:      const res = await fetch(`${BackendURL}/api/voice/course/lesson`, {
+src/front/js/component/AILessonTools.js:275:      const res = await fetch(`${BackendURL}/api/ai-video/generate/text`, {
+src/front/js/component/MarketplaceProductList.js:9:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/products`)
+src/front/js/component/MonetizationAnalytics.js:7:        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/earnings/${podcastId}`)
+src/front/js/component/MagicClips.js:53:      const bu = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/component/MagicClips.js:94:    const bu = process.env.REACT_APP_BACKEND_URL || "";
+src/front/js/component/hooks/useTierAccess.js:306:        const API_URL = process.env.REACT_APP_API_URL || '';
+src/front/js/component/hooks/useAICredits.js:19:const backendURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+src/front/js/component/hooks/useAICredits.js:90:            const res = await fetch(`${backendURL}/api/ai/credits`, { headers: getHeaders() });
+src/front/js/component/hooks/useAICredits.js:112:            const res = await fetch(`${backendURL}/api/ai/credits/check`, {
+src/front/js/component/hooks/useAICredits.js:126:            const res = await fetch(`${backendURL}/api/ai/credits/use`, {
+src/front/js/component/hooks/useAICredits.js:147:            const res = await fetch(`${backendURL}/api/ai/credits/refund`, {
+src/front/js/component/hooks/useAICredits.js:165:            const res = await fetch(`${backendURL}/api/ai/credits/purchase`, {
+src/front/js/component/hooks/useAICredits.js:190:                `${backendURL}/api/ai/credits/usage?${params}`,
+src/front/js/component/hooks/useAICredits.js:202:            const res = await fetch(`${backendURL}/api/ai/credits/storage`, { headers: getHeaders() });
+src/front/js/component/hooks/useDAWCollaboration.js:118:      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/hooks/useDAWCollaboration.js:120:      const sock = io(backendUrl, {
+src/front/js/component/hooks/useVideoEditorState.js:9:const backendURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+src/front/js/component/hooks/useVideoEditorState.js:187:        `${backendURL}/api/video-editor/projects/${projectId}/markers`,
+src/front/js/component/hooks/useVideoEditorState.js:217:          `${backendURL}/api/video-editor/projects/${projectId}/markers`,
+src/front/js/component/hooks/useVideoEditorState.js:239:          `${backendURL}/api/video-editor/projects/${projectId}/markers/${markerId}`,
+src/front/js/component/hooks/useVideoEditorState.js:256:          `${backendURL}/api/video-editor/projects/${projectId}/markers/clear`,
+src/front/js/component/hooks/useVideoEditorState.js:321:        `${backendURL}/api/video-editor/projects`,
+src/front/js/component/hooks/useVideoEditorState.js:357:        `${backendURL}/api/video-editor/projects/${projectId}`,
+src/front/js/component/hooks/useVideoEditorState.js:388:        `${backendURL}/api/video-editor/projects/${projectId}`,
+src/front/js/component/hooks/useVideoEditorState.js:421:        `${backendURL}/api/video-editor/projects/${currentProject.id}/duplicate`,
+src/front/js/component/hooks/useVideoEditorState.js:450:        `${backendURL}/api/video-editor/projects/${projectId}`,
+src/front/js/component/hooks/useVideoEditorState.js:475:        `${backendURL}/api/video-editor/recent-projects?limit=${limit}`,
+src/front/js/component/hooks/useVideoEditorState.js:493:        `${backendURL}/api/video-editor/projects`,
+src/front/js/component/hooks/useVideoEditorState.js:518:            `${backendURL}/api/video-editor/projects/${currentProject.id}/autosave`,
+src/front/js/component/StorageStatus.js:20:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/storage`, {
+src/front/js/component/PayoutRequest.js:24:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/send-payment`, {
+src/front/js/component/AITextToSong.js:248:  const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/AvatarCreation.js:31:      const response = await axios.post(`${process.env.REACT_APP_API_URL}/create-avatar`, formData, {
+src/front/js/component/PodcastRSSPanel.js:18:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/InnerCircle.js:25:                ? `${process.env.REACT_APP_BACKEND_URL}/api/profile/my-inner-circle`
+src/front/js/component/InnerCircle.js:26:                : `${process.env.REACT_APP_BACKEND_URL}/api/profile/${userId}/inner-circle`;
+src/front/js/component/InnerCircle.js:64:                `${process.env.REACT_APP_BACKEND_URL}/api/profile/inner-circle/search-users?q=${encodeURIComponent(query)}`,
+src/front/js/component/InnerCircle.js:94:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/profile/inner-circle/add`, {
+src/front/js/component/InnerCircle.js:133:                `${process.env.REACT_APP_BACKEND_URL}/api/profile/inner-circle/remove/${friendUserId}`,
+src/front/js/component/InnerCircle.js:163:            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/profile/inner-circle/reorder`, {
+src/front/js/component/UniversalSocialShare.js:116:      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/component/UniversalSocialShare.js:119:      if (backendUrl && token) {
+src/front/js/component/UniversalSocialShare.js:120:        const response = await fetch(`${backendUrl}/api/social/generate-universal-content`, {
+src/front/js/component/RealAnalyticsDashboard.js:24:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/AdvancedPWAFeatures.js:121:        applicationServerKey: this.urlBase64ToUint8Array(process.env.REACT_APP_VAPID_PUBLIC_KEY)
+src/front/js/component/AdvancedPWAFeatures.js:137:    await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/push-subscription`, {
+src/front/js/component/AdvancedPWAFeatures.js:255:    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/favorites/music`, {
+src/front/js/component/AdvancedPWAFeatures.js:263:    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcast-subscriptions`, {
+src/front/js/component/EditTrackForm.js:7:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/track/${trackId}`, {
+src/front/js/component/EditTrackForm.js:19:    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/track/${trackId}/edit`, {
+src/front/js/component/PodcastPlayer.js:8:    fetch(`${process.env.REACT_APP_BACKEND_URL}/podcasts/${podcast.id}/chapters`)
+src/front/js/component/PodcastPlayer.js:19:    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/podcasts/${podcast.id}/chapters`, {
+src/front/js/component/BuyMusicButton.js:7:    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/music/${musicId}/purchase`, {
+src/front/js/component/AIMixAssistant.js:259:        const bu = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/DrumKitConnector.js:34:const API_BASE = (process.env.REACT_APP_BACKEND_URL || '') + '/api/soundkits';
+src/front/js/component/RevenueChart.js:10:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/revenue-trends`, {
+src/front/js/component/UploadVideo.js:12:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/my_videos`, {
+src/front/js/component/navbar.js:23:      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
+src/front/js/component/navbar.js:42:          `${process.env.REACT_APP_BACKEND_URL}/api/notifications/unread-count`,
+src/front/js/component/FanSubscriptionManager.js:3:const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/ClipCreator.js:3:const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/AIMastering.js:56:  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/component/DAWAdvancedFeatures.js:27:const backendURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+src/front/js/component/DAWAdvancedFeatures.js:39:  const res = await fetch(`${backendURL}/api/ai/stems/upload-and-separate`, {
+src/front/js/component/PWAInstallButton.js:189:      {process.env.NODE_ENV === 'development' && (
+src/front/js/component/PWAInstallButton.js:243:              {process.env.NODE_ENV === 'development' && (
+src/front/js/component/CreateStoryModal.js:25:  const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/CreateStoryModal.js:160:      xhr.open('POST', `${backendUrl}/api/stories`);
+src/front/js/component/RadioStationDetailPage.js:60:  const [backendUrl, setBackendUrl] = useState(null);
+src/front/js/component/RadioStationDetailPage.js:85:  const getBackendUrl = useCallback(() => {
+src/front/js/component/RadioStationDetailPage.js:86:    return process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+src/front/js/component/RadioStationDetailPage.js:92:      setBackendUrl(config.backendUrl);
+src/front/js/component/RadioStationDetailPage.js:101:    if (!backendUrl) return;
+src/front/js/component/RadioStationDetailPage.js:107:      const response = await fetch(`${backendUrl}/api/profile`, {
+src/front/js/component/RadioStationDetailPage.js:121:  }, [backendUrl]);
+src/front/js/component/RadioStationDetailPage.js:333:    if (!backendUrl) return;
+src/front/js/component/RadioStationDetailPage.js:348:        const url = `${backendUrl}/api/radio/${id}`;
+src/front/js/component/RadioStationDetailPage.js:383:  }, [backendUrl, id, type, navigate]);
+src/front/js/component/RadioStationDetailPage.js:387:    if (!backendUrl || !id || type === 'static') return;
+src/front/js/component/RadioStationDetailPage.js:390:      const url = `${backendUrl}/api/radio/${id}/now-playing`;
+src/front/js/component/RadioStationDetailPage.js:416:  }, [backendUrl, id, type]);
+src/front/js/component/RadioStationDetailPage.js:715:    if (backendUrl || type === 'static') {
+src/front/js/component/RadioStationDetailPage.js:728:  }, [backendUrl, fetchStationData, fetchCurrentUser, type]);
+src/front/js/component/RadioStationDetailPage.js:864:    if (process.env.NODE_ENV !== 'development') return null;
+src/front/js/component/TrackListEditor.js:11:        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/my-tracks`, {
+src/front/js/component/TrackListEditor.js:27:        `${process.env.REACT_APP_BACKEND_URL}/api/album/${albumId}/add-track`,
+src/front/js/component/VideoUploadForm.js:93:    const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/component/VideoUploadForm.js:95:    const response = await fetch(`${backendUrl}/api/upload/cloudinary`, {
+src/front/js/component/VideoUploadForm.js:155:      const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/component/VideoUploadForm.js:158:      const response = await fetch(`${backendUrl}/api/video/upload`, {
+src/front/js/component/VideoUploadForm.js:200:        const altResponse = await fetch(`${backendUrl}/api/upload_video`, {
+src/front/js/component/VideoEditorComponent.js:72:const backendURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+src/front/js/component/VideoEditorComponent.js:99:    const response = await fetch(`${backendURL}/api/video-editor/upload`, {
+src/front/js/component/VideoEditorComponent.js:126:    const response = await fetch(`${backendURL}/api/video-editor/assets`, {
+src/front/js/component/VideoEditorComponent.js:150:    const response = await fetch(`${backendURL}/api/video-editor/transform`, {
+src/front/js/component/VideoEditorComponent.js:178:    const response = await fetch(`${backendURL}/api/video-editor/trim`, {
+src/front/js/component/VideoEditorComponent.js:210:    const response = await fetch(`${backendURL}/api/video-editor/effect-preview`, {
+src/front/js/component/VideoEditorComponent.js:240:    const response = await fetch(`${backendURL}/api/video-editor/concatenate`, {
+src/front/js/component/VideoEditorComponent.js:268:    const response = await fetch(`${backendURL}/api/video-editor/add-overlay`, {
+src/front/js/component/VideoEditorComponent.js:303:    const response = await fetch(`${backendURL}/api/video-editor/add-text`, {
+src/front/js/component/VideoEditorComponent.js:335:    const response = await fetch(`${backendURL}/api/video-editor/export`, {
+src/front/js/component/VideoEditorComponent.js:361:    const response = await fetch(`${backendURL}/api/video-editor/thumbnail`, {
+src/front/js/component/VideoEditorComponent.js:390:    const response = await fetch(`${backendURL}/api/video-editor/save-project`, {
+src/front/js/component/VideoEditorComponent.js:414:    const response = await fetch(`${backendURL}/api/video-editor/effects`, {
+src/front/js/component/VideoEditorComponent.js:436:    const response = await fetch(`${backendURL}/api/video-editor/resolutions`, {
+src/front/js/component/VideoEditorComponent.js:460:    url: clip.r2_url || clip.file_url || clip.cloudinary_public_id || clip.src || clip.url || null,
+src/front/js/component/VideoEditorComponent.js:533:    const response = await fetch(`${backendURL}/api/audio/apply-effect`, {
+src/front/js/component/VideoEditorComponent.js:562:    const response = await fetch(`${backendURL}/api/audio/preview-effect`, {
+src/front/js/component/VideoEditorComponent.js:589:    const response = await fetch(`${backendURL}/api/audio/batch-effects`, {
+src/front/js/component/VideoEditorComponent.js:613:    const response = await fetch(`${backendURL}/api/audio/analyze`, {
+src/front/js/component/VideoEditorComponent.js:634:    const response = await fetch(`${backendURL}/api/audio/presets`);
+src/front/js/component/TipJarSettings.js:11:const backendURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+src/front/js/component/TipJarSettings.js:67:      const res = await fetch(`${backendURL}/api/user/profile`, {
+src/front/js/component/TipJarSettings.js:82:      const res = await fetch(`${backendURL}/api/creator/payment-settings`, {
+src/front/js/component/TipJarSettings.js:138:      const res = await fetch(`${backendURL}/api/creator/payment-settings`, {
+src/front/js/component/SoundKitManager.js:19:const API_BASE = (process.env.REACT_APP_BACKEND_URL || '') + '/api/soundkits';
+src/front/js/component/AddToAlbumModal.js:9:      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/my-albums`, {
+src/front/js/component/AddToAlbumModal.js:18:    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/album/${selectedAlbum}/add-track`, {
+src/front/js/component/VideoDetails.js:28:      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/videos/${id}/view`, {
+src/front/js/component/VideoDetails.js:44:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/${id}`, {
+src/front/js/component/VideoDetails.js:73:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/${id}/like`, {
+src/front/js/component/VideoDetails.js:99:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/${video.channel.id}/subscribe`, {
+src/front/js/component/VideoDetails.js:133:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/${id}/comment`, {
+src/front/js/component/FreesoundBrowser.js:19:const API_BASE = (process.env.REACT_APP_BACKEND_URL || '') + '/api/freesound';
+src/front/js/component/BeatsTab.js:14:    const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/component/BeatsTab.js:21:            const res = await fetch(`${backendUrl}/api/beats?producer_id=${userId}`);
+src/front/js/component/BeatsTab.js:116:                <BeatUploadModal backendUrl={backendUrl} token={token}
+src/front/js/component/BeatsTab.js:124:const BeatUploadModal = ({ backendUrl, token, onClose, onSuccess }) => {
+src/front/js/component/BeatsTab.js:154:            const res = await fetch(`${backendUrl}/api/beats`, {
+src/front/js/component/AIPlaylistCuration.js:11:  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+src/front/js/component/AIPlaylistCuration.js:46:        `${backendUrl}/api/ai/radio/${stationId}/library`,
+src/front/js/component/AIPlaylistCuration.js:62:  }, [stationId, backendUrl, token]);
+src/front/js/component/AIPlaylistCuration.js:147:        `${backendUrl}/api/ai/radio/${stationId}/generate-playlist`,
+src/front/js/component/AIPlaylistCuration.js:180:        `${backendUrl}/api/ai/radio/${stationId}/apply-playlist`,
+src/front/js/component/HoodieDesigner.js:7:  const r=await fetch(process.env.BACKEND_URL+"/api/merch/create",{method:"POST",body:fd,headers:{Authorization:"Bearer "+sessionStorage.getItem("token")}});
+src/front/js/component/InboxDrawer.js:4:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+src/front/js/component/PopularityRanking.js:7:    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/popularity/${podcastId}`)
+src/front/js/component/ai_video_generation_routes.py:9:#   REPLICATE_API_TOKEN - Your Replicate API token
+src/front/js/component/ai_video_generation_routes.py:10:#   R2_ENDPOINT_URL, R2_ACCESS_KEY, R2_SECRET_KEY, R2_BUCKET_NAME - R2 config
+src/front/js/component/ai_video_generation_routes.py:43:REPLICATE_MODELS = {
+src/front/js/component/ai_video_generation_routes.py:94:            endpoint_url=os.environ.get('R2_ENDPOINT_URL'),
+src/front/js/component/ai_video_generation_routes.py:95:            aws_access_key_id=os.environ.get('R2_ACCESS_KEY'),
+src/front/js/component/ai_video_generation_routes.py:96:            aws_secret_access_key=os.environ.get('R2_SECRET_KEY'),
+src/front/js/component/ai_video_generation_routes.py:100:        bucket = os.environ.get('R2_BUCKET_NAME', 'streampirex')
+src/front/js/component/ai_video_generation_routes.py:111:        r2_public_url = os.environ.get('R2_PUBLIC_URL', '').rstrip('/')
+src/front/js/component/ai_video_generation_routes.py:112:        if r2_public_url:
+src/front/js/component/ai_video_generation_routes.py:113:            return f'{r2_public_url}/{key}'
+src/front/js/component/ai_video_generation_routes.py:116:        endpoint = os.environ.get('R2_ENDPOINT_URL', '').rstrip('/')
+src/front/js/component/ai_video_generation_routes.py:177:        model_config = PREMIUM_MODELS['text_to_video'] if quality == 'premium' else REPLICATE_MODELS['text_to_video']
+src/front/js/component/ai_video_generation_routes.py:198:            replicate_client = replicate.Client(api_token=os.environ.get('REPLICATE_API_TOKEN'))
+src/front/js/component/ai_video_generation_routes.py:201:            output = replicate_client.run(
+src/front/js/component/ai_video_generation_routes.py:232:            r2_filename = f'{user_id}_{uid}_text2vid.mp4'
+src/front/js/component/ai_video_generation_routes.py:233:            r2_url = upload_to_r2(video_bytes, r2_filename, 'video/mp4')
+src/front/js/component/ai_video_generation_routes.py:235:            if not r2_url:
+src/front/js/component/ai_video_generation_routes.py:239:            generation.video_url = r2_url
+src/front/js/component/ai_video_generation_routes.py:248:                'video_url': r2_url,
+src/front/js/component/ai_video_generation_routes.py:344:        model_config = PREMIUM_MODELS['image_to_video'] if quality == 'premium' else REPLICATE_MODELS['image_to_video']
+src/front/js/component/ai_video_generation_routes.py:366:            replicate_client = replicate.Client(api_token=os.environ.get('REPLICATE_API_TOKEN'))
+src/front/js/component/ai_video_generation_routes.py:379:            output = replicate_client.run(
+src/front/js/component/ai_video_generation_routes.py:405:            r2_filename = f'{user_id}_{uid}_img2vid.mp4'
+src/front/js/component/ai_video_generation_routes.py:406:            r2_url = upload_to_r2(video_bytes, r2_filename, 'video/mp4')
+src/front/js/component/ai_video_generation_routes.py:408:            if not r2_url:
+src/front/js/component/ai_video_generation_routes.py:412:            generation.video_url = r2_url
+src/front/js/component/ai_video_generation_routes.py:421:                'video_url': r2_url,
+src/front/js/component/ai_video_generation_routes.py:582:            'replicate_configured': bool(os.environ.get('REPLICATE_API_TOKEN')),
+src/front/js/component/ai_video_generation_routes.py:583:            'r2_configured': bool(os.environ.get('R2_ENDPOINT_URL')),
+src/front/js/component/ai_video_generation_routes.py:586:                    'standard': REPLICATE_MODELS['text_to_video']['name'],
+src/front/js/component/ai_video_generation_routes.py:590:                    'standard': REPLICATE_MODELS['image_to_video']['name'],
+src/front/js/component/BandwidthStatus.js:20:      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/bandwidth`, {
+src/front/js/component/ChatModal.js:6:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://streampirex-api.up.railway.app";
+src/front/js/component/WaveformComments.js:28:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
+src/front/js/component/EditAlbumForm.js:20:        `${process.env.REACT_APP_BACKEND_URL}/api/album/${album.id}/edit`,
+src/front/js/store/flux.js:24:                    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/signup`, {
+src/front/js/store/flux.js:46:                console.log("REACT_APP_BACKEND_URL:", process.env.REACT_APP_BACKEND_URL);
+src/front/js/store/flux.js:48:                    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/login`, {
+src/front/js/store/flux.js:143:                    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
+src/front/js/store/flux.js:179:                    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
+src/front/js/utils/videoChatAPI.js:4:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+src/front/js/utils/errorUtils.js:16:    console.log(process.env["REACT_APP_BACKEND_URL"])
+src/front/js/utils/errorUtils.js:17:    const missing = requiredVars.filter(varName => process.env[varName]);
+src/front/js/utils/errorUtils.js:24:      backendUrl: process.env.REACT_APP_BACKEND_URL,
+src/front/js/utils/errorUtils.js:25:      isProduction: process.env.NODE_ENV === 'production'
+src/front/js/utils/errorUtils.js:94:        if (process.env.NODE_ENV === 'production') {
+src/front/js/utils/gamerAPI.js:2://   const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/gamer-profile/${userId}`);
+src/front/js/utils/gamerAPI.js:9://   const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/gamer-profile/${userId}`);
+src/front/js/utils/gamerAPI.js:34:  const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev';
+src/front/js/utils/gamerAPI.js:35:  const url = `${backendUrl}/api/gamer-profile/${userId}`;
+src/front/js/utils/r2Upload.js:13:const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
+src/services/socket.js:3:const socket = io(process.env.REACT_APP_SOCKET_URL, {

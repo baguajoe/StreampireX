@@ -75,6 +75,7 @@ import CreatorAcademy from "./pages/CreatorAcademy";
 import MyLearning from "./pages/MyLearning";
 import CourseBuilder from "./pages/CourseBuilder";
 import CoursePlayer from "./pages/CoursePlayer";
+import HybridLessonComposer from "./pages/HybridLessonComposer";
 import CollabMarketplace from "./pages/CollabMarketplace";
 import JamTrackLibrary from "./pages/JamTrackLibrary";
 import QuickCaptureMode from "./pages/QuickCaptureMode";
@@ -582,6 +583,7 @@ const AppShell = ({ user }) => {
                                 <Route path="/course/:courseId" element={<CoursePlayer />} />
                                 <Route path="/my-learning" element={<MyLearning />} />
                                 <Route path="/creator-academy" element={<CreatorAcademy />} />
+                                <Route path="/lesson-composer/:lessonId" element={<HybridLessonComposer />} />
                                 <Route path="/checkout/course/:courseId" element={<CoursePlayer />} />
                                 <Route path="/creator-memberships" element={<CreatorMembershipManager />} />
                                 <Route path="/creator/membership" element={<CreatorMembershipManager />} />

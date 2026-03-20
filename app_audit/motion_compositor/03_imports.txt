@@ -1,0 +1,843 @@
+===== IMPORTS =====
+src/front/js/StoryUpload.js:96:    const canvas = document.createElement('canvas');
+src/front/js/StoryUpload.js:97:    canvas.width = videoRef.current.videoWidth;
+src/front/js/StoryUpload.js:98:    canvas.height = videoRef.current.videoHeight;
+src/front/js/StoryUpload.js:100:    const ctx = canvas.getContext('2d');
+src/front/js/StoryUpload.js:103:    canvas.toBlob((blob) => {
+src/front/js/layout.js:10:import SPXCanvasPage from "./pages/SPXCanvasPage";
+src/front/js/layout.js:11:import SPXVectorPage from "./pages/SPXVectorPage";
+src/front/js/layout.js:147:import MotionStudioPage from "./pages/MotionStudioPage";
+src/front/js/layout.js:151:import NodeCompositorPage from "./pages/NodeCompositorPage";
+src/front/js/layout.js:535:						<Route path="/motion-studio" element={<MotionStudioPage />} />
+src/front/js/layout.js:536:                                            <Route path="/node-compositor" element={<NodeCompositorPage />} />
+src/front/js/layout.js:537:                                            <Route path="/spx-canvas" element={<SPXCanvasPage />} />
+src/front/js/layout.js:538:                                            <Route path="/spx-vector" element={<SPXVectorPage />} />
+src/front/js/pages/AIVideoStudio.js:190:    'Abstract colorful particles flowing in slow motion',
+src/front/js/pages/AIVideoStudio.js:389:            <label>Motion prompt (optional)</label>
+src/front/js/pages/SPXCanvasPage.js:2:import "../../styles/SPXCanvas.css";
+src/front/js/pages/SPXCanvasPage.js:10:  name: "Untitled Canvas",
+src/front/js/pages/SPXCanvasPage.js:27:export default function SPXCanvasPage() {
+src/front/js/pages/SPXCanvasPage.js:317:  const clearCanvas = () => {
+src/front/js/pages/SPXCanvasPage.js:321:    setStatus("Canvas cleared");
+src/front/js/pages/SPXCanvasPage.js:330:    <div className="spx-canvas-page">
+src/front/js/pages/SPXCanvasPage.js:331:      <div className="spx-canvas-topbar">
+src/front/js/pages/SPXCanvasPage.js:332:        <div className="spx-canvas-brand">🎨 SPX Canvas</div>
+src/front/js/pages/SPXCanvasPage.js:333:        <div className="spx-canvas-top-actions">
+src/front/js/pages/SPXCanvasPage.js:338:            placeholder="Canvas name"
+src/front/js/pages/SPXCanvasPage.js:344:          <button onClick={clearCanvas}>Clear</button>
+src/front/js/pages/SPXCanvasPage.js:348:      <div className="spx-canvas-shell">
+src/front/js/pages/SPXCanvasPage.js:362:        <aside className="spx-canvas-left">
+src/front/js/pages/SPXCanvasPage.js:453:        <main className="spx-canvas-center">
+src/front/js/pages/SPXCanvasPage.js:470:              <label>Canvas</label>
+src/front/js/pages/SPXCanvasPage.js:586:        <aside className="spx-canvas-right">
+src/front/js/pages/BrowseProducersPage.js:116:    bio: "Epic cinematic textures and emotional hip hop production for standout records.",
+src/front/js/pages/PodcastStudioPhase2.js:16:import SendToMotionButton from "../component/SendToMotionButton";
+src/front/js/pages/PodcastStudioPhase2.js:207:                <SendToMotionButton
+src/front/js/pages/PodcastStudioPhase2.js:212:                <SendToMotionButton
+src/front/js/pages/PodcastStudioPhase2.js:323:                                    {clip.has_emotion && (
+src/front/js/pages/PodcastStudioPhase2.js:324:                                        <span className="clip-tag emotion">😊 Emotional</span>
+src/front/js/pages/AIContentWriter.js:38:  { id: 'emotional', name: 'Emotional', icon: '💜' },
+src/front/js/pages/ComparePage.js:237:                            <tr><td>Bezier motion paths</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+src/front/js/pages/ComparePage.js:247:                            <tr><td>Motion tracking</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+src/front/js/pages/MerchDesigner.js:54:  // Canvas designer state
+src/front/js/pages/MerchDesigner.js:55:  const canvasRef = useRef(null);
+src/front/js/pages/MerchDesigner.js:95:  // ── Canvas rendering ──
+src/front/js/pages/MerchDesigner.js:96:  const drawCanvas = useCallback(() => {
+src/front/js/pages/MerchDesigner.js:97:    const canvas = canvasRef.current;
+src/front/js/pages/MerchDesigner.js:98:    if (!canvas || !selectedProduct) return;
+src/front/js/pages/MerchDesigner.js:99:    const ctx = canvas.getContext("2d");
+src/front/js/pages/MerchDesigner.js:100:    const W = canvas.width, H = canvas.height;
+src/front/js/pages/MerchDesigner.js:176:      const loop = () => { drawCanvas(); animRef.current = requestAnimationFrame(loop); };
+src/front/js/pages/MerchDesigner.js:180:  }, [step, drawCanvas]);
+src/front/js/pages/MerchDesigner.js:182:  // Mouse drag on canvas to move artwork
+src/front/js/pages/MerchDesigner.js:185:    const rect = canvasRef.current.getBoundingClientRect();
+src/front/js/pages/MerchDesigner.js:193:    const rect = canvasRef.current.getBoundingClientRect();
+src/front/js/pages/MerchDesigner.js:200:  // Export canvas as final mockup
+src/front/js/pages/MerchDesigner.js:202:    const canvas = canvasRef.current;
+src/front/js/pages/MerchDesigner.js:203:    return canvas ? canvas.toDataURL("image/png") : null;
+src/front/js/pages/MerchDesigner.js:250:    canvas: { background: "#0d0d1f", border: "1px solid #1a1a2e", borderRadius: 12, padding: 16 },
+src/front/js/pages/MerchDesigner.js:311:        {/* ── STEP 2: Design Canvas ── */}
+src/front/js/pages/MerchDesigner.js:314:            {/* Canvas */}
+src/front/js/pages/MerchDesigner.js:315:            <div style={S.canvas}>
+src/front/js/pages/MerchDesigner.js:320:              <canvas
+src/front/js/pages/MerchDesigner.js:321:                ref={canvasRef} width={500} height={500}
+src/front/js/pages/MerchDesigner.js:376:                      <div style={{ color:"#00ffc8", fontSize:12, marginTop:6 }}>✅ Artwork loaded — drag on canvas to position</div>
+src/front/js/pages/MerchDesigner.js:402:              <canvas ref={canvasRef} width={500} height={500} style={{ width:"100%", borderRadius:8, display:"block" }} />
+src/front/js/pages/JamTrackLibrary.js:34:  { id:'j6',  title:'Pop Anthem Ballad',         genre:'Pop',      key:'C',  bpm:72,  difficulty:'Beginner',     duration:240, stems:['drums','bass','keys'],            description:'Emotional pop ballad in C major. Wide open sound.' },
+src/front/js/pages/JamTrackLibrary.js:36:  { id:'j8',  title:'Boom Bap Canvas',           genre:'Hip-Hop',  key:'Bb', bpm:90,  difficulty:'Beginner',     duration:180, stems:['drums','bass','keys'],            description:'Old-school boom bap loop. Write your bars over this.' },
+src/front/js/pages/JamTrackLibrary.js:46:  { id:'j18', title:'Trap Soul Canvas',          genre:'R&B',      key:'Gm', bpm:75,  difficulty:'Intermediate', duration:240, stems:['drums','bass','keys'],            description:'Dark trap soul loop for melodic artists.' },
+src/front/js/pages/StoryUpload.js:110:    const canvas = document.createElement('canvas');
+src/front/js/pages/StoryUpload.js:111:    canvas.width = videoRef.current.videoWidth;
+src/front/js/pages/StoryUpload.js:112:    canvas.height = videoRef.current.videoHeight;
+src/front/js/pages/StoryUpload.js:114:    const ctx = canvas.getContext('2d');
+src/front/js/pages/StoryUpload.js:117:    canvas.toBlob((blob) => {
+src/front/js/pages/NodeCompositorPage.js:3:import NodePreviewPanel from "../component/nodecompositor/NodePreviewPanel";
+src/front/js/pages/NodeCompositorPage.js:4:import NodeInspectorPanel from "../component/nodecompositor/NodeInspectorPanel";
+src/front/js/pages/NodeCompositorPage.js:5:import NodeTimelinePanel from "../component/nodecompositor/NodeTimelinePanel";
+src/front/js/pages/NodeCompositorPage.js:6:import VideoExportToolPanel from "../component/nodecompositor/VideoExportToolPanel";
+src/front/js/pages/NodeCompositorPage.js:7:import BeatSyncToolPanel from "../component/nodecompositor/BeatSyncToolPanel";
+src/front/js/pages/NodeCompositorPage.js:8:import AIAutoEditToolPanel from "../component/nodecompositor/AIAutoEditToolPanel";
+src/front/js/pages/NodeCompositorPage.js:9:import "../../styles/NodeCompositor.css";
+src/front/js/pages/NodeCompositorPage.js:27:export default function NodeCompositorPage() {
+src/front/js/pages/NodeCompositorPage.js:30:  const motionPayload = store.motion || store.motionTransfer || null;
+src/front/js/pages/NodeCompositorPage.js:32:  const [projectName, setProjectName] = useState("SPX Compositor");
+src/front/js/pages/NodeCompositorPage.js:82:        text: "SPX Compositor",
+src/front/js/pages/NodeCompositorPage.js:136:  const importMotionMedia = useCallback(() => {
+src/front/js/pages/NodeCompositorPage.js:137:    if (!motionPayload?.url) return;
+src/front/js/pages/NodeCompositorPage.js:149:          name: motionPayload.name || "Motion Import",
+src/front/js/pages/NodeCompositorPage.js:150:          label: motionPayload.type === "video" ? "Video In" : "Audio/Media In",
+src/front/js/pages/NodeCompositorPage.js:151:          mediaUrl: motionPayload.url,
+src/front/js/pages/NodeCompositorPage.js:152:          background: motionPayload.type === "video"
+src/front/js/pages/NodeCompositorPage.js:159:  }, [motionPayload]);
+src/front/js/pages/NodeCompositorPage.js:186:          text: "SPX Compositor",
+src/front/js/pages/NodeCompositorPage.js:221:          <div className="nc-brand">🎛️ SPX Compositor</div>
+src/front/js/pages/NodeCompositorPage.js:240:      {motionPayload?.url && (
+src/front/js/pages/NodeCompositorPage.js:243:            Ready to import from Motion: <strong>{motionPayload.name || "Untitled Media"}</strong>
+src/front/js/pages/NodeCompositorPage.js:245:          <button className="nc-btn-primary" onClick={importMotionMedia}>Add to Graph</button>
+src/front/js/pages/NodeCompositorPage.js:269:              <div className="nc-graph-canvas">
+src/front/js/pages/BeatSyncPage.js:2:import "../../styles/NodeCompositor.css";
+src/front/js/pages/BeatSyncPage.js:3:import BeatSyncPanel from "../component/nodecompositor/BeatSyncPanel";
+src/front/js/pages/BeatSyncPage.js:11:          <div className="nc-subtitle">Analyze beats and drive motion timing</div>
+src/front/js/pages/DJMixer.js:175:    return <canvas ref={cvs} width={440} height={85} className="dj-waveform" />;
+src/front/js/pages/DJMixer.js:194:    return <canvas ref={cvs} width={18} height={130} className="dj-vu" />;
+src/front/js/pages/VideoExportPage.js:2:import "../../styles/NodeCompositor.css";
+src/front/js/pages/VideoExportPage.js:3:import VideoExportPanel from "../component/nodecompositor/VideoExportPanel";
+src/front/js/pages/PodcastStudio.js:12://  - NEW: PiP canvas compositing (cam overlay on screen capture)
+src/front/js/pages/PodcastStudio.js:14://  - NEW: Combined video+audio recording via canvas captureStream
+src/front/js/pages/PodcastStudio.js:86:/** Draw video into canvas region with "cover" fit (crops to fill, no bars) */
+src/front/js/pages/PodcastStudio.js:98:  const canvasRef = useRef(null), animRef = useRef(null);
+src/front/js/pages/PodcastStudio.js:101:    const canvas = canvasRef.current; if (!canvas) return;
+src/front/js/pages/PodcastStudio.js:102:    const ctx = canvas.getContext("2d"), bufLen = analyser.frequencyBinCount, data = new Uint8Array(bufLen);
+src/front/js/pages/PodcastStudio.js:105:      const w = canvas.width, h = canvas.height;
+src/front/js/pages/PodcastStudio.js:115:  return <canvas ref={canvasRef} width={300} height={height} className="ps-waveform-canvas" />;
+src/front/js/pages/PodcastStudio.js:228:  const compositeCanvasRef = useRef(null);
+src/front/js/pages/PodcastStudio.js:229:  const canvasAnimRef = useRef(null);
+src/front/js/pages/PodcastStudio.js:259:      if (canvasAnimRef.current) cancelAnimationFrame(canvasAnimRef.current);
+src/front/js/pages/PodcastStudio.js:311:  // This IS screen recording — same API, same stream, recorded to canvas.
+src/front/js/pages/PodcastStudio.js:353:  // ═══════ CANVAS COMPOSITING LOOP (UPDATED — multi-person) ═══════
+src/front/js/pages/PodcastStudio.js:355:    if (canvasAnimRef.current) cancelAnimationFrame(canvasAnimRef.current);
+src/front/js/pages/PodcastStudio.js:356:    const canvas = compositeCanvasRef.current;
+src/front/js/pages/PodcastStudio.js:357:    if (!canvas) return;
+src/front/js/pages/PodcastStudio.js:358:    const ctx = canvas.getContext("2d");
+src/front/js/pages/PodcastStudio.js:363:      const cw = canvas.width, ch = canvas.height;
+src/front/js/pages/PodcastStudio.js:498:      canvasAnimRef.current = requestAnimationFrame(drawFrame);
+src/front/js/pages/PodcastStudio.js:501:    canvasAnimRef.current = requestAnimationFrame(drawFrame);
+src/front/js/pages/PodcastStudio.js:502:    return () => { if (canvasAnimRef.current) cancelAnimationFrame(canvasAnimRef.current); };
+src/front/js/pages/PodcastStudio.js:603:    // VIDEO: capture canvas stream + mic audio (NEW)
+src/front/js/pages/PodcastStudio.js:604:    if (hasVideo && compositeCanvasRef.current) {
+src/front/js/pages/PodcastStudio.js:606:        const canvasStream = compositeCanvasRef.current.captureStream(30);
+src/front/js/pages/PodcastStudio.js:607:        // Merge mic audio into canvas stream
+src/front/js/pages/PodcastStudio.js:608:        if (localStreamRef.current) localStreamRef.current.getAudioTracks().forEach((t) => canvasStream.addTrack(t));
+src/front/js/pages/PodcastStudio.js:610:        if (screenStream) screenStream.getAudioTracks().forEach((t) => canvasStream.addTrack(t));
+src/front/js/pages/PodcastStudio.js:611:        const vr = new MediaRecorder(canvasStream, { mimeType: VIDEO_RECORD_MIME, videoBitsPerSecond: 5000000 });
+src/front/js/pages/PodcastStudio.js:784:      {/* Hidden video elements for canvas compositing */}
+src/front/js/pages/PodcastStudio.js:787:      {/* Hidden guest video elements for multi-person canvas compositing */}
+src/front/js/pages/PodcastStudio.js:982:            {/* ── Canvas Preview (for recording composite) ── */}
+src/front/js/pages/PodcastStudio.js:984:              <div className="ps-canvas-section">
+src/front/js/pages/PodcastStudio.js:985:                <div className="ps-canvas-header">
+src/front/js/pages/PodcastStudio.js:987:                  <span className="ps-canvas-hint">This is what gets recorded</span>
+src/front/js/pages/PodcastStudio.js:990:                  <canvas ref={compositeCanvasRef} width={1280} height={720} className="ps-composite-canvas" />
+src/front/js/pages/PodcastStudio.js:994:            {!hasVideo && <canvas ref={compositeCanvasRef} width={1280} height={720} style={{ display: "none" }} />}
+src/front/js/pages/PodcastStudio.js:1029:              {/* Recording Layout (for canvas composite) */}
+src/front/js/pages/VideoUpload.js:34:    containsPaidPromotion: false,
+src/front/js/pages/VideoUpload.js:293:        contains_paid_promotion: videoDetails.containsPaidPromotion,
+src/front/js/pages/VideoUpload.js:375:      containsPaidPromotion: false,
+src/front/js/pages/VideoUpload.js:692:                        checked={videoDetails.containsPaidPromotion}
+src/front/js/pages/VideoUpload.js:693:                        onChange={(e) => handleInputChange('containsPaidPromotion', e.target.checked)}
+src/front/js/pages/VideoUpload.js:697:                        <strong>Contains paid promotion</strong>
+src/front/js/pages/SellBeatsPage.js:8:const MOODS = ["Dark", "Energetic", "Chill", "Aggressive", "Sad", "Happy", "Bouncy", "Melodic", "Hard", "Dreamy", "Emotional", "Hype", "Smooth", "Grimy"];
+src/front/js/pages/EPKCollabHub.js:899:                      { id: 'cinematic', icon: '🎥', name: 'Cinematic', desc: 'Dramatic lighting, slow motion, moody' },
+src/front/js/pages/AIAutoEditPage.js:2:import "../../styles/NodeCompositor.css";
+src/front/js/pages/AIAutoEditPage.js:3:import AIAutoEditPanel from "../component/nodecompositor/AIAutoEditPanel";
+src/front/js/pages/RecordingStudio.js:21:import SendToMotionButton from "../component/SendToMotionButton";
+src/front/js/pages/RecordingStudio.js:22:import { sendToMotion } from "../utils/motionHelpers";
+src/front/js/pages/RecordingStudio.js:252:// NEW: CubaseMeter — Stereo LED-style meter with dB scale (canvas-drawn)
+src/front/js/pages/RecordingStudio.js:255:  const canvasRef = useRef(null);
+src/front/js/pages/RecordingStudio.js:261:    const canvas = canvasRef.current;
+src/front/js/pages/RecordingStudio.js:262:    if (!canvas) return;
+src/front/js/pages/RecordingStudio.js:265:    canvas.width = displayW * dpr;
+src/front/js/pages/RecordingStudio.js:266:    canvas.height = height * dpr;
+src/front/js/pages/RecordingStudio.js:267:    canvas.style.width = `${displayW}px`;
+src/front/js/pages/RecordingStudio.js:268:    canvas.style.height = `${height}px`;
+src/front/js/pages/RecordingStudio.js:272:    const canvas = canvasRef.current;
+src/front/js/pages/RecordingStudio.js:273:    if (!canvas) return;
+src/front/js/pages/RecordingStudio.js:274:    const ctx = canvas.getContext("2d");
+src/front/js/pages/RecordingStudio.js:276:    const w = canvas.width / dpr;
+src/front/js/pages/RecordingStudio.js:277:    const h = canvas.height / dpr;
+src/front/js/pages/RecordingStudio.js:361:  return <canvas ref={canvasRef} style={{ display: "block" }} />;
+src/front/js/pages/RecordingStudio.js:456:  const canvasRef = useRef(null);
+src/front/js/pages/RecordingStudio.js:459:    const canvas = canvasRef.current;
+src/front/js/pages/RecordingStudio.js:460:    if (!canvas || !notes.length) return;
+src/front/js/pages/RecordingStudio.js:461:    const ctx = canvas.getContext("2d");
+src/front/js/pages/RecordingStudio.js:462:    const w = canvas.width,
+src/front/js/pages/RecordingStudio.js:463:      h = canvas.height;
+src/front/js/pages/RecordingStudio.js:483:    <canvas
+src/front/js/pages/RecordingStudio.js:484:      ref={canvasRef}
+src/front/js/pages/RecordingStudio.js:585:  const motionAudioUrl = tracks?.[selectedTrack]?.audio_url || tracks?.find((t) => t?.audio_url)?.audio_url || null;
+src/front/js/pages/RecordingStudio.js:655:  const canvasRefs = useRef([]);
+src/front/js/pages/RecordingStudio.js:981:      if (t.audioBuffer && canvasRefs.current[i]) drawWaveform(canvasRefs.current[i], t.audioBuffer, t.color);
+src/front/js/pages/RecordingStudio.js:3246:                      <canvas
+src/front/js/pages/RecordingStudio.js:3247:                        ref={(el) => (canvasRefs.current[i] = el)}
+src/front/js/pages/RecordingStudio.js:3250:                        className="daw-waveform-canvas"
+src/front/js/pages/RecordingStudio.js:4045:// 🔥 SPX → Motion Button
+src/front/js/pages/RecordingStudio.js:4046:const MotionButton = ({ url }) => {
+src/front/js/pages/RecordingStudio.js:4051:    sendToMotion(actions, navigate, {
+src/front/js/pages/RecordingStudio.js:4060:      Send to Motion Studio 🎬
+src/front/js/pages/MotionStudioPage.js:2:import "../../styles/MotionStudio.css";
+src/front/js/pages/MotionStudioPage.js:4:import MotionToolbar from "../component/motionstudio/MotionToolbar";
+src/front/js/pages/MotionStudioPage.js:5:import MotionLayerPanel from "../component/motionstudio/MotionLayerPanel";
+src/front/js/pages/MotionStudioPage.js:6:import MotionPresetBrowser from "../component/motionstudio/MotionPresetBrowser";
+src/front/js/pages/MotionStudioPage.js:7:import MotionPropertyInspector from "../component/motionstudio/MotionPropertyInspector";
+src/front/js/pages/MotionStudioPage.js:8:import MotionKeyframePanel from "../component/motionstudio/MotionKeyframePanel";
+src/front/js/pages/MotionStudioPage.js:9:import MotionPathPanel from "../component/motionstudio/MotionPathPanel";
+src/front/js/pages/MotionStudioPage.js:10:import MotionCameraPanel from "../component/motionstudio/MotionCameraPanel";
+src/front/js/pages/MotionStudioPage.js:11:import MotionTemplatePanel from "../component/motionstudio/MotionTemplatePanel";
+src/front/js/pages/MotionStudioPage.js:12:import MotionPreviewStage from "../component/motionstudio/MotionPreviewStage";
+src/front/js/pages/MotionStudioPage.js:13:import MotionTimelinePanel from "../component/motionstudio/MotionTimelinePanel";
+src/front/js/pages/MotionStudioPage.js:14:import MotionKeyframeEditorPanel from "../component/motionstudio/MotionKeyframeEditorPanel";
+src/front/js/pages/MotionStudioPage.js:15:import MotionGraphEditorPanel from "../component/motionstudio/MotionGraphEditorPanel";
+src/front/js/pages/MotionStudioPage.js:16:import useMotionStudioState from "../component/motionstudio/useMotionStudioState";
+src/front/js/pages/MotionStudioPage.js:18:export default function MotionStudioPage() {
+src/front/js/pages/MotionStudioPage.js:19:  const state = useMotionStudioState();
+src/front/js/pages/MotionStudioPage.js:22:    <div className="motion-studio-page">
+src/front/js/pages/MotionStudioPage.js:23:      <MotionToolbar
+src/front/js/pages/MotionStudioPage.js:33:      <div className="motion-studio-layout">
+src/front/js/pages/MotionStudioPage.js:34:        <div className="motion-left">
+src/front/js/pages/MotionStudioPage.js:35:          <MotionLayerPanel
+src/front/js/pages/MotionStudioPage.js:42:          <MotionPresetBrowser
+src/front/js/pages/MotionStudioPage.js:53:          <MotionTemplatePanel setLayers={state.setLayers} />
+src/front/js/pages/MotionStudioPage.js:56:        <div className="motion-center">
+src/front/js/pages/MotionStudioPage.js:57:          <MotionPreviewStage
+src/front/js/pages/MotionStudioPage.js:69:          <MotionTimelinePanel
+src/front/js/pages/MotionStudioPage.js:87:        <div className="motion-right">
+src/front/js/pages/MotionStudioPage.js:88:          <MotionPropertyInspector
+src/front/js/pages/MotionStudioPage.js:93:          <MotionKeyframePanel
+src/front/js/pages/MotionStudioPage.js:101:          <MotionPathPanel
+src/front/js/pages/MotionStudioPage.js:110:          <MotionCameraPanel
+src/front/js/pages/MotionStudioPage.js:116:          <MotionKeyframeEditorPanel
+src/front/js/pages/MotionStudioPage.js:124:          <MotionGraphEditorPanel
+src/front/js/pages/SPXVectorPage.js:3:import "../../styles/SPXVector.css";
+src/front/js/pages/SPXVectorPage.js:8:const VECTOR_TEMPLATES = [
+src/front/js/pages/SPXVectorPage.js:21:const DEFAULT_PROJECT = (tpl = VECTOR_TEMPLATES[0]) => ({
+src/front/js/pages/SPXVectorPage.js:77:  text: "SPX Vector",
+src/front/js/pages/SPXVectorPage.js:199:export default function SPXVectorPage() {
+src/front/js/pages/SPXVectorPage.js:204:  const [templates, setTemplates] = useState(VECTOR_TEMPLATES);
+src/front/js/pages/SPXVectorPage.js:317:      const res = await fetch(`${backendURL}/api/spx-vector/templates`);
+src/front/js/pages/SPXVectorPage.js:327:      const res = await fetch(`${backendURL}/api/spx-vector/projects`, {
+src/front/js/pages/SPXVectorPage.js:339:      const res = await fetch(`${backendURL}/api/spx-vector/assets`, {
+src/front/js/pages/SPXVectorPage.js:503:        ? `${backendURL}/api/spx-vector/projects/${project.id}`
+src/front/js/pages/SPXVectorPage.js:504:        : `${backendURL}/api/spx-vector/projects`;
+src/front/js/pages/SPXVectorPage.js:535:      const res = await fetch(`${backendURL}/api/spx-vector/projects/${id}`, {
+src/front/js/pages/SPXVectorPage.js:566:      const res = await fetch(`${backendURL}/api/spx-vector/assets`, {
+src/front/js/pages/SPXVectorPage.js:594:    a.download = `${project.name || "spx-vector"}.svg`;
+src/front/js/pages/SPXVectorPage.js:606:        const canvas = document.createElement("canvas");
+src/front/js/pages/SPXVectorPage.js:607:        canvas.width = project.width;
+src/front/js/pages/SPXVectorPage.js:608:        canvas.height = project.height;
+src/front/js/pages/SPXVectorPage.js:609:        const ctx = canvas.getContext("2d");
+src/front/js/pages/SPXVectorPage.js:611:        const png = canvas.toDataURL("image/png");
+src/front/js/pages/SPXVectorPage.js:623:    a.download = `${project.name || "spx-vector"}.png`;
+src/front/js/pages/SPXVectorPage.js:628:  const sendToCanvas = async () => {
+src/front/js/pages/SPXVectorPage.js:631:      "spx_vector_transfer",
+src/front/js/pages/SPXVectorPage.js:633:        name: `${project.name || "SPX Vector"} Export`,
+src/front/js/pages/SPXVectorPage.js:638:    navigate("/spx-canvas");
+src/front/js/pages/SPXVectorPage.js:641:  const sendToCompositor = async () => {
+src/front/js/pages/SPXVectorPage.js:643:    if (actions.sendToMotion) {
+src/front/js/pages/SPXVectorPage.js:644:      actions.sendToMotion({
+src/front/js/pages/SPXVectorPage.js:647:        name: `${project.name || "SPX Vector"} Export`,
+src/front/js/pages/SPXVectorPage.js:648:        source: "spx-vector"
+src/front/js/pages/SPXVectorPage.js:651:    navigate("/node-compositor");
+src/front/js/pages/SPXVectorPage.js:654:  const sendToMotion = async () => {
+src/front/js/pages/SPXVectorPage.js:656:    if (actions.sendToMotion) {
+src/front/js/pages/SPXVectorPage.js:657:      actions.sendToMotion({
+src/front/js/pages/SPXVectorPage.js:660:        name: `${project.name || "SPX Vector"} Export`,
+src/front/js/pages/SPXVectorPage.js:661:        source: "spx-vector"
+src/front/js/pages/SPXVectorPage.js:664:    navigate("/motion-studio");
+src/front/js/pages/SPXVectorPage.js:682:        <div className="spxv-brand">✒️ SPX Vector</div>
+src/front/js/pages/SPXVectorPage.js:700:          <button className="spxv-send-btn" onClick={sendToCanvas}>To Canvas</button>
+src/front/js/pages/SPXVectorPage.js:701:          <button className="spxv-send-btn" onClick={sendToCompositor}>To Compositor</button>
+src/front/js/pages/SPXVectorPage.js:702:          <button className="spxv-send-btn" onClick={sendToMotion}>To Motion</button>
+src/front/js/pages/SPXVectorPage.js:800:              <div className="spxv-panel-title">Vector Assets</div>
+src/front/js/pages/SPXVectorPage.js:807:              {!assets.length && <div className="spxv-empty">No uploaded vector assets yet</div>}
+src/front/js/pages/SPXVectorPage.js:849:              <label>Canvas</label>
+src/front/js/pages/PricingPlans.js:811:              <li className="feature included"><span className="icon">📍</span><span>Motion Tracking</span></li>
+src/front/js/pages/PricingPlans.js:1168:                <td>Motion Tracking</td>
+src/front/js/pages/PricingPlans.js:1559:            <p>AI Credits power premium AI features like video generation, voice cloning, auto-captions, and content generation. Each paid plan includes monthly credits that reset every 30 days — Starter gets 50, Pro gets 200, and Studio gets 1,000. Many AI tools like stem separation, pitch correction, key finder, beat detection, audio-to-MIDI, background removal, and motion tracking are completely free and never use credits.</p>
+src/front/js/pages/PricingPlans.js:1569:            <p>AI Stem Separation, Pitch Correction, Key Finder, Audio-to-MIDI, Beat Detection, Vocal Tuner, Background Removal, Scene Detection, Motion Tracking, Audio Ducking, Silence Detection, and Thumbnail Extraction are all completely free on every plan with no limits. These run locally and don't require paid APIs.</p>
+src/front/js/component/VocalRider.js:31:  const canvasRef = useRef(null);
+src/front/js/component/VocalRider.js:162:    const cv = canvasRef.current;
+src/front/js/component/VocalRider.js:364:          <canvas ref={canvasRef} className="vr-canvas" width={800} height={200} />
+src/front/js/component/AddVocalsToTrack.js:35:  { id:'gospel',       label:'Gospel',          icon:'🙌', desc:'Powerful, emotional, church-trained' },
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:211:        Optional camera input drives 2.5D preview motion.
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:158:export default function NodeGraphCanvas({
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:175:  const handleCanvasMouseMove = (e) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:193:  const handleCanvasMouseDown = () => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:202:      className="nc-canvas-wrap"
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:203:      onMouseDown={handleCanvasMouseDown}
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:204:      onMouseMove={handleCanvasMouseMove}
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:207:        className="nc-canvas-grid"
+src/front/js/component/nodecompositor/graphEvaluator.js:147:      const motion = pathOffset(animatedProps, currentTime);
+src/front/js/component/nodecompositor/graphEvaluator.js:149:        x: motion.x,
+src/front/js/component/nodecompositor/graphEvaluator.js:150:        y: motion.y,
+src/front/js/component/nodecompositor/graphEvaluator.js:151:        rotation: motion.rotation,
+src/front/js/component/nodecompositor/useNodeCompositorState.js:46:export default function useNodeCompositorState() {
+src/front/js/component/nodecompositor/renderEngine.js:5:    const canvas = document.createElement("canvas");
+src/front/js/component/nodecompositor/renderEngine.js:8:    canvas.width = rect.width;
+src/front/js/component/nodecompositor/renderEngine.js:9:    canvas.height = rect.height;
+src/front/js/component/nodecompositor/renderEngine.js:11:    const ctx = canvas.getContext("2d");
+src/front/js/component/nodecompositor/renderEngine.js:15:    ctx.fillRect(0, 0, canvas.width, canvas.height);
+src/front/js/component/nodecompositor/renderEngine.js:19:    link.href = canvas.toDataURL("image/png");
+src/front/js/component/HarmonyGenerator.js:50:  return <canvas ref={cvRef} width={200} height={40} className="hg-mini-wave" />;
+src/front/js/component/BreathRemover.js:30:  const canvasRef = useRef(null);
+src/front/js/component/BreathRemover.js:183:    const cv = canvasRef.current;
+src/front/js/component/BreathRemover.js:241:  // ── Click on canvas to toggle breath ──
+src/front/js/component/BreathRemover.js:242:  const handleCanvasClick = useCallback((e) => {
+src/front/js/component/BreathRemover.js:244:    const cv = canvasRef.current;
+src/front/js/component/BreathRemover.js:379:          <canvas ref={canvasRef} className="br-canvas" width={800} height={160}
+src/front/js/component/BreathRemover.js:380:            onClick={handleCanvasClick} />
+src/front/js/component/PodcastCollabRoom.js:10://   - Combined recording option (records the mixed canvas)
+src/front/js/component/PodcastCollabRoom.js:260:  const canvasRef = useRef(null);
+src/front/js/component/PodcastCollabRoom.js:961:        {/* VIDEO CANVAS                                                  */}
+src/front/js/component/PodcastCollabRoom.js:1026:          className="pcr-video-canvas"
+src/front/js/component/DAWMeteringTools.js:139:  const canvasRef = useRef(null);
+src/front/js/component/DAWMeteringTools.js:143:    const canvas = canvasRef.current;
+src/front/js/component/DAWMeteringTools.js:144:    if (!canvas) return;
+src/front/js/component/DAWMeteringTools.js:145:    const ctx = canvas.getContext('2d');
+src/front/js/component/DAWMeteringTools.js:149:      const W = canvas.width, H = canvas.height;
+src/front/js/component/DAWMeteringTools.js:252:      <canvas
+src/front/js/component/DAWMeteringTools.js:253:        ref={canvasRef}
+src/front/js/component/ChopView.js:88:  const canvasRef = useRef(null);
+src/front/js/component/ChopView.js:168:    if (!canvasRef.current || !buffer) return;
+src/front/js/component/ChopView.js:169:    const canvas = canvasRef.current;
+src/front/js/component/ChopView.js:170:    const rect = canvas.getBoundingClientRect();
+src/front/js/component/ChopView.js:173:      canvas.width = rect.width * dpr;
+src/front/js/component/ChopView.js:174:      canvas.height = rect.height * dpr;
+src/front/js/component/ChopView.js:175:      const ctx = canvas.getContext('2d');
+src/front/js/component/ChopView.js:178:    drawChopWaveform(canvas, buffer, engine.chopPts, engine.activeSlice, {
+src/front/js/component/ChopView.js:256:  // ── Canvas click: preview / add manual point ──
+src/front/js/component/ChopView.js:257:  const handleCanvasClick = useCallback((e) => {
+src/front/js/component/ChopView.js:258:    if (!canvasRef.current || !buffer) return;
+src/front/js/component/ChopView.js:261:    const rect = canvasRef.current.getBoundingClientRect();
+src/front/js/component/ChopView.js:287:  // ── Canvas right-click: remove point ──
+src/front/js/component/ChopView.js:288:  const handleCanvasRightClick = useCallback((e) => {
+src/front/js/component/ChopView.js:290:    if (!canvasRef.current || !buffer) return;
+src/front/js/component/ChopView.js:291:    const rect = canvasRef.current.getBoundingClientRect();
+src/front/js/component/ChopView.js:308:  const handleCanvasMouseDown = useCallback((e) => {
+src/front/js/component/ChopView.js:309:    if (e.button !== 0 || !canvasRef.current || !buffer) return;
+src/front/js/component/ChopView.js:310:    const rect = canvasRef.current.getBoundingClientRect();
+src/front/js/component/ChopView.js:325:  const handleCanvasMouseMove = useCallback((e) => {
+src/front/js/component/ChopView.js:326:    if (!canvasRef.current || !buffer) return;
+src/front/js/component/ChopView.js:327:    const rect = canvasRef.current.getBoundingClientRect();
+src/front/js/component/ChopView.js:353:    canvasRef.current.style.cursor = nearHandle > 0 ? 'ew-resize' :
+src/front/js/component/ChopView.js:358:  const handleCanvasMouseUp = useCallback(() => {
+src/front/js/component/ChopView.js:702:        {/* ═══ WAVEFORM CANVAS ═══ */}
+src/front/js/component/ChopView.js:704:          <canvas
+src/front/js/component/ChopView.js:705:            ref={canvasRef}
+src/front/js/component/ChopView.js:706:            onClick={handleCanvasClick}
+src/front/js/component/ChopView.js:707:            onContextMenu={handleCanvasRightClick}
+src/front/js/component/ChopView.js:708:            onMouseDown={handleCanvasMouseDown}
+src/front/js/component/ChopView.js:709:            onMouseMove={handleCanvasMouseMove}
+src/front/js/component/ChopView.js:710:            onMouseUp={handleCanvasMouseUp}
+src/front/js/component/ChopView.js:711:            onMouseLeave={() => { handleCanvasMouseUp(); setHoveredSlice(-1); }}
+src/front/js/component/HumToSong.js:43:// ── Waveform Canvas ────────────────────────────────────────────────────────
+src/front/js/component/HumToSong.js:45:  const canvasRef = useRef(null);
+src/front/js/component/HumToSong.js:49:    const canvas = canvasRef.current;
+src/front/js/component/HumToSong.js:50:    if (!canvas) return;
+src/front/js/component/HumToSong.js:51:    const ctx = canvas.getContext('2d');
+src/front/js/component/HumToSong.js:55:      ctx.clearRect(0, 0, canvas.width, canvas.height);
+src/front/js/component/HumToSong.js:62:        ctx.moveTo(0, canvas.height / 2);
+src/front/js/component/HumToSong.js:63:        ctx.lineTo(canvas.width, canvas.height / 2);
+src/front/js/component/HumToSong.js:70:      const sliceW = canvas.width / buf.length;
+src/front/js/component/HumToSong.js:81:        const y = (v * canvas.height) / 2;
+src/front/js/component/HumToSong.js:93:    <canvas ref={canvasRef} width={600} height={80}
+src/front/js/component/AIStackGenerator.js:33:  'Cinematic orchestral, 72 BPM, minor key, epic and emotional',
+src/front/js/component/VideoEditorMotion.js:2:// VideoEditorMotion.js — Keyframe Animation & Motion Graphics Engine
+src/front/js/component/VideoEditorMotion.js:4:// Location: src/front/js/component/VideoEditorMotion.js
+src/front/js/component/VideoEditorMotion.js:573: * Simple 3D camera for 2.5D motion graphics.
+src/front/js/component/audio/components/VocalProcessor.js:270:  const pitchCanvasRef = useRef(null);
+src/front/js/component/audio/components/VocalProcessor.js:271:  const meterCanvasRef = useRef(null);
+src/front/js/component/audio/components/VocalProcessor.js:435:      // Draw pitch canvas
+src/front/js/component/audio/components/VocalProcessor.js:451:    const cv = pitchCanvasRef.current;
+src/front/js/component/audio/components/VocalProcessor.js:522:    const cv = meterCanvasRef.current;
+src/front/js/component/audio/components/VocalProcessor.js:1208:                <canvas ref={pitchCanvasRef} className="vp-pitch-canvas" width={600} height={180} />
+src/front/js/component/audio/components/VocalProcessor.js:1211:                <canvas ref={meterCanvasRef} className="vp-meter-canvas" width={36} height={180} />
+src/front/js/component/WaveformEditor.js:4:// Canvas-based audio waveform display with:
+src/front/js/component/WaveformEditor.js:55:  const canvasRef = useRef(null);
+src/front/js/component/WaveformEditor.js:111:    const cv = canvasRef.current;
+src/front/js/component/WaveformEditor.js:117:    const cv = canvasRef.current;
+src/front/js/component/WaveformEditor.js:130:  // DRAW MAIN CANVAS
+src/front/js/component/WaveformEditor.js:133:    const cv = canvasRef.current;
+src/front/js/component/WaveformEditor.js:318:      const cv = canvasRef.current, mm = minimapRef.current;
+src/front/js/component/WaveformEditor.js:332:    const cv = canvasRef.current;
+src/front/js/component/WaveformEditor.js:354:    const cv = canvasRef.current;
+src/front/js/component/WaveformEditor.js:368:    const cv = canvasRef.current;
+src/front/js/component/WaveformEditor.js:395:    const cv = canvasRef.current;
+src/front/js/component/WaveformEditor.js:532:      <canvas ref={canvasRef} width={800} height={220}
+src/front/js/component/WaveformEditor.js:536:      <canvas ref={minimapRef} width={800} height={40}
+src/front/js/component/SamplerBeatMaker.js:307:  const chopCanvas = useRef(null);
+src/front/js/component/SamplerBeatMaker.js:821:    // Animate playhead on chop canvas
+src/front/js/component/SamplerBeatMaker.js:823:    const cv = chopCanvas.current;
+src/front/js/component/SamplerBeatMaker.js:1928:    const cv = chopCanvas.current; if (!cv || chopIdx === null) return;
+src/front/js/component/SamplerBeatMaker.js:1984:  const chopCanvasClick = useCallback((e) => {
+src/front/js/component/SamplerBeatMaker.js:1986:    const cv = chopCanvas.current; if (!cv || chopIdx === null) return;
+src/front/js/component/SamplerBeatMaker.js:2006:    const cv = chopCanvas.current; if (!cv || chopIdx === null) return;
+src/front/js/component/SamplerBeatMaker.js:2017:    const cv = chopCanvas.current; if (!cv || chopIdx === null) return;
+src/front/js/component/SamplerBeatMaker.js:2036:    const cv = chopCanvas.current; if (!cv || chopIdx === null) return;
+src/front/js/component/djStudioSrcDoc.js:186:      <canvas class="waveform" id="wfA" width="400" height="72"></canvas>
+src/front/js/component/djStudioSrcDoc.js:212:        <canvas class="vu" id="vuA" width="20" height="110"></canvas>
+src/front/js/component/djStudioSrcDoc.js:281:      <canvas class="waveform" id="wfB" width="400" height="72"></canvas>
+src/front/js/component/djStudioSrcDoc.js:307:        <canvas class="vu" id="vuB" width="20" height="110"></canvas>
+src/front/js/component/VideoEditorEffectsPlus.js:11:import { EASING } from './VideoEditorMotion';
+src/front/js/component/VideoEditorEffectsPlus.js:27: * Apply chroma key removal on a canvas context.
+src/front/js/component/VideoEditorEffectsPlus.js:153:  const canvasRef = React.useRef(null);
+src/front/js/component/VideoEditorEffectsPlus.js:157:    const canvas = canvasRef.current;
+src/front/js/component/VideoEditorEffectsPlus.js:158:    if (!canvas) return;
+src/front/js/component/VideoEditorEffectsPlus.js:159:    const ctx = canvas.getContext('2d');
+src/front/js/component/VideoEditorEffectsPlus.js:160:    const w = canvas.width, h = canvas.height;
+src/front/js/component/VideoEditorEffectsPlus.js:222:      <canvas ref={canvasRef} width={300} height={100}
+src/front/js/component/VideoEditorEffectsPlus.js:382: * Simple motion estimation by comparing frame brightness centroids.
+src/front/js/component/VideoEditorEffectsPlus.js:388:    this.motionVectors = []; // [{dx, dy}]
+src/front/js/component/VideoEditorEffectsPlus.js:392:   * Estimate motion between two frames (simple centroid shift)
+src/front/js/component/VideoEditorEffectsPlus.js:394:  estimateMotion(prevCtx, currCtx, width, height) {
+src/front/js/component/VideoEditorEffectsPlus.js:415:   * Add a motion vector
+src/front/js/component/VideoEditorEffectsPlus.js:418:    this.motionVectors.push({ dx, dy });
+src/front/js/component/VideoEditorEffectsPlus.js:425:    const n = this.motionVectors.length;
+src/front/js/component/VideoEditorEffectsPlus.js:432:      trajectory.push({ x: prev.x + this.motionVectors[i].dx, y: prev.y + this.motionVectors[i].dy });
+src/front/js/component/VideoEditorEffectsPlus.js:451:  reset() { this.motionVectors = []; }
+src/front/js/component/VideoEditorEffectsPlus.js:685: * GPU-friendly canvas particle emitter for motion graphics.
+src/front/js/component/VideoEditorEffectsPlus.js:737:    blendMode = 'screen', // canvas globalCompositeOperation
+src/front/js/component/VideoEditorEffectsPlus.js:882:   * Render particles to a 2D canvas context
+src/front/js/component/JamTrackLibrary.js:34:  { id:'j6',  title:'Pop Anthem Ballad',         genre:'Pop',      key:'C',  bpm:72,  difficulty:'Beginner',     duration:240, stems:['drums','bass','keys'],            description:'Emotional pop ballad in C major. Wide open sound.' },
+src/front/js/component/JamTrackLibrary.js:36:  { id:'j8',  title:'Boom Bap Canvas',           genre:'Hip-Hop',  key:'Bb', bpm:90,  difficulty:'Beginner',     duration:180, stems:['drums','bass','keys'],            description:'Old-school boom bap loop. Write your bars over this.' },
+src/front/js/component/JamTrackLibrary.js:46:  { id:'j18', title:'Trap Soul Canvas',          genre:'R&B',      key:'Gm', bpm:75,  difficulty:'Intermediate', duration:240, stems:['drums','bass','keys'],            description:'Dark trap soul loop for melodic artists.' },
+src/front/js/component/MagicClips.js:36:    "Scoring emotional peaks...",
+src/front/js/component/MagicClips.js:74:      { id: "c1", start: 12.4, end: 72.1, duration: 59.7, score: 94, preview: "...this is the moment everything changed for creators. The old model of waiting for gatekeepers is completely dead...", tags: ["high_energy", "quotable"], reasons: ["emotional_peak", "viral_potential"] },
+src/front/js/component/hooks/useAICredits.js:52:    motion_tracking:       '📍 Motion Tracking',
+src/front/js/component/AITextToSong.js:63:  const canvasRef = useRef(null);
+src/front/js/component/AITextToSong.js:80:    const canvas  = canvasRef.current;
+src/front/js/component/AITextToSong.js:81:    if (!canvas || !analyserRef.current) return;
+src/front/js/component/AITextToSong.js:82:    const cctx    = canvas.getContext('2d');
+src/front/js/component/AITextToSong.js:88:      cctx.clearRect(0, 0, canvas.width, canvas.height);
+src/front/js/component/AITextToSong.js:89:      const bw = canvas.width / buf.length;
+src/front/js/component/AITextToSong.js:91:        const h = (v / 255) * canvas.height;
+src/front/js/component/AITextToSong.js:92:        const g = cctx.createLinearGradient(0, canvas.height - h, 0, canvas.height);
+src/front/js/component/AITextToSong.js:96:        cctx.fillRect(i * bw, canvas.height - h, bw - 1, h);
+src/front/js/component/AITextToSong.js:104:    <canvas ref={canvasRef} width={600} height={60}
+src/front/js/component/SamplerInstrument.js:658:  const canvasRef = useRef(null);
+src/front/js/component/SamplerInstrument.js:659:  const chopCanvasRef = useRef(null);
+src/front/js/component/SamplerInstrument.js:699:    const cv = canvasRef.current;
+src/front/js/component/SamplerInstrument.js:705:    // Size canvas for sharp rendering
+src/front/js/component/SamplerInstrument.js:835:  // ── Canvas mouse interaction for trim/loop handles ──
+src/front/js/component/SamplerInstrument.js:836:  const handleCanvasMouseDown = useCallback((e) => {
+src/front/js/component/SamplerInstrument.js:837:    if (!sample || !canvasRef.current) return;
+src/front/js/component/SamplerInstrument.js:838:    const rect = canvasRef.current.getBoundingClientRect();
+src/front/js/component/SamplerInstrument.js:856:  const handleCanvasMouseMove = useCallback((e) => {
+src/front/js/component/SamplerInstrument.js:857:    if (!draggingTrim || !sample || !canvasRef.current) return;
+src/front/js/component/SamplerInstrument.js:858:    const rect = canvasRef.current.getBoundingClientRect();
+src/front/js/component/SamplerInstrument.js:868:  const handleCanvasMouseUp = useCallback(() => setDraggingTrim(null), []);
+src/front/js/component/SamplerInstrument.js:1057:  // ── Manual chop point on canvas click ──
+src/front/js/component/SamplerInstrument.js:1058:  const handleChopCanvasClick = useCallback((e) => {
+src/front/js/component/SamplerInstrument.js:1059:    if (!sample || !chopCanvasRef.current) return;
+src/front/js/component/SamplerInstrument.js:1061:    const rect = chopCanvasRef.current.getBoundingClientRect();
+src/front/js/component/SamplerInstrument.js:1091:    const cv = chopCanvasRef.current;
+src/front/js/component/SamplerInstrument.js:1329:            <div className="si-chop-canvas-wrap">
+src/front/js/component/SamplerInstrument.js:1330:              <canvas
+src/front/js/component/SamplerInstrument.js:1331:                ref={chopCanvasRef}
+src/front/js/component/SamplerInstrument.js:1332:                className="si-canvas"
+src/front/js/component/SamplerInstrument.js:1333:                onClick={handleChopCanvasClick}
+src/front/js/component/SamplerInstrument.js:1413:            <canvas
+src/front/js/component/SamplerInstrument.js:1414:              ref={canvasRef}
+src/front/js/component/SamplerInstrument.js:1415:              className="si-canvas"
+src/front/js/component/SamplerInstrument.js:1416:              onMouseDown={handleCanvasMouseDown}
+src/front/js/component/SamplerInstrument.js:1417:              onMouseMove={handleCanvasMouseMove}
+src/front/js/component/SamplerInstrument.js:1418:              onMouseUp={handleCanvasMouseUp}
+src/front/js/component/SamplerInstrument.js:1419:              onMouseLeave={handleCanvasMouseUp}
+src/front/js/component/UniversalSocialShare.js:578:                  <li>🌟 Creator attribution and platform promotion</li>
+src/front/js/component/motionstudio/MotionPathPanel.js:3:export default function MotionPathPanel({
+src/front/js/component/motionstudio/MotionPathPanel.js:12:    <div className="motion-panel">
+src/front/js/component/motionstudio/MotionPathPanel.js:13:      <div className="motion-panel-title">Path Animation</div>
+src/front/js/component/motionstudio/MotionPathPanel.js:21:      <div className="motion-mini-actions">
+src/front/js/component/motionstudio/MotionTimelinePanel.js:7:export default function MotionTimelinePanel({
+src/front/js/component/motionstudio/MotionTimelinePanel.js:187:    <div className="motion-panel motion-timeline-panel">
+src/front/js/component/motionstudio/MotionTimelinePanel.js:188:      <div className="motion-panel-title">Timeline</div>
+src/front/js/component/motionstudio/MotionTimelinePanel.js:190:      <div className="motion-timeline-meta">
+src/front/js/component/motionstudio/MotionTimelinePanel.js:196:      <div className="motion-mini-actions" style={{ marginBottom: 10 }}>
+src/front/js/component/motionstudio/MotionTimelinePanel.js:214:      <div className="motion-dim" style={{ marginBottom: 8 }}>
+src/front/js/component/motionstudio/MotionTimelinePanel.js:221:      <div className="motion-timeline-scroll" ref={scrollRef} onMouseDown={onTimelineClick}>
+src/front/js/component/motionstudio/MotionTimelinePanel.js:222:        <div className="motion-timeline-inner" style={{ width: totalWidth }}>
+src/front/js/component/motionstudio/MotionTimelinePanel.js:223:          <div className="motion-timeline-ruler">
+src/front/js/component/motionstudio/MotionTimelinePanel.js:225:              <div key={i} className="motion-ruler-tick" style={{ left: i * PX_PER_SEC }}>
+src/front/js/component/motionstudio/MotionTimelinePanel.js:233:              className="motion-loop-region"
+src/front/js/component/motionstudio/MotionTimelinePanel.js:241:          <div className="motion-playhead" style={{ left: currentTime * PX_PER_SEC }} />
+src/front/js/component/motionstudio/MotionTimelinePanel.js:243:          <div className="motion-timeline-tracks">
+src/front/js/component/motionstudio/MotionTimelinePanel.js:251:                <div key={layer.id} className="motion-track-row motion-track-row-tall">
+src/front/js/component/motionstudio/MotionTimelinePanel.js:252:                  <div className="motion-track-label">
+src/front/js/component/motionstudio/MotionTimelinePanel.js:257:                  <div className="motion-track-lane motion-track-lane-tall">
+src/front/js/component/motionstudio/MotionTimelinePanel.js:259:                      className={`motion-clip-bar ${active ? "active" : ""}`}
+src/front/js/component/motionstudio/MotionTimelinePanel.js:264:                        className="motion-clip-handle left"
+src/front/js/component/motionstudio/MotionTimelinePanel.js:267:                      <div className="motion-clip-content">
+src/front/js/component/motionstudio/MotionTimelinePanel.js:274:                        className="motion-clip-handle right"
+src/front/js/component/motionstudio/MotionTimelinePanel.js:279:                    <div className="motion-keyframe-tools">
+src/front/js/component/motionstudio/MotionTimelinePanel.js:283:                          className="motion-keyframe-add-btn"
+src/front/js/component/motionstudio/MotionTimelinePanel.js:292:                    <div className="motion-keyframe-lanes">
+src/front/js/component/motionstudio/MotionTimelinePanel.js:296:                          <div key={prop} className="motion-keyframe-lane">
+src/front/js/component/motionstudio/MotionTimelinePanel.js:297:                            <div className="motion-keyframe-prop">{prop}</div>
+src/front/js/component/motionstudio/MotionTimelinePanel.js:298:                            <div className="motion-keyframe-line">
+src/front/js/component/motionstudio/MotionTimelinePanel.js:309:                                    className={`motion-keyframe-diamond ${isSelected ? "selected" : ""}`}
+src/front/js/component/motionstudio/MotionPropertyInspector.js:3:export default function MotionPropertyInspector({ selectedLayer, updateLayer }) {
+src/front/js/component/motionstudio/MotionPropertyInspector.js:6:      <div className="motion-panel">
+src/front/js/component/motionstudio/MotionPropertyInspector.js:7:        <div className="motion-panel-title">Inspector</div>
+src/front/js/component/motionstudio/MotionPropertyInspector.js:8:        <div className="motion-dim">Select a layer</div>
+src/front/js/component/motionstudio/MotionPropertyInspector.js:16:    <div className="motion-panel">
+src/front/js/component/motionstudio/MotionPropertyInspector.js:17:      <div className="motion-panel-title">Inspector</div>
+src/front/js/component/motionstudio/MotionPropertyInspector.js:25:      <div className="motion-grid-2">
+src/front/js/component/motionstudio/MotionPropertyInspector.js:36:      <div className="motion-grid-2">
+src/front/js/component/motionstudio/MotionPropertyInspector.js:47:      <div className="motion-grid-2">
+src/front/js/component/motionstudio/MotionPropertyInspector.js:58:      <div className="motion-grid-2">
+src/front/js/component/motionstudio/MotionPropertyInspector.js:75:      <div className="motion-checks">
+src/front/js/component/motionstudio/MotionTemplatePanel.js:4:export default function MotionTemplatePanel({ setLayers }) {
+src/front/js/component/motionstudio/MotionTemplatePanel.js:33:    <div className="motion-panel">
+src/front/js/component/motionstudio/MotionTemplatePanel.js:34:      <div className="motion-panel-title">Templates</div>
+src/front/js/component/motionstudio/MotionTemplatePanel.js:35:      <div className="motion-list">
+src/front/js/component/motionstudio/MotionTemplatePanel.js:37:          <button key={t.id} className="motion-template-btn" onClick={() => applyTemplate(t)}>
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:6:export default function MotionGraphEditorPanel({
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:14:  const canvasRef = useRef(null);
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:65:    const canvas = canvasRef.current;
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:66:    if (!canvas) return;
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:67:    const ctx = canvas.getContext("2d");
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:68:    const w = canvas.width;
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:69:    const h = canvas.height;
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:157:    <div className="motion-panel">
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:158:      <div className="motion-panel-title">Graph Editor</div>
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:161:        <div className="motion-dim">Select a layer</div>
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:171:          <div className="motion-graph-meta">
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:182:          <canvas
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:183:            ref={canvasRef}
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:186:            className="motion-graph-canvas"
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:189:          <div className="motion-chip-grid" style={{ marginTop: 10 }}>
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:218:                <div className="motion-dim">
+src/front/js/component/motionstudio/useMotionStudioState.js:9:} from "../VideoEditorMotion";
+src/front/js/component/motionstudio/useMotionStudioState.js:14:export default function useMotionStudioState() {
+src/front/js/component/motionstudio/useMotionStudioState.js:28:      text: "StreamPireX Motion Studio",
+src/front/js/component/motionstudio/useMotionStudioState.js:29:      subtitle: "Creator Motion Graphics",
+src/front/js/component/motionstudio/useMotionStudioState.js:95:        text: "New Motion Text",
+src/front/js/component/motionstudio/MotionPreviewStage.js:6:} from "../VideoEditorMotion";
+src/front/js/component/motionstudio/MotionPreviewStage.js:38:export default function MotionPreviewStage({
+src/front/js/component/motionstudio/MotionPreviewStage.js:201:    <div className="motion-preview-shell">
+src/front/js/component/motionstudio/MotionPreviewStage.js:203:        className="motion-preview-stage"
+src/front/js/component/motionstudio/MotionPreviewStage.js:207:        <div className="motion-preview-safezone" />
+src/front/js/component/motionstudio/MotionPreviewStage.js:208:        {guides.vertical ? <div className="motion-guide motion-guide-v" /> : null}
+src/front/js/component/motionstudio/MotionPreviewStage.js:209:        {guides.horizontal ? <div className="motion-guide motion-guide-h" /> : null}
+src/front/js/component/motionstudio/MotionPreviewStage.js:217:              className={`motion-layer-wrap ${isSelected ? "selected" : ""}`}
+src/front/js/component/motionstudio/MotionPreviewStage.js:243:                  <div className="motion-selection-box" />
+src/front/js/component/motionstudio/MotionPreviewStage.js:245:                    className="motion-rotate-handle"
+src/front/js/component/motionstudio/MotionPreviewStage.js:252:                    className="motion-resize-handle"
+src/front/js/component/motionstudio/MotionPresetBrowser.js:3:export default function MotionPresetBrowser({
+src/front/js/component/motionstudio/MotionPresetBrowser.js:27:    <div className="motion-panel">
+src/front/js/component/motionstudio/MotionPresetBrowser.js:28:      <div className="motion-panel-title">Presets</div>
+src/front/js/component/motionstudio/MotionPresetBrowser.js:30:      <div className="motion-subtitle">Text Animations</div>
+src/front/js/component/motionstudio/MotionPresetBrowser.js:31:      <div className="motion-chip-grid">
+src/front/js/component/motionstudio/MotionPresetBrowser.js:42:      <div className="motion-mini-actions">
+src/front/js/component/motionstudio/MotionPresetBrowser.js:48:      <div className="motion-subtitle">Lower Thirds</div>
+src/front/js/component/motionstudio/MotionPresetBrowser.js:49:      <div className="motion-chip-grid">
+src/front/js/component/motionstudio/MotionPresetBrowser.js:60:      <div className="motion-mini-actions">
+src/front/js/component/motionstudio/MotionLayerPanel.js:3:export default function MotionLayerPanel({
+src/front/js/component/motionstudio/MotionLayerPanel.js:10:    <div className="motion-panel">
+src/front/js/component/motionstudio/MotionLayerPanel.js:11:      <div className="motion-panel-title">Layers</div>
+src/front/js/component/motionstudio/MotionLayerPanel.js:12:      <div className="motion-list">
+src/front/js/component/motionstudio/MotionLayerPanel.js:16:            className={`motion-list-item ${selectedLayerId === layer.id ? "active" : ""}`}
+src/front/js/component/motionstudio/MotionLayerPanel.js:21:              <div className="motion-dim">{layer.type}</div>
+src/front/js/component/motionstudio/MotionKeyframePanel.js:2:import { KeyframeEditor } from "../VideoEditorMotion";
+src/front/js/component/motionstudio/MotionKeyframePanel.js:4:export default function MotionKeyframePanel({
+src/front/js/component/motionstudio/MotionKeyframePanel.js:12:    <div className="motion-panel">
+src/front/js/component/motionstudio/MotionKeyframePanel.js:13:      <div className="motion-panel-title">Keyframes</div>
+src/front/js/component/motionstudio/MotionKeyframePanel.js:17:          <div className="motion-mini-actions">
+src/front/js/component/motionstudio/MotionKeyframePanel.js:39:        <div className="motion-dim">Select a layer</div>
+src/front/js/component/motionstudio/MotionCameraPanel.js:3:export default function MotionCameraPanel({
+src/front/js/component/motionstudio/MotionCameraPanel.js:9:    <div className="motion-panel">
+src/front/js/component/motionstudio/MotionCameraPanel.js:10:      <div className="motion-panel-title">2.5D Camera</div>
+src/front/js/component/motionstudio/MotionCameraPanel.js:16:      <div className="motion-dim" style={{ marginTop: 8 }}>
+src/front/js/component/motionstudio/MotionToolbar.js:3:export default function MotionToolbar({
+src/front/js/component/motionstudio/MotionToolbar.js:13:    <div className="motion-toolbar">
+src/front/js/component/motionstudio/MotionToolbar.js:14:      <div className="motion-toolbar-left">
+src/front/js/component/motionstudio/MotionToolbar.js:19:      <div className="motion-toolbar-center">
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:6:export default function MotionKeyframeEditorPanel({
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:99:    <div className="motion-panel">
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:100:      <div className="motion-panel-title">Keyframe Editor</div>
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:103:        <div className="motion-dim">Select a layer</div>
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:113:          <div className="motion-mini-actions" style={{ marginTop: 10 }}>
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:132:              <div className="motion-grid-2">
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:178:                  <div className="motion-dim">
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:184:              <div className="motion-mini-actions" style={{ marginTop: 10 }}>
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:189:            <div className="motion-dim" style={{ marginTop: 10 }}>
+src/front/js/component/ConsoleFXPanel.js:29:const setupCanvas = (canvas, w, h) => {
+src/front/js/component/ConsoleFXPanel.js:30:  if (!canvas) return null;
+src/front/js/component/ConsoleFXPanel.js:31:  const ctx = canvas.getContext("2d");
+src/front/js/component/ConsoleFXPanel.js:33:  canvas.width = w * dpr;
+src/front/js/component/ConsoleFXPanel.js:34:  canvas.height = h * dpr;
+src/front/js/component/ConsoleFXPanel.js:204:    const ctx = setupCanvas(ref.current, width, height);
+src/front/js/component/ConsoleFXPanel.js:272:  return <canvas ref={ref} style={{ width, height, borderRadius: 6, display: "block" }} />;
+src/front/js/component/ConsoleFXPanel.js:278:    const ctx = setupCanvas(ref.current, width, height);
+src/front/js/component/ConsoleFXPanel.js:354:  return <canvas ref={ref} style={{ width, height, borderRadius: 6, display: "block" }} />;
+src/front/js/component/ConsoleFXPanel.js:360:    const ctx = setupCanvas(ref.current, width, height);
+src/front/js/component/ConsoleFXPanel.js:412:  return <canvas ref={ref} style={{ width, height, borderRadius: 6, display: "block" }} />;
+src/front/js/component/ConsoleFXPanel.js:418:    const ctx = setupCanvas(ref.current, width, height);
+src/front/js/component/ConsoleFXPanel.js:457:  return <canvas ref={ref} style={{ width, height, borderRadius: 6, display: "block" }} />;
+src/front/js/component/ConsoleFXPanel.js:463:    const ctx = setupCanvas(ref.current, width, height);
+src/front/js/component/ConsoleFXPanel.js:540:  return <canvas ref={ref} style={{ width, height, borderRadius: 6, display: "block" }} />;
+src/front/js/component/ConsoleFXPanel.js:546:    const ctx = setupCanvas(ref.current, width, height);
+src/front/js/component/ConsoleFXPanel.js:596:  return <canvas ref={ref} style={{ width, height, borderRadius: 6, display: "block" }} />;
+src/front/js/component/ConsoleFXPanel.js:602:    const ctx = setupCanvas(ref.current, width, height);
+src/front/js/component/ConsoleFXPanel.js:652:  return <canvas ref={ref} style={{ width, height, borderRadius: 6, display: "block" }} />;
+src/front/js/component/SendToMotionButton.js:4:import { sendToMotion } from "../utils/motionHelpers";
+src/front/js/component/SendToMotionButton.js:6:export default function SendToMotionButton({
+src/front/js/component/SendToMotionButton.js:18:    sendToMotion(actions, navigate, { type, url, name });
+src/front/js/component/SendToMotionButton.js:37:      title={url ? "Send this media to Motion Studio" : "No media available yet"}
+src/front/js/component/SendToMotionButton.js:39:      Send to Motion Studio 🎬
+src/front/js/component/VocalAlignment.js:24:  const canvasRef = useRef(null);
+src/front/js/component/VocalAlignment.js:118:    const cv = canvasRef.current;
+src/front/js/component/VocalAlignment.js:230:          <canvas ref={canvasRef} className="va-canvas" width={800} height={250} />
+src/front/js/component/sidebar.js:723:          <MenuItem to="/motion-studio" className={isActive("/motion-studio") ? "active" : ""}>
+src/front/js/component/sidebar.js:724:            ✨ <span className="sidebar-label">SPX Motion</span>
+src/front/js/component/sidebar.js:727:          <MenuItem to="/node-compositor" className={isActive("/node-compositor") ? "active" : ""}>
+src/front/js/component/sidebar.js:728:            🎛️ <span className="sidebar-label">SPX Compositor</span>
+src/front/js/component/sidebar.js:731:          <MenuItem to="/spx-canvas" className={isActive("/spx-canvas") ? "active" : ""}>
+src/front/js/component/sidebar.js:732:            🎨 <span className="sidebar-label">SPX Canvas</span>
+src/front/js/component/sidebar.js:734:          <MenuItem to="/spx-vector" className={isActive("/spx-vector") ? "active" : ""}>
+src/front/js/component/sidebar.js:735:            ✒️ <span className="sidebar-label">SPX Vector</span>
+src/front/js/component/QuickCaptureMode.js:42:  const canvasRef = useRef(null);
+src/front/js/component/QuickCaptureMode.js:50:    const canvas = canvasRef.current;
+src/front/js/component/QuickCaptureMode.js:51:    if (!canvas) return;
+src/front/js/component/QuickCaptureMode.js:52:    const ctx = canvas.getContext('2d');
+src/front/js/component/QuickCaptureMode.js:60:      ctx.fillRect(0, 0, canvas.width, canvas.height);
+src/front/js/component/QuickCaptureMode.js:64:      const sliceWidth = canvas.width / bufferLength;
+src/front/js/component/QuickCaptureMode.js:68:        const y = (v * canvas.height) / 2;
+src/front/js/component/QuickCaptureMode.js:72:      ctx.lineTo(canvas.width, canvas.height / 2);
+src/front/js/component/QuickCaptureMode.js:80:    <canvas
+src/front/js/component/QuickCaptureMode.js:81:      ref={canvasRef}
+src/front/js/component/VideoEditorAdvancedFeatures.js:8://   2. Motion Tracking (attach text/graphics to moving objects)
+src/front/js/component/VideoEditorAdvancedFeatures.js:27:// 1. AI BACKGROUND REMOVAL (Canvas-based, no green screen)
+src/front/js/component/VideoEditorAdvancedFeatures.js:362:// 2. MOTION TRACKING (Attach text/graphics to moving objects)
+src/front/js/component/VideoEditorAdvancedFeatures.js:370: * @param prevCtx - Previous frame canvas context
+src/front/js/component/VideoEditorAdvancedFeatures.js:371: * @param currCtx - Current frame canvas context
+src/front/js/component/VideoEditorAdvancedFeatures.js:451: * Create a motion tracking session
+src/front/js/component/VideoEditorAdvancedFeatures.js:453:export const createMotionTrack = (options = {}) => ({
+src/front/js/component/VideoEditorAdvancedFeatures.js:455:  type: 'motion_track',
+src/front/js/component/VideoEditorAdvancedFeatures.js:467: * Add attachment to a motion track (text, image, shape)
+src/front/js/component/VideoEditorAdvancedFeatures.js:469:export const addMotionAttachment = (track, attachment) => ({
+src/front/js/component/VideoEditorAdvancedFeatures.js:497:export const smoothMotionKeyframes = (keyframes, windowSize = 5) => {
+src/front/js/component/VideoEditorAdvancedFeatures.js:510: * Motion Tracking Panel UI
+src/front/js/component/VideoEditorAdvancedFeatures.js:512:export const MotionTrackingPanel = ({ tracks = [], currentTime, onCreateTrack, onDeleteTrack, onAddAttachment }) => {
+src/front/js/component/VideoEditorAdvancedFeatures.js:520:        <span>📍</span> Motion Tracking
+src/front/js/component/VideoEditorAdvancedFeatures.js:893:    description: 'Clean fade-in with subtle motion',
+src/front/js/component/VideoEditorAdvancedFeatures.js:1218: * Compute a compact color histogram from a canvas context.
+src/front/js/component/VideoEditorAdvancedFeatures.js:1281:  const canvas = document.createElement('canvas');
+src/front/js/component/VideoEditorAdvancedFeatures.js:1282:  const ctx = canvas.getContext('2d');
+src/front/js/component/VideoEditorAdvancedFeatures.js:1284:  canvas.width = thumbnailWidth;
+src/front/js/component/VideoEditorAdvancedFeatures.js:1285:  canvas.height = Math.round(thumbnailWidth / aspectRatio);
+src/front/js/component/VideoEditorAdvancedFeatures.js:1301:    ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+src/front/js/component/VideoEditorAdvancedFeatures.js:1302:    const hist = computeFrameHistogram(ctx, canvas.width, canvas.height);
+src/front/js/component/VideoEditorAdvancedFeatures.js:1450:  // Motion Tracking
+src/front/js/component/VideoEditorAdvancedFeatures.js:1451:  trackPoint, createMotionTrack, addMotionAttachment, smoothMotionKeyframes, MotionTrackingPanel,
+src/front/js/component/PianoRoll.js:65:  const canvasRef = useRef(null);
+src/front/js/component/PianoRoll.js:66:  const velCanvasRef = useRef(null);
+src/front/js/component/PianoRoll.js:204:  // CANVAS DRAWING
+src/front/js/component/PianoRoll.js:208:    const canvas = canvasRef.current;
+src/front/js/component/PianoRoll.js:209:    if (!canvas) return;
+src/front/js/component/PianoRoll.js:210:    const ctx = canvas.getContext('2d');
+src/front/js/component/PianoRoll.js:211:    const w = canvas.width;
+src/front/js/component/PianoRoll.js:212:    const h = canvas.height;
+src/front/js/component/PianoRoll.js:365:    const canvas = velCanvasRef.current;
+src/front/js/component/PianoRoll.js:366:    if (!canvas || !showVelocity) return;
+src/front/js/component/PianoRoll.js:367:    const ctx = canvas.getContext('2d');
+src/front/js/component/PianoRoll.js:368:    const w = canvas.width;
+src/front/js/component/PianoRoll.js:369:    const h = canvas.height;
+src/front/js/component/PianoRoll.js:412:    const rect = canvasRef.current.getBoundingClientRect();
+src/front/js/component/PianoRoll.js:472:    const rect = canvasRef.current.getBoundingClientRect();
+src/front/js/component/PianoRoll.js:534:    const rect = velCanvasRef.current.getBoundingClientRect();
+src/front/js/component/PianoRoll.js:588:  // CANVAS RESIZE
+src/front/js/component/PianoRoll.js:593:      if (!containerRef.current || !canvasRef.current) return;
+src/front/js/component/PianoRoll.js:595:      canvasRef.current.width = rect.width;
+src/front/js/component/PianoRoll.js:596:      canvasRef.current.height = rect.height - velLaneHeight;
+src/front/js/component/PianoRoll.js:597:      if (velCanvasRef.current) {
+src/front/js/component/PianoRoll.js:598:        velCanvasRef.current.width = rect.width;
+src/front/js/component/PianoRoll.js:599:        velCanvasRef.current.height = velLaneHeight;
+src/front/js/component/PianoRoll.js:750:      {/* Main Canvas */}
+src/front/js/component/PianoRoll.js:751:      <canvas
+src/front/js/component/PianoRoll.js:752:        ref={canvasRef}
+src/front/js/component/PianoRoll.js:753:        className="pr-canvas"
+src/front/js/component/PianoRoll.js:764:        <canvas
+src/front/js/component/PianoRoll.js:765:          ref={velCanvasRef}
+src/front/js/component/PianoRoll.js:766:          className="pr-vel-canvas"
+src/front/js/component/ChopEngine.js:173: * Draw waveform with chop slice markers onto a canvas.
+src/front/js/component/ChopEngine.js:175:export function drawChopWaveform(canvas, buffer, chopPoints = [], activeSlice = -1, options = {}) {
+src/front/js/component/ChopEngine.js:176:  if (!canvas || !buffer) return;
+src/front/js/component/ChopEngine.js:178:  const ctx = canvas.getContext('2d');
+src/front/js/component/ChopEngine.js:179:  const w = canvas.width;
+src/front/js/component/ChopEngine.js:180:  const h = canvas.height;
+src/front/js/component/ChopEngine.js:343: * Get which slice index was clicked at a given X position on the canvas.
+src/front/js/component/ChopEngine.js:345:export function getSliceAtPosition(x, canvasWidth, chopPoints, totalDuration) {
+src/front/js/component/ChopEngine.js:346:  const time = (x / canvasWidth) * totalDuration;
+src/front/js/component/MultibandEffects.js:135:  const specCanvasRef  = useRef(null);
+src/front/js/component/MultibandEffects.js:136:  const scopeCanvasRef = useRef(null);
+src/front/js/component/MultibandEffects.js:247:      drawCanvases(floatBuf, byteBuf);
+src/front/js/component/MultibandEffects.js:253:  const drawCanvases = (floatBuf, byteBuf) => {
+src/front/js/component/MultibandEffects.js:254:    const sc = specCanvasRef.current;
+src/front/js/component/MultibandEffects.js:294:    const oc = scopeCanvasRef.current;
+src/front/js/component/MultibandEffects.js:678:      {/* ══ SPECTRUM CANVAS ══ */}
+src/front/js/component/MultibandEffects.js:680:        <canvas
+src/front/js/component/MultibandEffects.js:681:          ref={specCanvasRef}
+src/front/js/component/MultibandEffects.js:931:            <canvas
+src/front/js/component/MultibandEffects.js:932:              ref={scopeCanvasRef}
+src/front/js/component/VocalTuner.js:43:  const canvasRef = useRef(null);
+src/front/js/component/VocalTuner.js:122:    const cv = canvasRef.current;
+src/front/js/component/VocalTuner.js:216:          <canvas ref={canvasRef} className="vt-canvas" width={800} height={300} />
+src/front/js/component/MicSimulator.js:409:  const canvasRef = useRef(null);
+src/front/js/component/MicSimulator.js:578:      // Draw mini spectrum on canvas
+src/front/js/component/MicSimulator.js:593:    const canvas = canvasRef.current;
+src/front/js/component/MicSimulator.js:594:    if (!canvas || !analyser) return;
+src/front/js/component/MicSimulator.js:595:    const ctx = canvas.getContext('2d');
+src/front/js/component/MicSimulator.js:596:    const w = canvas.width, h = canvas.height;
+src/front/js/component/MicSimulator.js:763:        <canvas ref={canvasRef} className="mic-spectrum" width={300} height={80} />
+src/front/js/component/LessonDiagram.js:529:      { name: "Cm9", notes: ["C", "Eb", "G", "Bb", "D"], desc: "Minor 9th — rich, emotional" },
+src/front/js/component/LessonDiagram.js:732:  if (title.includes("minor scale") || title.includes("dark & emotional"))
+src/front/js/component/LessonDiagram.js:769:    return wrap(<ChordProgressionDiagram title="MINOR CHORDS — DARK & EMOTIONAL" chords={[
+src/front/js/component/VocalProcessor.js:296:  const pitchCanvasRef = useRef(null);
+src/front/js/component/VocalProcessor.js:297:  const meterCanvasRef = useRef(null);
+src/front/js/component/VocalProcessor.js:690:    const cv = pitchCanvasRef.current;
+src/front/js/component/VocalProcessor.js:749:    const cv = meterCanvasRef.current;
+src/front/js/component/VocalProcessor.js:1628:                <canvas ref={pitchCanvasRef} className="vp-pitch-canvas" width={600} height={180} />
+src/front/js/component/VocalProcessor.js:1631:                <canvas ref={meterCanvasRef} className="vp-meter-canvas" width={36} height={180} />
+src/front/js/component/RadioStationDetailPage.js:77:    static14: { id: "static14", name: "Velvet Echo", genre: "Soul", description: "Smooth vocal powerhouse delivering emotional performances. Contemporary soul with classic influences.", image: VelvetEchoImg, listeners: "8.9K", rating: 4.8 },
+src/front/js/component/tabs/DrumPadTab.js:381:  const canvasRef = useRef(null);
+src/front/js/component/tabs/DrumPadTab.js:384:    const canvas = canvasRef.current;
+src/front/js/component/tabs/DrumPadTab.js:385:    if (!canvas || !buffer) return;
+src/front/js/component/tabs/DrumPadTab.js:387:    const ctx = canvas.getContext("2d");
+src/front/js/component/tabs/DrumPadTab.js:388:    const w = canvas.width;
+src/front/js/component/tabs/DrumPadTab.js:389:    const h = canvas.height;
+src/front/js/component/tabs/DrumPadTab.js:416:  return <canvas ref={canvasRef} className="sbm-mini-wave" width="80" height="30" />;
+src/front/js/component/VideoUploadForm.js:22:  const [containsPaidPromotion, setContainsPaidPromotion] = useState(false);
+src/front/js/component/VideoUploadForm.js:176:          contains_paid_promotion: containsPaidPromotion,
+src/front/js/component/VideoUploadForm.js:196:        formData.append("contains_paid_promotion", String(containsPaidPromotion));
+src/front/js/component/VideoUploadForm.js:450:                checked={containsPaidPromotion}
+src/front/js/component/VideoUploadForm.js:451:                onChange={(e) => setContainsPaidPromotion(e.target.checked)}
+src/front/js/component/VideoUploadForm.js:454:                <strong>Contains paid promotion</strong>
+src/front/js/component/VideoEditorComponent.js:24:// ── NEW: Motion Graphics & Keyframes ──
+src/front/js/component/VideoEditorComponent.js:28:} from '../component/VideoEditorMotion';
+src/front/js/component/VideoEditorComponent.js:54:import { BackgroundRemovalPanel, MotionTrackingPanel, AudioDuckingPanel, 
+src/front/js/component/VideoEditorComponent.js:2002:  const [showMotionGraphics, setShowMotionGraphics] = useState(true);
+src/front/js/component/VideoEditorComponent.js:2115:    { id: 'vectorscope', name: 'Vectorscope', icon: Target, category: 'colorGrading', description: 'Color analysis tool' },
+src/front/js/component/VideoEditorComponent.js:2119:    { id: 'motionBlur', name: 'Motion Blur', icon: Move, category: 'blur', description: 'Directional motion blur' },
+src/front/js/component/VideoEditorComponent.js:2268:    { id: 'motionBlurTransition', name: 'Motion Blur', icon: Move, duration: 1, category: 'blur' },
+src/front/js/component/VideoEditorComponent.js:4174:                      onClick={() => setShowMotionGraphics(!showMotionGraphics)}
+src/front/js/component/VideoEditorComponent.js:4178:                        {showMotionGraphics ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+src/front/js/component/VideoEditorComponent.js:4181:                    {showMotionGraphics && (
+src/front/js/component/VideoEditorComponent.js:6649:                      <label>Motion Blur</label>
+src/front/js/component/VideoEditorOverlays.js:8:import { EASING, interpolateKeyframes, keyframesToCSS, TEXT_PRESETS, LOWER_THIRD_TEMPLATES } from './VideoEditorMotion';
+src/front/js/component/useSamplerEngine.js:277:  const chopCanvas = useRef(null);
+src/front/js/component/useSamplerEngine.js:1406:    chopCanvas, openChop,
+src/front/js/component/CreatorAcademy.js:97:    lessons:['Content Strategy Basics','Hook in 3 Seconds','Behind-the-Scenes Content','Studio Vlogs','Beat Videos','Lyric Videos','Collab Content','Cross-Platform Strategy','Hashtag Strategy','Optimal Posting Times','Engaging with Comments','Stories & Lives','Paid Promotion Basics','Analytics Deep Dive'] },
+src/front/js/component/ParametricEQGraph.js:4:// Renders a professional-looking frequency response curve on an HTML5 Canvas.
+src/front/js/component/ParametricEQGraph.js:141:  const canvasRef = useRef(null);
+src/front/js/component/ParametricEQGraph.js:178:    const canvas = canvasRef.current;
+src/front/js/component/ParametricEQGraph.js:179:    if (!canvas) return;
+src/front/js/component/ParametricEQGraph.js:180:    const ctx = canvas.getContext('2d');
+src/front/js/component/ParametricEQGraph.js:327:  // CANVAS SETUP + DRAW LOOP
+src/front/js/component/ParametricEQGraph.js:333:    const canvas = canvasRef.current;
+src/front/js/component/ParametricEQGraph.js:334:    if (canvas) {
+src/front/js/component/ParametricEQGraph.js:335:      canvas.width = width * r;
+src/front/js/component/ParametricEQGraph.js:336:      canvas.height = height * r;
+src/front/js/component/ParametricEQGraph.js:337:      canvas.style.width = `${width}px`;
+src/front/js/component/ParametricEQGraph.js:338:      canvas.style.height = `${height}px`;
+src/front/js/component/ParametricEQGraph.js:363:    const canvas = canvasRef.current;
+src/front/js/component/ParametricEQGraph.js:364:    if (!canvas) return { x: 0, y: 0 };
+src/front/js/component/ParametricEQGraph.js:365:    const rect = canvas.getBoundingClientRect();
+src/front/js/component/ParametricEQGraph.js:446:      <canvas
+src/front/js/component/ParametricEQGraph.js:447:        ref={canvasRef}
+src/front/js/component/CustomMicBuilder.js:120:// FREQUENCY RESPONSE CANVAS
+src/front/js/component/CustomMicBuilder.js:123:const FrequencyResponseCanvas = ({ filters, width = 400, height = 160, color = '#00FFC8' }) => {
+src/front/js/component/CustomMicBuilder.js:124:  const canvasRef = useRef(null);
+src/front/js/component/CustomMicBuilder.js:127:    const canvas = canvasRef.current;
+src/front/js/component/CustomMicBuilder.js:128:    if (!canvas) return;
+src/front/js/component/CustomMicBuilder.js:129:    const ctx = canvas.getContext('2d');
+src/front/js/component/CustomMicBuilder.js:131:    canvas.width = width * dpr;
+src/front/js/component/CustomMicBuilder.js:132:    canvas.height = height * dpr;
+src/front/js/component/CustomMicBuilder.js:216:    <canvas
+src/front/js/component/CustomMicBuilder.js:217:      ref={canvasRef}
+src/front/js/component/CustomMicBuilder.js:528:              <FrequencyResponseCanvas
+src/front/js/component/ArrangerView.js:94:// WAVEFORM MINI RENDERER (Canvas-based)
+src/front/js/component/ArrangerView.js:97:  const canvasRef = useRef(null);
+src/front/js/component/ArrangerView.js:123:    if (!waveData || !canvasRef.current) return;
+src/front/js/component/ArrangerView.js:124:    const canvas = canvasRef.current;
+src/front/js/component/ArrangerView.js:125:    const c = canvas.getContext('2d');
+src/front/js/component/ArrangerView.js:127:    canvas.width = width * dpr;
+src/front/js/component/ArrangerView.js:128:    canvas.height = height * dpr;
+src/front/js/component/ArrangerView.js:142:  return <canvas ref={canvasRef} style={{ width, height, display: 'block' }} className="arranger-waveform-canvas" />;
+src/front/js/component/ArrangerView.js:149:  const canvasRef = useRef(null);
+src/front/js/component/ArrangerView.js:152:    const canvas = canvasRef.current;
+src/front/js/component/ArrangerView.js:153:    if (!canvas || !notes || notes.length === 0) return;
+src/front/js/component/ArrangerView.js:154:    const c = canvas.getContext('2d');
+src/front/js/component/ArrangerView.js:156:    canvas.width = width * dpr;
+src/front/js/component/ArrangerView.js:157:    canvas.height = height * dpr;
+src/front/js/component/ArrangerView.js:183:  return <canvas ref={canvasRef} style={{ width, height, display: 'block' }} className="arranger-midi-canvas" />;
+src/front/js/component/ArrangerView.js:371:  const canvasRef = useRef(null);
+src/front/js/component/ArrangerView.js:379:    const canvas = canvasRef.current;
+src/front/js/component/ArrangerView.js:380:    if (!canvas) return;
+src/front/js/component/ArrangerView.js:381:    const c = canvas.getContext('2d');
+src/front/js/component/ArrangerView.js:385:    canvas.width = w * dpr;
+src/front/js/component/ArrangerView.js:386:    canvas.height = h * dpr;
+src/front/js/component/ArrangerView.js:387:    canvas.style.width = `${w}px`;
+src/front/js/component/ArrangerView.js:388:    canvas.style.height = `${h}px`;
+src/front/js/component/ArrangerView.js:474:    const canvas = canvasRef.current;
+src/front/js/component/ArrangerView.js:475:    if (!canvas) return { zone: 'seek', beat: 0 };
+src/front/js/component/ArrangerView.js:476:    const rect = canvas.getBoundingClientRect();
+src/front/js/component/ArrangerView.js:523:      const rect = canvasRef.current.getBoundingClientRect();
+src/front/js/component/ArrangerView.js:572:    const canvas = canvasRef.current;
+src/front/js/component/ArrangerView.js:573:    if (!canvas) return;
+src/front/js/component/ArrangerView.js:575:    if (zone === 'resize-left' || zone === 'resize-right') canvas.style.cursor = 'ew-resize';
+src/front/js/component/ArrangerView.js:576:    else if (zone === 'move') canvas.style.cursor = 'grab';
+src/front/js/component/ArrangerView.js:577:    else if (zone === 'create') canvas.style.cursor = 'crosshair';
+src/front/js/component/ArrangerView.js:578:    else canvas.style.cursor = 'pointer';
+src/front/js/component/ArrangerView.js:582:    <canvas
+src/front/js/component/ArrangerView.js:583:      ref={canvasRef}
+src/front/js/component/ArrangerView.js:584:      className="arr-ruler-canvas arr-cycle-ruler"
+src/front/js/component/TakeLanes.js:37:  const canvasRefs = useRef({});
+src/front/js/component/TakeLanes.js:95:  // ── Draw waveform on canvas ──
+src/front/js/component/TakeLanes.js:97:    const cv = canvasRefs.current[takeId];
+src/front/js/component/TakeLanes.js:162:    const cv = canvasRefs.current[takeId];
+src/front/js/component/TakeLanes.js:172:    const cv = canvasRefs.current[dragState.takeId];
+src/front/js/component/TakeLanes.js:448:              <div className="tl-lane-canvas-wrap">
+src/front/js/component/TakeLanes.js:449:                <canvas
+src/front/js/component/TakeLanes.js:450:                  ref={el => { if (el) canvasRefs.current[take.id] = el; }}
+src/front/js/component/TakeLanes.js:453:                  className="tl-lane-canvas"
+src/front/js/component/WaveformComments.js:61:  const canvasRef   = useRef(null);
+src/front/js/component/WaveformComments.js:109:    const canvas = canvasRef.current;
+src/front/js/component/WaveformComments.js:110:    if (!canvas || waveformData.length === 0) return;
+src/front/js/component/WaveformComments.js:111:    const ctx = canvas.getContext('2d');
+src/front/js/component/WaveformComments.js:112:    const W = canvas.width, H = canvas.height;
+src/front/js/component/WaveformComments.js:178:    const canvas = canvasRef.current;
+src/front/js/component/WaveformComments.js:179:    const rect   = canvas.getBoundingClientRect();
+src/front/js/component/WaveformComments.js:193:    const canvas = canvasRef.current;
+src/front/js/component/WaveformComments.js:194:    if (!canvas || !duration) return;
+src/front/js/component/WaveformComments.js:195:    const rect = canvas.getBoundingClientRect();
+src/front/js/component/WaveformComments.js:197:    const W    = canvas.width;
+src/front/js/component/WaveformComments.js:264:    canvas:  { width:'100%', height:80, cursor:'crosshair', display:'block' },
+src/front/js/component/WaveformComments.js:289:          <canvas
+src/front/js/component/WaveformComments.js:290:            ref={canvasRef}
+src/front/js/component/WaveformComments.js:293:            style={S.canvas}
+src/front/js/store/flux.js:8:            motion: {
+src/front/js/store/flux.js:14:            motionTransfer: {
+src/front/js/store/flux.js:89:                    motion: {
+src/front/js/store/flux.js:95:                    motionTransfer: {
+src/front/js/store/flux.js:104:            sendToMotion: (media) => {
+src/front/js/store/flux.js:111:                    motion: payload,
+src/front/js/store/flux.js:112:                    motionTransfer: payload
+src/front/js/store/flux.js:116:            clearMotionTransfer: () => {
+src/front/js/store/flux.js:118:                    motion: {
+src/front/js/store/flux.js:124:                    motionTransfer: {
+src/front/js/store/appContext.js:20:            sendToMotion: (payload) => {
+src/front/js/store/appContext.js:21:                setStore({ motionTransfer: payload });
+src/front/js/store/appContext.js:23:            clearMotionTransfer: () => {
+src/front/js/store/appContext.js:24:                setStore({ motionTransfer: null });
+src/front/js/utils/motionHelpers.js:1:export function sendToMotion(actions, navigate, payload) {
+src/front/js/utils/motionHelpers.js:2:  actions.sendToMotion(payload);
+src/front/js/utils/motionHelpers.js:3:  navigate("/node-compositor");

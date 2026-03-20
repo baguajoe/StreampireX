@@ -41,6 +41,30 @@ def get_avatar_options():
     }), 200
 
 
+@academy_ai_bp.route("/lessons/<int:lesson_id>/script", methods=["PUT"])
+@jwt_required()
+def save_lesson_script(lesson_id):
+    user_id = get_jwt_identity()
+    lesson = Lesson.query.get_or_404(lesson_id)
+
+    if lesson.course.creator_id != user_id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.get_json() or {}
+    lesson.script_text = data.get("script_text", lesson.script_text or "")
+    lesson.avatar_id = data.get("avatar_id", lesson.avatar_id)
+    lesson.source_mode = data.get("source_mode", lesson.source_mode or "manual_upload")
+    lesson.generation_status = data.get("generation_status", lesson.generation_status or "idle")
+    if hasattr(lesson, "updated_at"):
+        lesson.updated_at = datetime.utcnow()
+
+    db.session.commit()
+    return jsonify({
+        "success": True,
+        "lesson": lesson.serialize()
+    }), 200
+
+
 @academy_ai_bp.route("/lessons/<int:lesson_id>/attach-ai-video", methods=["POST"])
 @jwt_required()
 def attach_ai_video_to_lesson(lesson_id):
@@ -66,23 +90,59 @@ def attach_ai_video_to_lesson(lesson_id):
         return jsonify({"error": "Generated AI video not found"}), 404
 
     lesson.video_url = generation.video_url
+    lesson.ai_video_url = generation.video_url
+    lesson.ai_generation_id = generation.id
+    lesson.avatar_id = avatar_choice or lesson.avatar_id
+    lesson.source_mode = "ai_video"
+    lesson.generation_status = "completed"
     if hasattr(lesson, "content_type"):
         lesson.content_type = "video"
     if hasattr(lesson, "updated_at"):
         lesson.updated_at = datetime.utcnow()
 
-    # Light metadata embedding without requiring a schema migration yet
-    existing_text = getattr(lesson, "text_content", "") or ""
-    meta_line = f"[AI_VIDEO_ATTACH] generation_id={generation.id} avatar_choice={avatar_choice or 'none'}"
-    if meta_line not in existing_text:
-        lesson.text_content = f"{meta_line}\n\n{existing_text}".strip()
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "lesson": lesson.serialize(),
+        "attached_generation_id": generation.id,
+        "avatar_choice": avatar_choice,
+        "message": "AI video attached to lesson"
+    }), 200
+
+
+@academy_ai_bp.route("/lessons/<int:lesson_id>/attach-ai-audio", methods=["POST"])
+@jwt_required()
+def attach_ai_audio_to_lesson(lesson_id):
+    user_id = get_jwt_identity()
+    lesson = Lesson.query.get_or_404(lesson_id)
+
+    if lesson.course.creator_id != user_id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.get_json() or {}
+    audio_url = data.get("audio_url")
+    script_text = data.get("script_text", "")
+    avatar_choice = data.get("avatar_choice")
+
+    if not audio_url:
+        return jsonify({"error": "audio_url is required"}), 400
+
+    lesson.video_url = audio_url
+    lesson.ai_audio_url = audio_url
+    lesson.script_text = script_text or lesson.script_text
+    lesson.avatar_id = avatar_choice or lesson.avatar_id
+    lesson.source_mode = "audio_lesson"
+    lesson.generation_status = "completed"
+    if hasattr(lesson, "content_type"):
+        lesson.content_type = "audio"
+    if hasattr(lesson, "updated_at"):
+        lesson.updated_at = datetime.utcnow()
 
     db.session.commit()
 
     return jsonify({
         "success": True,
-        "lesson": lesson.serialize() if hasattr(lesson, "serialize") else {"id": lesson.id, "video_url": lesson.video_url},
-        "attached_generation_id": generation.id,
-        "avatar_choice": avatar_choice,
-        "message": "AI video attached to lesson"
+        "lesson": lesson.serialize(),
+        "message": "AI audio attached to lesson"
     }), 200

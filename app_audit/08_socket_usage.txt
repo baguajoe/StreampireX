@@ -1,0 +1,306 @@
+===== 8. SOCKET / REALTIME USAGE =====
+src/app.py:42:from flask_socketio import emit, join_room
+src/app.py:68:from api.socketio import init_socketio
+src/app.py:364:# ✅ Initialize WebRTC SocketIO from separate module
+src/app.py:365:socketio = init_socketio(app)
+src/app.py:366:register_screening_events(socketio)
+src/app.py:367:app.socketio = socketio
+src/app.py:369:# ✅ Register podcast socket events AFTER socketio is created
+src/app.py:370:register_podcast_socket_events(socketio)
+src/app.py:377:@socketio.on('connect')
+src/app.py:400:@socketio.on('disconnect')
+src/app.py:408:@socketio.on('send_message')
+src/app.py:428:    socketio.emit('receive_message', {
+src/app.py:436:@socketio.on('join_user_room')
+src/app.py:444:@socketio.on('send_direct_message')
+src/app.py:478:        socketio.emit('new_message', {
+src/app.py:493:@socketio.on_error_default
+src/app.py:495:    print(f"❌ SocketIO error: {e}")
+src/app.py:602:    # Run with SocketIO
+src/app.py:603:    socketio.run(
+src/api/voting.py:2:from flask_socketio import SocketIO
+src/api/voting.py:5:socketio = SocketIO(app, cors_allowed_origins="*")
+src/api/voting.py:19:    socketio.emit("vote_update", votes)
+src/api/music_upload.py:50:    is_valid, reason = validate_uploaded_audio(filepath, known_hashes)
+src/api/ai_mastering.py:1187:        new_audio = Audio(
+src/api/models.py:2:from flask_socketio import SocketIO
+src/api/models.py:24:socketio = SocketIO(cors_allowed_origins="*", allow_credentials=True)
+src/api/models.py:566:class PlaylistAudio(db.Model):
+src/api/models.py:1317:class LiveStudio(db.Model):
+src/api/models.py:2705:    audio_id INTEGER REFERENCES audio(id),
+src/api/models.py:3165:class Audio(db.Model):
+src/api/ai_mix_assistant.py:489:def download_audio(url, dest_path):
+src/api/ai_mix_assistant.py:556:                    download_audio(url, local_path)
+src/api/ai_stem_separation.py:465:        new_audio = Audio(
+src/api/voice_clone_services.py:96:def generate_voice_audio(text, voice_id, filename_prefix="voice"):
+src/api/voice_clone_services.py:221:    audio_url, duration = generate_voice_audio(script, voice_id, "podcast_intro")
+src/api/voice_clone_services.py:266:    audio_url, duration = generate_voice_audio(script, voice_id, "podcast_outro")
+src/api/voice_clone_services.py:310:    audio_url, duration = generate_voice_audio(script, voice_id, "narration")
+src/api/voice_clone_services.py:363:        audio_url, duration = generate_voice_audio(script, voice_id, f"narration_seg{i}")
+src/api/voice_clone_services.py:450:    audio_url, duration = generate_voice_audio(script, voice_id, f"stream_alert_{alert_type}")
+src/api/voice_clone_services.py:492:        audio_url, duration = generate_voice_audio(script, voice_id, f"pregen_{alert_type}")
+src/api/voice_clone_services.py:551:    audio_url, duration = generate_voice_audio(script, voice_id, "shoutout")
+src/api/voice_clone_services.py:602:        audio_url, duration = generate_voice_audio(script, voice_id, f"shoutout_{i}")
+src/api/voice_clone_services.py:662:    audio_url, duration = generate_voice_audio(script, voice_id, f"{content_type}_narration")
+src/api/voice_clone_services.py:683:def generate_course_lesson_audio():
+src/api/voice_clone_services.py:721:        url1, dur1 = generate_voice_audio(part1, voice_id, "course_p1")
+src/api/voice_clone_services.py:722:        url2, dur2 = generate_voice_audio(part2, voice_id, "course_p2")
+src/api/voice_clone_services.py:738:    audio_url, duration = generate_voice_audio(script, voice_id, "course_lesson")
+src/api/voice_clone_services.py:791:        audio_url, duration = generate_voice_audio(script, voice_id, f"course_L{i + 1}")
+src/api/callin.py:2:from flask_socketio import SocketIO, emit
+src/api/callin.py:5:socketio = SocketIO(app, cors_allowed_origins="*")
+src/api/callin.py:7:@socketio.on('call_request')
+src/api/callin.py:12:    socketio.run(app, debug=True)
+src/api/podcast_studio_ai_routes.py:52:def transcribe_audio():
+src/api/podcast_studio_ai_routes.py:337:def magic_audio():
+src/api/ai_background_tasks.py:29:        socketio = getattr(app, "socketio", None)
+src/api/ai_background_tasks.py:30:        if socketio:
+src/api/ai_background_tasks.py:31:            socketio.emit("ai_job_update", {"job_id": job_id, **payload}, namespace="/ai-jobs")
+src/api/socketio.py:1:# src/api/socketio.py
+src/api/socketio.py:3:from flask_socketio import SocketIO, emit, join_room, leave_room
+src/api/socketio.py:7:socketio = SocketIO(cors_allowed_origins="*", allow_credentials=True)
+src/api/socketio.py:137:@socketio.on("connect")
+src/api/socketio.py:142:@socketio.on("disconnect")
+src/api/socketio.py:159:@socketio.on("join_webrtc_room")
+src/api/socketio.py:193:@socketio.on("leave_webrtc_room")
+src/api/socketio.py:213:@socketio.on("offer")
+src/api/socketio.py:232:@socketio.on("answer")
+src/api/socketio.py:251:@socketio.on("ice-candidate")
+src/api/socketio.py:271:@socketio.on("chat-message")
+src/api/socketio.py:284:@socketio.on("join_team_room")
+src/api/socketio.py:323:@socketio.on("leave_team_room")
+src/api/socketio.py:350:@socketio.on("role-update")
+src/api/socketio.py:369:@socketio.on("kick-user")
+src/api/socketio.py:402:@socketio.on("transfer-host")
+src/api/socketio.py:421:@socketio.on("update_video_status")
+src/api/socketio.py:449:@socketio.on("screen-share-start")
+src/api/socketio.py:459:@socketio.on("screen-share-stop")
+src/api/socketio.py:468:@socketio.on("screen-share-offer")
+src/api/socketio.py:481:@socketio.on("screen-share-answer")
+src/api/socketio.py:494:@socketio.on("screen-share-ice")
+src/api/socketio.py:512:@socketio.on("voice-user-joined")
+src/api/socketio.py:521:@socketio.on("voice-user-left")
+src/api/socketio.py:529:@socketio.on("voice-offer")
+src/api/socketio.py:541:@socketio.on("voice-answer")
+src/api/socketio.py:553:@socketio.on("voice-ice")
+src/api/socketio.py:570:@socketio.on("podcast_collab_join")
+src/api/socketio.py:609:@socketio.on("podcast_collab_leave")
+src/api/socketio.py:631:@socketio.on("podcast_collab_offer")
+src/api/socketio.py:639:@socketio.on("podcast_collab_answer")
+src/api/socketio.py:647:@socketio.on("podcast_collab_ice")
+src/api/socketio.py:655:@socketio.on("podcast_collab_chat")
+src/api/socketio.py:663:@socketio.on("podcast_collab_reaction")
+src/api/socketio.py:675:@socketio.on("podcast_collab_hand_raise")
+src/api/socketio.py:691:@socketio.on("podcast_collab_layout_sync")
+src/api/socketio.py:703:@socketio.on("podcast_collab_recording_start")
+src/api/socketio.py:712:@socketio.on("podcast_collab_recording_stop")
+src/api/socketio.py:726:@socketio.on("joinRoom")
+src/api/socketio.py:762:@socketio.on("leaveRoom")
+src/api/socketio.py:793:@socketio.on("send_message")
+src/api/socketio.py:819:@socketio.on("typing")
+src/api/socketio.py:827:@socketio.on("stop_typing")
+src/api/socketio.py:834:@socketio.on("update_game_status")
+src/api/socketio.py:860:@socketio.on("get_room_stats")
+src/api/socketio.py:884:@socketio.on('daw:create_session')
+src/api/socketio.py:919:@socketio.on('daw:join_session')
+src/api/socketio.py:949:@socketio.on('daw:leave_session')
+src/api/socketio.py:977:@socketio.on('daw:op')
+src/api/socketio.py:994:@socketio.on('daw:cursor')
+src/api/socketio.py:1000:@socketio.on('daw:full_state_response')
+src/api/socketio.py:1006:@socketio.on('daw:chat')
+src/api/socketio.py:1017:def init_socketio(app):
+src/api/socketio.py:1018:    """Initialize SocketIO with Flask app."""
+src/api/socketio.py:1019:    socketio.init_app(
+src/api/socketio.py:1031:    print("✅ SocketIO initialized")
+src/api/socketio.py:1032:    return socketio
+src/api/podcast_socket_events.py:7:Register with: register_podcast_events(socketio)
+src/api/podcast_socket_events.py:8:Call this in your app.py after creating the SocketIO instance.
+src/api/podcast_socket_events.py:18:from flask_socketio import emit, join_room, leave_room, Namespace
+src/api/podcast_socket_events.py:170:def register_podcast_events(socketio):
+src/api/podcast_socket_events.py:171:    """Register the podcast namespace with your SocketIO instance.
+src/api/podcast_socket_events.py:175:        register_podcast_events(socketio)
+src/api/podcast_socket_events.py:177:    socketio.on_namespace(PodcastNamespace("/podcast"))
+src/api/ai_credits_routes.py:402:            BytesIO(file_bytes), R2_BUCKET_NAME, r2_key,
+src/api/beat_licensing_routes.py:79:        buf = io.BytesIO()
+src/api/beat_licensing_routes.py:176:        buf = io.BytesIO(text.encode('utf-8'))
+src/api/extensions.py:4:from flask_socketio import SocketIO
+src/api/extensions.py:7:socketio = SocketIO(cors_allowed_origins="*")
+src/api/ai_mastering_phase3.py:1202:        result = master_audio(temp_path, output_path, preset_key)
+src/api/ai_mastering_phase3.py:1308:            result = master_audio(target_path, output_path, preset)
+src/api/ai_mastering_phase3.py:1339:    For now it safely falls back to Phase 1 DSP via master_audio().
+src/api/ai_mastering_phase3.py:1359:        stats = master_audio(input_path, output_path, preset)
+src/api/audio_routes.py:110:def upload_audio():
+src/api/audio_routes.py:125:            track = Audio(
+src/api/playlist_routes.py:116:        playlist = PlaylistAudio(
+src/api/epk_collab_routes.py:335:                    video_bytes = BytesIO(video_response.content)
+src/api/ai_radio_dj.py:419:def generate_tts_audio(script, persona_key, output_path, custom_voice_id=None):
+src/api/ai_radio_dj.py:694:        tts_result = generate_tts_audio(script, persona_key, tts_path, custom_voice_id=custom_voice_id)
+src/api/ai_radio_dj.py:764:        tts_result = generate_tts_audio(script, persona_key, tts_path, custom_voice_id=custom_voice_id)
+src/api/utils/audio_filters.py:40:def validate_uploaded_audio(file_path, uploaded_hashes):
+src/api/utils/audio_filters.py:55:# is_valid, reason = validate_uploaded_audio(file_path, known_hashes_from_db)
+src/api/recording_studio_routes.py:570:def upload_track_audio():
+src/api/recording_studio_routes.py:776:def delete_track_audio():
+src/api/film_screening_socket.py:6:# Add to app.py (in init_socketio or after socketio is initialized):
+src/api/film_screening_socket.py:8:#   register_screening_events(socketio)
+src/api/film_screening_socket.py:11:from flask_socketio import emit, join_room, leave_room
+src/api/film_screening_socket.py:20:def register_screening_events(socketio):
+src/api/film_screening_socket.py:21:    """Register all screening socket events with the socketio instance."""
+src/api/film_screening_socket.py:24:    @socketio.on("join_screening")
+src/api/film_screening_socket.py:82:    @socketio.on("leave_screening")
+src/api/film_screening_socket.py:102:    @socketio.on("screening_play")
+src/api/film_screening_socket.py:134:    @socketio.on("screening_pause")
+src/api/film_screening_socket.py:162:    @socketio.on("screening_seek")
+src/api/film_screening_socket.py:189:    @socketio.on("screening_end")
+src/api/film_screening_socket.py:215:    @socketio.on("screening_announce")
+src/api/film_screening_socket.py:239:    @socketio.on("screening_chat")
+src/api/film_screening_socket.py:265:    @socketio.on("screening_question")
+src/api/film_screening_socket.py:285:    @socketio.on("screening_vote_question")
+src/api/film_screening_socket.py:299:    @socketio.on("screening_answer_question")
+src/api/film_screening_socket.py:319:    @socketio.on("screening_sync_request")
+src/api/film_screening_socket.py:341:    # Note: Add this to your existing disconnect handler in socketio.py:
+src/api/film_screening_socket.py:361:    Call this from your main disconnect handler in socketio.py.
+src/api/webrtc.py:2:from flask_socketio import SocketIO
+src/api/webrtc.py:6:socketio = SocketIO(app, cors_allowed_origins="*")
+src/api/webrtc.py:25:    socketio.run(app, debug=True)
+src/api/epk_collab.py:335:                    video_bytes = BytesIO(video_response.content)
+src/api/routes.py:24:from .socketio import socketio
+src/api/routes.py:101:# ✅ FIXED: Only import the functions you need, not the SocketIO class
+src/api/routes.py:102:from flask_socketio import join_room, emit, leave_room
+src/api/routes.py:1372:    socketio.emit('podcast_live', {"podcast_id": podcast_id, "stream_url": podcast.stream_url})
+src/api/routes.py:1977:def add_audio_to_radio():
+src/api/routes.py:2078:            initial_audio = Audio(
+src/api/routes.py:2131:def comment_on_radio():
+src/api/routes.py:2170:        socketio.emit(f"station-{station_id}-new-follower", {"stationId": station_id})
+src/api/routes.py:2192:    socketio.emit(f"station-{station_id}-new-follower", {"stationId": station_id, "granted_to": target_user_id})
+src/api/routes.py:3873:def subscribe_to_radio():
+src/api/routes.py:3903:def donate_to_radio():
+src/api/routes.py:3961:        new_audio = Audio(
+src/api/routes.py:4004:        track = Audio(
+src/api/routes.py:4245:        new_track = Audio(
+src/api/routes.py:4481:            initial_audio = Audio(
+src/api/routes.py:5038:def submit_to_radio():
+src/api/routes.py:5538:    new_stream = LiveStudio(
+src/api/routes.py:5557:    socketio.emit("live_stream_update", {"stream_id": new_stream.id, "is_live": True})
+src/api/routes.py:5644:    socketio.emit("live_stream_update", {
+src/api/routes.py:5775:def buy_ticket_radio(station_id):
+src/api/routes.py:6837:    socketio.emit(f"station-{station_id}-new-follower", {"stationId": station_id})
+src/api/routes.py:10746:def stream_radio_audio(station_id):
+src/api/routes.py:10872:    socketio.emit(f'station-{station_id}-loop-started', {
+src/api/routes.py:10901:    socketio.emit(f'station-{station_id}-loop-stopped', {
+src/api/routes.py:11373:        def generate_audio():
+src/api/routes.py:11386:            generate_audio(),
+src/api/routes.py:12119:def uploaded_audio(filename):
+src/api/routes.py:12129:def stream_station_audio(station_id):
+src/api/routes.py:15289:# Socket.IO events for real-time video chat status (add to your socketio handlers)
+src/api/routes.py:15290:from flask_socketio import emit, join_room as socketio_join_room, leave_room as socketio_leave_room
+src/api/routes.py:15292:@socketio.on('join_video_room')
+src/api/routes.py:15299:        socketio_join_room(room_id)
+src/api/routes.py:15316:@socketio.on('leave_video_room')
+src/api/routes.py:15323:        socketio_leave_room(room_id)
+src/api/routes.py:15340:@socketio.on('update_video_status')
+src/api/routes.py:17329:                    asset_record = Audio(
+src/api/routes.py:18128:def analyze_audio():
+src/front/js/pages/ProfilePage.js:549:    return io(SOCKET_URL, {
+src/front/js/pages/AIVideoStudio.js:318:              <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)}>
+src/front/js/pages/AIVideoStudio.js:402:              <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)}>
+src/front/js/pages/VoiceCloneServices.js:114:    setResultAudio(null);
+src/front/js/pages/VoiceCloneServices.js:151:      setResultAudio(data.audio_url);
+src/front/js/pages/VoiceCloneServices.js:172:      setResultAudio(data.audio_url);
+src/front/js/pages/VoiceCloneServices.js:201:      setResultAudio(data.audio_url);
+src/front/js/pages/VoiceCloneServices.js:247:      setResultAudio(data.audio_url);
+src/front/js/pages/VoiceCloneServices.js:268:      setResultAudio(data.audio_url);
+src/front/js/pages/VoiceCloneServices.js:294:        setResultAudio(data.parts[0]?.audio_url);
+src/front/js/pages/VoiceCloneServices.js:297:        setResultAudio(data.audio_url);
+src/front/js/pages/ProducerProfilePage.js:22:  const audioRef = useRef(new Audio());
+src/front/js/pages/AIStemSeparation.js:154:      stopAllAudio();
+src/front/js/pages/AIStemSeparation.js:294:      stopAllAudio();
+src/front/js/pages/GamerProfilePage.js:125:        setGamerBio(profileData.gamer_bio || "");
+src/front/js/pages/GamerProfilePage.js:191:      setGamerBio(data.gamerBio || "");
+src/front/js/pages/GamerProfilePage.js:878:                          onChange={(e) => setGamerBio(e.target.value)}
+src/front/js/pages/Chat.js:4:const socket = io(
+src/front/js/pages/PodcastStudioPhase2.js:255:                                        onClick={() => setAspectRatio(r.id)}
+src/front/js/pages/PodcastStudioPhase2.js:568:                                <button className="btn-remove" onClick={() => setIntroAudio(null)}>×</button>
+src/front/js/pages/PodcastStudioPhase2.js:578:                                        if (url) setIntroAudio(url);
+src/front/js/pages/PodcastStudioPhase2.js:593:                                <button className="btn-remove" onClick={() => setOutroAudio(null)}>×</button>
+src/front/js/pages/PodcastStudioPhase2.js:603:                                        if (url) setOutroAudio(url);
+src/front/js/pages/PodcastGuestJoin.js:131:    socketRef.current = io(backendUrl, {
+src/front/js/pages/WebRTCPage.js:76:      socketRef.current = io(backendUrl, {
+src/front/js/pages/Voting.js:4:const socket = io("http://localhost:5000", {
+src/front/js/pages/CoursePlayer.js:248:                        {narrateAudio && <button onClick={() => setNarrateAudio(null)} style={{ padding:"7px 10px", background:"transparent", border:"1px solid #333", color:"#666", borderRadius:8, cursor:"pointer", fontSize:12 }}>✕</button>}
+src/front/js/pages/HybridLessonComposer.js:136:    const socket = io(backendOrigin, {
+src/front/js/pages/DJMixer.js:322:        initAudio(); stopLiveMode(id);
+src/front/js/pages/DJMixer.js:337:        initAudio(); stopLiveMode(id);
+src/front/js/pages/DJMixer.js:363:        initAudio(); const url = t.audio_url || t.file_url || t.r2_url; if (!url) return;
+src/front/js/pages/DJMixer.js:374:        initAudio(); setLdDeck(id); const dk = id === "A" ? deckA : deckB;
+src/front/js/pages/DJMixer.js:385:        initAudio(); setLdDeck(id); const dk = id === "A" ? deckA : deckB;
+src/front/js/pages/DJMixer.js:396:        initAudio(); const dk = id === "A" ? deckA : deckB; if (!dk.buffer) return;
+src/front/js/pages/DJMixer.js:410:        initAudio(); const c = getCtx(); const dest = c.createMediaStreamDestination();
+src/front/js/pages/IndieArtistUpload.js:73:            <textarea placeholder="Artist Bio" value={bio} onChange={(e) => setBio(e.target.value)}></textarea>
+src/front/js/pages/PodcastStudio.js:510:    socketRef.current = io(backendUrl, {
+src/front/js/pages/PodcastStudio.js:578:    if (!localStreamRef.current) await initLocalAudio();
+src/front/js/pages/PodcastStudio.js:777:  useEffect(() => { initLocalAudio(); initSocket(); initSoundboardDest(); }, []);
+src/front/js/pages/FavoritePage.js:32:                setBio(data.bio || "");
+src/front/js/pages/PodcastDetailPage.js:145:      const newAudio = new Audio(fileUrl);
+src/front/js/pages/Dashboard/DashboardMusic.js:60:  const audioRef = useRef(new Audio());
+src/front/js/pages/ArtistDashboard.js:64:  const audioRef = useRef(new Audio());
+src/front/js/pages/PodcastStudioPhase1.js:329:        onJoinStudio({
+src/front/js/pages/VirtualTheatreRoom_v2.js:154:    const socket = io(BACKEND_URL, {
+src/front/js/pages/UploadMusic.js:206:        setBio("");
+src/front/js/pages/UploadMusic.js:273:            onChange={(e) => setBio(e.target.value)}
+src/front/js/pages/ArtistProfilePage.js:21:  const audioRef = useRef(new Audio());
+src/front/js/pages/TeamRoomPage.js:24:const socket = io(BACKEND_URL, {
+src/front/js/pages/GamersChatroomPage.js:10:const socket = io(process.env.REACT_APP_BACKEND_URL || "http://localhost:3001", {
+src/front/js/pages/GamersChatroomPage.js:534:        const audio = new Audio();
+src/front/js/pages/Messages.js:20:    const newSocket = io(backendUrl, {
+src/front/js/pages/AIJobsMonitor.js:60:    const socket = io(backendOrigin, { path: "/socket.io", transports: ["websocket", "polling"] });
+src/front/js/pages/BeatDetailPage.js:22:  const audioRef = useRef(new Audio());
+src/front/js/component/UploadPodcast.js:31:      <input type="file" accept="audio/*" onChange={(e) => setAudio(e.target.files[0])} />
+src/front/js/component/WebRTCChat.js:55:        socketRef.current = io(BACKEND_URL, {
+src/front/js/component/PodcastCollabRoom.js:358:      const socket = io(BACKEND_URL, {
+src/front/js/component/audio/components/VocalProcessor.js:622:      setCompRatio(p.comp.ratio);
+src/front/js/component/audio/components/VocalProcessor.js:656:        action: () => { setCompRatio(Math.min(8, compRatio + 2)); setCompThreshold(compThreshold - 4); },
+src/front/js/component/audio/components/VocalProcessor.js:664:        action: () => { setCompRatio(Math.max(1.5, compRatio - 1.5)); },
+src/front/js/component/audio/components/VocalProcessor.js:1010:                        onChange={e => setCompRatio(+e.target.value)} className="vp-slider" />
+src/front/js/component/SamplerBeatMaker.js:3686:                        const audio = new Audio(stemData.url); audio.volume = 0.8; audio.play();
+src/front/js/component/AILessonTools.js:220:      setGeneratingAudio(true);
+src/front/js/component/AILessonTools.js:247:      const attached = await attachAudio(generatedAudioUrl);
+src/front/js/component/AILessonTools.js:255:      setGeneratingAudio(false);
+src/front/js/component/AILessonTools.js:391:            <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} style={S.select}>
+src/front/js/component/AILessonTools.js:420:          <button type="button" onClick={() => attachAudio()} style={S.secondaryBtn} disabled={attaching || loading}>
+src/front/js/component/MagicClips.js:140:                  <button key={r.id} style={{ ...MC.pill, ...(selectedRatio === r.id ? MC.pillActive : {}) }} onClick={() => setSelectedRatio(r.id)}>
+src/front/js/component/hooks/useDAWCollaboration.js:44:// Backend socket events needed (add to your existing socketio handlers):
+src/front/js/component/hooks/useDAWCollaboration.js:45:// See bottom of this file for Flask-SocketIO backend snippet.
+src/front/js/component/hooks/useDAWCollaboration.js:120:      const sock = io(backendUrl, {
+src/front/js/component/hooks/useDAWCollaboration.js:636:// BACKEND: Flask-SocketIO handlers to add to your socketio file
+src/front/js/component/hooks/useDAWCollaboration.js:639:Add these to your existing Flask-SocketIO handler file (e.g., src/api/socket_handlers.py):
+src/front/js/component/hooks/useDAWCollaboration.js:641:from flask_socketio import join_room, leave_room, emit
+src/front/js/component/hooks/useDAWCollaboration.js:646:@socketio.on('daw:create_session')
+src/front/js/component/hooks/useDAWCollaboration.js:658:@socketio.on('daw:join_session')
+src/front/js/component/hooks/useDAWCollaboration.js:672:@socketio.on('daw:leave_session')
+src/front/js/component/hooks/useDAWCollaboration.js:684:@socketio.on('daw:op')
+src/front/js/component/hooks/useDAWCollaboration.js:690:@socketio.on('daw:cursor')
+src/front/js/component/hooks/useDAWCollaboration.js:696:@socketio.on('daw:full_state_response')
+src/front/js/component/hooks/useDAWCollaboration.js:702:@socketio.on('daw:chat')
+src/front/js/component/PollComponent.js:6:  const socket = io("http://localhost:5000", {
+src/front/js/component/ReferenceMastering.js:25:async function analyzeAudio(arrayBuffer) {
+src/front/js/component/ReferenceMastering.js:225:      const analysis = await analyzeAudio(buf);
+src/front/js/component/TextChatPopup.js:5:const socket = io("https://www.streampirex.com");
+src/front/js/component/sidebar.js:371:      if (saved.radio !== undefined) setShowRadio(saved.radio);
+src/front/js/component/sidebar.js:624:      <SectionHeader className="sidebar-section-header" onClick={() => setShowRadio(!showRadio)}>
+src/front/js/component/AIMastering.js:848:                      stopAllAudio();
+src/front/js/component/AudioAnalysis.js:216:export function analyzeAudio(audioBuffer) {
+src/front/js/component/GroupChat.js:4:const socket = io("http://localhost:5000", {
+src/front/js/component/VocalTuner.js:91:    setProcessedAudio(output); setProgress(100); setIsProcessing(false);
+src/front/js/component/VocalTuner.js:202:            <button className="vt-btn" onClick={() => previewAudio(audioBuffer)} disabled={!audioBuffer || previewPlaying}>▶ Original</button>
+src/front/js/component/VocalTuner.js:203:            <button className="vt-btn" onClick={() => previewAudio(processedAudio)} disabled={!processedAudio || previewPlaying}>▶ Corrected</button>
+src/front/js/component/VocalProcessor.js:913:      setCompRatio(p.comp.ratio);
+src/front/js/component/VocalProcessor.js:945:        action: () => { setCompRatio(Math.min(8, compRatio + 2)); setCompThreshold(compThreshold - 4); },
+src/front/js/component/VocalProcessor.js:952:        action: () => { setCompRatio(Math.max(1.5, compRatio - 1.5)); },
+src/front/js/component/RadioStationDetailPage.js:465:    const audio = new Audio();
+src/front/js/component/DirectChat.js:4:const socket = io("https://www.streampirex.com"); // ✅ Match your deployed socket server
+src/front/js/component/VideoEditorComponent.js:2498:          const audio = new Audio(result.preview_audio);
+src/front/js/component/VideoEditorComponent.js:2542:      const analysis = await analyzeAudio(clipId);
+src/front/js/component/FreesoundBrowser.js:148:    const audio = new Audio(previewUrl);
+src/front/js/component/CreateEpisodeForm.js:39:      <input type="file" onChange={(e) => setAudio(e.target.files[0])} accept="audio/*" />
+src/front/js/component/ChatModal.js:11:const socket = io(BACKEND_URL, {
+src/services/socket.js:3:const socket = io(process.env.REACT_APP_SOCKET_URL, {

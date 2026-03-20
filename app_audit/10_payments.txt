@@ -1,0 +1,670 @@
+===== 10. STRIPE / PAYMENTS =====
+src/api/fan_subscription_routes.py:1:import os, uuid, stripe
+src/api/fan_subscription_routes.py:8:stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', '')
+src/api/fan_subscription_routes.py:18:    stripe_price_id = db.Column(db.String(200))
+src/api/fan_subscription_routes.py:28:    stripe_sub_id = db.Column(db.String(200))
+src/api/fan_subscription_routes.py:39:        'stripe_price_id': t.stripe_price_id,
+src/api/fan_subscription_routes.py:61:    stripe_price_id = None
+src/api/fan_subscription_routes.py:63:        product = stripe.Product.create(name=f"{name} — StreamPireX Fan Tier")
+src/api/fan_subscription_routes.py:64:        sp = stripe.Price.create(
+src/api/fan_subscription_routes.py:70:        stripe_price_id = sp.id
+src/api/fan_subscription_routes.py:72:        pass  # Stripe optional — still save tier
+src/api/fan_subscription_routes.py:77:        stripe_price_id=stripe_price_id,
+src/api/fan_subscription_routes.py:102:    pm_id    = data.get('payment_method_id')  # Stripe PM from frontend
+src/api/fan_subscription_routes.py:112:    stripe_sub_id = None
+src/api/fan_subscription_routes.py:114:        if pm_id and tier.stripe_price_id:
+src/api/fan_subscription_routes.py:115:            customer = stripe.Customer.create(email=fan.email)
+src/api/fan_subscription_routes.py:116:            stripe.PaymentMethod.attach(pm_id, customer=customer.id)
+src/api/fan_subscription_routes.py:117:            stripe.Customer.modify(customer.id,
+src/api/fan_subscription_routes.py:119:            sub = stripe.Subscription.create(
+src/api/fan_subscription_routes.py:121:                items=[{'price': tier.stripe_price_id}],
+src/api/fan_subscription_routes.py:123:            stripe_sub_id = sub.id
+src/api/fan_subscription_routes.py:129:        tier_id=tier_id, stripe_sub_id=stripe_sub_id,
+src/api/models.py:437:    payoutMethod = db.Column(db.String(50), default="")
+src/api/models.py:1240:    stripe_subscription_id = db.Column(db.String(255), unique=True, nullable=True)  # Stripe subscription tracking
+src/api/models.py:1252:            "stripe_subscription_id": self.stripe_subscription_id,
+src/api/models.py:1337:    payment_provider = db.Column(db.String(50), nullable=True)  # e.g., "Stripe", "PayPal"
+src/api/models.py:1485:    # Monetization & Stripe Integration
+src/api/models.py:1489:    stripe_product_id = db.Column(db.String(255), nullable=True)  # Stripe product ID
+src/api/models.py:1499:    stripe_transaction_ids = db.Column(db.JSON, default=[])  # Store Stripe transactions as an array
+src/api/models.py:1558:            "stripe_product_id": self.stripe_product_id,
+src/api/models.py:1581:            "stripe_transaction_ids": self.stripe_transaction_ids,
+src/api/models.py:3027:    stripe_subscription_id = db.Column(db.String(255), unique=True, nullable=True)
+src/api/models.py:3028:    stripe_checkout_session_id = db.Column(db.String(255), unique=True, nullable=True)
+src/api/models.py:3061:            "stripe_subscription_id": self.stripe_subscription_id,
+src/api/models.py:3062:            "stripe_checkout_session_id": self.stripe_checkout_session_id,
+src/api/models.py:3084:    stripe_subscription_id = db.Column(db.String(255), unique=True, nullable=True)
+src/api/models.py:3100:            "stripe_subscription_id": self.stripe_subscription_id,
+src/api/models.py:3447:    payout_triggered = db.Column(db.Boolean, default=False)
+src/api/models.py:3457:    def trigger_payout(self):
+src/api/models.py:3458:        if self.earnings >= 50:  # Threshold for payout
+src/api/models.py:3459:            # Trigger payout logic (Stripe, PayPal, Bank transfer)
+src/api/models.py:3460:            # Here you would use an API like PayPal or Stripe to send payment
+src/api/models.py:3461:            self.payout_triggered = True
+src/api/models.py:3462:            self.earnings = 0  # Reset earnings after payout
+src/api/models.py:3464:            return "Payout processed"
+src/api/models.py:3465:        return "Earnings below payout threshold"
+src/api/models.py:3521:    stripe_payment_id = db.Column(db.String(255), nullable=True)  # Stripe transaction ID
+src/api/models.py:3538:            "stripe_payment_id": self.stripe_payment_id
+src/api/models.py:3677:# Initialize Stripe
+src/api/models.py:3678:# stripe.api_key = "your_stripe_secret_key"
+src/api/models.py:4035:class Payout(db.Model):
+src/api/models.py:4038:    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Creator requesting payout
+src/api/models.py:4039:    amount = db.Column(db.Float, nullable=False)  # Payout amount
+src/api/models.py:4041:    requested_at = db.Column(db.DateTime, default=datetime.utcnow)  # Time when payout was requested
+src/api/models.py:4042:    processed_at = db.Column(db.DateTime, nullable=True)  # Time when payout was approved/processed
+src/api/models.py:4060:    payment_intent_id = db.Column(db.String(120), unique=True)
+src/api/models.py:4068:            "payment_intent_id": self.payment_intent_id,
+src/api/models.py:4265:    # Platform fees (10% to platform, 90% to creator for Stripe)
+src/api/models.py:4271:    payment_method = db.Column(db.String(50), default='stripe')  # stripe, cashapp, venmo, paypal, crypto, external
+src/api/models.py:4283:    # Stripe payment tracking
+src/api/models.py:4284:    stripe_payment_intent_id = db.Column(db.String(255), nullable=True)
+src/api/models.py:4319:            "payment_method": self.payment_method or 'stripe',
+src/api/models.py:4351:    # Stripe (Card payments - 10% platform fee)
+src/api/models.py:4352:    stripe_enabled = db.Column(db.Boolean, default=True)
+src/api/models.py:4353:    stripe_account_id = db.Column(db.String(255), nullable=True)  # For Stripe Connect
+src/api/models.py:4381:        if self.stripe_enabled:
+src/api/models.py:4382:            methods.append('stripe')
+src/api/models.py:4391:        return methods if methods else ['stripe']  # Default to Stripe
+src/api/models.py:4401:            "stripe_enabled": self.stripe_enabled,
+src/api/models.py:4501:# WALLET & TIP JAR MODELS
+src/api/models.py:4504:class UserWallet(db.Model):
+src/api/models.py:4505:    """User wallet for storing tip balance"""
+src/api/models.py:4506:    __tablename__ = 'user_wallets'
+src/api/models.py:4517:    # Payout tracking
+src/api/models.py:4518:    pending_payout = db.Column(db.Numeric(10, 2), default=0)
+src/api/models.py:4519:    last_payout_at = db.Column(db.DateTime, nullable=True)
+src/api/models.py:4525:    user = db.relationship('User', backref=db.backref('user_wallet', uselist=False))
+src/api/models.py:4533:            'pending_payout': float(self.pending_payout) if self.pending_payout else 0,
+src/api/models.py:4534:            'last_payout_at': self.last_payout_at.isoformat() if self.last_payout_at else None
+src/api/models.py:4538:class WalletTransaction(db.Model):
+src/api/models.py:4539:    """Track all wallet transactions (deposits, withdrawals, tips)"""
+src/api/models.py:4540:    __tablename__ = 'wallet_transactions'
+src/api/models.py:4548:    type = db.Column(db.String(20), nullable=False)  # deposit, withdrawal, tip_received, tip_sent, payout
+src/api/models.py:4552:    # Stripe reference
+src/api/models.py:4553:    stripe_payment_intent_id = db.Column(db.String(100), nullable=True)
+src/api/models.py:4559:    user = db.relationship('User', backref='wallet_transactions')
+src/api/models.py:7438:    """Track Stripe credit pack purchases"""
+src/api/models.py:7447:    stripe_checkout_session_id = db.Column(db.String(200))
+src/api/models.py:7448:    stripe_payment_intent_id = db.Column(db.String(200))
+src/api/models.py:7676:    stripe_payment_intent = db.Column(db.String(200))
+src/api/beat_store_models.py:282:    stripe_payment_id = db.Column(db.String(255), nullable=True)
+src/api/beat_store_models.py:283:    stripe_session_id = db.Column(db.String(255), nullable=True)
+src/api/fan_membership_routes.py:5:import stripe
+src/api/fan_membership_routes.py:10:stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+src/api/fan_membership_routes.py:38:    # Create Stripe recurring price
+src/api/fan_membership_routes.py:40:        product = stripe.Product.create(name=f"{data.get('name')} — Creator Membership")
+src/api/fan_membership_routes.py:41:        price_obj = stripe.Price.create(
+src/api/fan_membership_routes.py:47:        tier.stripe_price_id = price_obj.id
+src/api/fan_membership_routes.py:49:        print(f"Stripe tier creation error: {e}")
+src/api/fan_membership_routes.py:158:    stripe_subscription_id = None
+src/api/fan_membership_routes.py:160:    # Create Stripe subscription if price exists
+src/api/fan_membership_routes.py:161:    if tier.stripe_price_id and payment_method_id:
+src/api/fan_membership_routes.py:164:            # Get or create Stripe customer
+src/api/fan_membership_routes.py:165:            customer = stripe.Customer.create(
+src/api/fan_membership_routes.py:170:            stripe_sub = stripe.Subscription.create(
+src/api/fan_membership_routes.py:172:                items=[{'price': tier.stripe_price_id}],
+src/api/fan_membership_routes.py:173:                expand=['latest_invoice.payment_intent'],
+src/api/fan_membership_routes.py:175:            stripe_subscription_id = stripe_sub.id
+src/api/fan_membership_routes.py:176:        except stripe.error.StripeError as e:
+src/api/fan_membership_routes.py:185:        stripe_subscription_id=stripe_subscription_id,
+src/api/fan_membership_routes.py:203:    # Cancel in Stripe
+src/api/fan_membership_routes.py:204:    if hasattr(sub, 'stripe_subscription_id') and sub.stripe_subscription_id:
+src/api/fan_membership_routes.py:206:            stripe.Subscription.delete(sub.stripe_subscription_id)
+src/api/fan_membership_routes.py:208:            print(f"Stripe cancel error: {e}")
+src/api/film_routes.py:20:import stripe
+src/api/film_routes.py:34:stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', '')
+src/api/film_routes.py:677:    """Create a Stripe checkout session to rent or buy a film."""
+src/api/film_routes.py:693:        session = stripe.checkout.Session.create(
+src/api/film_routes.py:722:    """Stripe webhook for film purchases."""
+src/api/film_routes.py:724:    sig_header = request.headers.get('Stripe-Signature')
+src/api/film_routes.py:725:    webhook_secret = os.environ.get('STRIPE_FILM_WEBHOOK_SECRET', '')
+src/api/film_routes.py:728:        event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
+src/api/film_routes.py:732:    if event['type'] == 'checkout.session.completed':
+src/api/film_routes.py:750:                stripe_session_id=session.get('id'),
+src/api/film_routes.py:842:    """Buy a ticket to a screening via Stripe."""
+src/api/film_routes.py:867:    # Paid screening via Stripe
+src/api/film_routes.py:871:        session = stripe.checkout.Session.create(
+src/api/academy_models.py:135:    payment_intent_id = db.Column(db.String(100), nullable=True)
+src/api/ai_credits_routes.py:21:#   - Stripe credit packs now buy universal AI credits
+src/api/ai_credits_routes.py:26:import stripe
+src/api/ai_credits_routes.py:36:stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+src/api/ai_credits_routes.py:131:# CREDIT PACKS — Stripe purchasable (universal AI credits)
+src/api/ai_credits_routes.py:235:    stripe_checkout_session_id VARCHAR(200),
+src/api/ai_credits_routes.py:236:    stripe_payment_intent_id VARCHAR(200),
+src/api/ai_credits_routes.py:662:# STRIPE PURCHASE
+src/api/ai_credits_routes.py:668:    """Create Stripe checkout for credit pack purchase"""
+src/api/ai_credits_routes.py:686:        checkout_session = stripe.checkout.Session.create(
+src/api/ai_credits_routes.py:714:            stripe_checkout_session_id=checkout_session.id, status='pending',
+src/api/ai_credits_routes.py:721:    except stripe.error.StripeError as e:
+src/api/ai_credits_routes.py:760:# STRIPE WEBHOOK HANDLER
+src/api/ai_credits_routes.py:770:    """Handle successful AI credit pack payment from Stripe webhook"""
+src/api/ai_credits_routes.py:779:            stripe_checkout_session_id=session['id']
+src/api/ai_credits_routes.py:789:            if session.get('payment_intent'):
+src/api/ai_credits_routes.py:790:                purchase.stripe_payment_intent_id = session['payment_intent']
+src/api/printful_models.py:48:    stripe_payment_intent = db.Column(db.String(200))
+src/api/printful_oauth_routes.py:66:        "client_secret": os.getenv("PRINTFUL_CLIENT_SECRET"),
+src/api/beat_store_routes.py:5:import os, json, stripe
+src/api/beat_store_routes.py:16:stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+src/api/beat_store_routes.py:323:        checkout_session = stripe.checkout.Session.create(
+src/api/beat_store_routes.py:351:            stripe_session_id=checkout_session.id, payment_status='pending',
+src/api/beat_store_routes.py:372:    purchase = BeatPurchase.query.filter_by(stripe_session_id=session_id, buyer_id=user_id).first()
+src/api/beat_store_routes.py:378:        session = stripe.checkout.Session.retrieve(session_id)
+src/api/beat_store_routes.py:381:            purchase.stripe_payment_id = session.payment_intent
+src/api/beat_store_routes.py:574:Licensee: {b_name} (via Stripe payment on {date})
+src/api/beat_store_routes.py:575:Transaction: {purchase.stripe_payment_id or purchase.stripe_session_id or 'Pending'}
+src/api/printful_routes.py:4:import stripe
+src/api/printful_routes.py:208:# ── 7. Fan checkout — Stripe payment + Printful order ────────────────────────
+src/api/printful_routes.py:231:    stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+src/api/printful_routes.py:234:        # Create Stripe payment intent
+src/api/printful_routes.py:235:        intent = stripe.PaymentIntent.create(
+src/api/printful_routes.py:253:            stripe_payment_intent=intent.id,
+src/api/printful_routes.py:266:            "client_secret": intent.client_secret,
+src/api/printful_routes.py:274:# ── 8. Webhook — after Stripe confirms payment, submit to Printful ────────────
+src/api/printful_routes.py:277:    """Called after successful Stripe payment to submit order to Printful"""
+src/api/academy_routes.py:286:    # Paid course — return Stripe checkout intent
+src/api/academy_routes.py:288:        import stripe
+src/api/academy_routes.py:289:        stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+src/api/academy_routes.py:294:        intent = stripe.PaymentIntent.create(
+src/api/academy_routes.py:306:        return jsonify({"client_secret": intent.client_secret, "amount": course.price})
+src/api/academy_routes.py:316:    payment_intent_id = data.get("payment_intent_id")
+src/api/academy_routes.py:318:    # Verify with Stripe
+src/api/academy_routes.py:320:        import stripe
+src/api/academy_routes.py:321:        stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+src/api/academy_routes.py:322:        intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+src/api/academy_routes.py:335:            payment_intent_id = payment_intent_id,
+src/api/film_models.py:281:    # Stripe
+src/api/film_models.py:282:    stripe_price_id = db.Column(db.String(200), nullable=True)
+src/api/film_models.py:329:    stripe_session_id = db.Column(db.String(300), nullable=True)
+src/api/film_models.py:354:    stripe_session_id = db.Column(db.String(300), nullable=True)
+src/api/ai_video_credits_routes.py:2:# AI VIDEO CREDITS ROUTES - Credit System + Stripe Purchases
+src/api/ai_video_credits_routes.py:10:import stripe
+src/api/ai_video_credits_routes.py:24:# Initialize Stripe
+src/api/ai_video_credits_routes.py:25:stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+src/api/ai_video_credits_routes.py:160:# PURCHASE CREDIT PACK (Stripe Checkout)
+src/api/ai_video_credits_routes.py:166:    """Create Stripe checkout session for credit pack purchase"""
+src/api/ai_video_credits_routes.py:190:        # Create Stripe Checkout Session
+src/api/ai_video_credits_routes.py:193:        checkout_session = stripe.checkout.Session.create(
+src/api/ai_video_credits_routes.py:225:            stripe_checkout_session_id=checkout_session.id,
+src/api/ai_video_credits_routes.py:237:    except stripe.error.StripeError as e:
+src/api/ai_video_credits_routes.py:238:        print(f"Stripe error: {e}")
+src/api/ai_video_credits_routes.py:246:# STRIPE WEBHOOK HANDLER FOR CREDIT PURCHASES
+src/api/ai_video_credits_routes.py:256:    """Handle successful credit pack payment from Stripe webhook"""
+src/api/ai_video_credits_routes.py:265:            stripe_checkout_session_id=session['id']
+src/api/ai_video_credits_routes.py:271:            if session.get('payment_intent'):
+src/api/ai_video_credits_routes.py:272:                purchase.stripe_payment_intent_id = session['payment_intent']
+src/api/ai_video_credits_routes.py:293:# VERIFY PURCHASE (Called from frontend after Stripe redirect)
+src/api/ai_video_credits_routes.py:299:    """Verify a credit pack purchase after Stripe redirect"""
+src/api/ai_video_credits_routes.py:308:        # Check Stripe session status
+src/api/ai_video_credits_routes.py:309:        session = stripe.checkout.Session.retrieve(session_id)
+src/api/ai_video_credits_routes.py:314:                stripe_checkout_session_id=session_id
+src/api/ai_video_credits_routes.py:321:                    'payment_intent': session.payment_intent,
+src/api/routes.py:7:from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow, BandwidthLog, TranscodeJob, VideoQuality, Concert, PodcastPlayHistory, PlayHistory, PostLike, PostComment, Photo, ClipSave, ClipComment, ClipCommentLike, UserWallet, WalletTransaction, CreatorPaymentSettings, StoryComment, Story, StoryView, StoryHighlight, ArchivedShow
+src/api/routes.py:17:import stripe
+src/api/routes.py:18:stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+src/api/routes.py:1886:            # Create Stripe subscription
+src/api/routes.py:1888:                import stripe
+src/api/routes.py:1889:                stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+src/api/routes.py:1891:                # Create Stripe customer if doesn't exist
+src/api/routes.py:1893:                stripe_customer_id = getattr(user, 'stripe_customer_id', None)
+src/api/routes.py:1895:                if not stripe_customer_id:
+src/api/routes.py:1896:                    customer = stripe.Customer.create(
+src/api/routes.py:1900:                    stripe_customer_id = customer.id
+src/api/routes.py:1901:                    user.stripe_customer_id = stripe_customer_id
+src/api/routes.py:1905:                subscription = stripe.Subscription.create(
+src/api/routes.py:1906:                    customer=stripe_customer_id,
+src/api/routes.py:1918:                    expand=['latest_invoice.payment_intent'],
+src/api/routes.py:1925:                    stripe_subscription_id=subscription.id,
+src/api/routes.py:1935:                    "client_secret": subscription.latest_invoice.payment_intent.client_secret,
+src/api/routes.py:1939:            except Exception as stripe_error:
+src/api/routes.py:1940:                return jsonify({"error": f"Payment setup failed: {str(stripe_error)}"}), 500
+src/api/routes.py:2386:    """Handle subscription requests for all plan types with proper Stripe integration"""
+src/api/routes.py:2528:        # Handle Paid Plans - Create Stripe Checkout Session
+src/api/routes.py:2530:            print(f"Creating Stripe checkout for ${price}...")
+src/api/routes.py:2540:                checkout_session = stripe.checkout.Session.create(
+src/api/routes.py:2567:                checkout_session = stripe.checkout.Session.create(
+src/api/routes.py:2602:                stripe_checkout_session_id=checkout_session.id
+src/api/routes.py:2608:            print(f"✅ Subscription created with Stripe checkout URL")
+src/api/routes.py:2617:        except stripe.error.StripeError as e:
+src/api/routes.py:2618:            print(f"❌ Stripe error: {str(e)}")
+src/api/routes.py:2682:    # Cancel in Stripe
+src/api/routes.py:2683:    # stripe.Subscription.delete(subscription.stripe_subscription_id)
+src/api/routes.py:3538:# ✅ Create Stripe checkout session for a product
+src/api/routes.py:3549:    session = stripe.checkout.Session.create(
+src/api/routes.py:3887:    # Stripe Payment (Mock)
+src/api/routes.py:3888:    stripe_charge =stripe.PaymentIntent.create(
+src/api/routes.py:3913:    # Stripe Payment (Mock)
+src/api/routes.py:3914:    stripe_charge = stripe.PaymentIntent.create(
+src/api/routes.py:4117:        session = stripe.checkout.Session.create(
+src/api/routes.py:4145:        stripe.api_key = "disabled"
+src/api/routes.py:4149:    if event['type'] == 'checkout.session.completed':
+src/api/routes.py:4160:            licensing_entry.stripe_payment_id = session['id']
+src/api/routes.py:4800:    # Handle Subscription Logic (e.g., Stripe Payment)
+src/api/routes.py:4801:    # TODO: Integrate Payment Gateway (Stripe, PayPal)
+src/api/routes.py:4858:        # Create Stripe payment
+src/api/routes.py:4860:            import stripe
+src/api/routes.py:4861:            stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+src/api/routes.py:4863:            checkout_session = stripe.checkout.Session.create(
+src/api/routes.py:4893:        except Exception as stripe_error:
+src/api/routes.py:4894:            return jsonify({"error": f"Payment failed: {str(stripe_error)}"}), 500
+src/api/routes.py:5393:    # ⚠️ Replace this with real Stripe checkout flow later
+src/api/routes.py:5675:    # Create a Stripe Checkout session
+src/api/routes.py:5676:    checkout_session = stripe.checkout.Session.create(
+src/api/routes.py:5740:    # Simulated Stripe/PayPal Payment
+src/api/routes.py:5787:    payment_successful = True  # Replace with Stripe/PayPal later
+src/api/routes.py:6061:@api.route("/payout/request", methods=["POST"])
+src/api/routes.py:6063:def request_payout():
+src/api/routes.py:6064:    """ Allow a creator to request a payout """
+src/api/routes.py:6069:    # Validate payout amount
+src/api/routes.py:6074:    new_payout = Payout(
+src/api/routes.py:6080:    db.session.add(new_payout)
+src/api/routes.py:6083:    return jsonify({"message": "Payout request submitted"}), 200
+src/api/routes.py:6085:@api.route("/payout/approve/<int:payout_id>", methods=["PUT"])
+src/api/routes.py:6087:def approve_payout(payout_id):
+src/api/routes.py:6088:    """ Approve a payout request """
+src/api/routes.py:6093:    payout = Payout.query.get(payout_id)
+src/api/routes.py:6094:    if not payout:
+src/api/routes.py:6095:        return jsonify({"error": "Payout request not found"}), 404
+src/api/routes.py:6097:    payout.status = "Approved"
+src/api/routes.py:6098:    payout.processed_at = datetime.utcnow()
+src/api/routes.py:6101:    return jsonify({"message": "Payout approved"}), 200
+src/api/routes.py:6103:@api.route("/payout/reject/<int:payout_id>", methods=["PUT"])
+src/api/routes.py:6105:def reject_payout(payout_id):
+src/api/routes.py:6106:    """ Reject a payout request """
+src/api/routes.py:6111:    payout = Payout.query.get(payout_id)
+src/api/routes.py:6112:    if not payout:
+src/api/routes.py:6113:        return jsonify({"error": "Payout request not found"}), 404
+src/api/routes.py:6115:    payout.status = "Rejected"
+src/api/routes.py:6118:    return jsonify({"message": "Payout rejected"}), 200
+src/api/routes.py:6203:        intent = stripe.PaymentIntent.create(
+src/api/routes.py:6213:            payment_intent_id=intent.id,
+src/api/routes.py:6219:        return jsonify({"clientSecret": intent.client_secret})
+src/api/routes.py:6529:            'payment_method': getattr(tip, 'payment_method', 'stripe') or 'stripe',
+src/api/routes.py:6662:        method_breakdown[method or 'stripe'] = {
+src/api/routes.py:6742:            'payment_methods': ['stripe'],  # Default to Stripe only
+src/api/routes.py:6748:    if settings.stripe_enabled:
+src/api/routes.py:6750:            'type': 'stripe',
+src/api/routes.py:6779:    # If no methods enabled, default to Stripe
+src/api/routes.py:6782:            'type': 'stripe',
+src/api/routes.py:6891:    # Simulated payment (replace with Stripe/PayPal later)
+src/api/routes.py:6975:    # ✅ Save revenue tracking now (Stripe webhook will confirm actual payment later)
+src/api/routes.py:6991:    # ✅ Stripe Checkout Setup
+src/api/routes.py:6993:        checkout_session = stripe.checkout.Session.create(
+src/api/routes.py:7001:                    'unit_amount': int(price * 100),  # Stripe expects cents
+src/api/routes.py:7197:STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "your_webhook_secret_here")
+src/api/routes.py:7199:@api.route('/webhooks/stripe', methods=['POST'])
+src/api/routes.py:7200:def stripe_webhook():
+src/api/routes.py:7201:    """Enhanced Stripe webhook handler with comprehensive error handling"""
+src/api/routes.py:7203:    sig_header = request.headers.get('Stripe-Signature')
+src/api/routes.py:7211:        current_app.logger.error("Missing Stripe signature header")
+src/api/routes.py:7216:        endpoint_secret = current_app.config.get('STRIPE_WEBHOOK_SECRET') or STRIPE_WEBHOOK_SECRET
+src/api/routes.py:7218:            current_app.logger.error("Stripe webhook secret not configured")
+src/api/routes.py:7221:        event = stripe.Webhook.construct_event(
+src/api/routes.py:7225:    except stripe.error.SignatureVerificationError as e:
+src/api/routes.py:7240:        if event['type'] == 'checkout.session.completed':
+src/api/routes.py:7287:            # Update the pending subscription with Stripe subscription ID
+src/api/routes.py:7305:            # Get the Stripe subscription ID from the session
+src/api/routes.py:7307:                stripe_subscription = stripe.Subscription.retrieve(session['subscription'])
+src/api/routes.py:7308:                subscription.stripe_subscription_id = stripe_subscription.id
+src/api/routes.py:7355:    """Handle when a subscription is created in Stripe with error handling"""
+src/api/routes.py:7361:            stripe_subscription_id=subscription['id']
+src/api/routes.py:7376:            current_app.logger.warning(f"Local subscription not found for Stripe ID: {subscription['id']}")
+src/api/routes.py:7391:            stripe_subscription_id=subscription['id']
+src/api/routes.py:7395:            # Update subscription status based on Stripe status
+src/api/routes.py:7396:            stripe_status = subscription['status']
+src/api/routes.py:7398:            if stripe_status == 'active':
+src/api/routes.py:7400:            elif stripe_status == 'canceled':
+src/api/routes.py:7404:            elif stripe_status == 'past_due':
+src/api/routes.py:7408:            elif stripe_status == 'incomplete':
+src/api/routes.py:7410:            elif stripe_status == 'trialing':
+src/api/routes.py:7416:            if stripe_status == 'canceled':
+src/api/routes.py:7422:            current_app.logger.info(f"✅ Subscription {subscription['id']} updated to {stripe_status}")
+src/api/routes.py:7440:            stripe_subscription_id=subscription['id']
+src/api/routes.py:7478:            stripe_subscription_id=subscription_id
+src/api/routes.py:7525:            stripe_subscription_id=subscription_id
+src/api/routes.py:7602:            stripe_payment_intent_id=session.get('payment_intent'),
+src/api/routes.py:8592:    total_paid_out = db.session.query(func.sum(Payout.amount))\
+src/api/routes.py:8593:        .filter(Payout.user_id == user_id).scalar() or 0
+src/api/routes.py:11532:import stripe
+src/api/routes.py:11956:        # Mock checkout response - replace with actual Stripe integration
+src/api/routes.py:11959:            "checkout_url": f"https://checkout.stripe.com/mock-session-{product_id}"
+src/api/routes.py:11988:        # Stripe connectivity check
+src/api/routes.py:11990:            stripe.Account.retrieve()
+src/api/routes.py:11991:            health_status["checks"]["stripe"] = "healthy"
+src/api/routes.py:11993:            health_status["checks"]["stripe"] = f"unhealthy: {str(e)}"
+src/api/routes.py:17484:        # In production, this would create a Stripe checkout session
+src/api/routes.py:21727:        "payment_method": "stripe",  # stripe, cashapp, venmo, paypal, crypto, external
+src/api/routes.py:21761:    payment_method = data.get('payment_method', 'stripe')
+src/api/routes.py:21769:    valid_methods = ['stripe', 'cashapp', 'venmo', 'paypal', 'crypto', 'external']
+src/api/routes.py:21775:    # Stripe payments = 10% platform cut
+src/api/routes.py:21779:        platform_cut = 0.10  # 10% for Stripe
+src/api/routes.py:21783:    # For Stripe payments, create a payment intent
+src/api/routes.py:21784:    if payment_method == 'stripe':
+src/api/routes.py:21786:            # Check if we have Stripe configured
+src/api/routes.py:21787:            if not stripe.api_key:
+src/api/routes.py:21788:                return jsonify({'error': 'Stripe not configured'}), 500
+src/api/routes.py:21790:            # Create Stripe payment intent
+src/api/routes.py:21791:            payment_intent = stripe.PaymentIntent.create(
+src/api/routes.py:21792:                amount=int(amount * 100),  # Stripe uses cents
+src/api/routes.py:21825:                'client_secret': payment_intent.client_secret,
+src/api/routes.py:21826:                'payment_intent_id': payment_intent.id,
+src/api/routes.py:21832:        except stripe.error.StripeError as e:
+src/api/routes.py:21903:    Confirm a Stripe tip payment after successful payment
+src/api/routes.py:21904:    Called from frontend after Stripe payment succeeds
+src/api/routes.py:21908:    payment_intent_id = data.get('payment_intent_id')
+src/api/routes.py:21935:# ADD FUNDS TO WALLET (Stripe Checkout)
+src/api/routes.py:21938:@api.route('/wallet/add-funds', methods=['POST'])
+src/api/routes.py:21940:def add_funds_to_wallet():
+src/api/routes.py:21941:    """Create Stripe checkout to add funds to wallet"""
+src/api/routes.py:21956:        # Create Stripe Checkout Session
+src/api/routes.py:21959:        checkout_session = stripe.checkout.Session.create(
+src/api/routes.py:21965:                        'name': 'Add Funds to Wallet',
+src/api/routes.py:21966:                        'description': f'Add ${float(amount):.2f} to your StreamPireX wallet'
+src/api/routes.py:21973:            success_url=f"{frontend_url}/wallet/success?session_id={{CHECKOUT_SESSION_ID}}&amount={amount}",
+src/api/routes.py:21974:            cancel_url=f"{frontend_url}/wallet",
+src/api/routes.py:21976:                'type': 'wallet_deposit',
+src/api/routes.py:21988:    except stripe.error.StripeError as e:
+src/api/routes.py:21989:        current_app.logger.error(f"Stripe error for wallet deposit: {str(e)}")
+src/api/routes.py:21997:# STRIPE WEBHOOK HANDLERS - Add these to your existing webhook handler
+src/api/routes.py:22001:    """Handle successful tip payment from Stripe checkout"""
+src/api/routes.py:22024:        tip.stripe_payment_intent_id = session.get('payment_intent')
+src/api/routes.py:22026:        # Credit creator wallet
+src/api/routes.py:22027:        creator_wallet = UserWallet.query.filter_by(user_id=tip.receiver_id).first()
+src/api/routes.py:22028:        if not creator_wallet:
+src/api/routes.py:22029:            creator_wallet = UserWallet(user_id=tip.receiver_id, balance=Decimal('0'))
+src/api/routes.py:22030:            db.session.add(creator_wallet)
+src/api/routes.py:22032:        creator_wallet.balance += tip.creator_amount
+src/api/routes.py:22033:        creator_wallet.lifetime_earnings += tip.creator_amount
+src/api/routes.py:22035:        # Update sender stats (no wallet deduction since they paid directly)
+src/api/routes.py:22036:        sender_wallet = UserWallet.query.filter_by(user_id=tip.sender_id).first()
+src/api/routes.py:22037:        if sender_wallet:
+src/api/routes.py:22038:            sender_wallet.lifetime_tips_sent += tip.amount
+src/api/routes.py:22053:def handle_wallet_deposit_success(session):
+src/api/routes.py:22054:    """Handle successful wallet deposit from Stripe checkout"""
+src/api/routes.py:22058:        if metadata.get('type') != 'wallet_deposit':
+src/api/routes.py:22065:            current_app.logger.error("Wallet deposit webhook missing data")
+src/api/routes.py:22070:        # Get or create wallet
+src/api/routes.py:22071:        wallet = UserWallet.query.filter_by(user_id=int(user_id)).first()
+src/api/routes.py:22072:        if not wallet:
+src/api/routes.py:22073:            wallet = UserWallet(user_id=int(user_id), balance=Decimal('0'))
+src/api/routes.py:22074:            db.session.add(wallet)
+src/api/routes.py:22077:        wallet.balance += amount
+src/api/routes.py:22080:        transaction = WalletTransaction(
+src/api/routes.py:22085:            stripe_payment_intent_id=session.get('payment_intent'),
+src/api/routes.py:22086:            description=f'Added ${float(amount):.2f} to wallet'
+src/api/routes.py:22092:        current_app.logger.info(f"✅ Wallet deposit of ${amount} completed for user {user_id}")
+src/api/routes.py:22095:        current_app.logger.error(f"Error handling wallet deposit: {e}")
+src/api/routes.py:22122:        # WALLET DEPOSIT
+src/api/routes.py:22123:        if metadata.get('type') == 'wallet_deposit':
+src/api/routes.py:22124:            handle_wallet_deposit_success(session)
+src/api/routes.py:22145:    Use with Stripe Elements on frontend.
+src/api/routes.py:22186:        payment_intent = stripe.PaymentIntent.create(
+src/api/routes.py:22197:        tip.stripe_payment_intent_id = payment_intent.id
+src/api/routes.py:22201:            'client_secret': payment_intent.client_secret,
+src/api/routes.py:22205:    except stripe.error.StripeError as e:
+src/api/routes.py:22214:# CONFIRM QUICK TIP (After Stripe Elements payment)
+src/api/routes.py:22220:    """Confirm tip after Stripe Elements payment succeeds"""
+src/api/routes.py:22234:        # Verify payment with Stripe
+src/api/routes.py:22235:        if tip.stripe_payment_intent_id:
+src/api/routes.py:22236:            payment_intent = stripe.PaymentIntent.retrieve(tip.stripe_payment_intent_id)
+src/api/routes.py:22238:            if payment_intent.status != 'succeeded':
+src/api/routes.py:22245:        creator_wallet = UserWallet.query.filter_by(user_id=tip.receiver_id).first()
+src/api/routes.py:22246:        if not creator_wallet:
+src/api/routes.py:22247:            creator_wallet = UserWallet(user_id=tip.receiver_id, balance=Decimal('0'))
+src/api/routes.py:22248:            db.session.add(creator_wallet)
+src/api/routes.py:22250:        creator_wallet.balance += tip.creator_amount
+src/api/routes.py:22251:        creator_wallet.lifetime_earnings += tip.creator_amount
+src/api/routes.py:22267:# GET WALLET WITH TRANSACTION HISTORY
+src/api/routes.py:22270:@api.route('/user/wallet', methods=['GET'])
+src/api/routes.py:22272:def get_user_wallet():
+src/api/routes.py:22273:    """Get wallet balance and recent transactions"""
+src/api/routes.py:22277:        wallet = UserWallet.query.filter_by(user_id=user_id).first()
+src/api/routes.py:22278:        if not wallet:
+src/api/routes.py:22279:            wallet = UserWallet(user_id=user_id, balance=Decimal('0'))
+src/api/routes.py:22280:            db.session.add(wallet)
+src/api/routes.py:22284:        transactions = WalletTransaction.query.filter_by(user_id=user_id)\
+src/api/routes.py:22285:            .order_by(WalletTransaction.created_at.desc())\
+src/api/routes.py:22289:            'balance': float(wallet.balance),
+src/api/routes.py:22290:            'lifetime_earnings': float(wallet.lifetime_earnings),
+src/api/routes.py:22291:            'lifetime_tips_sent': float(wallet.lifetime_tips_sent),
+src/api/routes.py:22292:            'pending_payout': float(wallet.pending_payout),
+src/api/routes.py:22304:        return jsonify({'error': 'Failed to fetch wallet'}), 500
+src/front/js/layout.js:162:import PayoutDashboard from "./pages/PayoutDashboard";
+src/front/js/layout.js:452:                                <Route path="/payout-dashboard" element={<PayoutDashboard />} />
+src/front/js/pages/FanMembership.js:11://  - Fans subscribe via Stripe (recurring monthly)
+src/front/js/pages/FanMembership.js:390:import stripe, os
+src/front/js/pages/FanMembership.js:394:stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+src/front/js/pages/FanMembership.js:428:    # Create Stripe Price for recurring billing
+src/front/js/pages/FanMembership.js:429:    product = stripe.Product.create(name=f"{data['name']} - Fan Membership")
+src/front/js/pages/FanMembership.js:430:    price = stripe.Price.create(
+src/front/js/pages/FanMembership.js:436:    tier.stripe_price_id = price.id
+src/front/js/pages/FanMembership.js:530:    if not tier.stripe_price_id:
+src/front/js/pages/FanMembership.js:533:    session = stripe.checkout.Session.create(
+src/front/js/pages/FanMembership.js:535:        line_items=[{'price': tier.stripe_price_id, 'quantity': 1}],
+src/front/js/pages/ProductDetailPage.js:72:    const handleStripeCheckout = async () => {
+src/front/js/pages/ProductDetailPage.js:231:                                    onClick={handleStripeCheckout}
+src/front/js/pages/ProductDetailPage.js:234:                                    💳 Pay with Stripe
+src/front/js/pages/PayoutDashboard.js:2:// PayoutDashboard.js — Creator Payout System (Stripe Connect)
+src/front/js/pages/PayoutDashboard.js:4:// Location: src/front/js/pages/PayoutDashboard.js
+src/front/js/pages/PayoutDashboard.js:5:// Route: /creator/payouts
+src/front/js/pages/PayoutDashboard.js:8://  - Connect Stripe Express account (onboarding flow)
+src/front/js/pages/PayoutDashboard.js:10://  - Instant payout or standard (2-day) payout
+src/front/js/pages/PayoutDashboard.js:11://  - Full payout history table
+src/front/js/pages/PayoutDashboard.js:12://  - Minimum payout threshold ($25)
+src/front/js/pages/PayoutDashboard.js:13://  - Stripe Connect status (verified / restricted / pending)
+src/front/js/pages/PayoutDashboard.js:17:// Backend uses Stripe Connect Express accounts + Transfers API
+src/front/js/pages/PayoutDashboard.js:29:export const PayoutDashboard = () => {
+src/front/js/pages/PayoutDashboard.js:32:  const [payoutAmt, setPayoutAmt] = useState('');
+src/front/js/pages/PayoutDashboard.js:33:  const [payoutType, setPayoutType] = useState('standard'); // standard | instant
+src/front/js/pages/PayoutDashboard.js:44:        fetch(`${BACKEND_URL}/api/payouts/balance`, { headers: getHeaders() }),
+src/front/js/pages/PayoutDashboard.js:45:        fetch(`${BACKEND_URL}/api/payouts/history`, { headers: getHeaders() }),
+src/front/js/pages/PayoutDashboard.js:55:  const connectStripe = async () => {
+src/front/js/pages/PayoutDashboard.js:57:      const res = await fetch(`${BACKEND_URL}/api/payouts/connect`, { method: 'POST', headers: getHeaders() });
+src/front/js/pages/PayoutDashboard.js:64:  const requestPayout = async () => {
+src/front/js/pages/PayoutDashboard.js:65:    const amount = parseFloat(payoutAmt);
+src/front/js/pages/PayoutDashboard.js:66:    if (!amount || amount < 25) { setStatus('⚠ Minimum payout is $25'); return; }
+src/front/js/pages/PayoutDashboard.js:70:      const res = await fetch(`${BACKEND_URL}/api/payouts/request`, {
+src/front/js/pages/PayoutDashboard.js:73:        body: JSON.stringify({ amount, payout_type: payoutType }),
+src/front/js/pages/PayoutDashboard.js:77:      setStatus(`✅ ${payoutType === 'instant' ? 'Instant' : 'Standard'} payout of ${fmt(amount)} initiated!`);
+src/front/js/pages/PayoutDashboard.js:78:      setPayoutAmt('');
+src/front/js/pages/PayoutDashboard.js:86:      const res = await fetch(`${BACKEND_URL}/api/payouts/tax-info`, {
+src/front/js/pages/PayoutDashboard.js:109:  if (loading) return <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: '#5a7088' }}>Loading payouts...</div></div>;
+src/front/js/pages/PayoutDashboard.js:111:  const connected = data?.stripe_connected;
+src/front/js/pages/PayoutDashboard.js:112:  const verified = data?.stripe_status === 'verified';
+src/front/js/pages/PayoutDashboard.js:116:      <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#e6edf3', marginBottom: 4 }}>💸 Payouts</div>
+src/front/js/pages/PayoutDashboard.js:133:            StreamPireX uses Stripe Express to send payouts directly to your bank account or debit card. Setup takes about 2 minutes.
+src/front/js/pages/PayoutDashboard.js:135:          <button style={S.btnTeal} onClick={connectStripe}>
+src/front/js/pages/PayoutDashboard.js:136:            🔗 Connect with Stripe
+src/front/js/pages/PayoutDashboard.js:139:            Secured by Stripe. Your banking info is never stored on StreamPireX servers.
+src/front/js/pages/PayoutDashboard.js:150:              <div style={{ fontWeight: 700, color: '#ff9500' }}>Stripe Verification Pending</div>
+src/front/js/pages/PayoutDashboard.js:152:                Stripe is reviewing your account ({data?.stripe_status}). Payouts will be available once verified.{' '}
+src/front/js/pages/PayoutDashboard.js:154:                  onClick={connectStripe}>
+src/front/js/pages/PayoutDashboard.js:155:                  Continue Stripe setup →
+src/front/js/pages/PayoutDashboard.js:259:          {/* PAYOUT REQUEST */}
+src/front/js/pages/PayoutDashboard.js:262:              <div style={{ fontWeight: 700, color: '#e6edf3', marginBottom: 14 }}>Request Payout</div>
+src/front/js/pages/PayoutDashboard.js:268:                    value={payoutAmt} onChange={e => setPayoutAmt(e.target.value)} />
+src/front/js/pages/PayoutDashboard.js:271:                  <label style={S.label}>Payout Speed</label>
+src/front/js/pages/PayoutDashboard.js:275:                        style={{ ...S.btnGray, flex: 1, background: payoutType === type ? '#21262d' : 'transparent', borderColor: payoutType === type ? '#00ffc8' : '#30363d', color: payoutType === type ? '#00ffc8' : '#8b949e' }}
+src/front/js/pages/PayoutDashboard.js:276:                        onClick={() => setPayoutType(type)}>
+src/front/js/pages/PayoutDashboard.js:282:                <button style={S.btnTeal} onClick={requestPayout} disabled={processing}>
+src/front/js/pages/PayoutDashboard.js:286:              {payoutType === 'instant' && (
+src/front/js/pages/PayoutDashboard.js:288:                  Instant payouts have a 1% fee (min $0.50). Arrives in your bank within 30 minutes.
+src/front/js/pages/PayoutDashboard.js:296:            <div style={{ fontWeight: 700, color: '#e6edf3', marginBottom: 14 }}>Payout History</div>
+src/front/js/pages/PayoutDashboard.js:298:              <div style={{ color: '#5a7088', textAlign: 'center', padding: 24 }}>No payouts yet</div>
+src/front/js/pages/PayoutDashboard.js:313:                      <td style={S.td}>{p.payout_type === 'instant' ? '⚡ Instant' : '🏦 Standard'}</td>
+src/front/js/pages/PayoutDashboard.js:332:export default PayoutDashboard;
+src/front/js/pages/PayoutDashboard.js:335:// BACKEND — copy to src/api/payout_routes.py
+src/front/js/pages/PayoutDashboard.js:338:# pip install stripe --break-system-packages  (already installed)
+src/front/js/pages/PayoutDashboard.js:339:import os, stripe
+src/front/js/pages/PayoutDashboard.js:345:payout_bp = Blueprint('payouts', __name__)
+src/front/js/pages/PayoutDashboard.js:346:stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+src/front/js/pages/PayoutDashboard.js:349:# class Payout(db.Model):
+src/front/js/pages/PayoutDashboard.js:350:#     __tablename__ = 'payouts'
+src/front/js/pages/PayoutDashboard.js:354:#     payout_type = db.Column(db.String(20), default='standard')  # standard | instant
+src/front/js/pages/PayoutDashboard.js:356:#     stripe_payout_id = db.Column(db.String(255), nullable=True)
+src/front/js/pages/PayoutDashboard.js:372:#   stripe_connect_id = db.Column(db.String(255), nullable=True)
+src/front/js/pages/PayoutDashboard.js:373:#   stripe_connect_status = db.Column(db.String(50), default='not_connected')
+src/front/js/pages/PayoutDashboard.js:375:@payout_bp.route('/api/payouts/connect', methods=['POST'])
+src/front/js/pages/PayoutDashboard.js:377:def connect_stripe():
+src/front/js/pages/PayoutDashboard.js:383:    if not getattr(user, 'stripe_connect_id', None):
+src/front/js/pages/PayoutDashboard.js:384:        acct = stripe.Account.create(
+src/front/js/pages/PayoutDashboard.js:391:        user.stripe_connect_id = acct['id']
+src/front/js/pages/PayoutDashboard.js:392:        user.stripe_connect_status = 'pending'
+src/front/js/pages/PayoutDashboard.js:396:    link = stripe.AccountLink.create(
+src/front/js/pages/PayoutDashboard.js:397:        account=user.stripe_connect_id,
+src/front/js/pages/PayoutDashboard.js:398:        refresh_url=f'{frontend_url}/creator/payouts?reconnect=1',
+src/front/js/pages/PayoutDashboard.js:399:        return_url=f'{frontend_url}/creator/payouts?connected=1',
+src/front/js/pages/PayoutDashboard.js:404:@payout_bp.route('/api/payouts/balance', methods=['GET'])
+src/front/js/pages/PayoutDashboard.js:407:    from src.api.models import TaxInfo, Payout
+src/front/js/pages/PayoutDashboard.js:413:    total_paid_out = db.session.query(db.func.sum(Payout.amount)).filter_by(user_id=user_id, status='paid').scalar() or 0
+src/front/js/pages/PayoutDashboard.js:414:    pending_payouts = db.session.query(db.func.sum(Payout.amount)).filter_by(user_id=user_id, status='pending').scalar() or 0
+src/front/js/pages/PayoutDashboard.js:415:    available = max(0, total_earned - total_paid_out - pending_payouts)
+src/front/js/pages/PayoutDashboard.js:420:    # Check Stripe status
+src/front/js/pages/PayoutDashboard.js:421:    stripe_status = 'not_connected'
+src/front/js/pages/PayoutDashboard.js:422:    if getattr(user, 'stripe_connect_id', None):
+src/front/js/pages/PayoutDashboard.js:424:            acct = stripe.Account.retrieve(user.stripe_connect_id)
+src/front/js/pages/PayoutDashboard.js:425:            stripe_status = 'verified' if acct['charges_enabled'] else 'pending'
+src/front/js/pages/PayoutDashboard.js:426:            user.stripe_connect_status = stripe_status
+src/front/js/pages/PayoutDashboard.js:434:        'pending_balance': round(pending_payouts, 2),
+src/front/js/pages/PayoutDashboard.js:437:        'stripe_connected': bool(getattr(user, 'stripe_connect_id', None)),
+src/front/js/pages/PayoutDashboard.js:438:        'stripe_status': stripe_status,
+src/front/js/pages/PayoutDashboard.js:448:@payout_bp.route('/api/payouts/request', methods=['POST'])
+src/front/js/pages/PayoutDashboard.js:450:def request_payout():
+src/front/js/pages/PayoutDashboard.js:451:    from src.api.models import Payout
+src/front/js/pages/PayoutDashboard.js:456:    payout_type = data.get('payout_type', 'standard')
+src/front/js/pages/PayoutDashboard.js:458:    if amount < 25: return jsonify({'error': 'Minimum payout is $25'}), 400
+src/front/js/pages/PayoutDashboard.js:459:    if not getattr(user, 'stripe_connect_id', None):
+src/front/js/pages/PayoutDashboard.js:460:        return jsonify({'error': 'Please connect your Stripe account first'}), 400
+src/front/js/pages/PayoutDashboard.js:462:    fee = round(amount * 0.01, 2) if payout_type == 'instant' else 0
+src/front/js/pages/PayoutDashboard.js:466:        transfer = stripe.Transfer.create(
+src/front/js/pages/PayoutDashboard.js:469:            destination=user.stripe_connect_id,
+src/front/js/pages/PayoutDashboard.js:470:            metadata={'user_id': str(user_id), 'payout_type': payout_type},
+src/front/js/pages/PayoutDashboard.js:473:        payout = Payout(user_id=user_id, amount=amount, payout_type=payout_type,
+src/front/js/pages/PayoutDashboard.js:474:                        status='pending', stripe_payout_id=transfer['id'], fee=fee)
+src/front/js/pages/PayoutDashboard.js:475:        db.session.add(payout); db.session.commit()
+src/front/js/pages/PayoutDashboard.js:476:        return jsonify({'message': 'Payout initiated', 'id': payout.id}), 201
+src/front/js/pages/PayoutDashboard.js:477:    except stripe.error.StripeError as e:
+src/front/js/pages/PayoutDashboard.js:480:@payout_bp.route('/api/payouts/history', methods=['GET'])
+src/front/js/pages/PayoutDashboard.js:482:def payout_history():
+src/front/js/pages/PayoutDashboard.js:483:    from src.api.models import Payout
+src/front/js/pages/PayoutDashboard.js:485:    payouts = Payout.query.filter_by(user_id=user_id).order_by(Payout.created_at.desc()).limit(50).all()
+src/front/js/pages/PayoutDashboard.js:487:        'id': p.id, 'amount': p.amount, 'payout_type': p.payout_type,
+src/front/js/pages/PayoutDashboard.js:490:    } for p in payouts]), 200
+src/front/js/pages/PayoutDashboard.js:492:@payout_bp.route('/api/payouts/tax-info', methods=['POST'])
+src/front/js/pages/PayoutDashboard.js:511:# from .payout_routes import payout_bp
+src/front/js/pages/PayoutDashboard.js:512:# app.register_blueprint(payout_bp)
+src/front/js/pages/PayoutDashboard.js:515:#   stripe_connect_id = db.Column(db.String(255), nullable=True)
+src/front/js/pages/PayoutDashboard.js:516:#   stripe_connect_status = db.Column(db.String(50), default='not_connected')
+src/front/js/pages/PayoutDashboard.js:519:#   flask db migrate -m "add payout and tax_info tables, stripe_connect to user"
+src/front/js/pages/PayoutDashboard.js:523:#   <Route path="/creator/payouts" element={<PayoutDashboard />} />
+src/front/js/pages/PayoutDashboard.js:526:#   <Link to="/creator/payouts">💸 Payouts</Link>
+src/front/js/pages/PayoutDashboard.js:528:# Webhook: Add handler for transfer.paid event to mark Payout.status = 'paid'
+src/front/js/pages/PayoutDashboard.js:529:# in your existing Stripe webhook handler.
+src/front/js/pages/TipJarPage.js:47:  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('stripe');
+src/front/js/pages/TipJarPage.js:124:    if (selectedPaymentMethod === 'stripe') return amount * 0.10;
+src/front/js/pages/TipJarPage.js:170:      { id: 'stripe', name: 'Card', icon: '💳', fee: '10% platform fee', always: true },
+src/front/js/pages/TipJarPage.js:194:  // Send tip via Stripe
+src/front/js/pages/TipJarPage.js:195:  const handleStripeTip = async () => {
+src/front/js/pages/TipJarPage.js:214:      if (data.client_secret) {
+src/front/js/pages/TipJarPage.js:217:          clientSecret: data.client_secret,
+src/front/js/pages/TipJarPage.js:225:          body: JSON.stringify({ payment_intent_id: data.client_secret.split('_secret_')[0] })
+src/front/js/pages/TipJarPage.js:231:          setStep('success'); // Still show success - Stripe will handle
+src/front/js/pages/TipJarPage.js:272:    if (selectedPaymentMethod === 'stripe') handleStripeTip();
+src/front/js/pages/TipJarPage.js:523:                {selectedPaymentMethod === 'stripe' && (
+src/front/js/pages/TipJarPage.js:544:                ) : selectedPaymentMethod === 'stripe' ? (
+src/front/js/pages/MerchCheckout.js:17:    alert("Checkout flow starter page ready. Next step: connect Stripe + backend fulfillment.");
+src/front/js/pages/CreatorSampleMarketplace.js:9: *  - Purchase with credits or one-time payment via Stripe
+src/front/js/pages/CreatorSampleMarketplace.js:470:    // In real app: Stripe checkout
+src/front/js/pages/CreatorSampleMarketplace.js:471:    alert(`Stripe checkout would open here for $${pack.price}\nPlatform fee: $${(pack.price * 0.1).toFixed(2)}\nCreator receives: $${(pack.price * 0.9).toFixed(2)}`);
+src/front/js/pages/ComparePage.js:611:                            <tr className="cat"><td colSpan="6">💰 Fees &amp; Payouts (The Bottom Line)</td></tr>
+src/front/js/pages/ProductCheckout.js:4:import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+src/front/js/pages/ProductCheckout.js:9:  const stripe = useStripe();
+src/front/js/pages/ProductCheckout.js:21:    const result = await stripe.confirmCardPayment(clientSecret, {
+src/front/js/pages/ProductCheckout.js:35:      <button type="submit" disabled={!stripe || !clientSecret}>
+src/front/js/pages/CheckoutPage.js:36:    const [paymentMethod, setPaymentMethod] = useState("stripe");
+src/front/js/pages/CheckoutPage.js:162:    const handleStripeCheckout = async () => {
+src/front/js/pages/CheckoutPage.js:188:                    // Clear cart and redirect to Stripe
+src/front/js/pages/CheckoutPage.js:198:            console.error("Stripe checkout error:", err);
+src/front/js/pages/CheckoutPage.js:535:                                    value="stripe"
+src/front/js/pages/CheckoutPage.js:536:                                    checked={paymentMethod === "stripe"}
+src/front/js/pages/CheckoutPage.js:540:                                    Credit/Debit Card (Stripe)
+src/front/js/pages/CheckoutPage.js:613:                                {paymentMethod === "stripe" ? (
+src/front/js/pages/CheckoutPage.js:616:                                        onClick={handleStripeCheckout}
+src/front/js/pages/CheckoutPage.js:619:                                        {loading ? "Processing..." : "Pay with Stripe"}
+src/front/js/pages/VideoSeriesBuilder.js:14://  - Stripe checkout for series purchase
+src/front/js/pages/SubscriptionSuccess.js:21:  // URL params from Stripe success_url
+src/front/js/pages/SubscriptionSuccess.js:35:      // No session ID but still show success (Stripe already charged)
+src/front/js/pages/SubscriptionSuccess.js:58:      // Always show success — Stripe already processed the payment
+src/front/js/pages/home.js:1023:						<p>Sell beats, merch, presets, courses, and digital products with Stripe payments.</p>
+src/front/js/pages/home.js:1051:						<p>Sell tickets to live streams, virtual concerts, workshops, and meetups. Stripe-powered.</p>
+src/front/js/pages/SettingsPage.js:6:import PayoutRequest from "../component/PayoutRequest";
+src/front/js/pages/SettingsPage.js:26:    payoutMethod: "",
+src/front/js/pages/SettingsPage.js:83:    autoPayoutThreshold: "50",
+src/front/js/pages/SettingsPage.js:84:    payoutCurrency: "USD",
+src/front/js/pages/SettingsPage.js:637:              <h2>💰 Payout Settings</h2>
+src/front/js/pages/SettingsPage.js:642:              <PayoutRequest
+src/front/js/pages/SettingsPage.js:652:                  <label>Auto-Payout Threshold</label>
+src/front/js/pages/SettingsPage.js:653:                  <span>Automatically request payout when balance reaches this amount</span>
+src/front/js/pages/SettingsPage.js:656:                  value={settings.autoPayoutThreshold}
+src/front/js/pages/SettingsPage.js:657:                  onChange={(e) => handleChange('autoPayoutThreshold', e.target.value)}
+src/front/js/pages/SettingsPage.js:667:              <Select settingKey="payoutCurrency" label="Payout Currency"
+src/front/js/pages/StemsStore.js:16://  - Reuses BeatStore infrastructure (BeatPurchase model, Stripe checkout)
+src/front/js/pages/PaymentProcessing.js:3:import { loadStripe } from "@stripe/stripe-js";
+src/front/js/pages/PaymentProcessing.js:7:  useStripe,
+src/front/js/pages/PaymentProcessing.js:9:} from "@stripe/react-stripe-js";
+src/front/js/pages/PaymentProcessing.js:11:const stripePromise = loadStripe("pk_test_51S56461wmbXT13hC7rZon6rQF6jYWxdXZ1mlwUut3vVYPn651N8skwxCb94fA8qsbyIt13O03HdHf4ZzDmACgPK00R0UznpnG");
+src/front/js/pages/PaymentProcessing.js:14:  const stripe = useStripe();
+src/front/js/pages/PaymentProcessing.js:21:    if (!stripe || !elements) return;
+src/front/js/pages/PaymentProcessing.js:36:    const result = await stripe.confirmCardPayment(clientSecret, {
+src/front/js/pages/PaymentProcessing.js:53:      <button type="submit" disabled={!stripe}>Pay</button>
+src/front/js/pages/PaymentProcessing.js:63:      <Elements stripe={stripePromise}>
+src/front/js/pages/ShoppingCart.js:324:                                    🚀 Quick Stripe Checkout
+src/front/js/pages/ShoppingCart.js:341:                                🔒 Secure checkout powered by Stripe<br />
+src/front/js/pages/EpisodePage.js:2:// import StripeCheckout from "react-stripe-checkout";
+src/front/js/pages/EpisodePage.js:9:            body: JSON.stringify({ episode_id: episode.id, stripe_token: token.id }),
+src/front/js/pages/EpisodePage.js:19:                <StripeCheckout
+src/front/js/pages/EpisodePage.js:20:                    stripeKey="your_stripe_public_key"
+src/front/js/pages/CreatorAcademy.js:119:          <div style={A.heroStat}><span style={A.heroStatNum}>90%</span><span style={A.heroStatLabel}>Creator payout</span></div>
+src/front/js/pages/MusicStore.js:103:          <span style={MS.badge}>90% creator payout</span>
+src/front/js/pages/PricingPlans.js:1549:            <p>All major credit cards, debit cards, and PayPal through our secure Stripe payment processor.</p>
+src/front/js/component/BeatLicenseAgreement.js:176:  orderId,         // from Stripe or internal
+src/front/js/component/BeatCart.js:84:    // For single item, go straight to Stripe
+src/front/js/component/TipJar.js:119:  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('stripe');
+src/front/js/component/TipJar.js:157:    if (selectedPaymentMethod === 'stripe') return amount * 0.10;
+src/front/js/component/TipJar.js:199:      { id: 'stripe', name: 'Card', icon: '💳', fee: '10% platform fee', always: true },
+src/front/js/component/TipJar.js:223:  // Send tip via Stripe (card payment)
+src/front/js/component/TipJar.js:224:  const handleStripeTip = async () => {
+src/front/js/component/TipJar.js:248:      // If Stripe Elements is loaded, use it
+src/front/js/component/TipJar.js:249:      // For now, we'll use Stripe Checkout redirect or Payment Intent confirmation
+src/front/js/component/TipJar.js:250:      if (data.client_secret) {
+src/front/js/component/TipJar.js:251:        // You would integrate Stripe Elements here for card input
+src/front/js/component/TipJar.js:253:        // In production, use @stripe/stripe-js and Elements
+src/front/js/component/TipJar.js:256:          clientSecret: data.client_secret,
+src/front/js/component/TipJar.js:261:        // Auto-confirm for demo (replace with Stripe Elements in production)
+src/front/js/component/TipJar.js:265:          body: JSON.stringify({ payment_intent_id: data.client_secret.split('_secret_')[0] })
+src/front/js/component/TipJar.js:271:          // Payment created but needs Stripe Elements for card input
+src/front/js/component/TipJar.js:322:    if (selectedPaymentMethod === 'stripe') {
+src/front/js/component/TipJar.js:323:      handleStripeTip();
+src/front/js/component/TipJar.js:534:                {selectedPaymentMethod === 'stripe' && (
+src/front/js/component/TipJar.js:559:                ) : selectedPaymentMethod === 'stripe' ? (
+src/front/js/component/TipJar.js:571:                <Heart size={12} /> {creatorName} receives {selectedPaymentMethod === 'stripe' ? '90%' : '100%'} of all tips
+src/front/js/component/TipJar.js:576:          {/* ========== STEP 3: SUCCESS (Stripe) ========== */}
+src/front/js/component/TipJar.js:667:            {selectedPaymentMethod === 'stripe' ? ' 90% goes to creator' : ' 100% goes to creator'}
+src/front/js/component/PodcastEpisode.js:4:import { loadStripe } from '@stripe/stripe-js';
+src/front/js/component/PodcastEpisode.js:6:const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY); // or process.env...
+src/front/js/component/PodcastEpisode.js:53:        stripe_token: null // Replace if collecting token manually
+src/front/js/component/PodcastEpisode.js:56:      // You can also redirect to Stripe Checkout here
+src/front/js/component/PodcastEpisode.js:57:      const stripe = await stripePromise;
+src/front/js/component/PodcastEpisode.js:58:      const result = await stripe.redirectToCheckout({
+src/front/js/component/CreatorSampleMarketplace.js:9: *  - Purchase with credits or one-time payment via Stripe
+src/front/js/component/CreatorSampleMarketplace.js:470:    // In real app: Stripe checkout
+src/front/js/component/CreatorSampleMarketplace.js:471:    alert(`Stripe checkout would open here for $${pack.price}\nPlatform fee: $${(pack.price * 0.1).toFixed(2)}\nCreator receives: $${(pack.price * 0.9).toFixed(2)}`);
+src/front/js/component/hooks/useAICredits.js:162:    // ── Purchase credit pack (redirect to Stripe) ───────────────────────
+src/front/js/component/PayoutRequest.js:3:const PayoutRequest = ({ balance, method }) => {
+src/front/js/component/PayoutRequest.js:38:    <div className="payout-request">
+src/front/js/component/PayoutRequest.js:77:export default PayoutRequest;
+src/front/js/component/TipJarSettings.js:249:        {/* ===== STRIPE (ALWAYS ON) ===== */}
+src/front/js/component/TipJarSettings.js:254:              <h3>Card Payments (Stripe)</h3>
+src/front/js/component/TipJarSettings.js:474:            💡 <strong>How it works:</strong> Card payments (Stripe) have a 10% platform fee.
+src/front/js/component/StutterEngine.js:569:                  {/* Beat marker stripe */}
+src/front/js/component/CreatorAcademy.js:129:      {/* Color stripe header */}

@@ -1,0 +1,88 @@
+===== 18. CELERY / JOBS / BACKGROUND PROCESSING =====
+src/celery_app.py:2:from celery import Celery
+src/celery_app.py:4:def make_celery():
+src/celery_app.py:5:    broker = os.environ.get("CELERY_BROKER_URL", os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
+src/celery_app.py:6:    backend = os.environ.get("CELERY_RESULT_BACKEND", os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
+src/celery_app.py:8:    celery = Celery(
+src/celery_app.py:15:    celery.conf.update(
+src/celery_app.py:25:    return celery
+src/celery_app.py:27:celery = make_celery()
+src/api/celery_app.py:2:from celery import Celery
+src/api/celery_app.py:4:def make_celery():
+src/api/celery_app.py:5:    broker = os.environ.get("CELERY_BROKER_URL") or os.environ.get("REDIS_URL") or "redis://127.0.0.1:6379/0"
+src/api/celery_app.py:6:    backend = os.environ.get("CELERY_RESULT_BACKEND") or os.environ.get("REDIS_URL") or "redis://127.0.0.1:6379/0"
+src/api/celery_app.py:8:    celery = Celery(
+src/api/celery_app.py:15:    celery.conf.update(
+src/api/celery_app.py:24:    return celery
+src/api/celery_app.py:26:celery = make_celery()
+src/api/tasks.py:2:from src.celery_app import celery
+src/api/tasks.py:4:@celery.task(bind=True)
+src/api/advanced_ai_models.py:35:class AITaskJob(db.Model):
+src/api/advanced_ai_models.py:42:    celery_task_id = db.Column(db.String(255), nullable=True, index=True)
+src/api/advanced_ai_models.py:50:    control_state = db.Column(db.String(30), default="active")  # active, paused, cancel_requested, cancelled
+src/api/advanced_ai_models.py:51:    progress_pct = db.Column(db.Integer, default=0)
+src/api/advanced_ai_models.py:62:            "celery_task_id": self.celery_task_id,
+src/api/advanced_ai_models.py:70:            "control_state": self.control_state,
+src/api/advanced_ai_models.py:71:            "progress_pct": self.progress_pct,
+src/api/academy_models.py:136:    progress_pct      = db.Column(db.Integer, default=0)
+src/api/academy_models.py:150:            "progress_pct":      self.progress_pct,
+src/api/ai_background_tasks.py:18:from .celery_app import celery
+src/api/ai_background_tasks.py:58:    if job.control_state == "cancel_requested":
+src/api/ai_background_tasks.py:60:    while job.control_state == "paused":
+src/api/ai_background_tasks.py:61:        _emit_job_event(job.id, {"status": job.status, "control_state": "paused", "progress_pct": job.progress_pct})
+src/api/ai_background_tasks.py:65:        if job.control_state == "cancel_requested":
+src/api/ai_background_tasks.py:206:@celery.task(bind=True)
+src/api/ai_background_tasks.py:211:        from .advanced_ai_models import AITaskJob
+src/api/ai_background_tasks.py:214:        job = AITaskJob.query.get(job_id)
+src/api/ai_background_tasks.py:220:        if job.status == "processing" and job.celery_task_id and job.celery_task_id != self.request.id:
+src/api/ai_background_tasks.py:225:        if not job.celery_task_id:
+src/api/ai_background_tasks.py:226:            job.celery_task_id = self.request.id
+src/api/ai_background_tasks.py:228:        _emit_job_event(job.id, {"status": "processing", "progress_pct": job.progress_pct})
+src/api/ai_background_tasks.py:273:                        if pct != job.progress_pct:
+src/api/ai_background_tasks.py:274:                            job.progress_pct = pct
+src/api/ai_background_tasks.py:276:                            _emit_job_event(job.id, {"status": "processing", "progress_pct": pct})
+src/api/ai_background_tasks.py:311:                        if pct != job.progress_pct:
+src/api/ai_background_tasks.py:312:                            job.progress_pct = pct
+src/api/ai_background_tasks.py:314:                            _emit_job_event(job.id, {"status": "processing", "progress_pct": pct})
+src/api/ai_background_tasks.py:335:                job.progress_pct = 100
+src/api/ai_background_tasks.py:350:                _emit_job_event(job.id, {"status": "completed", "progress_pct": 100, "output_url": output_url})
+src/api/ai_background_tasks.py:366:@celery.task(bind=True)
+src/api/ai_background_tasks.py:371:        from .advanced_ai_models import AITaskJob, LessonTimeline
+src/api/ai_background_tasks.py:374:        job = AITaskJob.query.get(job_id)
+src/api/ai_background_tasks.py:380:        if job.status == "processing" and job.celery_task_id and job.celery_task_id != self.request.id:
+src/api/ai_background_tasks.py:385:        if not job.celery_task_id:
+src/api/ai_background_tasks.py:386:            job.celery_task_id = self.request.id
+src/api/ai_background_tasks.py:388:        _emit_job_event(job.id, {"status": "processing", "progress_pct": job.progress_pct})
+src/api/ai_background_tasks.py:433:                    if pct != job.progress_pct:
+src/api/ai_background_tasks.py:434:                        job.progress_pct = pct
+src/api/ai_background_tasks.py:436:                        _emit_job_event(job.id, {"status": "processing", "progress_pct": pct})
+src/api/ai_background_tasks.py:524:                job.progress_pct = 100
+src/api/ai_background_tasks.py:543:                _emit_job_event(job.id, {"status": "completed", "progress_pct": 100, "output_url": output_url, "thumbnail_urls": thumb_urls})
+src/api/advanced_ai_routes.py:6:from .advanced_ai_models import VideoCreditTransaction, AITaskJob, LessonTimeline
+src/api/advanced_ai_routes.py:63:    job = AITaskJob.query.filter_by(id=job_id, user_id=user_id).first()
+src/api/advanced_ai_routes.py:97:    existing = AITaskJob.query.filter_by(
+src/api/advanced_ai_routes.py:111:    job = AITaskJob(
+src/api/advanced_ai_routes.py:130:    async_result = process_avatar_clip_job.delay(job.id)
+src/api/advanced_ai_routes.py:131:    job.celery_task_id = async_result.id
+src/api/advanced_ai_routes.py:204:    existing = AITaskJob.query.filter_by(
+src/api/advanced_ai_routes.py:218:    job = AITaskJob(
+src/api/advanced_ai_routes.py:230:    async_result = process_hybrid_compose_job.delay(job.id)
+src/api/advanced_ai_routes.py:231:    job.celery_task_id = async_result.id
+src/api/advanced_ai_routes.py:259:    job = AITaskJob.query.filter_by(id=job_id, user_id=user_id).first()
+src/api/advanced_ai_routes.py:263:        return jsonify({"error": "Only queued or processing jobs can be paused"}), 400
+src/api/advanced_ai_routes.py:264:    job.control_state = "paused"
+src/api/advanced_ai_routes.py:273:    job = AITaskJob.query.filter_by(id=job_id, user_id=user_id).first()
+src/api/advanced_ai_routes.py:276:    if job.control_state != "paused":
+src/api/advanced_ai_routes.py:277:        return jsonify({"error": "Job is not paused"}), 400
+src/api/advanced_ai_routes.py:278:    job.control_state = "active"
+src/api/advanced_ai_routes.py:287:    job = AITaskJob.query.filter_by(id=job_id, user_id=user_id).first()
+src/api/advanced_ai_routes.py:292:    job.control_state = "cancel_requested"
+src/api/academy_routes.py:371:    enrollment.progress_pct = round((len(completed) / total) * 100) if total else 0
+src/api/academy_routes.py:372:    if enrollment.progress_pct == 100:
+src/api/academy_routes.py:376:    return jsonify({"progress_pct": enrollment.progress_pct, "completed_lessons": list(completed)})
+src/api/academy_routes.py:387:        "progress_pct": enrollment.progress_pct or 0,
+src/api/film_screening_socket.py:137:        Host paused. Pause all viewers.
+src/api/routes.py:175:    board = Pedalboard([Delay(delay_seconds=delay_seconds, feedback=0.3, mix=0.5)])
+src/api/routes.py:17561:        # Example: start_export_job.delay(export_config)
+src/api/routes.py:17847:        return apply_delay(audio_data, sample_rate, intensity)
+src/api/routes.py:17939:def apply_delay(audio_data, sample_rate, intensity):

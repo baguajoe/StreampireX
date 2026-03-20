@@ -1,0 +1,20 @@
+===== ROUTES =====
+src/front/js/layout.js:535:						<Route path="/motion-studio" element={<MotionStudioPage />} />
+src/front/js/layout.js:536:                                            <Route path="/node-compositor" element={<NodeCompositorPage />} />
+src/front/js/layout.js:537:                                            <Route path="/spx-canvas" element={<SPXCanvasPage />} />
+src/front/js/layout.js:538:                                            <Route path="/spx-vector" element={<SPXVectorPage />} />
+src/front/js/pages/SPXVectorPage.js:317:      const res = await fetch(`${backendURL}/api/spx-vector/templates`);
+src/front/js/pages/SPXVectorPage.js:327:      const res = await fetch(`${backendURL}/api/spx-vector/projects`, {
+src/front/js/pages/SPXVectorPage.js:339:      const res = await fetch(`${backendURL}/api/spx-vector/assets`, {
+src/front/js/pages/SPXVectorPage.js:503:        ? `${backendURL}/api/spx-vector/projects/${project.id}`
+src/front/js/pages/SPXVectorPage.js:504:        : `${backendURL}/api/spx-vector/projects`;
+src/front/js/pages/SPXVectorPage.js:535:      const res = await fetch(`${backendURL}/api/spx-vector/projects/${id}`, {
+src/front/js/pages/SPXVectorPage.js:566:      const res = await fetch(`${backendURL}/api/spx-vector/assets`, {
+src/front/js/pages/SPXVectorPage.js:638:    navigate("/spx-canvas");
+src/front/js/pages/SPXVectorPage.js:651:    navigate("/node-compositor");
+src/front/js/pages/SPXVectorPage.js:664:    navigate("/motion-studio");
+src/front/js/component/sidebar.js:723:          <MenuItem to="/motion-studio" className={isActive("/motion-studio") ? "active" : ""}>
+src/front/js/component/sidebar.js:727:          <MenuItem to="/node-compositor" className={isActive("/node-compositor") ? "active" : ""}>
+src/front/js/component/sidebar.js:731:          <MenuItem to="/spx-canvas" className={isActive("/spx-canvas") ? "active" : ""}>
+src/front/js/component/sidebar.js:734:          <MenuItem to="/spx-vector" className={isActive("/spx-vector") ? "active" : ""}>
+src/front/js/utils/motionHelpers.js:3:  navigate("/node-compositor");

@@ -17,6 +17,7 @@ from .models import (
     VideoCredit, CreditPackPurchase, AIVideoGeneration,
     CREDIT_PACKS, TIER_FREE_CREDITS
 )
+from .advanced_ai_models import VideoCreditTransaction
 
 ai_video_credits_bp = Blueprint('ai_video_credits', __name__)
 
@@ -84,6 +85,23 @@ def check_and_reset_monthly_credits(credit, user_id):
             print(f"🔄 Reset monthly credits for user {user_id}: {free_credits} new + {rollover} rollover")
     
     return credit
+
+
+
+def log_credit_transaction(user_id, amount, transaction_type, feature=None, reference_type=None, reference_id=None, description=None, balance_after=None, metadata_json=None):
+    tx = VideoCreditTransaction(
+        user_id=user_id,
+        amount=amount,
+        transaction_type=transaction_type,
+        feature=feature,
+        reference_type=reference_type,
+        reference_id=reference_id,
+        description=description,
+        balance_after=balance_after,
+        metadata_json=metadata_json or {}
+    )
+    db.session.add(tx)
+    return tx
 
 
 # =============================================================================
@@ -383,6 +401,7 @@ def grant_credits():
         
         credit = get_or_create_credits(target_user_id)
         credit.add(amount, source='grant')
+        log_credit_transaction(target_user_id, amount, 'grant', feature='admin', reference_type='manual', reference_id=None, description=reason, balance_after=credit.balance)
         db.session.commit()
         
         return jsonify({
@@ -417,6 +436,7 @@ def deduct_user_credits(user_id, amount=1):
         }
     
     credit.deduct(amount)
+    log_credit_transaction(user_id, -amount, 'deduct', feature='ai_video', reference_type='manual', reference_id=None, description='Credit deduction', balance_after=credit.balance)
     db.session.commit()
     return True, credit, None
 
@@ -425,5 +445,6 @@ def refund_user_credits(user_id, amount=1):
     """Refund credits back to user (on generation failure)"""
     credit = get_or_create_credits(user_id)
     credit.refund(amount)
+    log_credit_transaction(user_id, amount, 'refund', feature='ai_video', reference_type='manual', reference_id=None, description='Credit refund', balance_after=credit.balance)
     db.session.commit()
     return credit

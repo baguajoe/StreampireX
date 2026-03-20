@@ -81,6 +81,16 @@ class Lesson(db.Model):
     content_type    = db.Column(db.String(20), default="video")  # video | text | audio | quiz
     image_url       = db.Column(db.String(500), default="")
     text_content    = db.Column(db.Text, default="")
+
+    # ── AI / hybrid lesson metadata ─────────────────────────────
+    source_mode      = db.Column(db.String(50), default="manual_upload")
+    avatar_id        = db.Column(db.String(120), nullable=True)
+    script_text      = db.Column(db.Text, nullable=True)
+    ai_audio_url     = db.Column(db.String(500), nullable=True)
+    ai_video_url     = db.Column(db.String(500), nullable=True)
+    ai_generation_id = db.Column(db.Integer, nullable=True)
+    generation_status = db.Column(db.String(50), default="idle")
+
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)
 
     def serialize(self):
@@ -96,6 +106,13 @@ class Lesson(db.Model):
             "order":            self.order,
             "content_type":     self.content_type,
             "text_content":     self.text_content,
+            "source_mode":      self.source_mode,
+            "avatar_id":        self.avatar_id,
+            "script_text":      self.script_text,
+            "ai_audio_url":     self.ai_audio_url,
+            "ai_video_url":     self.ai_video_url,
+            "ai_generation_id": self.ai_generation_id,
+            "generation_status": self.generation_status,
         }
 
     def serialize_preview(self):

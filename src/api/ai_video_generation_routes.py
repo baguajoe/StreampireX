@@ -37,6 +37,22 @@ ai_video_gen_bp = Blueprint('ai_video_gen', __name__)
 # CONFIG
 # =============================================================================
 
+ALLOWED_ASPECT_RATIOS = {"16:9", "9:16", "1:1"}
+ALLOWED_QUALITIES = {"standard", "premium"}
+
+def calculate_video_credit_cost(mode="text_to_video", quality="standard", duration_secs=5, avatar=False):
+    cost = 1
+    if mode == "image_to_video":
+        cost += 1
+    if quality == "premium":
+        cost += 2
+    extra_blocks = max(0, (int(duration_secs) - 5) // 5)
+    cost += extra_blocks
+    if avatar:
+        cost += 2
+    return max(1, int(cost))
+
+
 # Replicate models — competition-level quality
 # Kling 1.6 matches Runway Gen-3 quality at lower cost
 # These can be swapped as newer models drop on Replicate
@@ -137,6 +153,7 @@ def generate_text_to_video():
         prompt = data.get('prompt', '').strip()
         aspect_ratio = data.get('aspect_ratio', '16:9')
         quality = data.get('quality', 'standard')  # 'standard' or 'premium'
+        avatar_mode = bool(data.get('avatar_mode', False))
         
         # Validate
         if not prompt:
@@ -144,6 +161,12 @@ def generate_text_to_video():
         
         if len(prompt) > 500:
             return jsonify({'error': 'Prompt must be under 500 characters'}), 400
+
+        if aspect_ratio not in ALLOWED_ASPECT_RATIOS:
+            return jsonify({'error': 'Invalid aspect ratio'}), 400
+
+        if quality not in ALLOWED_QUALITIES:
+            return jsonify({'error': 'Invalid quality option'}), 400
         
         # Check daily limit
         tier = get_user_tier(user_id)
@@ -168,8 +191,14 @@ def generate_text_to_video():
                 'used_today': today_count,
             }), 429
         
-        # Deduct credit
-        success, credit, error = deduct_user_credits(user_id, 1)
+        # Deduct credits using feature-based pricing
+        credit_cost = calculate_video_credit_cost(
+            mode='text_to_video',
+            quality=quality,
+            duration_secs=5,
+            avatar=avatar_mode
+        )
+        success, credit, error = deduct_user_credits(user_id, credit_cost)
         if not success:
             return jsonify(error), 402
         
@@ -247,12 +276,13 @@ def generate_text_to_video():
                 'generation': generation.serialize(),
                 'video_url': r2_url,
                 'credits_remaining': credit.balance,
+            'credits_used': credit_cost,
                 'message': '🎬 Video generated successfully!',
             }), 200
             
         except Exception as api_error:
-            # Refund credit on failure
-            refund_user_credits(user_id, 1)
+            # Refund credits on failure
+            refund_user_credits(user_id, credit_cost)
             generation.status = 'failed'
             generation.error_message = str(api_error)
             generation.credits_refunded = True
@@ -264,7 +294,7 @@ def generate_text_to_video():
             return jsonify({
                 'error': f'Generation failed: {str(api_error)}',
                 'credits_refunded': True,
-                'credits_remaining': credit.balance + 1,  # After refund
+                'credits_remaining': credit.balance + credit_cost,
             }), 500
             
     except Exception as e:
@@ -291,11 +321,13 @@ def generate_image_to_video():
             prompt = data.get('prompt', '')
             aspect_ratio = data.get('aspect_ratio', '16:9')
             quality = data.get('quality', 'standard')
+            avatar_mode = bool(data.get('avatar_mode', False))
         else:
             image_url = request.form.get('image_url')
             prompt = request.form.get('prompt', '')
             aspect_ratio = request.form.get('aspect_ratio', '16:9')
             quality = request.form.get('quality', 'standard')
+            avatar_mode = request.form.get('avatar_mode', 'false').lower() == 'true'
             
             # Handle file upload
             if 'image' in request.files:
@@ -310,6 +342,12 @@ def generate_image_to_video():
         
         if not image_url:
             return jsonify({'error': 'Image is required (provide image_url or upload a file)'}), 400
+
+        if aspect_ratio not in ALLOWED_ASPECT_RATIOS:
+            return jsonify({'error': 'Invalid aspect ratio'}), 400
+
+        if quality not in ALLOWED_QUALITIES:
+            return jsonify({'error': 'Invalid quality option'}), 400
         
         # Check tier
         tier = get_user_tier(user_id)
@@ -335,8 +373,14 @@ def generate_image_to_video():
                 'used_today': today_count,
             }), 429
         
-        # Deduct credit
-        success, credit, error = deduct_user_credits(user_id, 1)
+        # Deduct credits using feature-based pricing
+        credit_cost = calculate_video_credit_cost(
+            mode='text_to_video',
+            quality=quality,
+            duration_secs=5,
+            avatar=avatar_mode
+        )
+        success, credit, error = deduct_user_credits(user_id, credit_cost)
         if not success:
             return jsonify(error), 402
         
@@ -421,10 +465,11 @@ def generate_image_to_video():
                 'video_url': r2_url,
                 'credits_remaining': credit.balance,
                 'message': '🎬 Video generated from image!',
+            'credits_used': credit_cost,
             }), 200
             
         except Exception as api_error:
-            refund_user_credits(user_id, 1)
+            refund_user_credits(user_id, credit_cost)
             generation.status = 'failed'
             generation.error_message = str(api_error)
             generation.credits_refunded = True
@@ -436,7 +481,7 @@ def generate_image_to_video():
             return jsonify({
                 'error': f'Generation failed: {str(api_error)}',
                 'credits_refunded': True,
-                'credits_remaining': credit.balance + 1,
+                'credits_remaining': credit.balance + credit_cost,
             }), 500
             
     except Exception as e:

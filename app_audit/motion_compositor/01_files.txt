@@ -1,0 +1,27 @@
+===== FILE MATCHES =====
+src/front/js/component/SendToMotionButton.js
+src/front/js/component/VideoEditorMotion.js
+src/front/js/component/motionstudio/MotionCameraPanel.js
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js
+src/front/js/component/motionstudio/MotionKeyframePanel.js
+src/front/js/component/motionstudio/MotionLayerPanel.js
+src/front/js/component/motionstudio/MotionPathPanel.js
+src/front/js/component/motionstudio/MotionPresetBrowser.js
+src/front/js/component/motionstudio/MotionPreviewStage.js
+src/front/js/component/motionstudio/MotionPropertyInspector.js
+src/front/js/component/motionstudio/MotionTemplatePanel.js
+src/front/js/component/motionstudio/MotionTimelinePanel.js
+src/front/js/component/motionstudio/MotionToolbar.js
+src/front/js/component/motionstudio/useMotionStudioState.js
+src/front/js/component/nodecompositor/NodeGraphCanvas.js
+src/front/js/component/nodecompositor/useNodeCompositorState.js
+src/front/js/pages/MotionStudioPage.js
+src/front/js/pages/NodeCompositorPage.js
+src/front/js/pages/SPXCanvasPage.js
+src/front/js/pages/SPXVectorPage.js
+src/front/js/utils/motionHelpers.js
+src/front/styles/MotionStudio.css
+src/front/styles/NodeCompositor.css
+src/front/styles/SPXCanvas.css
+src/front/styles/SPXVector.css

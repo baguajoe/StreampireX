@@ -1,0 +1,194 @@
+===== HANDLERS =====
+src/front/js/component/motionstudio/MotionPathPanel.js:15:      <select value={selectedPathPreset} onChange={(e) => setSelectedPathPreset(e.target.value)}>
+src/front/js/component/motionstudio/MotionPathPanel.js:22:        <button onClick={applyPathPresetToSelected} disabled={!selectedLayer}>Apply Path</button>
+src/front/js/component/motionstudio/MotionPathPanel.js:23:        <button onClick={clearPathFromSelected} disabled={!selectedLayer}>Clear Path</button>
+src/front/js/component/motionstudio/MotionTimelinePanel.js:197:        <button onClick={() => setLoopRegion?.({ ...loopRegion, start: currentTime })}>
+src/front/js/component/motionstudio/MotionTimelinePanel.js:200:        <button onClick={() => setLoopRegion?.({ ...loopRegion, end: currentTime })}>
+src/front/js/component/motionstudio/MotionTimelinePanel.js:203:        <button onClick={() => setLoopRegion?.({ ...loopRegion, enabled: !loopRegion?.enabled })}>
+src/front/js/component/motionstudio/MotionTimelinePanel.js:206:        <button onClick={() => setTimelineZoom?.(Math.max(0.5, (timelineZoom || 1) - 0.25))}>
+src/front/js/component/motionstudio/MotionTimelinePanel.js:209:        <button onClick={() => setTimelineZoom?.(Math.min(3, (timelineZoom || 1) + 0.25))}>
+src/front/js/component/motionstudio/MotionTimelinePanel.js:221:      <div className="motion-timeline-scroll" ref={scrollRef} onMouseDown={onTimelineClick}>
+src/front/js/component/motionstudio/MotionTimelinePanel.js:261:                      onMouseDown={(e) => beginClipDrag(e, layer, "move")}
+src/front/js/component/motionstudio/MotionTimelinePanel.js:265:                        onMouseDown={(e) => beginClipDrag(e, layer, "resize-left")}
+src/front/js/component/motionstudio/MotionTimelinePanel.js:275:                        onMouseDown={(e) => beginClipDrag(e, layer, "resize-right")}
+src/front/js/component/motionstudio/MotionTimelinePanel.js:284:                          onMouseDown={(e) => e.stopPropagation()}
+src/front/js/component/motionstudio/MotionTimelinePanel.js:285:                          onClick={() => addKeyframeAtPlayhead(layer, prop)}
+src/front/js/component/motionstudio/MotionTimelinePanel.js:312:                                    onMouseDown={(e) =>
+src/front/js/component/motionstudio/MotionPropertyInspector.js:20:      <input value={selectedLayer.text || ""} onChange={(e) => set("text", e.target.value)} />
+src/front/js/component/motionstudio/MotionPropertyInspector.js:23:      <input value={selectedLayer.subtitle || ""} onChange={(e) => set("subtitle", e.target.value)} />
+src/front/js/component/motionstudio/MotionPropertyInspector.js:28:          <input type="number" value={selectedLayer.x} onChange={(e) => set("x", parseFloat(e.target.value || 0))} />
+src/front/js/component/motionstudio/MotionPropertyInspector.js:32:          <input type="number" value={selectedLayer.y} onChange={(e) => set("y", parseFloat(e.target.value || 0))} />
+src/front/js/component/motionstudio/MotionPropertyInspector.js:39:          <input type="number" step="0.1" value={selectedLayer.startTime} onChange={(e) => set("startTime", parseFloat(e.target.value || 0))} />
+src/front/js/component/motionstudio/MotionPropertyInspector.js:43:          <input type="number" step="0.1" value={selectedLayer.duration} onChange={(e) => set("duration", parseFloat(e.target.value || 0))} />
+src/front/js/component/motionstudio/MotionPropertyInspector.js:50:          <input type="number" value={selectedLayer.fontSize} onChange={(e) => set("fontSize", parseFloat(e.target.value || 16))} />
+src/front/js/component/motionstudio/MotionPropertyInspector.js:54:          <input type="number" value={selectedLayer.rotation || 0} onChange={(e) => set("rotation", parseFloat(e.target.value || 0))} />
+src/front/js/component/motionstudio/MotionPropertyInspector.js:61:          <input type="color" value={selectedLayer.color || "#ffffff"} onChange={(e) => set("color", e.target.value)} />
+src/front/js/component/motionstudio/MotionPropertyInspector.js:65:          <select value={selectedLayer.type || "text"} onChange={(e) => set("type", e.target.value)}>
+src/front/js/component/motionstudio/MotionPropertyInspector.js:73:      <input value={selectedLayer.animation || ""} onChange={(e) => set("animation", e.target.value)} />
+src/front/js/component/motionstudio/MotionPropertyInspector.js:76:        <label><input type="checkbox" checked={!!selectedLayer.shadow} onChange={(e) => set("shadow", e.target.checked)} /> Shadow</label>
+src/front/js/component/motionstudio/MotionPropertyInspector.js:77:        <label><input type="checkbox" checked={!!selectedLayer.outline} onChange={(e) => set("outline", e.target.checked)} /> Outline</label>
+src/front/js/component/motionstudio/MotionTemplatePanel.js:37:          <button key={t.id} className="motion-template-btn" onClick={() => applyTemplate(t)}>
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:165:          <select value={selectedProp} onChange={(e) => setSelectedProp(e.target.value)}>
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:194:                onClick={() => updateSegment({ easing: ease })}
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:214:                  onChange={(e) =>
+src/front/js/component/motionstudio/MotionPreviewStage.js:205:        onMouseDown={() => setSelectedLayerId(null)}
+src/front/js/component/motionstudio/MotionPreviewStage.js:219:              onMouseDown={(e) => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:246:                    onMouseDown={(e) => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:253:                    onMouseDown={(e) => {
+src/front/js/component/motionstudio/MotionPresetBrowser.js:36:            onClick={() => setSelectedTextPreset(preset.id)}
+src/front/js/component/motionstudio/MotionPresetBrowser.js:43:        <button onClick={applyTextPreset} disabled={!selectedLayer}>
+src/front/js/component/motionstudio/MotionPresetBrowser.js:54:            onClick={() => setSelectedLowerThirdTemplate(tpl.id)}
+src/front/js/component/motionstudio/MotionPresetBrowser.js:61:        <button onClick={applyLowerThirdTemplate} disabled={!selectedLayer}>
+src/front/js/component/motionstudio/MotionLayerPanel.js:17:            onClick={() => setSelectedLayerId(layer.id)}
+src/front/js/component/motionstudio/MotionLayerPanel.js:24:              onClick={(e) => {
+src/front/js/component/motionstudio/MotionKeyframePanel.js:18:            <button onClick={() => addKeyframeToSelected("opacity", 0)}>Opacity 0</button>
+src/front/js/component/motionstudio/MotionKeyframePanel.js:19:            <button onClick={() => addKeyframeToSelected("opacity", 1)}>Opacity 1</button>
+src/front/js/component/motionstudio/MotionKeyframePanel.js:20:            <button onClick={() => addKeyframeToSelected("scaleX", 1.2)}>Scale X</button>
+src/front/js/component/motionstudio/MotionKeyframePanel.js:21:            <button onClick={() => addKeyframeToSelected("scaleY", 1.2)}>Scale Y</button>
+src/front/js/component/motionstudio/MotionKeyframePanel.js:22:            <button onClick={() => addKeyframeToSelected("rotation", 15)}>Rotate</button>
+src/front/js/component/motionstudio/MotionCameraPanel.js:11:      <select value={cameraPreset} onChange={(e) => setCameraPreset(e.target.value)}>
+src/front/js/component/motionstudio/MotionToolbar.js:15:        <button onClick={addTextLayer}>+ Text</button>
+src/front/js/component/motionstudio/MotionToolbar.js:16:        <button onClick={addLowerThirdLayer}>+ Lower Third</button>
+src/front/js/component/motionstudio/MotionToolbar.js:20:        <button onClick={() => setIsPlaying(!isPlaying)}>
+src/front/js/component/motionstudio/MotionToolbar.js:29:          onChange={(e) => setCurrentTime(parseFloat(e.target.value))}
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:107:          <select value={selectedProp} onChange={(e) => setSelectedProp(e.target.value)}>
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:114:            <button onClick={addAtPlayhead}>+ Add at Playhead</button>
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:120:            onChange={(e) => setSelectedIndex(parseInt(e.target.value, 10))}
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:139:                    onChange={(e) => updateSelected({ time: parseFloat(e.target.value || 0) })}
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:148:                    onChange={(e) => updateSelected({ value: parseFloat(e.target.value || 0) })}
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:156:                onChange={(e) => updateSelected({ easing: e.target.value })}
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:174:                    onChange={(e) =>
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:185:                <button onClick={deleteSelected}>Delete Keyframe</button>
+src/front/js/component/nodecompositor/AIAutoEditToolPanel.js:15:          <select value={style} onChange={(e) => setStyle(e.target.value)}>
+src/front/js/component/nodecompositor/AIAutoEditToolPanel.js:31:            onChange={(e) => setAggressiveness(parseFloat(e.target.value))}
+src/front/js/component/nodecompositor/AIAutoEditToolPanel.js:37:          <input type="checkbox" checked={captions} onChange={(e) => setCaptions(e.target.checked)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:13:function NumberField({ label, value, onChange, step = 1 }) {
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:16:      <input type="number" step={step} value={value} onChange={(e) => onChange(parseFloat(e.target.value || 0))} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:21:function TextField({ label, value, onChange }) {
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:24:      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:29:function ColorField({ label, value, onChange }) {
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:32:      <input type="color" value={value} onChange={(e) => onChange(e.target.value)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:37:function CheckboxField({ label, checked, onChange }) {
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:40:      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:45:function renderNodeSpecificFields(node, onChange) {
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:51:        <TextField label="Media URL" value={p.mediaUrl || ""} onChange={(v) => onChange("mediaUrl", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:52:        <NumberField label="Width" value={p.width || 640} onChange={(v) => onChange("width", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:53:        <NumberField label="Height" value={p.height || 360} onChange={(v) => onChange("height", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:54:        <NumberField label="Opacity" value={p.opacity ?? 1} step={0.1} onChange={(v) => onChange("opacity", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:62:        <TextField label="Text" value={p.text || ""} onChange={(v) => onChange("text", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:64:          <NumberField label="X %" value={p.x ?? 50} onChange={(v) => onChange("x", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:65:          <NumberField label="Y %" value={p.y ?? 50} onChange={(v) => onChange("y", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:68:          <NumberField label="Font Size" value={p.fontSize || 42} onChange={(v) => onChange("fontSize", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:69:          <NumberField label="Weight" value={p.fontWeight || 800} onChange={(v) => onChange("fontWeight", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:71:        <ColorField label="Color" value={p.color || "#ffffff"} onChange={(v) => onChange("color", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:72:        <NumberField label="Opacity" value={p.opacity ?? 1} step={0.1} onChange={(v) => onChange("opacity", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:81:          <NumberField label="Translate X" value={p.x || 0} onChange={(v) => onChange("x", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:82:          <NumberField label="Translate Y" value={p.y || 0} onChange={(v) => onChange("y", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:85:          <NumberField label="Scale" value={p.scale ?? 1} step={0.1} onChange={(v) => onChange("scale", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:86:          <NumberField label="Rotation" value={p.rotation || 0} onChange={(v) => onChange("rotation", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:88:        <NumberField label="Opacity" value={p.opacity ?? 1} step={0.1} onChange={(v) => onChange("opacity", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:97:          <select value={p.preset || "orbit"} onChange={(e) => onChange("preset", e.target.value)}>
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:104:          <NumberField label="Amplitude X" value={p.amplitudeX ?? 120} onChange={(v) => onChange("amplitudeX", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:105:          <NumberField label="Amplitude Y" value={p.amplitudeY ?? 80} onChange={(v) => onChange("amplitudeY", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:108:          <NumberField label="Speed" value={p.speed ?? 1} step={0.1} onChange={(v) => onChange("speed", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:109:          <NumberField label="Phase" value={p.phase ?? 0} step={0.1} onChange={(v) => onChange("phase", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:111:        <CheckboxField label="Rotate Along Path" checked={!!p.rotateAlongPath} onChange={(v) => onChange("rotateAlongPath", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:112:        <NumberField label="Opacity" value={p.opacity ?? 1} step={0.1} onChange={(v) => onChange("opacity", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:121:          <NumberField label="Pan X" value={p.x || 0} onChange={(v) => onChange("x", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:122:          <NumberField label="Pan Y" value={p.y || 0} onChange={(v) => onChange("y", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:125:          <NumberField label="Zoom" value={p.zoom ?? 1} step={0.1} onChange={(v) => onChange("zoom", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:126:          <NumberField label="Rotation" value={p.rotation || 0} onChange={(v) => onChange("rotation", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:136:          <NumberField label="Brightness" value={p.brightness ?? 100} onChange={(v) => onChange("brightness", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:137:          <NumberField label="Contrast" value={p.contrast ?? 100} onChange={(v) => onChange("contrast", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:140:          <NumberField label="Saturate" value={p.saturate ?? 100} onChange={(v) => onChange("saturate", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:141:          <NumberField label="Hue Rotate" value={p.hueRotate ?? 0} onChange={(v) => onChange("hueRotate", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:143:        <NumberField label="Blur" value={p.blur ?? 0} step={0.5} onChange={(v) => onChange("blur", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:144:        <NumberField label="Opacity" value={p.opacity ?? 1} step={0.1} onChange={(v) => onChange("opacity", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:152:        <NumberField label="Blur Amount" value={p.amount ?? 8} step={0.5} onChange={(v) => onChange("amount", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:153:        <NumberField label="Opacity" value={p.opacity ?? 1} step={0.1} onChange={(v) => onChange("opacity", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:162:          <select value={p.shape || "rectangle"} onChange={(e) => onChange("shape", e.target.value)}>
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:169:          <NumberField label="Center X %" value={p.x ?? 50} onChange={(v) => onChange("x", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:170:          <NumberField label="Center Y %" value={p.y ?? 50} onChange={(v) => onChange("y", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:173:          <NumberField label="Width %" value={p.width ?? 40} onChange={(v) => onChange("width", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:174:          <NumberField label="Height %" value={p.height ?? 40} onChange={(v) => onChange("height", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:176:        <NumberField label="Feather" value={p.feather ?? 0} step={0.5} onChange={(v) => onChange("feather", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:177:        <CheckboxField label="Invert" checked={!!p.invert} onChange={(v) => onChange("invert", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:186:          <select value={p.blendMode || "normal"} onChange={(e) => onChange("blendMode", e.target.value)}>
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:192:        <NumberField label="Opacity" value={p.opacity ?? 1} step={0.1} onChange={(v) => onChange("opacity", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:236:        <select value={prop} onChange={(e) => setProp(e.target.value)}>
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:245:        <select value={easing} onChange={(e) => setEasing(e.target.value)}>
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:253:      <button className="nc-key-btn" onClick={addCurrent}>
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:263:            <button onClick={() => removeKeyframeFromSelectedNode(kf.id)}>✕</button>
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:289:        <button className="nc-danger-btn" onClick={() => removeEdge(selectedEdge.id)}>
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:305:  const onChange = (key, value) => {
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:316:      <TextField label="Node Name" value={selectedNode.properties.name || ""} onChange={(v) => onChange("name", v)} />
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:317:      {renderNodeSpecificFields(selectedNode, onChange)}
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:326:      <button className="nc-danger-btn" onClick={() => removeNode(selectedNode.id)}>
+src/front/js/component/nodecompositor/VideoExportPanel.js:8:  const handleExport = () => {
+src/front/js/component/nodecompositor/VideoExportPanel.js:19:        <select value={format} onChange={(e) => setFormat(e.target.value)}>
+src/front/js/component/nodecompositor/VideoExportPanel.js:29:        <select value={resolution} onChange={(e) => setResolution(e.target.value)}>
+src/front/js/component/nodecompositor/VideoExportPanel.js:39:        <input type="number" min="12" max="120" value={fps} onChange={(e) => setFps(parseInt(e.target.value || 30, 10))} />
+src/front/js/component/nodecompositor/VideoExportPanel.js:48:      <button className="nc-primary-btn" onClick={handleExport}>Render Export</button>
+src/front/js/component/nodecompositor/NodeLibraryPanel.js:13:            onClick={() => addNode(node.type)}
+src/front/js/component/nodecompositor/BeatSyncToolPanel.js:15:          <input type="number" value={bpm} onChange={(e) => setBpm(parseInt(e.target.value || 120, 10))} />
+src/front/js/component/nodecompositor/BeatSyncToolPanel.js:20:          <select value={mode} onChange={(e) => setMode(e.target.value)}>
+src/front/js/component/nodecompositor/BeatSyncToolPanel.js:36:            onChange={(e) => setSensitivity(parseFloat(e.target.value))}
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:29:  onDrag,
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:33:  const handleMouseDown = (e) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:45:      onDrag(node.id, startNodeX + dx, startNodeY + dy);
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:65:      onMouseDown={handleMouseDown}
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:79:                  onMouseDown={(e) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:96:                  onMouseDown={(e) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:139:            onMouseDown={(e) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:175:  const handleCanvasMouseMove = (e) => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:193:  const handleCanvasMouseDown = () => {
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:203:      onMouseDown={handleCanvasMouseDown}
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:204:      onMouseMove={handleCanvasMouseMove}
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:228:            onDrag={updateNodePosition}
+src/front/js/component/nodecompositor/VideoExportToolPanel.js:20:          <select value={format} onChange={(e) => setFormat(e.target.value)}>
+src/front/js/component/nodecompositor/VideoExportToolPanel.js:30:          <select value={resolution} onChange={(e) => setResolution(e.target.value)}>
+src/front/js/component/nodecompositor/VideoExportToolPanel.js:40:          <select value={fps} onChange={(e) => setFps(parseInt(e.target.value, 10))}>
+src/front/js/component/nodecompositor/NodePreviewPanel.js:172:  const handleExportFrame = () => {
+src/front/js/component/nodecompositor/NodePreviewPanel.js:186:          onClick={handleExportFrame}
+src/front/js/component/nodecompositor/BeatSyncPanel.js:8:  const handleAnalyze = () => {
+src/front/js/component/nodecompositor/BeatSyncPanel.js:19:        <input type="number" min="40" max="240" value={bpm} onChange={(e) => setBpm(parseInt(e.target.value || 120, 10))} />
+src/front/js/component/nodecompositor/BeatSyncPanel.js:24:        <input type="number" min="-2000" max="2000" value={offsetMs} onChange={(e) => setOffsetMs(parseInt(e.target.value || 0, 10))} />
+src/front/js/component/nodecompositor/BeatSyncPanel.js:29:        <input type="range" min="0" max="1" step="0.05" value={snapStrength} onChange={(e) => setSnapStrength(parseFloat(e.target.value))} />
+src/front/js/component/nodecompositor/BeatSyncPanel.js:38:      <button className="nc-primary-btn" onClick={handleAnalyze}>Analyze / Apply Beat Sync</button>
+src/front/js/component/nodecompositor/AIAutoEditPanel.js:9:  const handleGenerate = () => {
+src/front/js/component/nodecompositor/AIAutoEditPanel.js:20:        <select value={mode} onChange={(e) => setMode(e.target.value)}>
+src/front/js/component/nodecompositor/AIAutoEditPanel.js:30:        <input type="range" min="0" max="1" step="0.05" value={aggressiveness} onChange={(e) => setAggressiveness(parseFloat(e.target.value))} />
+src/front/js/component/nodecompositor/AIAutoEditPanel.js:35:        <input type="checkbox" checked={addTransitions} onChange={(e) => setAddTransitions(e.target.checked)} />
+src/front/js/component/nodecompositor/AIAutoEditPanel.js:40:        <input type="checkbox" checked={cutSilence} onChange={(e) => setCutSilence(e.target.checked)} />
+src/front/js/component/nodecompositor/AIAutoEditPanel.js:49:      <button className="nc-primary-btn" onClick={handleGenerate}>Generate AI Edit Plan</button>
+src/front/js/component/nodecompositor/KeyboardShortcuts.js:11:        const handleKeyDown = (e) => {
+src/front/js/component/nodecompositor/KeyboardShortcuts.js:52:        window.addEventListener("keydown", handleKeyDown);
+src/front/js/component/nodecompositor/KeyboardShortcuts.js:53:        return () => window.removeEventListener("keydown", handleKeyDown);
+src/front/js/component/nodecompositor/NodeTimelinePanel.js:10:  const handleScrub = (e) => {
+src/front/js/component/nodecompositor/NodeTimelinePanel.js:17:        <button onClick={() => setIsPlaying(!isPlaying)}>
+src/front/js/component/nodecompositor/NodeTimelinePanel.js:21:        <button onClick={() => setCurrentTime(0)}>
+src/front/js/component/nodecompositor/NodeTimelinePanel.js:36:        onChange={handleScrub}
+src/front/js/pages/NodeCompositorPage.js:225:            onChange={(e) => setProjectName(e.target.value)}
+src/front/js/pages/NodeCompositorPage.js:230:          <button onClick={seedStarterGraph}>Starter Graph</button>
+src/front/js/pages/NodeCompositorPage.js:231:          <button onClick={() => addNode("mediaIn", 120, 120)}>+ Media</button>
+src/front/js/pages/NodeCompositorPage.js:232:          <button onClick={() => addNode("text", 120, 240)}>+ Text</button>
+src/front/js/pages/NodeCompositorPage.js:233:          <button onClick={() => addNode("merge", 360, 180)}>+ Merge</button>
+src/front/js/pages/NodeCompositorPage.js:234:          <button onClick={() => addNode("output", 640, 180)}>+ Output</button>
+src/front/js/pages/NodeCompositorPage.js:235:          <button onClick={duplicateSelectedNode} disabled={!selectedNode}>Duplicate</button>
+src/front/js/pages/NodeCompositorPage.js:236:          <button onClick={removeSelectedNode} disabled={!selectedNode}>Delete</button>
+src/front/js/pages/NodeCompositorPage.js:245:          <button className="nc-btn-primary" onClick={importMotionMedia}>Add to Graph</button>
+src/front/js/pages/NodeCompositorPage.js:250:        <button className={toolTab === "graph" ? "active" : ""} onClick={() => setToolTab("graph")}>Graph</button>
+src/front/js/pages/NodeCompositorPage.js:251:        <button className={toolTab === "export" ? "active" : ""} onClick={() => setToolTab("export")}>Video Export</button>
+src/front/js/pages/NodeCompositorPage.js:252:        <button className={toolTab === "beat" ? "active" : ""} onClick={() => setToolTab("beat")}>Beat Sync</button>
+src/front/js/pages/NodeCompositorPage.js:253:        <button className={toolTab === "auto" ? "active" : ""} onClick={() => setToolTab("auto")}>AI Auto Edit</button>
+src/front/js/pages/NodeCompositorPage.js:263:                <button onClick={() => addNode("mediaIn", 120, 120)}>Media</button>
+src/front/js/pages/NodeCompositorPage.js:264:                <button onClick={() => addNode("text", 120, 240)}>Text</button>
+src/front/js/pages/NodeCompositorPage.js:265:                <button onClick={() => addNode("merge", 360, 180)}>Merge</button>
+src/front/js/pages/NodeCompositorPage.js:266:                <button onClick={() => addNode("output", 640, 180)}>Output</button>
+src/front/js/pages/NodeCompositorPage.js:275:                    onClick={() => setSelectedNodeId(node.id)}
+src/front/js/pages/NodeCompositorPage.js:312:                    onChange={(e) => updateSelectedNode({ name: e.target.value })}
+src/front/js/pages/NodeCompositorPage.js:323:                        onChange={(e) => updateSelectedNode({ text: e.target.value })}
+src/front/js/pages/NodeCompositorPage.js:332:                        onChange={(e) => updateSelectedNode({ color: e.target.value })}
+src/front/js/pages/NodeCompositorPage.js:341:                        onChange={(e) => updateSelectedNode({ fontSize: parseInt(e.target.value || 42, 10) })}
+src/front/js/pages/NodeCompositorPage.js:352:                      onChange={(e) => updateSelectedNode({ mediaUrl: e.target.value })}
+src/front/js/pages/NodeCompositorPage.js:366:                      onChange={(e) => updateSelectedNode({ opacity: parseFloat(e.target.value) })}

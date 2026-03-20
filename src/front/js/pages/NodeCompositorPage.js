@@ -6,6 +6,12 @@ import NodeTimelinePanel from "../component/nodecompositor/NodeTimelinePanel";
 import VideoExportToolPanel from "../component/nodecompositor/VideoExportToolPanel";
 import BeatSyncToolPanel from "../component/nodecompositor/BeatSyncToolPanel";
 import AIAutoEditToolPanel from "../component/nodecompositor/AIAutoEditToolPanel";
+import useCompositorVFXState from "../component/nodecompositor/useCompositorVFXState";
+import VFXToolPanel from "../component/nodecompositor/VFXToolPanel";
+import TrackingToolPanel from "../component/nodecompositor/TrackingToolPanel";
+import Camera25DPanel from "../component/nodecompositor/Camera25DPanel";
+import RotoMaskPanel from "../component/nodecompositor/RotoMaskPanel";
+import NodeVFXPreviewPanel from "../component/nodecompositor/NodeVFXPreviewPanel";
 import "../../styles/NodeCompositor.css";
 
 const makeNodeId = (type) => `${type}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -37,6 +43,7 @@ export default function NodeCompositorPage() {
   const [duration, setDuration] = useState(10);
   const [isPlaying, setIsPlaying] = useState(false);
   const [toolTab, setToolTab] = useState("graph");
+  const compositorVFX = useCompositorVFXState();
 
   const selectedNode = useMemo(
     () => nodes.find((n) => n.id === selectedNodeId) || null,
@@ -149,9 +156,6 @@ export default function NodeCompositorPage() {
           name: motionPayload.name || "Motion Import",
           label: motionPayload.type === "video" ? "Video In" : "Audio/Media In",
           mediaUrl: motionPayload.url,
-          background: motionPayload.type === "video"
-            ? "linear-gradient(135deg,#1f2937,#111827)"
-            : "linear-gradient(135deg,#7c3aed,#1d4ed8)"
         }
       }
     ]);
@@ -210,178 +214,105 @@ export default function NodeCompositorPage() {
       { id: `e_${textId}_${mergeId}`, from: textId, to: mergeId, input: "foreground" },
       { id: `e_${mergeId}_${outId}`, from: mergeId, to: outId, input: "image" }
     ]);
-
-    setSelectedNodeId(mergeId);
   }, []);
 
   return (
-    <div className="nc-app-shell">
-      <div className="nc-topbar">
-        <div className="nc-topbar-left">
-          <div className="nc-brand">🎛️ SPX Compositor</div>
-          <input
-            className="nc-project-name"
-            value={projectName}
-            onChange={(e) => setProjectName(e.target.value)}
-          />
-        </div>
-
-        <div className="nc-topbar-actions">
-          <button onClick={seedStarterGraph}>Starter Graph</button>
-          <button onClick={() => addNode("mediaIn", 120, 120)}>+ Media</button>
-          <button onClick={() => addNode("text", 120, 240)}>+ Text</button>
-          <button onClick={() => addNode("merge", 360, 180)}>+ Merge</button>
-          <button onClick={() => addNode("output", 640, 180)}>+ Output</button>
-          <button onClick={duplicateSelectedNode} disabled={!selectedNode}>Duplicate</button>
-          <button onClick={removeSelectedNode} disabled={!selectedNode}>Delete</button>
-        </div>
+    <div className="node-compositor-page" style={{ padding: 16 }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
+        <input
+          value={projectName}
+          onChange={(e) => setProjectName(e.target.value)}
+          style={{ minWidth: 220 }}
+        />
+        <button onClick={seedStarterGraph}>Starter Graph</button>
+        <button onClick={() => addNode("mediaIn", 120, 120)}>+ Media</button>
+        <button onClick={() => addNode("text", 120, 240)}>+ Text</button>
+        <button onClick={() => addNode("merge", 360, 180)}>+ Merge</button>
+        <button onClick={() => addNode("output", 640, 180)}>+ Output</button>
+        <button onClick={duplicateSelectedNode} disabled={!selectedNode}>Duplicate</button>
+        <button onClick={removeSelectedNode} disabled={!selectedNode}>Delete</button>
+        <button onClick={importMotionMedia} disabled={!motionPayload?.url}>Add Motion Media</button>
       </div>
 
-      {motionPayload?.url && (
-        <div className="nc-import-banner">
-          <div>
-            Ready to import from Motion: <strong>{motionPayload.name || "Untitled Media"}</strong>
-          </div>
-          <button className="nc-btn-primary" onClick={importMotionMedia}>Add to Graph</button>
-        </div>
-      )}
-
-      <div className="nc-tool-tabs">
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         <button className={toolTab === "graph" ? "active" : ""} onClick={() => setToolTab("graph")}>Graph</button>
         <button className={toolTab === "export" ? "active" : ""} onClick={() => setToolTab("export")}>Video Export</button>
         <button className={toolTab === "beat" ? "active" : ""} onClick={() => setToolTab("beat")}>Beat Sync</button>
         <button className={toolTab === "auto" ? "active" : ""} onClick={() => setToolTab("auto")}>AI Auto Edit</button>
+        <button className={toolTab === "vfx" ? "active" : ""} onClick={() => setToolTab("vfx")}>VFX</button>
       </div>
 
-      <div className="nc-main-grid">
-        <div className="nc-graph-column">
-          {toolTab === "graph" ? (
-            <div className="nc-graph-panel">
-              <div className="nc-panel-title">Node Graph</div>
-
-              <div className="nc-node-toolbar">
-                <button onClick={() => addNode("mediaIn", 120, 120)}>Media</button>
-                <button onClick={() => addNode("text", 120, 240)}>Text</button>
-                <button onClick={() => addNode("merge", 360, 180)}>Merge</button>
-                <button onClick={() => addNode("output", 640, 180)}>Output</button>
-              </div>
-
-              <div className="nc-graph-canvas">
-                {nodes.map((node) => (
-                  <button
-                    key={node.id}
-                    className={`nc-node-card ${selectedNodeId === node.id ? "selected" : ""}`}
-                    style={{ left: node.x || 0, top: node.y || 0 }}
-                    onClick={() => setSelectedNodeId(node.id)}
-                    type="button"
-                  >
-                    <div className="nc-node-type">{node.type}</div>
-                    <div className="nc-node-name">{node.properties?.name || node.type}</div>
-                  </button>
-                ))}
-
-                {!nodes.length && (
-                  <div className="nc-empty-graph">
-                    <div className="nc-empty-title">No nodes yet</div>
-                    <div className="nc-empty-subtitle">Create a starter graph or add nodes above.</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : toolTab === "export" ? (
-            <VideoExportToolPanel projectName={projectName} currentTime={currentTime} duration={duration} />
-          ) : toolTab === "beat" ? (
-            <BeatSyncToolPanel />
-          ) : (
-            <AIAutoEditToolPanel />
-          )}
-        </div>
-
-        <div className="nc-side-column">
-          <NodePreviewPanel nodes={nodes} edges={edges} currentTime={currentTime} />
-
-          <div className="nc-panel nc-inspector-wrap">
-            <div className="nc-panel-title">Inspector</div>
-
-            {selectedNode ? (
-              <>
-                <label className="nc-tool-field">
-                  <span>Name</span>
-                  <input
-                    value={selectedNode.properties?.name || ""}
-                    onChange={(e) => updateSelectedNode({ name: e.target.value })}
-                  />
-                </label>
-
-                {selectedNode.type === "text" && (
-                  <>
-                    <label className="nc-tool-field">
-                      <span>Text</span>
-                      <textarea
-                        rows={4}
-                        value={selectedNode.properties?.text || ""}
-                        onChange={(e) => updateSelectedNode({ text: e.target.value })}
-                      />
-                    </label>
-
-                    <label className="nc-tool-field">
-                      <span>Color</span>
-                      <input
-                        type="color"
-                        value={selectedNode.properties?.color || "#ffffff"}
-                        onChange={(e) => updateSelectedNode({ color: e.target.value })}
-                      />
-                    </label>
-
-                    <label className="nc-tool-field">
-                      <span>Font Size</span>
-                      <input
-                        type="number"
-                        value={selectedNode.properties?.fontSize || 42}
-                        onChange={(e) => updateSelectedNode({ fontSize: parseInt(e.target.value || 42, 10) })}
-                      />
-                    </label>
-                  </>
-                )}
-
-                {selectedNode.type === "mediaIn" && (
-                  <label className="nc-tool-field">
-                    <span>Media URL</span>
-                    <input
-                      value={selectedNode.properties?.mediaUrl || ""}
-                      onChange={(e) => updateSelectedNode({ mediaUrl: e.target.value })}
-                    />
-                  </label>
-                )}
-
-                {selectedNode.type === "merge" && (
-                  <label className="nc-tool-field">
-                    <span>Opacity</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      value={selectedNode.properties?.opacity ?? 1}
-                      onChange={(e) => updateSelectedNode({ opacity: parseFloat(e.target.value) })}
-                    />
-                  </label>
-                )}
-              </>
-            ) : (
-              <div className="nc-tool-note">Select a node to edit its properties.</div>
-            )}
+      {toolTab === "graph" && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 16 }}>
+          <NodePreviewPanel
+            nodes={nodes}
+            edges={edges}
+            currentTime={currentTime}
+            duration={duration}
+            isPlaying={isPlaying}
+            projectName={projectName}
+          />
+          <div style={{ display: "grid", gap: 16 }}>
+            <NodeInspectorPanel
+              selectedNode={selectedNode}
+              onChange={updateSelectedNode}
+            />
+            <NodeTimelinePanel
+              currentTime={currentTime}
+              setCurrentTime={setCurrentTime}
+              isPlaying={isPlaying}
+              setIsPlaying={setIsPlaying}
+              duration={duration}
+              setDuration={setDuration}
+            />
           </div>
         </div>
-      </div>
+      )}
 
-      <NodeTimelinePanel
-        currentTime={currentTime}
-        duration={duration}
-        isPlaying={isPlaying}
-        setCurrentTime={setCurrentTime}
-        setIsPlaying={setIsPlaying}
-      />
+      {toolTab === "export" && (
+        <VideoExportToolPanel
+          projectName={projectName}
+          nodes={nodes}
+          edges={edges}
+          duration={duration}
+        />
+      )}
+
+      {toolTab === "beat" && <BeatSyncToolPanel />}
+
+      {toolTab === "auto" && <AIAutoEditToolPanel />}
+
+      {toolTab === "vfx" && (
+        <div style={{ display: "grid", gap: 16 }}>
+          <VFXToolPanel
+            vfxEnabled={compositorVFX.vfxEnabled}
+            setVfxEnabled={compositorVFX.setVfxEnabled}
+            shaderQuality={compositorVFX.shaderQuality}
+            setShaderQuality={compositorVFX.setShaderQuality}
+            globalEffects={compositorVFX.globalEffects}
+            setGlobalEffects={compositorVFX.setGlobalEffects}
+          />
+          <TrackingToolPanel
+            tracking={compositorVFX.tracking}
+            setTracking={compositorVFX.setTracking}
+          />
+          <Camera25DPanel
+            camera25D={compositorVFX.camera25D}
+            setCamera25D={compositorVFX.setCamera25D}
+          />
+          <RotoMaskPanel
+            rotoMasks={compositorVFX.rotoMasks}
+            setRotoMasks={compositorVFX.setRotoMasks}
+          />
+          <NodeVFXPreviewPanel
+            nodes={nodes}
+            edges={edges}
+            globalEffects={compositorVFX.globalEffects}
+            keyColorVec3={compositorVFX.keyColorVec3}
+            vfxEnabled={compositorVFX.vfxEnabled}
+          />
+        </div>
+      )}
     </div>
   );
 }

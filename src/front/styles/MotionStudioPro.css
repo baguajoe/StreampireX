@@ -1,0 +1,29 @@
+.motion-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr 300px;
+  height: 100%;
+}
+
+.motion-left {
+  background:#0f141c;
+  border-right:1px solid #1f2a38;
+}
+
+.motion-center {
+  background:#0a0f15;
+}
+
+.motion-right {
+  background:#0f141c;
+  border-left:1px solid #1f2a38;
+}
+
+.motion-panel {
+  padding:12px;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+
+.motion-panel-title {
+  font-weight:700;
+  margin-bottom:8px;
+}

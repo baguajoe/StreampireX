@@ -1,37 +1,66 @@
-import React from "react";
+import React, { useRef } from "react";
 import "../../styles/MotionStudio.css";
 
 import MotionToolbar from "../component/motionstudio/MotionToolbar";
 import MotionLayerPanel from "../component/motionstudio/MotionLayerPanel";
-import MotionPresetBrowser from "../component/motionstudio/MotionPresetBrowser";
 import MotionPropertyInspector from "../component/motionstudio/MotionPropertyInspector";
 import MotionKeyframePanel from "../component/motionstudio/MotionKeyframePanel";
 import MotionPathPanel from "../component/motionstudio/MotionPathPanel";
-import MotionCameraPanel from "../component/motionstudio/MotionCameraPanel";
-import MotionTemplatePanel from "../component/motionstudio/MotionTemplatePanel";
-import MotionPreviewStage from "../component/motionstudio/MotionPreviewStage";
-import MotionTimelinePanel from "../component/motionstudio/MotionTimelinePanel";
 import MotionKeyframeEditorPanel from "../component/motionstudio/MotionKeyframeEditorPanel";
-import MotionGraphEditorPanel from "../component/motionstudio/MotionGraphEditorPanel";
+import MotionTimelinePanel from "../component/motionstudio/MotionTimelinePanel";
+
 import useMotionStudioState from "../component/motionstudio/useMotionStudioState";
+import useMotionEngine from "../component/motionstudio/engine/useMotionEngine";
+import useMotionPlayback from "../component/motionstudio/engine/useMotionPlayback";
+import useMotionCamera from "../component/motionstudio/engine/useMotionCamera";
+import useMotionExport from "../component/motionstudio/engine/useMotionExport";
+
+import MotionPreviewStageV2 from "../component/motionstudio/MotionPreviewStageV2";
+import MotionGraphEditorV2 from "../component/motionstudio/MotionGraphEditorV2";
+import MotionCameraPanelV2 from "../component/motionstudio/MotionCameraPanelV2";
+import MotionMaskEffectsPanel from "../component/motionstudio/MotionMaskEffectsPanel";
+import MotionPresetManagerPanel from "../component/motionstudio/MotionPresetManagerPanel";
+import MotionExportPanel from "../component/motionstudio/MotionExportPanel";
+import MotionEngineDebugPanel from "../component/motionstudio/MotionEngineDebugPanel";
 
 export default function MotionStudioPage() {
   const state = useMotionStudioState();
+  const motionEngine = useMotionEngine();
+  const motionCamera = useMotionCamera();
+  const previewStageRef = useRef(null);
+
+  const motionExport = useMotionExport({
+    layers: motionEngine.layers,
+    camera: motionCamera.camera,
+    canvasRef: {
+      get current() {
+        return previewStageRef.current?.getCanvas?.() || null;
+      }
+    }
+  });
+
+  useMotionPlayback({
+    isPlaying: motionEngine.isPlaying,
+    currentTime: motionEngine.currentTime,
+    setCurrentTime: motionEngine.setCurrentTime,
+    duration: motionEngine.duration,
+    loopRegion: motionEngine.loopRegion,
+  });
 
   return (
     <div className="motion-studio-page">
       <MotionToolbar
-        addTextLayer={state.addTextLayer}
-        addLowerThirdLayer={state.addLowerThirdLayer}
-        isPlaying={state.isPlaying}
-        setIsPlaying={state.setIsPlaying}
-        currentTime={state.currentTime}
-        setCurrentTime={state.setCurrentTime}
-        duration={state.duration}
+        addTextLayer={motionEngine.addTextLayer}
+        addLowerThirdLayer={motionEngine.addLowerThirdLayer}
+        isPlaying={motionEngine.isPlaying}
+        setIsPlaying={motionEngine.setIsPlaying}
+        currentTime={motionEngine.currentTime}
+        setCurrentTime={motionEngine.setCurrentTime}
+        duration={motionEngine.duration}
       />
 
-      <div className="motion-studio-layout">
-        <div className="motion-left">
+      <div className="motion-studio-layout" style={{ display: "grid", gridTemplateColumns: "280px 1fr 340px", gap: 16 }}>
+        <div className="motion-left" style={{ display: "grid", gap: 16 }}>
           <MotionLayerPanel
             layers={state.layers}
             selectedLayerId={state.selectedLayerId}
@@ -39,31 +68,21 @@ export default function MotionStudioPage() {
             removeLayer={state.removeLayer}
           />
 
-          <MotionPresetBrowser
-            textPresets={state.textPresets}
-            lowerThirdTemplates={state.lowerThirdTemplates}
-            selectedTextPreset={state.selectedTextPreset}
-            setSelectedTextPreset={state.setSelectedTextPreset}
-            selectedLowerThirdTemplate={state.selectedLowerThirdTemplate}
-            setSelectedLowerThirdTemplate={state.setSelectedLowerThirdTemplate}
-            selectedLayer={state.selectedLayer}
-            updateLayer={state.updateLayer}
+          <MotionPresetManagerPanel
+            selectedLayer={motionEngine.selectedLayer}
+            updateLayer={motionEngine.updateLayer}
+            setLayers={motionEngine.setLayers}
           />
-
-          <MotionTemplatePanel setLayers={state.setLayers} />
         </div>
 
-        <div className="motion-center">
-          <MotionPreviewStage
-            layers={state.layers}
-            currentTime={state.currentTime}
-            isPlaying={state.isPlaying}
-            setCurrentTime={state.setCurrentTime}
-            duration={state.duration}
-            pathAnimations={state.pathAnimations}
-            selectedLayerId={state.selectedLayerId}
-            setSelectedLayerId={state.setSelectedLayerId}
-            updateLayer={state.updateLayer}
+        <div className="motion-center" style={{ display: "grid", gap: 16 }}>
+          <MotionPreviewStageV2
+            ref={previewStageRef}
+            layers={motionEngine.evaluatedLayers}
+            width={960}
+            height={540}
+            showTitleSafe={true}
+            camera={motionCamera.camera}
           />
 
           <MotionTimelinePanel
@@ -82,9 +101,14 @@ export default function MotionStudioPage() {
             timelineZoom={state.timelineZoom}
             setTimelineZoom={state.setTimelineZoom}
           />
+
+          <MotionGraphEditorV2
+            selectedLayer={motionEngine.selectedLayer}
+            updateLayer={motionEngine.updateLayer}
+          />
         </div>
 
-        <div className="motion-right">
+        <div className="motion-right" style={{ display: "grid", gap: 16 }}>
           <MotionPropertyInspector
             selectedLayer={state.selectedLayer}
             updateLayer={state.updateLayer}
@@ -107,12 +131,6 @@ export default function MotionStudioPage() {
             selectedLayer={state.selectedLayer}
           />
 
-          <MotionCameraPanel
-            cameraPresets={state.cameraPresets}
-            cameraPreset={state.cameraPreset}
-            setCameraPreset={state.setCameraPreset}
-          />
-
           <MotionKeyframeEditorPanel
             selectedLayer={state.selectedLayer}
             currentTime={state.currentTime}
@@ -121,12 +139,27 @@ export default function MotionStudioPage() {
             setSelectedKeyframeRef={state.setSelectedKeyframeRef}
           />
 
-          <MotionGraphEditorPanel
-            selectedLayer={state.selectedLayer}
-            currentTime={state.currentTime}
-            updateLayer={state.updateLayer}
-            selectedKeyframeRef={state.selectedKeyframeRef}
-            setSelectedKeyframeRef={state.setSelectedKeyframeRef}
+          <MotionCameraPanelV2
+            camera={motionCamera.camera}
+            updateCamera={motionCamera.updateCamera}
+            resetCamera={motionCamera.resetCamera}
+          />
+
+          <MotionMaskEffectsPanel
+            selectedLayer={motionEngine.selectedLayer}
+            updateLayer={motionEngine.updateLayer}
+          />
+
+          <MotionExportPanel
+            settings={motionExport.settings}
+            setSettings={motionExport.setSettings}
+            exportFrame={motionExport.exportFrame}
+            exportProject={motionExport.exportProject}
+          />
+
+          <MotionEngineDebugPanel
+            evaluatedLayers={motionEngine.evaluatedLayers}
+            currentTime={motionEngine.currentTime}
           />
         </div>
       </div>

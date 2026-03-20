@@ -1,0 +1,6 @@
+===== 13. SUMMARY COUNTS =====
+Pages: 200
+Components: 236
+API files: 111
+Frontend routes in layout: 158
+Backend route decorators: 1016

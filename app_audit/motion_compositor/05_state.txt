@@ -1,0 +1,129 @@
+===== STATE / HOOKS =====
+src/front/js/component/motionstudio/MotionTimelinePanel.js:1:import React, { useMemo, useRef, useState, useEffect } from "react";
+src/front/js/component/motionstudio/MotionTimelinePanel.js:23:  const scrollRef = useRef(null);
+src/front/js/component/motionstudio/MotionTimelinePanel.js:24:  const [dragState, setDragState] = useState(null);
+src/front/js/component/motionstudio/MotionTimelinePanel.js:28:  const sortedLayers = useMemo(() => {
+src/front/js/component/motionstudio/MotionTimelinePanel.js:63:  useEffect(() => {
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:1:import React, { useMemo, useState, useRef, useEffect } from "react";
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:13:  const [selectedProp, setSelectedProp] = useState("positionX");
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:14:  const canvasRef = useRef(null);
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:16:  useEffect(() => {
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:26:  const track = useMemo(() => {
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:32:  const selectedSegmentIndex = useMemo(() => {
+src/front/js/component/motionstudio/MotionGraphEditorPanel.js:64:  useEffect(() => {
+src/front/js/component/motionstudio/useMotionStudioState.js:1:import { useMemo, useState, useCallback } from "react";
+src/front/js/component/motionstudio/useMotionStudioState.js:15:  const [currentTime, setCurrentTime] = useState(0);
+src/front/js/component/motionstudio/useMotionStudioState.js:16:  const [duration, setDuration] = useState(10);
+src/front/js/component/motionstudio/useMotionStudioState.js:17:  const [isPlaying, setIsPlaying] = useState(false);
+src/front/js/component/motionstudio/useMotionStudioState.js:18:  const [selectedLayerId, setSelectedLayerId] = useState(null);
+src/front/js/component/motionstudio/useMotionStudioState.js:19:  const [selectedKeyframeRef, setSelectedKeyframeRef] = useState(null);
+src/front/js/component/motionstudio/useMotionStudioState.js:20:  const [loopRegion, setLoopRegion] = useState({ start: 0, end: 5, enabled: false });
+src/front/js/component/motionstudio/useMotionStudioState.js:21:  const [timelineZoom, setTimelineZoom] = useState(1);
+src/front/js/component/motionstudio/useMotionStudioState.js:23:  const [layers, setLayers] = useState([
+src/front/js/component/motionstudio/useMotionStudioState.js:72:  const [pathAnimations, setPathAnimations] = useState([]);
+src/front/js/component/motionstudio/useMotionStudioState.js:73:  const [cameraPreset, setCameraPreset] = useState("static");
+src/front/js/component/motionstudio/useMotionStudioState.js:74:  const [selectedTextPreset, setSelectedTextPreset] = useState("bounce_in");
+src/front/js/component/motionstudio/useMotionStudioState.js:75:  const [selectedLowerThirdTemplate, setSelectedLowerThirdTemplate] = useState("gradient");
+src/front/js/component/motionstudio/useMotionStudioState.js:76:  const [selectedPathPreset, setSelectedPathPreset] = useState("wave");
+src/front/js/component/motionstudio/useMotionStudioState.js:78:  const selectedLayer = useMemo(
+src/front/js/component/motionstudio/useMotionStudioState.js:83:  const updateLayer = useCallback((layerId, patch) => {
+src/front/js/component/motionstudio/useMotionStudioState.js:87:  const addTextLayer = useCallback(() => {
+src/front/js/component/motionstudio/useMotionStudioState.js:118:  const addLowerThirdLayer = useCallback(() => {
+src/front/js/component/motionstudio/useMotionStudioState.js:149:  const removeLayer = useCallback((layerId) => {
+src/front/js/component/motionstudio/useMotionStudioState.js:155:  const addKeyframeToSelected = useCallback((property, value, easing = "easeInOut") => {
+src/front/js/component/motionstudio/useMotionStudioState.js:169:  const removeKeyframeFromSelected = useCallback((keyframeId) => {
+src/front/js/component/motionstudio/useMotionStudioState.js:180:  const applyPathPresetToSelected = useCallback(() => {
+src/front/js/component/motionstudio/useMotionStudioState.js:200:  const clearPathFromSelected = useCallback(() => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:1:import React, { useEffect, useMemo, useRef, useState } from "react";
+src/front/js/component/motionstudio/MotionPreviewStage.js:49:  const stageRef = useRef(null);
+src/front/js/component/motionstudio/MotionPreviewStage.js:50:  const [interaction, setInteraction] = useState(null);
+src/front/js/component/motionstudio/MotionPreviewStage.js:51:  const [guides, setGuides] = useState({ vertical: false, horizontal: false });
+src/front/js/component/motionstudio/MotionPreviewStage.js:53:  useEffect(() => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:64:  useEffect(() => {
+src/front/js/component/motionstudio/MotionPreviewStage.js:133:  const renderedLayers = useMemo(() => {
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:1:import React, { useMemo, useState, useEffect } from "react";
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:13:  const [selectedProp, setSelectedProp] = useState("positionX");
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:14:  const [selectedIndex, setSelectedIndex] = useState(0);
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:16:  const track = useMemo(() => {
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:22:  useEffect(() => {
+src/front/js/component/motionstudio/MotionKeyframeEditorPanel.js:35:  useEffect(() => {
+src/front/js/component/nodecompositor/AIAutoEditToolPanel.js:1:import React, { useState } from "react";
+src/front/js/component/nodecompositor/AIAutoEditToolPanel.js:4:  const [style, setStyle] = useState("social");
+src/front/js/component/nodecompositor/AIAutoEditToolPanel.js:5:  const [aggressiveness, setAggressiveness] = useState(0.5);
+src/front/js/component/nodecompositor/AIAutoEditToolPanel.js:6:  const [captions, setCaptions] = useState(true);
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:1:import React, { useState } from "react";
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:220:  const [prop, setProp] = useState("x");
+src/front/js/component/nodecompositor/NodeInspectorPanel.js:221:  const [easing, setEasing] = useState("easeInOut");
+src/front/js/component/nodecompositor/VideoExportPanel.js:1:import React, { useState } from "react";
+src/front/js/component/nodecompositor/VideoExportPanel.js:4:  const [format, setFormat] = useState("mp4");
+src/front/js/component/nodecompositor/VideoExportPanel.js:5:  const [resolution, setResolution] = useState("1920x1080");
+src/front/js/component/nodecompositor/VideoExportPanel.js:6:  const [fps, setFps] = useState(30);
+src/front/js/component/nodecompositor/BeatSyncToolPanel.js:1:import React, { useState } from "react";
+src/front/js/component/nodecompositor/BeatSyncToolPanel.js:4:  const [bpm, setBpm] = useState(120);
+src/front/js/component/nodecompositor/BeatSyncToolPanel.js:5:  const [sensitivity, setSensitivity] = useState(0.65);
+src/front/js/component/nodecompositor/BeatSyncToolPanel.js:6:  const [mode, setMode] = useState("cuts");
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:1:import React, { useMemo, useRef, useState } from "react";
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:119:  const portMap = useMemo(() => buildPortMap(nodes), [nodes]);
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:168:  const [zoom] = useState(1);
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:169:  const [pendingConnection, setPendingConnection] = useState(null);
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:170:  const [liveConnection, setLiveConnection] = useState(null);
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:171:  const wrapRef = useRef(null);
+src/front/js/component/nodecompositor/NodeGraphCanvas.js:173:  const portMap = useMemo(() => buildPortMap(nodes), [nodes]);
+src/front/js/component/nodecompositor/VideoExportToolPanel.js:1:import React, { useState } from "react";
+src/front/js/component/nodecompositor/VideoExportToolPanel.js:4:  const [format, setFormat] = useState("mp4");
+src/front/js/component/nodecompositor/VideoExportToolPanel.js:5:  const [resolution, setResolution] = useState("1920x1080");
+src/front/js/component/nodecompositor/VideoExportToolPanel.js:6:  const [fps, setFps] = useState(30);
+src/front/js/component/nodecompositor/NodePreviewPanel.js:1:import React, { useMemo, useRef } from "react";
+src/front/js/component/nodecompositor/NodePreviewPanel.js:160:  const previewRef = useRef(null);
+src/front/js/component/nodecompositor/NodePreviewPanel.js:162:  const evaluated = useMemo(
+src/front/js/component/nodecompositor/useNodeCompositorState.js:1:import { useMemo, useState, useCallback, useEffect } from "react";
+src/front/js/component/nodecompositor/useNodeCompositorState.js:47:  const [nodes, setNodes] = useState(starterNodes);
+src/front/js/component/nodecompositor/useNodeCompositorState.js:48:  const [edges, setEdges] = useState(starterEdges);
+src/front/js/component/nodecompositor/useNodeCompositorState.js:49:  const [selectedNodeId, setSelectedNodeId] = useState(starterNodes[0]?.id || null);
+src/front/js/component/nodecompositor/useNodeCompositorState.js:50:  const [selectedEdgeId, setSelectedEdgeId] = useState(null);
+src/front/js/component/nodecompositor/useNodeCompositorState.js:52:  const [currentTime, setCurrentTime] = useState(0);
+src/front/js/component/nodecompositor/useNodeCompositorState.js:53:  const [duration, setDuration] = useState(5);
+src/front/js/component/nodecompositor/useNodeCompositorState.js:54:  const [isPlaying, setIsPlaying] = useState(false);
+src/front/js/component/nodecompositor/useNodeCompositorState.js:56:  useEffect(() => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:67:  const selectedNode = useMemo(
+src/front/js/component/nodecompositor/useNodeCompositorState.js:72:  const selectedEdge = useMemo(
+src/front/js/component/nodecompositor/useNodeCompositorState.js:77:  const addNode = useCallback((type, x = 140, y = 140) => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:86:  const duplicateSelectedNode = useCallback(() => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:94:  const updateNodePosition = useCallback((nodeId, x, y) => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:100:  const updateNodeProperties = useCallback((nodeId, patch) => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:110:  const addKeyframeToSelectedNode = useCallback((property, value, easing = "easeInOut") => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:124:  const removeKeyframeFromSelectedNode = useCallback((keyframeId) => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:135:  const removeNode = useCallback((nodeId) => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:142:  const addEdge = useCallback((fromNodeId, fromPort, toNodeId, toPort) => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:175:  const removeEdge = useCallback((edgeId) => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:180:  const clearGraph = useCallback(() => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:187:  const exportGraph = useCallback(() => {
+src/front/js/component/nodecompositor/useNodeCompositorState.js:191:  const importGraph = useCallback((jsonText) => {
+src/front/js/component/nodecompositor/BeatSyncPanel.js:1:import React, { useState } from "react";
+src/front/js/component/nodecompositor/BeatSyncPanel.js:4:  const [bpm, setBpm] = useState(120);
+src/front/js/component/nodecompositor/BeatSyncPanel.js:5:  const [offsetMs, setOffsetMs] = useState(0);
+src/front/js/component/nodecompositor/BeatSyncPanel.js:6:  const [snapStrength, setSnapStrength] = useState(0.8);
+src/front/js/component/nodecompositor/AIAutoEditPanel.js:1:import React, { useState } from "react";
+src/front/js/component/nodecompositor/AIAutoEditPanel.js:4:  const [mode, setMode] = useState("social");
+src/front/js/component/nodecompositor/AIAutoEditPanel.js:5:  const [aggressiveness, setAggressiveness] = useState(0.6);
+src/front/js/component/nodecompositor/AIAutoEditPanel.js:6:  const [addTransitions, setAddTransitions] = useState(true);
+src/front/js/component/nodecompositor/AIAutoEditPanel.js:7:  const [cutSilence, setCutSilence] = useState(true);
+src/front/js/component/nodecompositor/KeyboardShortcuts.js:1:import { useEffect } from "react";
+src/front/js/component/nodecompositor/KeyboardShortcuts.js:10:    useEffect(() => {
+src/front/js/pages/NodeCompositorPage.js:1:import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
+src/front/js/pages/NodeCompositorPage.js:32:  const [projectName, setProjectName] = useState("SPX Compositor");
+src/front/js/pages/NodeCompositorPage.js:33:  const [nodes, setNodes] = useState([]);
+src/front/js/pages/NodeCompositorPage.js:34:  const [edges, setEdges] = useState([]);
+src/front/js/pages/NodeCompositorPage.js:35:  const [selectedNodeId, setSelectedNodeId] = useState(null);
+src/front/js/pages/NodeCompositorPage.js:36:  const [currentTime, setCurrentTime] = useState(0);
+src/front/js/pages/NodeCompositorPage.js:37:  const [duration, setDuration] = useState(10);
+src/front/js/pages/NodeCompositorPage.js:38:  const [isPlaying, setIsPlaying] = useState(false);
+src/front/js/pages/NodeCompositorPage.js:39:  const [toolTab, setToolTab] = useState("graph");
+src/front/js/pages/NodeCompositorPage.js:41:  const selectedNode = useMemo(
+src/front/js/pages/NodeCompositorPage.js:46:  useEffect(() => {
+src/front/js/pages/NodeCompositorPage.js:57:  const addNode = useCallback((type, x = 120, y = 120) => {
+src/front/js/pages/NodeCompositorPage.js:106:  const updateSelectedNode = useCallback((patch) => {
+src/front/js/pages/NodeCompositorPage.js:117:  const removeSelectedNode = useCallback(() => {
+src/front/js/pages/NodeCompositorPage.js:124:  const duplicateSelectedNode = useCallback(() => {
+src/front/js/pages/NodeCompositorPage.js:136:  const importMotionMedia = useCallback(() => {
+src/front/js/pages/NodeCompositorPage.js:161:  const seedStarterGraph = useCallback(() => {

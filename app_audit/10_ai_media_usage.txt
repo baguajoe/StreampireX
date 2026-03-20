@@ -1,0 +1,276 @@
+===== 10. AI / ML / MEDIA PIPELINES =====
+src/api/models.py:6926:    api_provider = db.Column(db.String(50), default='replicate')
+src/api/video_editor_routes.py:56:def run_ffmpeg(args, timeout=300):
+src/api/video_editor_routes.py:57:    cmd = ['ffmpeg', '-y'] + args
+src/api/video_editor_routes.py:62:        return False, 'FFmpeg timed out'
+src/api/video_editor_routes.py:64:        return False, 'FFmpeg not installed on server'
+src/api/video_editor_routes.py:148:        success, stderr = run_ffmpeg(['-ss', str(start), '-i', input_path, '-t', str(duration), '-c', 'copy', output_path])
+src/api/video_editor_routes.py:197:        ffmpeg_args = ['-i', input_path]
+src/api/video_editor_routes.py:199:            ffmpeg_args += ['-vf', ','.join(filters)]
+src/api/video_editor_routes.py:200:        ffmpeg_args += ['-c:a', 'copy', output_path]
+src/api/video_editor_routes.py:201:        success, stderr = run_ffmpeg(ffmpeg_args)
+src/api/video_editor_routes.py:269:                        ok, _ = run_ffmpeg(['-ss', str(start), '-i', src, '-t', str(end-start), '-c', 'copy', trimmed])
+src/api/video_editor_routes.py:276:                    ok, _ = run_ffmpeg(['-i', src, '-an', '-c:v', 'copy', no_audio])
+src/api/video_editor_routes.py:281:                    ok, _ = run_ffmpeg(['-i', src, '-af', f'volume={vol/100:.2f}', '-c:v', 'copy', vol_adj])
+src/api/video_editor_routes.py:291:        success, stderr = run_ffmpeg([
+src/api/video_editor_routes.py:333:        success, stderr = run_ffmpeg(['-ss', str(timestamp), '-i', input_path, '-frames:v', '1', '-q:v', '2', thumb_path])
+src/api/video_editor_routes.py:384:        success, stderr = run_ffmpeg(['-i', input_path, '-vf', drawtext, '-c:a', 'copy', output_path])
+src/api/clip_sharing_routes.py:69:        # FFmpeg clip
+src/api/clip_sharing_routes.py:71:            'ffmpeg', '-y', '-ss', str(start), '-i', input_path,
+src/api/ai_stem_separation.py:18:# Install: pip install demucs torch torchaudio
+src/api/ai_stem_separation.py:131:def check_torch_available():
+src/api/ai_stem_separation.py:134:            ["python", "-c", "import torch; print(f'{torch.__version__}|{torch.cuda.is_available()}')"],
+src/api/ai_stem_separation.py:285:    torch_available, torch_version, gpu_available = check_torch_available()
+src/api/ai_stem_separation.py:297:        "torch_available": torch_available,
+src/api/ai_stem_separation.py:298:        "torch_version": torch_version,
+src/api/ai_stem_separation.py:328:                "install_hint": "pip install demucs torch torchaudio"
+src/api/ai_stem_separation.py:335:        _, _, gpu_available = check_torch_available()
+src/api/ai_stem_separation.py:497:        _, _, gpu_available = check_torch_available()
+src/api/podcast_studio_phase2_routes.py:21:OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+src/api/podcast_studio_phase2_routes.py:110:    elif OPENAI_API_KEY:
+src/api/podcast_studio_phase2_routes.py:112:            'https://api.openai.com/v1/chat/completions',
+src/api/podcast_studio_phase2_routes.py:114:                'Authorization': f'Bearer {OPENAI_API_KEY}',
+src/api/podcast_studio_phase2_routes.py:207:                # Escape caption text for ffmpeg drawtext
+src/api/podcast_studio_phase2_routes.py:223:                # Build ffmpeg command
+src/api/podcast_studio_phase2_routes.py:238:                    'ffmpeg', '-y',
+src/api/podcast_studio_phase2_routes.py:284:                    'ffmpeg', '-y',
+src/api/podcast_studio_ai_routes.py:31:OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+src/api/podcast_studio_ai_routes.py:56:    Uses Deepgram Nova-2 (primary) or OpenAI Whisper (fallback).
+src/api/podcast_studio_ai_routes.py:70:        # --- Fallback: OpenAI Whisper ---
+src/api/podcast_studio_ai_routes.py:71:        elif OPENAI_API_KEY:
+src/api/podcast_studio_ai_routes.py:72:            result = _transcribe_whisper(audio_url)
+src/api/podcast_studio_ai_routes.py:145:def _transcribe_whisper(audio_url):
+src/api/podcast_studio_ai_routes.py:146:    """OpenAI Whisper fallback — download audio then transcribe."""
+src/api/podcast_studio_ai_routes.py:157:        headers = {'Authorization': f'Bearer {OPENAI_API_KEY}'}
+src/api/podcast_studio_ai_routes.py:160:                'https://api.openai.com/v1/audio/transcriptions',
+src/api/podcast_studio_ai_routes.py:164:                    'model': 'whisper-1',
+src/api/podcast_studio_ai_routes.py:179:                'confidence': 1.0,  # Whisper doesn't return confidence
+src/api/podcast_studio_ai_routes.py:189:            'model': 'whisper-1'
+src/api/podcast_studio_ai_routes.py:205:    Uses ffmpeg for precise audio cutting.
+src/api/podcast_studio_ai_routes.py:228:            # Build ffmpeg filter to extract and concatenate segments
+src/api/podcast_studio_ai_routes.py:247:                'ffmpeg', '-y',
+src/api/podcast_studio_ai_routes.py:260:                    "error": "FFmpeg processing failed",
+src/api/podcast_studio_ai_routes.py:346:    Uses ffmpeg audio filters for processing.
+src/api/podcast_studio_ai_routes.py:417:            # Build ffmpeg filter chain
+src/api/podcast_studio_ai_routes.py:467:                'ffmpeg', '-y',
+src/api/podcast_studio_ai_routes.py:553:        elif OPENAI_API_KEY:
+src/api/podcast_studio_ai_routes.py:554:            result = _generate_notes_openai(transcript)
+src/api/podcast_studio_ai_routes.py:638:def _generate_notes_openai(transcript):
+src/api/podcast_studio_ai_routes.py:639:    """Fallback: OpenAI GPT for show notes."""
+src/api/podcast_studio_ai_routes.py:646:        'Authorization': f'Bearer {OPENAI_API_KEY}',
+src/api/podcast_studio_ai_routes.py:651:        'https://api.openai.com/v1/chat/completions',
+src/api/ai_background_tasks.py:196:            "ffmpeg", "-y", "-ss", str(t), "-i", str(video_path),
+src/api/ai_background_tasks.py:239:            if shutil.which("ffmpeg") is None:
+src/api/ai_background_tasks.py:240:                raise RuntimeError("ffmpeg is not installed or not on PATH")
+src/api/ai_background_tasks.py:279:                        "ffmpeg", "-y",
+src/api/ai_background_tasks.py:317:                        "ffmpeg", "-y",
+src/api/ai_background_tasks.py:395:            if shutil.which("ffmpeg") is None:
+src/api/ai_background_tasks.py:396:                raise RuntimeError("ffmpeg is not installed or not on PATH")
+src/api/ai_background_tasks.py:421:                    cmd = ["ffmpeg", "-y"] + trim_args + [
+src/api/ai_background_tasks.py:475:                        cmd = ["ffmpeg", "-y"] + inputs + [
+src/api/ai_background_tasks.py:490:                                "ffmpeg", "-y",
+src/api/ai_background_tasks.py:503:                            "ffmpeg", "-y",
+src/api/ai_credits_routes.py:48:    'ai_video_generation':    10,   # Replicate API (Kling/Runway)
+src/api/ai_credits_routes.py:54:    'ai_content_generation':   1,   # OpenAI/Claude — social posts, bios, descriptions
+src/api/ai_credits_routes.py:55:    'ai_auto_captions':        2,   # OpenAI Whisper API — speech-to-text
+src/api/ai_credits_routes.py:56:    'ai_lyrics_generation':    1,   # OpenAI/Claude — lyric writing
+src/api/ai_credits_routes.py:63:    'silence_detection':       0,   # ffmpeg — runs on server
+src/api/ai_credits_routes.py:64:    'ai_thumbnail_extract':    0,   # ffmpeg frame extraction — free
+src/api/ai_credits_routes.py:75:    # ── Suno Gap Features (Replicate musicgen + ElevenLabs) ──────────────
+src/api/ai_credits_routes.py:76:    'text_to_song':              15,   # Replicate musicgen-stereo (user pays)
+src/api/ai_credits_routes.py:78:    'add_vocals_to_track':       20,   # ElevenLabs TTS + ffmpeg (user pays)
+src/api/ai_credits_routes.py:79:    'add_beat_to_vocals':        20,   # Replicate musicgen-melody (user pays)
+src/api/ai_credits_routes.py:80:    'hum_to_song':               20,   # Replicate musicgen-melody from hum (user pays)
+src/api/ai_credits_routes.py:81:    'song_extender':             15,   # Replicate musicgen per 30s pass (user pays)
+src/api/video_export_routes.py:20:    # Later you can replace this with real frame rendering + ffmpeg image sequence assembly.
+src/api/video_export_routes.py:25:        # Creates a black silent MP4 placeholder using ffmpeg color source
+src/api/video_export_routes.py:27:            "ffmpeg",
+src/api/ai_video_tools.py:8:#   1. Silence/Dead Air Removal — ffmpeg audio analysis + cutting
+src/api/ai_video_tools.py:9:#   2. AI Thumbnail Generator — ffmpeg frame extraction + sharpness scoring
+src/api/ai_video_tools.py:11:# CHEAP tools (Whisper local or API):
+src/api/ai_video_tools.py:14:# All processing uses ffmpeg + ffprobe (pre-installed on Railway)
+src/api/ai_video_tools.py:62:# 1. SILENCE / DEAD AIR DETECTION (100% FREE — ffmpeg only)
+src/api/ai_video_tools.py:70:    Uses ffmpeg silencedetect filter — zero API cost.
+src/api/ai_video_tools.py:89:            'ffmpeg', '-i', tmp_path, '-af',
+src/api/ai_video_tools.py:148:    Returns URL of the trimmed file. FREE — ffmpeg only.
+src/api/ai_video_tools.py:180:        # Build ffmpeg complex filter to concat kept segments
+src/api/ai_video_tools.py:187:                'ffmpeg', '-y', '-i', tmp_path,
+src/api/ai_video_tools.py:206:            'ffmpeg', '-y', '-f', 'concat', '-safe', '0',
+src/api/ai_video_tools.py:243:# 2. AI THUMBNAIL GENERATOR (FREE — ffmpeg + image scoring)
+src/api/ai_video_tools.py:252:    Returns top N candidate thumbnail URLs. FREE — ffmpeg + basic scoring.
+src/api/ai_video_tools.py:281:                'ffmpeg', '-y', '-ss', str(timestamp), '-i', tmp_path,
+src/api/ai_video_tools.py:343:# 3. AUTO-CAPTIONS (Uses Whisper — local or API)
+src/api/ai_video_tools.py:345:# Cost: FREE if using local whisper, ~$0.006/min if using OpenAI Whisper API
+src/api/ai_video_tools.py:346:# Set WHISPER_MODE=local in env to use local (requires whisper pip package)
+src/api/ai_video_tools.py:347:# Set WHISPER_MODE=api to use OpenAI API (requires OPENAI_API_KEY)
+src/api/ai_video_tools.py:366:    whisper_mode = os.environ.get('WHISPER_MODE', 'api')
+src/api/ai_video_tools.py:374:            'ffmpeg', '-y', '-i', tmp_path, '-vn', '-acodec', 'pcm_s16le',
+src/api/ai_video_tools.py:384:        if whisper_mode == 'local':
+src/api/ai_video_tools.py:385:            # Local Whisper (free but requires pip install openai-whisper)
+src/api/ai_video_tools.py:387:                import whisper
+src/api/ai_video_tools.py:388:                model = whisper.load_model('base')
+src/api/ai_video_tools.py:408:                return jsonify({'error': 'Local whisper not installed. pip install openai-whisper'}), 500
+src/api/ai_video_tools.py:411:            # OpenAI Whisper API
+src/api/ai_video_tools.py:413:            api_key = os.environ.get('OPENAI_API_KEY')
+src/api/ai_video_tools.py:417:                return jsonify({'error': 'OPENAI_API_KEY not configured for caption generation'}), 400
+src/api/ai_video_tools.py:421:                    'https://api.openai.com/v1/audio/transcriptions',
+src/api/ai_video_tools.py:425:                        'model': 'whisper-1',
+src/api/ai_video_tools.py:433:                whisper_data = response.json()
+src/api/ai_video_tools.py:436:            full_text = whisper_data.get('text', '')
+src/api/ai_video_tools.py:437:            words = whisper_data.get('words', [])
+src/api/ai_video_tools.py:539:    has_ffmpeg = False
+src/api/ai_video_tools.py:540:    has_whisper_local = False
+src/api/ai_video_tools.py:541:    has_whisper_api = False
+src/api/ai_video_tools.py:544:        subprocess.run(['ffmpeg', '-version'], capture_output=True, timeout=5)
+src/api/ai_video_tools.py:545:        has_ffmpeg = True
+src/api/ai_video_tools.py:550:        import whisper
+src/api/ai_video_tools.py:551:        has_whisper_local = True
+src/api/ai_video_tools.py:555:    has_whisper_api = bool(os.environ.get('OPENAI_API_KEY'))
+src/api/ai_video_tools.py:556:    whisper_mode = os.environ.get('WHISPER_MODE', 'api')
+src/api/ai_video_tools.py:560:            'silence_detection': has_ffmpeg,
+src/api/ai_video_tools.py:561:            'silence_removal': has_ffmpeg,
+src/api/ai_video_tools.py:562:            'thumbnail_generator': has_ffmpeg,
+src/api/ai_video_tools.py:563:            'auto_captions': has_whisper_local or has_whisper_api,
+src/api/ai_video_tools.py:565:        'ffmpeg_available': has_ffmpeg,
+src/api/ai_video_tools.py:566:        'whisper_mode': whisper_mode,
+src/api/ai_video_tools.py:567:        'whisper_local': has_whisper_local,
+src/api/ai_video_tools.py:568:        'whisper_api': has_whisper_api,
+src/api/ai_video_tools.py:573:            'auto_captions': 'FREE (local)' if whisper_mode == 'local' else '$0.006/min (API)',
+src/api/epk_collab_routes.py:279:        import replicate
+src/api/epk_collab_routes.py:325:            output = replicate.run(model_id, input=input_params)
+src/api/epk_collab_routes.py:326:            video_url_replicate = output if isinstance(output, str) else str(output)
+src/api/epk_collab_routes.py:331:            video_response = req.get(video_url_replicate, timeout=120)
+src/api/epk_collab_routes.py:340:                    print(f"R2 upload failed, using Replicate URL: {r2_err}")
+src/api/epk_collab_routes.py:341:                    final_url = video_url_replicate
+src/api/ai_radio_dj.py:9:#   1. AI writes DJ script (Claude/OpenAI API)
+src/api/ai_radio_dj.py:10:#   2. TTS generates DJ voice audio (OpenAI TTS / ElevenLabs)
+src/api/ai_radio_dj.py:11:#   3. FFmpeg stitches: talk break + crossfade + next song
+src/api/ai_radio_dj.py:294:    # Try OpenAI API
+src/api/ai_radio_dj.py:295:    openai_key = os.environ.get("OPENAI_API_KEY")
+src/api/ai_radio_dj.py:296:    if openai_key:
+src/api/ai_radio_dj.py:298:            script = _generate_with_openai(prompt, openai_key)
+src/api/ai_radio_dj.py:302:            print(f"⚠️ OpenAI script generation failed: {e}")
+src/api/ai_radio_dj.py:319:def _generate_with_openai(prompt, api_key):
+src/api/ai_radio_dj.py:320:    """Generate script using OpenAI Chat API."""
+src/api/ai_radio_dj.py:322:        "https://api.openai.com/v1/chat/completions",
+src/api/ai_radio_dj.py:435:    # Priority 2: OpenAI TTS
+src/api/ai_radio_dj.py:436:    openai_key = os.environ.get("OPENAI_API_KEY")
+src/api/ai_radio_dj.py:437:    if openai_key:
+src/api/ai_radio_dj.py:439:            result = _tts_openai(script, persona["voice"], output_path, openai_key)
+src/api/ai_radio_dj.py:443:            print(f"⚠️ OpenAI TTS failed: {e}")
+src/api/ai_radio_dj.py:466:def _tts_openai(script, voice, output_path, api_key):
+src/api/ai_radio_dj.py:467:    """Generate speech using OpenAI TTS API."""
+src/api/ai_radio_dj.py:469:        "https://api.openai.com/v1/audio/speech",
+src/api/ai_radio_dj.py:488:    print(f"🗣️ OpenAI TTS generated: {output_path} ({len(script)} chars)")
+src/api/ai_radio_dj.py:535:# AUDIO STITCHING (FFmpeg)
+src/api/ai_radio_dj.py:542:            "ffmpeg", "-y",
+src/api/ai_radio_dj.py:555:            print(f"⚠️ FFmpeg crossfade failed: {result.stderr}")
+src/api/ai_radio_dj.py:577:            "ffmpeg", "-y",
+src/api/ai_radio_dj.py:1415:    has_openai = bool(os.environ.get("OPENAI_API_KEY"))
+src/api/ai_radio_dj.py:1419:    has_ffmpeg = False
+src/api/ai_radio_dj.py:1421:        result = subprocess.run(["ffmpeg", "-version"], capture_output=True, timeout=5)
+src/api/ai_radio_dj.py:1422:        has_ffmpeg = result.returncode == 0
+src/api/ai_radio_dj.py:1427:        "ai_script_generation": has_openai or has_anthropic,
+src/api/ai_radio_dj.py:1428:        "tts_openai": has_openai,
+src/api/ai_radio_dj.py:1431:        "audio_stitching": has_ffmpeg,
+src/api/ai_radio_dj.py:1437:        "status": "ready" if (has_openai or has_anthropic) and has_ffmpeg else "limited",
+src/api/ai_video_generation_routes.py:9:#   REPLICATE_API_TOKEN - Your Replicate API token
+src/api/ai_video_generation_routes.py:12:# Install: pip install replicate --break-system-packages
+src/api/ai_video_generation_routes.py:56:# Replicate models — competition-level quality
+src/api/ai_video_generation_routes.py:58:# These can be swapped as newer models drop on Replicate
+src/api/ai_video_generation_routes.py:59:REPLICATE_MODELS = {
+src/api/ai_video_generation_routes.py:206:        model_config = PREMIUM_MODELS['text_to_video'] if quality == 'premium' else REPLICATE_MODELS['text_to_video']
+src/api/ai_video_generation_routes.py:214:            api_provider='replicate',
+src/api/ai_video_generation_routes.py:223:        # Call Replicate API
+src/api/ai_video_generation_routes.py:225:            import replicate
+src/api/ai_video_generation_routes.py:227:            replicate_client = replicate.Client(api_token=os.environ.get('REPLICATE_API_TOKEN'))
+src/api/ai_video_generation_routes.py:230:            output = replicate_client.run(
+src/api/ai_video_generation_routes.py:388:        model_config = PREMIUM_MODELS['image_to_video'] if quality == 'premium' else REPLICATE_MODELS['image_to_video']
+src/api/ai_video_generation_routes.py:397:            api_provider='replicate',
+src/api/ai_video_generation_routes.py:406:        # Call Replicate API
+src/api/ai_video_generation_routes.py:408:            import replicate
+src/api/ai_video_generation_routes.py:410:            replicate_client = replicate.Client(api_token=os.environ.get('REPLICATE_API_TOKEN'))
+src/api/ai_video_generation_routes.py:423:            output = replicate_client.run(
+src/api/ai_video_generation_routes.py:627:            'replicate_configured': bool(os.environ.get('REPLICATE_API_TOKEN')),
+src/api/ai_video_generation_routes.py:631:                    'standard': REPLICATE_MODELS['text_to_video']['name'],
+src/api/ai_video_generation_routes.py:635:                    'standard': REPLICATE_MODELS['image_to_video']['name'],
+src/api/epk_collab.py:279:        import replicate
+src/api/epk_collab.py:325:            output = replicate.run(model_id, input=input_params)
+src/api/epk_collab.py:326:            video_url_replicate = output if isinstance(output, str) else str(output)
+src/api/epk_collab.py:331:            video_response = req.get(video_url_replicate, timeout=120)
+src/api/epk_collab.py:340:                    print(f"R2 upload failed, using Replicate URL: {r2_err}")
+src/api/epk_collab.py:341:                    final_url = video_url_replicate
+src/api/routes.py:61:import ffmpeg
+src/api/routes.py:64:# import whisper  # ✅ AI Transcription Support
+src/api/routes.py:97:from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+src/api/routes.py:2759:        # ✅ Extract Clip using FFmpeg
+src/api/routes.py:2760:        ffmpeg.input(podcast.audio_url, ss=start_time, to=end_time).output(clip_path).run(overwrite_output=True)
+src/api/routes.py:4812:#     model = whisper.load_model("base")
+src/api/routes.py:4920:        ffmpeg_extract_subclip(podcast.video_url, start_time, end_time, targetname=clip_path)
+src/api/routes.py:6330:        # Run ffmpeg command to record the stream
+src/api/routes.py:6332:            'ffmpeg', 
+src/api/routes.py:6356:    # Implement logic to kill the ffmpeg process if needed (not implemented here)
+src/api/routes.py:10808:            # Use ffmpeg to seek to position and stream
+src/api/routes.py:10811:                'ffmpeg',
+src/api/routes.py:14598:    Uses URL transformation - no FFmpeg or server processing needed!
+src/api/routes.py:18426:        # Apply video effect using OpenCV/FFmpeg
+src/api/routes.py:18448:    """Process video effect using OpenCV and FFmpeg"""
+src/api/routes.py:18488:    """Apply brightness effect using FFmpeg"""
+src/api/routes.py:18492:        'ffmpeg', '-i', input_path,
+src/api/routes.py:18501:    """Apply contrast effect using FFmpeg"""
+src/api/routes.py:18505:        'ffmpeg', '-i', input_path,
+src/api/routes.py:18514:    """Apply blur effect using FFmpeg"""
+src/api/routes.py:18518:        'ffmpeg', '-i', input_path,
+src/api/routes.py:18527:    """Apply sharpen effect using FFmpeg"""
+src/api/routes.py:18531:        'ffmpeg', '-i', input_path,
+src/api/routes.py:18595:    """Render timeline clips into final video using MoviePy"""
+src/api/routes.py:18597:        from moviepy import VideoFileClip, CompositeVideoClip, concatenate_videoclips
+src/api/routes.py:18624:                # Load with MoviePy
+src/api/routes.py:18733:        # Extract frame using FFmpeg
+src/api/routes.py:18735:            'ffmpeg', '-i', temp_file,
+src/api/routes.py:18780:        # Apply transition using MoviePy
+src/api/routes.py:18799:        from moviepy import VideoFileClip, CompositeVideoClip
+src/api/routes.py:18826:            from moviepy import concatenate_videoclips
+src/api/routes.py:23897:                'ffmpeg', '-re', '-i', source_url,
+src/front/js/pages/PodcastStudioPhase1.js:481:// Uses Whisper/Deepgram for word-level timestamps, then lets you edit
+src/front/js/component/AddVocalsToTrack.js:13: *        c. Mixes vocals over instrumental with ffmpeg
+src/front/js/component/AIRadioDJ.js:342:                <span className={"ai-dj-badge " + (capabilities.tts_openai ? "active" : "")}>
+src/front/js/component/AIRadioDJ.js:343:                  {capabilities.tts_openai ? "✅" : "⚠️"} OpenAI TTS
+src/front/js/component/AddBeatToVocals.js:12: *        b. Replicate musicgen-melody (uses vocal as melodic conditioning)
+src/front/js/component/AddBeatToVocals.js:13: *        c. ffmpeg mix: backing track under vocals
+src/front/js/component/SongExtender.js:12: *        b. Replicate musicgen with continuation mode + original clip as conditioning
+src/front/js/component/SongExtender.js:13: *        c. ffmpeg crossfade + stitch
+src/front/js/component/LiveStudio.js:2:import * as mpHolistic from "@mediapipe/holistic";
+src/front/js/component/LiveStudio.js:3:import { Camera } from "@mediapipe/camera_utils";
+src/front/js/component/LiveStudio.js:10:    const mediaPipeCameraRef = useRef(null);
+src/front/js/component/LiveStudio.js:15:    // 🧠 Handle results from MediaPipe Holistic
+src/front/js/component/LiveStudio.js:35:                `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`
+src/front/js/component/LiveStudio.js:49:        mediaPipeCameraRef.current = new Camera(videoRef.current, {
+src/front/js/component/LiveStudio.js:57:        mediaPipeCameraRef.current.start();
+src/front/js/component/LiveStudio.js:69:                setupHolisticTracking(); // 🧠 Start MediaPipe Holistic
+src/front/js/component/LiveStudio.js:104:            if (mediaPipeCameraRef.current) {
+src/front/js/component/LiveStudio.js:105:                mediaPipeCameraRef.current.stop();
+src/front/js/component/HumToSong.js:12: * Credits: 20 per generation (Replicate musicgen-melody)
+src/front/js/component/ChordTrack.js:275:    // using Web Audio API + a chord detection algorithm or Replicate model
+src/front/js/component/AITextToSong.js:8: *   3. POST /api/ai/text-to-song → backend calls Replicate (musicgen-stereo)
+src/front/js/component/VideoEditorAdvancedFeatures.js:31:// MediaPipe Selfie Segmentation or TensorFlow BodyPix.
+src/front/js/component/ai_video_generation_routes.py:9:#   REPLICATE_API_TOKEN - Your Replicate API token
+src/front/js/component/ai_video_generation_routes.py:12:# Install: pip install replicate --break-system-packages
+src/front/js/component/ai_video_generation_routes.py:40:# Replicate models — competition-level quality
+src/front/js/component/ai_video_generation_routes.py:42:# These can be swapped as newer models drop on Replicate
+src/front/js/component/ai_video_generation_routes.py:43:REPLICATE_MODELS = {
+src/front/js/component/ai_video_generation_routes.py:177:        model_config = PREMIUM_MODELS['text_to_video'] if quality == 'premium' else REPLICATE_MODELS['text_to_video']
+src/front/js/component/ai_video_generation_routes.py:185:            api_provider='replicate',
+src/front/js/component/ai_video_generation_routes.py:194:        # Call Replicate API
+src/front/js/component/ai_video_generation_routes.py:196:            import replicate
+src/front/js/component/ai_video_generation_routes.py:198:            replicate_client = replicate.Client(api_token=os.environ.get('REPLICATE_API_TOKEN'))
+src/front/js/component/ai_video_generation_routes.py:201:            output = replicate_client.run(
+src/front/js/component/ai_video_generation_routes.py:344:        model_config = PREMIUM_MODELS['image_to_video'] if quality == 'premium' else REPLICATE_MODELS['image_to_video']
+src/front/js/component/ai_video_generation_routes.py:353:            api_provider='replicate',
+src/front/js/component/ai_video_generation_routes.py:362:        # Call Replicate API
+src/front/js/component/ai_video_generation_routes.py:364:            import replicate
+src/front/js/component/ai_video_generation_routes.py:366:            replicate_client = replicate.Client(api_token=os.environ.get('REPLICATE_API_TOKEN'))
+src/front/js/component/ai_video_generation_routes.py:379:            output = replicate_client.run(
+src/front/js/component/ai_video_generation_routes.py:582:            'replicate_configured': bool(os.environ.get('REPLICATE_API_TOKEN')),
+src/front/js/component/ai_video_generation_routes.py:586:                    'standard': REPLICATE_MODELS['text_to_video']['name'],
+src/front/js/component/ai_video_generation_routes.py:590:                    'standard': REPLICATE_MODELS['image_to_video']['name'],
