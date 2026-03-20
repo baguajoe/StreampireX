@@ -98,6 +98,8 @@ import "../../styles/ChordProgressionGenerator.css";
 import "../../styles/DAWMenuBar.css";
 import "../../styles/VocalTools.css";
 import { useDAWCollaboration, CollabToolbar, CollabOverlay, CollabChatPanel } from "../component/hooks/useDAWCollaboration";
+import MidiHardwareInput from "../component/MidiHardwareInput";
+import { installWAMPlugin, getInstalledWAMPlugins } from "../component/audio/plugins/WAMPluginHost";
 
 const TRACK_COLORS = [
   "#34c759",
@@ -586,6 +588,14 @@ const RecordingStudio = ({ user }) => {
   const [trackMicModels, setTrackMicModels] = useState({});
 
   // ── DAW Collaboration ──
+  // ── MIDI Hardware ──
+  const [midiEnabled, setMidiEnabled] = React.useState(false);
+  const [wamPlugins, setWamPlugins] = React.useState([]);
+
+  React.useEffect(() => {
+    getInstalledWAMPlugins().then(p => setWamPlugins(p || [])).catch(() => {});
+  }, []);
+
   const collab = useDAWCollaboration({
     projectId: projectId || null,
     user: null,
@@ -2290,6 +2300,8 @@ const RecordingStudio = ({ user }) => {
         handleImport(sel);
         break;
       case 'file:importMidi': case 'midi:import': setViewMode('pianoroll'); setStatus('Open a .mid file from Piano Roll'); break;
+      case 'midi:controller': setMidiEnabled(m => !m); setStatus(midiEnabled ? 'MIDI controller disconnected' : 'MIDI controller enabled — connect device'); break;
+      case 'plugins:wam': window.open('/wam-plugin-store', '_blank'); break;
       case "file:exportMidi":
       case "midi:export":
         exportMidiFile();
@@ -2554,6 +2566,31 @@ const RecordingStudio = ({ user }) => {
         <div className="daw-topbar-center-tabs">
           {/* ── Collab Toolbar ── */}
           <CollabToolbar collab={collab} />
+
+          {/* ── MIDI Hardware Input ── */}
+          {midiEnabled && (
+            <MidiHardwareInput
+              drumMode={viewMode === "beatmaker" || viewMode === "sampler"}
+              onNoteOn={(note, vel) => {
+                setStatus(`MIDI: Note ${note} vel ${vel}`);
+                // trigger piano roll / sampler pad
+              }}
+              onNoteOff={(note) => {}}
+              onCC={(cc, val) => {
+                // map CC to faders/knobs
+                if (cc === 7)  tracks.forEach((t,i) => { if(selectedTrack===i) updateTrackParam(i,"vol",val/127); });
+                if (cc === 10) tracks.forEach((t,i) => { if(selectedTrack===i) updateTrackParam(i,"pan",(val-64)/64); });
+              }}
+              onPadTrigger={(pad) => setStatus(`Pad ${pad} triggered`)}
+            />
+          )}
+
+          {/* ── WAM Plugins loaded ── */}
+          {wamPlugins.length > 0 && (
+            <div style={{display:"flex",alignItems:"center",gap:6,padding:"2px 8px",background:"rgba(124,58,237,0.08)",borderRadius:6,border:"1px solid rgba(124,58,237,0.2)"}}>
+              <span style={{fontSize:10,color:"#a78bfa",fontWeight:700}}>🔌 {wamPlugins.length} WAM plugin{wamPlugins.length>1?"s":""} loaded</span>
+            </div>
+          )}
           <button
             className={`daw-view-tab ${viewMode === "arrange" ? "active" : ""}`}
             onClick={() => setViewMode("arrange")}
