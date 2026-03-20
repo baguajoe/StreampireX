@@ -77,7 +77,7 @@ export default function NodeCompositorPage() {
   const graphResult = useMemo(() => evaluateGraph(nodes), [nodes]);
 
   const engineEvaluation = React.useMemo(() => {
-    return graphRunnerRef.current.runGraph(nodes, edges, Math.floor(currentTime * 30));
+    return graphRunnerRef.current.runFrame(Math.floor(currentTime * 30));
   }, [nodes, edges, currentTime]);
 
   const addMediaNodeFromPanel = (node) => {
