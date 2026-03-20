@@ -1,29 +1,49 @@
-.motion-layout {
-  display: grid;
-  grid-template-columns: 260px 1fr 300px;
-  height: 100%;
+.spx-node-graph {
+  position: relative;
+  min-height: 520px;
+  border-radius: 16px;
+  border: 1px solid rgba(0,255,200,0.12);
+  background:
+    linear-gradient(180deg, rgba(8,18,34,0.98), rgba(5,12,24,0.98));
+  overflow: hidden;
 }
 
-.motion-left {
-  background:#0f141c;
-  border-right:1px solid #1f2a38;
+.spx-node-graph::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
 }
 
-.motion-center {
-  background:#0a0f15;
+.spx-node {
+  position: absolute;
+  min-width: 160px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(180deg, rgba(24,36,56,0.95), rgba(14,23,38,0.95));
+  color: #d9eaff;
+  text-align: left;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+  cursor: pointer;
 }
 
-.motion-right {
-  background:#0f141c;
-  border-left:1px solid #1f2a38;
+.spx-node.active {
+  border-color: rgba(0,255,200,0.45);
+  box-shadow: 0 0 0 2px rgba(0,255,200,0.15), 0 10px 24px rgba(0,0,0,0.25);
 }
 
-.motion-panel {
-  padding:12px;
-  border-bottom:1px solid rgba(255,255,255,0.05);
+.spx-node-title {
+  font-weight: 700;
+  font-size: 0.95rem;
 }
 
-.motion-panel-title {
-  font-weight:700;
-  margin-bottom:8px;
+.spx-node-sub {
+  margin-top: 4px;
+  font-size: 0.72rem;
+  opacity: 0.72;
 }
