@@ -1,50 +1,84 @@
-import { applyEasing } from "./easing";
+// src/front/js/utils/motionstudio/keyframeEngine.js
+// SPX Motion — Keyframe interpolation engine with easing
 
-function lerp(a, b, t) {
-  return a + (b - a) * t;
+import { applyEasing, EASING_FUNCTIONS } from "./easing";
+
+export const ANIMATABLE_PROPS = {
+  x:          { label:'X Position',   default:100,  unit:'px', min:-2000, max:2000 },
+  y:          { label:'Y Position',   default:100,  unit:'px', min:-2000, max:2000 },
+  scaleX:     { label:'Scale X',      default:1,    unit:'',   min:0,     max:10 },
+  scaleY:     { label:'Scale Y',      default:1,    unit:'',   min:0,     max:10 },
+  rotation:   { label:'Rotation',     default:0,    unit:'°',  min:-360,  max:360 },
+  opacity:    { label:'Opacity',      default:1,    unit:'',   min:0,     max:1 },
+  blur:       { label:'Blur',         default:0,    unit:'px', min:0,     max:100 },
+  brightness: { label:'Brightness',   default:100,  unit:'%',  min:0,     max:400 },
+  contrast:   { label:'Contrast',     default:100,  unit:'%',  min:0,     max:400 },
+  saturate:   { label:'Saturation',   default:100,  unit:'%',  min:0,     max:400 },
+  hueRotate:  { label:'Hue Rotate',   default:0,    unit:'°',  min:-360,  max:360 },
+  fontSize:   { label:'Font Size',    default:42,   unit:'px', min:4,     max:400 },
+  width:      { label:'Width',        default:200,  unit:'px', min:0,     max:4000 },
+  height:     { label:'Height',       default:100,  unit:'px', min:0,     max:4000 },
+  z:          { label:'Z Depth',      default:0,    unit:'',   min:-1000, max:1000 },
+};
+
+export function createKeyframe(time, prop, value, easing = 'linear') {
+  return { time, prop, value, easing };
 }
 
-function getTrackValue(track = [], time = 0, fallback = 0) {
-  if (!Array.isArray(track) || track.length === 0) return fallback;
-
-  const sorted = [...track].sort((a, b) => a.time - b.time);
-
-  if (time <= sorted[0].time) return sorted[0].value ?? fallback;
-  if (time >= sorted[sorted.length - 1].time) return sorted[sorted.length - 1].value ?? fallback;
-
-  for (let i = 0; i < sorted.length - 1; i++) {
-    const a = sorted[i];
-    const b = sorted[i + 1];
-    if (time >= a.time && time <= b.time) {
-      const span = Math.max(0.0001, b.time - a.time);
-      const rawT = (time - a.time) / span;
-      const eased = applyEasing(a.easing || "linear", rawT);
-      return lerp(a.value ?? fallback, b.value ?? fallback, eased);
+// keyframes format: { x: [{time, value, easing}, ...], opacity: [...], ... }
+export function interpolateKeyframes(keyframes, currentTime) {
+  const result = {};
+  for (const [prop, kfList] of Object.entries(keyframes)) {
+    if (!Array.isArray(kfList) || kfList.length === 0) continue;
+    const sorted = [...kfList].sort((a, b) => a.time - b.time);
+    if (currentTime <= sorted[0].time) { result[prop] = sorted[0].value; continue; }
+    if (currentTime >= sorted[sorted.length-1].time) { result[prop] = sorted[sorted.length-1].value; continue; }
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const k0 = sorted[i], k1 = sorted[i+1];
+      if (currentTime >= k0.time && currentTime <= k1.time) {
+        const t = (currentTime - k0.time) / (k1.time - k0.time);
+        const easedT = applyEasing(k0.easing || 'linear', t);
+        result[prop] = k0.value + (k1.value - k0.value) * easedT;
+        break;
+      }
     }
   }
-
-  return fallback;
+  return result;
 }
 
-export function evaluateLayerAtTime(layer, time) {
-  const keyframes = layer?.keyframes || {};
-
-  return {
-    ...layer,
-    x: getTrackValue(keyframes.positionX, time, layer.x ?? 0),
-    y: getTrackValue(keyframes.positionY, time, layer.y ?? 0),
-    scale: getTrackValue(keyframes.scale, time, layer.scale ?? 1),
-    rotation: getTrackValue(keyframes.rotation, time, layer.rotation ?? 0),
-    opacity: getTrackValue(keyframes.opacity, time, layer.opacity ?? 1),
-  };
+// Add or update a keyframe for a layer property
+export function addKeyframe(layer, prop, time, value, easing = 'easeInOut') {
+  const kfs = { ...(layer.keyframes || {}) };
+  const list = [...(kfs[prop] || [])];
+  const idx = list.findIndex(k => Math.abs(k.time - time) < 0.001);
+  if (idx >= 0) list[idx] = { time, value, easing };
+  else list.push({ time, value, easing });
+  list.sort((a,b) => a.time - b.time);
+  return { ...layer, keyframes: { ...kfs, [prop]: list } };
 }
 
-export function evaluateVisibleLayers(layers = [], time = 0) {
-  return layers
-    .filter((layer) => {
-      const start = layer.startTime ?? 0;
-      const duration = layer.duration ?? 0;
-      return time >= start && time <= start + duration;
-    })
-    .map((layer) => evaluateLayerAtTime(layer, time));
+export function removeKeyframe(layer, prop, time) {
+  const kfs = { ...(layer.keyframes || {}) };
+  const list = (kfs[prop] || []).filter(k => Math.abs(k.time - time) >= 0.001);
+  return { ...layer, keyframes: { ...kfs, [prop]: list } };
 }
+
+export function getAllKeyframeTimes(layer) {
+  const times = new Set();
+  for (const list of Object.values(layer.keyframes || {})) {
+    list.forEach(k => times.add(k.time));
+  }
+  return [...times].sort((a,b) => a-b);
+}
+
+export function hasKeyframes(layer) {
+  return Object.values(layer.keyframes || {}).some(l => l.length > 0);
+}
+
+export function getLayerValueAtTime(layer, prop, time) {
+  if (!layer.keyframes?.[prop]?.length) return layer[prop] ?? ANIMATABLE_PROPS[prop]?.default ?? 0;
+  return interpolateKeyframes(layer.keyframes, time)[prop] ?? layer[prop];
+}
+
+export default { interpolateKeyframes, createKeyframe, addKeyframe, removeKeyframe,
+  getAllKeyframeTimes, hasKeyframes, getLayerValueAtTime, ANIMATABLE_PROPS };
