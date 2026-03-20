@@ -124,6 +124,13 @@ export default function NodeCompositorPage() {
     });
   };
 
+  const handleRenderProject = () => {
+    if (graphRunnerRef.current) {
+      const result = graphRunnerRef.current.runFrame(Math.floor(currentTime * 30));
+      console.log("Render result:", result);
+    }
+  };
+
   const addValueNode = () => {
     addNode({
       type: "value",
