@@ -76,7 +76,7 @@ import { useTierAccess } from './hooks/useTierAccess';
 const backendURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
 // =====================================================
-// VIDEO EDITOR API FUNCTIONS - Cloudinary Integration
+// VIDEO EDITOR API FUNCTIONS - R2 + FFmpeg Pipeline
 // =====================================================
 
 // Get authorization headers
@@ -91,7 +91,7 @@ const getAuthHeaders = () => {
 /**
  * Upload a video/audio/image asset for use in editor
  * @param {File} file - The file to upload
- * @returns {Promise<Object>} - Asset data with Cloudinary info
+ * @returns {Promise<Object>} - Asset data with R2 info
  */
 const uploadEditorAsset = async (file) => {
   try {
@@ -172,7 +172,7 @@ const transformVideo = async (clipData) => {
 
 /**
  * Trim a video to specified timestamps
- * @param {string} publicId - Cloudinary public ID
+ * @param {string} publicId - R2 key or asset ID
  * @param {number} startTime - Start time in seconds
  * @param {number} endTime - End time in seconds
  * @returns {Promise<string>} - Trimmed video URL
@@ -204,7 +204,7 @@ const trimVideoClip = async (publicId, startTime, endTime) => {
 
 /**
  * Preview a single effect on a video
- * @param {string} publicId - Cloudinary public ID
+ * @param {string} publicId - R2 key or asset ID
  * @param {string} effectId - Effect identifier
  * @param {number} intensity - Effect intensity (0-100)
  * @returns {Promise<string>} - Preview video URL
@@ -484,8 +484,8 @@ const getAvailableResolutions = async () => {
  */
 const buildClipData = (clip) => {
   return {
-    public_id: clip.cloudinary_public_id || clip.public_id || clip.id,
-    url: clip.r2_url || clip.file_url || clip.cloudinary_public_id || clip.src || clip.url || null,
+    public_id: clip.r2_key || clip.cloudinary_public_id || clip.public_id || clip.id,
+    url: clip.r2_url || clip.file_url || clip.src || clip.url || null,
     trim: clip.inPoint !== undefined && clip.outPoint !== undefined ? {
       start: clip.inPoint,
       end: clip.outPoint
@@ -700,15 +700,15 @@ const MediaBrowser = ({ onFileSelect, onClose, onUploadComplete }) => {
       }]);
 
       try {
-        // Upload to Cloudinary via backend
+        // Upload to R2 via backend
         const asset = await uploadEditorAsset(file);
 
-        // Update with Cloudinary data
+        // Update with R2 data
         setSelectedFiles(prev => prev.map(f =>
           f.id === tempId ? {
             ...f,
             id: asset.public_id || tempId,
-            cloudinary_public_id: asset.public_id,
+            cloudinary_public_id: asset.public_id || asset.r2_key,
             url: asset.url,
             duration: asset.duration ? `${Math.floor(asset.duration / 60)}:${Math.floor(asset.duration % 60).toString().padStart(2, '0')}` : '0:00',
             width: asset.width,
@@ -718,7 +718,7 @@ const MediaBrowser = ({ onFileSelect, onClose, onUploadComplete }) => {
           } : f
         ));
 
-        console.log(`✅ Uploaded ${file.name} to Cloudinary`);
+        console.log(`✅ Uploaded ${file.name} to R2`);
 
         if (onUploadComplete) {
           onUploadComplete(asset);
@@ -3352,12 +3352,12 @@ TIMELINE
         // Upload to Cloudinary
         const asset = await uploadEditorAsset(file);
 
-        // Update with Cloudinary data
+        // Update with R2 data
         setMediaLibrary(prev => prev.map(item =>
           item.id === tempId ? {
             ...item,
             id: asset.public_id || tempId,
-            cloudinary_public_id: asset.public_id,
+            cloudinary_public_id: asset.public_id || asset.r2_key,
             url: asset.url,
             duration: asset.duration
               ? `${Math.floor(asset.duration / 60)}:${Math.floor(asset.duration % 60).toString().padStart(2, '0')}`
