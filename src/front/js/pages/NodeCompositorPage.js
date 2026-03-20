@@ -8,6 +8,8 @@ import ShaderPreviewCanvas from "../component/nodecompositor/vfx/ShaderPreviewCa
 import CompositorTimeline from "../component/compositor/CompositorTimeline";
 import "../../styles/NodeCompositor.css";
 import "../../styles/MotionStudioPro.css";
+import CompositorInspectorPro from "../component/nodecompositor/pro/CompositorInspectorPro";
+import CompositorPreviewPro from "../component/nodecompositor/pro/CompositorPreviewPro";
 
 export default function NodeCompositorPage() {
   const [edges, setEdges] = React.useState([]);
@@ -55,6 +57,10 @@ export default function NodeCompositorPage() {
   }, [nodes.length, setNodes]);
 
   const graphResult = useMemo(() => evaluateGraph(nodes), [nodes]);
+
+  const updateNode = (id, patch) => {
+    setNodes(nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)));
+  };
 
   useEffect(() => {
     let raf = null;
@@ -115,6 +121,44 @@ export default function NodeCompositorPage() {
         <button className="spx-comp-btn spx-comp-btn-accent" onClick={addShaderNode}>
           + Shader Node
         </button>
+
+        <button className="spx-comp-btn" onClick={() => addNode({
+          type: "text",
+          x: 180 + nodes.length * 20,
+          y: 200 + nodes.length * 10,
+          value: "Fusion-style text",
+          color: "#ffffff",
+          fontSize: 42,
+          inputs: {},
+          outputs: {},
+        })}>+ Text Node</button>
+
+        <button className="spx-comp-btn" onClick={() => addNode({
+          type: "merge",
+          x: 260 + nodes.length * 18,
+          y: 180 + nodes.length * 12,
+          params: { blendMode: "screen" },
+          inputs: {},
+          outputs: {},
+        })}>+ Merge Node</button>
+
+        <button className="spx-comp-btn" onClick={() => addNode({
+          type: "blur",
+          x: 280 + nodes.length * 16,
+          y: 220 + nodes.length * 14,
+          params: { amount: 12 },
+          inputs: {},
+          outputs: {},
+        })}>+ Blur Node</button>
+
+        <button className="spx-comp-btn" onClick={() => addNode({
+          type: "transform",
+          x: 220 + nodes.length * 14,
+          y: 260 + nodes.length * 14,
+          params: { tx: 0, ty: 0, scale: 1, rotation: 0 },
+          inputs: {},
+          outputs: {},
+        })}>+ Transform Node</button>
       </div>
 
       <div
@@ -147,22 +191,37 @@ export default function NodeCompositorPage() {
           </div>
         </div>
 
-        <div className="motion-panel">
-          <div className="motion-panel-title">Live Shader Preview</div>
-          <ShaderPreviewCanvas shaderId="basicColor" height={260} />
+        <div style={{ display: "grid", gap: 16 }}>
+          <CompositorPreviewPro
+            nodes={nodes}
+            edges={edges}
+            currentTime={currentTime}
+          />
 
-          <div className="motion-panel-title" style={{ marginTop: 16 }}>Graph Output</div>
-          <pre
-            style={{
-              margin: 0,
-              whiteSpace: "pre-wrap",
-              fontSize: 12,
-              lineHeight: 1.5,
-              color: "#d9eaff",
-            }}
-          >
+          <div className="motion-panel">
+            <div className="motion-panel-title">Live Shader Preview</div>
+            <ShaderPreviewCanvas shaderId="basicColor" height={220} />
+          </div>
+
+          <CompositorInspectorPro
+            selectedNode={nodes.find((n) => n.id === selection.nodeId) || null}
+            updateNode={updateNode}
+          />
+
+          <div className="motion-panel">
+            <div className="motion-panel-title">Graph Output</div>
+            <pre
+              style={{
+                margin: 0,
+                whiteSpace: "pre-wrap",
+                fontSize: 12,
+                lineHeight: 1.5,
+                color: "#d9eaff",
+              }}
+            >
 {JSON.stringify({ currentTime, edges, graphResult }, null, 2)}
-          </pre>
+            </pre>
+          </div>
         </div>
       </div>
     </div>

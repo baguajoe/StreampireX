@@ -1261,3 +1261,35 @@
   text-align: center;
 }
 
+
+/* ================================
+   PRO COMPOSITOR INSPECTOR
+   ================================ */
+
+.spx-pro-inspector-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.spx-pro-inspector-grid label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: #cfe0f2;
+}
+
+.spx-pro-inspector-grid input,
+.spx-pro-inspector-grid select {
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: #eaf6ff;
+  padding: 0 12px;
+}
+
+.spx-pro-inspector-grid input[type="color"] {
+  padding: 4px;
+  height: 42px;
+}
+
