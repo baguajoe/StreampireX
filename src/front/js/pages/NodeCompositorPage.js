@@ -143,59 +143,18 @@ export default function NodeCompositorPage() {
   };
 
   return (
-    <div className="node-compositor-page" style={{ padding: 16 }}>
-      <div className="spx-comp-toolbar">
-        <input
-          className="spx-comp-project-input"
-          value="SPX Compositor"
-          readOnly
-        />
-        <button className="spx-comp-btn spx-comp-btn-primary" onClick={addValueNode}>
-          + Value Node
-        </button>
-        <button className="spx-comp-btn spx-comp-btn-accent" onClick={addShaderNode}>
-          + Shader Node
-        </button>
-
-        <button className="spx-comp-btn" onClick={() => addNode({
-          type: "text",
-          x: 180 + nodes.length * 20,
-          y: 200 + nodes.length * 10,
-          value: "Fusion-style text",
-          color: "#ffffff",
-          fontSize: 42,
-          inputs: {},
-          outputs: {},
-        })}>+ Text Node</button>
-
-        <button className="spx-comp-btn" onClick={() => addNode({
-          type: "merge",
-          x: 260 + nodes.length * 18,
-          y: 180 + nodes.length * 12,
-          params: { blendMode: "screen" },
-          inputs: {},
-          outputs: {},
-        })}>+ Merge Node</button>
-
-        <button className="spx-comp-btn" onClick={() => addNode({
-          type: "blur",
-          x: 280 + nodes.length * 16,
-          y: 220 + nodes.length * 14,
-          params: { amount: 12 },
-          inputs: {},
-          outputs: {},
-        })}>+ Blur Node</button>
-
-        <button className="spx-comp-btn" onClick={() => addNode({
-          type: "transform",
-          x: 220 + nodes.length * 14,
-          y: 260 + nodes.length * 14,
-          params: { tx: 0, ty: 0, scale: 1, rotation: 0 },
-          inputs: {},
-          outputs: {},
-        })}>+ Transform Node</button>
+    <div className="node-compositor-page" style={{ display:"flex", flexDirection:"column", height:"calc(100vh - 60px)", overflow:"hidden" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:8, padding:"4px 12px", background:"#161b22", borderBottom:"1px solid #21262d", flexShrink:0 }}>
+        <span style={{ color:"#00ffc8", fontWeight:700, fontSize:13 }}>🎛️ SPX Compositor</span>
+        <div style={{ width:1, height:20, background:"#21262d", margin:"0 4px" }}/>
+        <button className="spx-comp-btn" onClick={() => setPlaying(p => !p)}>{playing ? "⏸ Pause" : "▶ Play"}</button>
+        <button className="spx-comp-btn" onClick={() => setCurrentTime(0)}>⏮</button>
+        <span style={{ color:"#00ffc8", fontFamily:"monospace", fontSize:11 }}>{currentTime.toFixed(2)}s / {duration}s</span>
+        <div style={{ flex:1 }}/>
+        <button className="spx-comp-btn" onClick={() => setEdges([])}>Clear Edges</button>
+        <button className="spx-comp-btn" onClick={() => { setNodes([]); setEdges([]); }}>Reset</button>
+        <button className="spx-comp-btn spx-comp-btn-primary" onClick={handleRenderProject}>▶ Render</button>
       </div>
-
       {/* ── 3-Panel Fusion-style Layout ── */}
       <div style={{ display:"flex", flex:1, overflow:"hidden", gap:0 }}>
 
