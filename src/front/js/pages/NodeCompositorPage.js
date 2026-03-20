@@ -10,11 +10,16 @@ import "../../styles/NodeCompositor.css";
 import "../../styles/MotionStudioPro.css";
 import CompositorInspectorPro from "../component/nodecompositor/pro/CompositorInspectorPro";
 import CompositorPreviewPro from "../component/nodecompositor/pro/CompositorPreviewPro";
+import RotoOverlayEditor from "../component/nodecompositor/pro/RotoOverlayEditor";
+import TrackerPanelPro from "../component/nodecompositor/pro/TrackerPanelPro";
+import GPUMultiPassPanel from "../component/nodecompositor/pro/GPUMultiPassPanel";
+import RenderQueuePanel from "../component/nodecompositor/pro/RenderQueuePanel";
 
 export default function NodeCompositorPage() {
   const [edges, setEdges] = React.useState([]);
   const [currentTime, setCurrentTime] = React.useState(0);
   const [playing, setPlaying] = React.useState(false);
+  const [rotoShape, setRotoShape] = React.useState({ id: "roto_start", closed: true, feather: 0, invert: false, points: [] });
   const duration = 10;
   const nodes = useEditorStore((s) => s.nodes);
   const setNodes = useEditorStore((s) => s.setNodes);
@@ -198,15 +203,28 @@ export default function NodeCompositorPage() {
             currentTime={currentTime}
           />
 
+          <GPUMultiPassPanel />
+
           <div className="motion-panel">
             <div className="motion-panel-title">Live Shader Preview</div>
             <ShaderPreviewCanvas shaderId="basicColor" height={220} />
           </div>
 
+          <RotoOverlayEditor
+            shape={rotoShape}
+            setShape={setRotoShape}
+            width={640}
+            height={260}
+          />
+
+          <TrackerPanelPro />
+
           <CompositorInspectorPro
             selectedNode={nodes.find((n) => n.id === selection.nodeId) || null}
             updateNode={updateNode}
           />
+
+          <RenderQueuePanel />
 
           <div className="motion-panel">
             <div className="motion-panel-title">Graph Output</div>
@@ -219,7 +237,7 @@ export default function NodeCompositorPage() {
                 color: "#d9eaff",
               }}
             >
-{JSON.stringify({ currentTime, edges, graphResult }, null, 2)}
+{JSON.stringify({ currentTime, edges, rotoShape, graphResult }, null, 2)}
             </pre>
           </div>
         </div>
