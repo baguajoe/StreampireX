@@ -27,7 +27,7 @@ import {
 
 // ── NEW: Motion Graphics & Keyframes ──
 import {
-  EASING, ANIMATABLE_PROPS, createKeyframe, interpolateKeyframes,
+  EASING, ANIMATABLE_PROPS, interpolateKeyframes,
   keyframesToCSS, KeyframeEditor, TEXT_PRESETS, LOWER_THIRD_TEMPLATES,
 } from '../component/VideoEditorMotion';
 
