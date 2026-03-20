@@ -76,6 +76,7 @@ export default function NodeCompositorPage() {
 
   const graphResult = useMemo(() => evaluateGraph(nodes), [nodes]);
 
+  graphRunnerRef.current.setGraph(nodes, edges);
   const engineEvaluation = React.useMemo(() => {
     return graphRunnerRef.current.runFrame(Math.floor(currentTime * 30));
   }, [nodes, edges, currentTime]);
@@ -85,7 +86,7 @@ export default function NodeCompositorPage() {
   };
 
   const updateNode = (id, patch) => {
-    graphRunnerRef.current.invalidateNode(nodes, edges, id);
+    graphRunnerRef.current.invalidateNode(id);
     setNodes(nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)));
   };
 
