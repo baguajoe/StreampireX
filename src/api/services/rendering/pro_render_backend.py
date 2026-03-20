@@ -1,20 +1,25 @@
 from datetime import datetime
-from .node_pass_processor import process_node_passes
 from src.api.services.cache.job_store import save_job
+from .render_worker import execute_render_job
 
-def queue_backend_render(project: dict, format_name: str = "png"):
+def queue_backend_render(project: dict):
     job_id = f"render_{int(datetime.utcnow().timestamp())}"
-    pass_data = process_node_passes(project.get("nodes", []), project.get("edges", []))
+
+    input_media = project.get("input_media")
+    format_name = project.get("format", "mp4")
 
     job = {
         "id": job_id,
         "status": "queued",
-        "format": format_name,
         "created_at": datetime.utcnow().isoformat(),
-        "project_name": project.get("name", "SPX Compositor"),
-        "pass_data": pass_data,
-        "backend_required": format_name in ["exr", "prores"],
-        "persistent_cache": True
+        "input_media": input_media,
+        "format": format_name,
+        "project_name": project.get("name", "SPX Project")
     }
+
     save_job(job)
+
+    # 🔥 immediate execution (can later move to async worker)
+    execute_render_job(job_id)
+
     return job

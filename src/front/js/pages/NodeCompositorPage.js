@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo } from "react";
+import React
+import { requestRender } from '../utils/render/renderClient', { useEffect, useMemo } from "react";
 import { useEditorStore } from "../store/useEditorStore";
 import NodeGraph from "../component/compositor/NodeGraph";
 import NodeGraphPro from "../component/compositor/NodeGraphPro";
@@ -214,7 +215,9 @@ export default function NodeCompositorPage() {
 
           <MediaIngestPanel onAddMediaNode={addMediaNodeFromPanel} />
 
-          <GPUMultiPassPanel />
+          <button onClick={handleRenderProject} className='spx-comp-btn spx-comp-btn-primary'>Render Project</button>
+
+<GPUMultiPassPanel />
 
           <div className="motion-panel">
             <div className="motion-panel-title">Live Shader Preview</div>
