@@ -1,5 +1,5 @@
-import React
-import { requestRender } from '../utils/render/renderClient', { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
+import { requestRender } from "../utils/render/renderClient";
 import { useEditorStore } from "../store/useEditorStore";
 import NodeGraph from "../component/compositor/NodeGraph";
 import NodeGraphPro from "../component/compositor/NodeGraphPro";
