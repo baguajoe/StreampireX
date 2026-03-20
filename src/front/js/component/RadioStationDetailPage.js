@@ -50,6 +50,12 @@ const RadioStationDetailPage = () => {
 
   // Social share state
   const [showShareModal, setShowShareModal] = useState(false);
+  const [needsGesture, setNeedsGesture] = useState(true);
+
+  const handleFirstPlay = useCallback(() => {
+    setNeedsGesture(false);
+    handlePlayPause();
+  }, [handlePlayPause]);
 
   // Refs
   const audioRef = useRef(null);
@@ -1266,6 +1272,39 @@ const RadioStationDetailPage = () => {
           )}
         </div>
       </div>
+
+      {/* ── Click to Listen Overlay ── */}
+      {needsGesture && station && (
+        <div style={{
+          position:"fixed", inset:0, background:"rgba(6,6,15,0.92)",
+          backdropFilter:"blur(12px)", zIndex:500,
+          display:"flex", flexDirection:"column",
+          alignItems:"center", justifyContent:"center", gap:24,
+        }}
+          onClick={handleFirstPlay}
+        >
+          <div style={{
+            width:120, height:120, borderRadius:"50%",
+            background:"rgba(0,255,200,0.1)", border:"2px solid #00ffc8",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            fontSize:48, cursor:"pointer",
+            boxShadow:"0 0 60px rgba(0,255,200,0.3)",
+            animation:"pulse 2s ease-in-out infinite",
+          }}>▶</div>
+          <div style={{textAlign:"center"}}>
+            <div style={{fontSize:22,fontWeight:800,color:"#e6edf3",marginBottom:8}}>
+              {station.name}
+            </div>
+            <div style={{fontSize:14,color:"#8b949e"}}>
+              Click anywhere to start listening
+            </div>
+            <div style={{fontSize:12,color:"#4e6a82",marginTop:4}}>
+              {station.genre} · {station.is_live ? "🔴 Live" : "📻 On-Air"}
+            </div>
+          </div>
+          <style>{`@keyframes pulse{0%,100%{box-shadow:0 0 60px rgba(0,255,200,0.3)}50%{box-shadow:0 0 80px rgba(0,255,200,0.5)}}`}</style>
+        </div>
+      )}
 
       {/* Social Share Modal */}
       <UniversalSocialShare

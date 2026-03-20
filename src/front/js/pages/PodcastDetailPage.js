@@ -168,6 +168,18 @@ const PodcastDetailPage = () => {
               <button className="action-btn record-btn" onClick={() => navigate("/podcast-studio")}>
                 🎙️ Record Episode
               </button>
+              <button className="action-btn rss-btn"
+                onClick={() => {
+                  const rssUrl = `${process.env.REACT_APP_BACKEND_URL}/api/podcast/${id}/feed.xml`;
+                  navigator.clipboard.writeText(rssUrl).then(() => {
+                    alert("✅ RSS feed URL copied!\n\n" + rssUrl + "\n\nPaste this into Spotify, Apple Podcasts, Google Podcasts, or any podcast app.");
+                  }).catch(() => {
+                    prompt("Copy your RSS feed URL:", rssUrl);
+                  });
+                }}
+                title="Copy RSS feed URL for Spotify, Apple Podcasts, etc.">
+                📡 RSS Feed
+              </button>
               <TipJar creatorId={podcast.user_id||podcast.creator_id}
                 creatorName={podcast.host_name||podcast.creator_name||podcast.title}
                 contentType="podcast" contentId={id} buttonStyle="inline"/>

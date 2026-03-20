@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useContext } from "react";
 import { Context } from "../store/appContext";
 import "../../styles/DJMixer.css";
+import MidiHardwareInput from "../component/MidiHardwareInput";
 
 const BACKEND = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -475,7 +476,17 @@ export default function DJMixer(){
   const [saveModal,setSaveModal]=useState(false);
   const [mixTitle,setMixTitle]=useState("");
   const [saving,setSaving]=useState(false);
-  const [activeTab,setActiveTab]=useState("decks"); // decks | sampler
+  const [activeTab,setActiveTab]=useState("decks");
+  const [midiEnabled,setMidiEnabled]=useState(false);
+  const [midiMap,setMidiMap]=useState({
+    // CC -> action mapping (customizable)
+    1:  "xfader",    // mod wheel -> crossfader
+    7:  "vol_a",     // ch7 -> deck A volume
+    8:  "vol_b",     // ch8 -> deck B volume
+    10: "low_a",     // ch10 -> deck A low EQ
+    11: "mid_a",     // ch11 -> deck A mid EQ
+    74: "filter_a",  // ch74 -> deck A filter
+  }); // decks | sampler
   const mgRef=useRef(null),xgA=useRef(null),xgB=useRef(null),recRef=useRef(null),chunks=useRef([]),rafRef=useRef(null);
 
   const initAudio=useCallback(()=>{
@@ -679,6 +690,41 @@ export default function DJMixer(){
     }
   }, [ds, store]);
 
+  const handleMidiCC = useCallback((cc, val) => {
+    const norm = val / 127;
+    const action = midiMap[cc];
+    if (!action) return;
+    switch(action) {
+      case "xfader":   setXf(norm); break;
+      case "vol_a":    deckA.setGain(norm*1.5); upd("A",{vol:norm*1.5}); break;
+      case "vol_b":    deckB.setGain(norm*1.5); upd("B",{vol:norm*1.5}); break;
+      case "low_a":    deckA.setEQ("low",(norm-0.5)*24); upd("A",{low:(norm-0.5)*24}); break;
+      case "mid_a":    deckA.setEQ("mid",(norm-0.5)*24); upd("A",{mid:(norm-0.5)*24}); break;
+      case "high_a":   deckA.setEQ("high",(norm-0.5)*24); upd("A",{high:(norm-0.5)*24}); break;
+      case "low_b":    deckB.setEQ("low",(norm-0.5)*24); upd("B",{low:(norm-0.5)*24}); break;
+      case "filter_a": deckA.setFX("Filter",norm); break;
+      case "filter_b": deckB.setFX("Filter",norm); break;
+      default: break;
+    }
+  }, [midiMap, xf]);
+
+  const handleMidiNote = useCallback((note, vel, deckId) => {
+    const dk = deckId === "B" ? deckB : deckA;
+    // Pad notes 36-43 = hot cues 1-8
+    if (note >= 36 && note <= 43) {
+      const hcIdx = note - 36;
+      if (hcIdx < 4) { dk.jumpHotcue(hcIdx); upd(deckId,{hotcues:[...dk.hotcues]}); }
+    }
+    // Note 44 = play/pause A, 45 = play/pause B
+    if (note === 44) togglePlay("A");
+    if (note === 45) togglePlay("B");
+    // Note 46 = sync
+    if (note === 46) syncBPM();
+    // Note 47 = cue A
+    if (note === 47) { deckA.setCue(); upd("A",{}); }
+    if (note === 48) { deckB.setCue(); upd("B",{}); }
+  }, []);
+
   const HC_COLORS=["#ff4466","#00aaff","#00ff88","#ff8800"];
 
   const renderDeck=(id)=>{
@@ -859,6 +905,12 @@ export default function DJMixer(){
         <div className="dj-top-acts">
           <button className="dj-sync" onClick={syncBPM}>⟳ SYNC</button>
           <button className="dj-mst-btn" onClick={()=>setMaster(m=>m==="A"?"B":"A")}>MASTER: {master}</button>
+          <button className={`dj-tab ${midiEnabled?"active":""}`}
+            style={{borderColor:midiEnabled?"#ffd60a":"",color:midiEnabled?"#ffd60a":""}}
+            onClick={()=>setMidiEnabled(m=>!m)}
+            title="Toggle MIDI controller">
+            🎹 MIDI
+          </button>
           {!rec?<button className="dj-rec" onClick={startRec}>⏺ REC</button>:<button className="dj-rec on" onClick={stopRec}>⏹ STOP</button>}
           {recBlob&&<><button className="dj-exp" onClick={dlMix}>⬇ Download</button><button className="dj-exp save" onClick={()=>setSaveModal(true)}>☁ Save</button></>}
           {rec&&<div className="dj-rec-live"><span className="dj-rec-dot"/>REC</div>}
@@ -927,6 +979,35 @@ export default function DJMixer(){
           </div>
 
           {renderDeck("B")}
+        </div>
+      )}
+
+      {/* ── MIDI Controller Panel ── */}
+      {midiEnabled&&(
+        <div style={{position:"fixed",bottom:220,right:16,zIndex:100,width:320}}>
+          <MidiHardwareInput
+            drumMode={false}
+            onNoteOn={(note,vel)=>handleMidiNote(note,vel,"A")}
+            onNoteOff={()=>{}}
+            onCC={(cc,val)=>handleMidiCC(cc,val)}
+            onPitchBend={(val)=>{
+              const norm=(val+8192)/16384;
+              deckA.pitch=0.85+norm*0.3;
+              if(deckA.source)deckA.source.playbackRate.value=deckA.pitch;
+              upd("A",{pitch:deckA.pitch});
+            }}
+            onPadTrigger={(pad)=>handleMidiNote(36+pad,127,"A")}
+          />
+          {/* MIDI Mapping Table */}
+          <div style={{background:"#0d1117",border:"1px solid #21262d",borderRadius:8,padding:12,marginTop:8,fontSize:10,color:"#8b949e"}}>
+            <div style={{color:"#ffd60a",fontWeight:800,marginBottom:8,letterSpacing:1}}>MIDI MAP</div>
+            {Object.entries(midiMap).map(([cc,action])=>(
+              <div key={cc} style={{display:"flex",justifyContent:"space-between",padding:"2px 0",borderBottom:"1px solid #161b22"}}>
+                <span style={{color:"#4e6a82"}}>CC {cc}</span>
+                <span style={{color:"#dde6ef"}}>{action}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

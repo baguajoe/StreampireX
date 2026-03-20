@@ -475,3 +475,10 @@
   .episode-item { grid-template-columns: auto 1fr; }
   .episode-actions { display: none; }
 }
+
+.rss-btn {
+  background: rgba(255,102,0,0.08);
+  border-color: rgba(255,102,0,0.25);
+  color: #ff6600;
+}
+.rss-btn:hover { background: rgba(255,102,0,0.15); border-color: #ff6600; }
