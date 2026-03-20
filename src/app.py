@@ -34,7 +34,7 @@ if not os.getenv("JWT_SECRET_KEY"):
 
 # ✅ NOW import from src - path is set up
 from api.email_service import init_mail
-from flask import Flask
+from flask import Flask, request, send_from_directory
 from flask_migrate import Migrate
 from flask_mail import Mail, Message as MailMessage
 from flask_jwt_extended import JWTManager, decode_token, exceptions as jwt_exceptions
