@@ -196,26 +196,52 @@ export default function NodeCompositorPage() {
         })}>+ Transform Node</button>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 340px",
-          gap: 16,
-          alignItems: "start",
-        }}
-      >
-        <div className="motion-panel">
-          <div className="motion-panel-title">Node Graph</div>
-          <NodeGraphPro
-            nodes={nodes}
-            edges={edges}
-            selectedId={selection.nodeId}
-            onSelect={(id) => setSelection({ nodeId: id })}
-            onNodesChange={setNodes}
-            onEdgesChange={setEdges}
-          />
+      {/* ── 3-Panel Fusion-style Layout ── */}
+      <div style={{ display:"flex", flex:1, overflow:"hidden", gap:0 }}>
 
-          <div style={{ marginTop: 16 }}>
+        {/* LEFT — Node Library + Inspector */}
+        <div style={{ width:280, background:"#0d1117", borderRight:"1px solid #21262d",
+          display:"flex", flexDirection:"column", overflowY:"auto", flexShrink:0 }}>
+
+          <div style={{ padding:"8px 10px", borderBottom:"1px solid #21262d" }}>
+            <div style={{ color:"#8b949e", fontSize:10, textTransform:"uppercase", letterSpacing:1, marginBottom:6 }}>Node Library</div>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+              {[
+                ["Media","media"],["Text","text"],["Solid","solid"],["Gradient","gradient"],
+                ["Merge","merge"],["Over","over"],["Multiply","multiply"],["Screen","screen"],
+                ["Blur","blur"],["Sharpen","sharpen"],["ChromaKey","chromakey"],["LUT","lut"],
+                ["Transform","transform"],["Crop","crop"],["ColorGrade","colorgrade"],
+                ["Roto","roto"],["Mask","mask"],["Shader","shader"],["Particles","particles"],["Output","output"],
+              ].map(([label,type]) => (
+                <button key={type} onClick={() => addNode({
+                  type, x:120+nodes.length*20, y:100+nodes.length*15,
+                  properties:{name:label}, inputs:{}, outputs:{},
+                })} style={{ padding:"2px 6px", borderRadius:3, cursor:"pointer", fontSize:9, fontWeight:700,
+                  background:"#21262d", color:"#8b949e", border:"none", marginBottom:2 }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <MediaIngestPanel onAddMediaNode={addMediaNodeFromPanel} />
+          <ColorPipelinePanel />
+          <TrackerPanelPro />
+        </div>
+
+        {/* CENTER — Node Graph + Timeline */}
+        <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          <div style={{ flex:1, overflow:"hidden", position:"relative" }}>
+            <NodeGraphPro
+              nodes={nodes}
+              edges={edges}
+              selectedId={selection.nodeId}
+              onSelect={(id) => setSelection({ nodeId: id })}
+              onNodesChange={setNodes}
+              onEdgesChange={setEdges}
+            />
+          </div>
+          <div style={{ borderTop:"1px solid #21262d", flexShrink:0 }}>
             <CompositorTimeline
               currentTime={currentTime}
               duration={duration}
@@ -226,49 +252,38 @@ export default function NodeCompositorPage() {
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 16 }}>
-          <CompositorPreviewPro
-            nodes={nodes}
-            edges={edges}
-            currentTime={currentTime}
-          />
+        {/* RIGHT — Preview + Inspector + Panels */}
+        <div style={{ width:340, background:"#0d1117", borderLeft:"1px solid #21262d",
+          display:"flex", flexDirection:"column", overflowY:"auto", flexShrink:0 }}>
 
-          <MediaIngestPanel onAddMediaNode={addMediaNodeFromPanel} />
-
-          <button onClick={handleRenderProject} className='spx-comp-btn spx-comp-btn-primary'>Render Project</button>
-
-<GPUMultiPassPanel />
-
-          <div className="motion-panel">
-            <div className="motion-panel-title">Live Shader Preview</div>
-            <ShaderPreviewCanvas shaderId="basicColor" height={220} />
-          </div>
-
-          <RotoTimelinePanel />
-
-          <RotoOverlayEditor
-            shape={rotoShape}
-            setShape={setRotoShape}
-            width={640}
-            height={260}
-          />
-
-          <TrackerPanelPro />
-
-          <ColorPipelinePanel />
+          <CompositorPreviewPro nodes={nodes} edges={edges} currentTime={currentTime} />
 
           <CompositorInspectorPro
-            selectedNode={nodes.find((n) => n.id === selection.nodeId) || null}
+            selectedNode={nodes.find(n => n.id === selection.nodeId) || null}
             updateNode={updateNode}
           />
 
+          <GPUMultiPassPanel />
+
+          <div className="motion-panel">
+            <div className="motion-panel-title">Live Shader Preview</div>
+            <ShaderPreviewCanvas shaderId="basicColor" height={180} />
+          </div>
+
+          <RotoOverlayEditor shape={rotoShape} setShape={setRotoShape} width={320} height={180} />
+          <RotoTimelinePanel />
           <RenderQueuePanel />
-
           <BackendRenderPanel />
-
           <DependencyGraphPanel nodes={nodes} edges={edges} />
-
           <NodeEnginePanel frame={Math.floor(currentTime * 30)} evaluation={engineEvaluation} />
+
+          <div style={{ padding:8 }}>
+            <button onClick={handleRenderProject}
+              style={{ width:"100%", padding:"8px", borderRadius:6, cursor:"pointer",
+                fontWeight:700, fontSize:12, background:"#00ffc8", color:"#000", border:"none" }}>
+              ▶ Render Project
+            </button>
+          </div>
 
           <div className="motion-panel">
             <div className="motion-panel-title">Graph Output</div>
