@@ -1,166 +1,170 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import "../../styles/MotionStudio.css";
+import "../../styles/MotionStudioPro.css";
 
-import MotionToolbar from "../component/motionstudio/MotionToolbar";
-import MotionLayerPanel from "../component/motionstudio/MotionLayerPanel";
-import MotionPropertyInspector from "../component/motionstudio/MotionPropertyInspector";
-import MotionKeyframePanel from "../component/motionstudio/MotionKeyframePanel";
-import MotionPathPanel from "../component/motionstudio/MotionPathPanel";
-import MotionKeyframeEditorPanel from "../component/motionstudio/MotionKeyframeEditorPanel";
-import MotionTimelinePanel from "../component/motionstudio/MotionTimelinePanel";
-
-import useMotionStudioState from "../component/motionstudio/useMotionStudioState";
-import useMotionEngine from "../component/motionstudio/engine/useMotionEngine";
-import useMotionPlayback from "../component/motionstudio/engine/useMotionPlayback";
-import useMotionCamera from "../component/motionstudio/engine/useMotionCamera";
-import useMotionExport from "../component/motionstudio/engine/useMotionExport";
-
-import MotionPreviewStageV2 from "../component/motionstudio/MotionPreviewStageV2";
-import MotionGraphEditorV2 from "../component/motionstudio/MotionGraphEditorV2";
-import MotionCameraPanelV2 from "../component/motionstudio/MotionCameraPanelV2";
-import MotionMaskEffectsPanel from "../component/motionstudio/MotionMaskEffectsPanel";
-import MotionPresetManagerPanel from "../component/motionstudio/MotionPresetManagerPanel";
-import MotionExportPanel from "../component/motionstudio/MotionExportPanel";
-import MotionEngineDebugPanel from "../component/motionstudio/MotionEngineDebugPanel";
+import { useEditorStore } from "../store/useEditorStore";
+import usePlaybackEngine from "../hooks/usePlaybackEngine";
+import { renderLayers } from "../utils/motionstudio/renderEngine";
+import { exportFrame, exportProject } from "../utils/export/exportEngine";
 
 export default function MotionStudioPage() {
-  const state = useMotionStudioState();
-  const motionEngine = useMotionEngine();
-  const motionCamera = useMotionCamera();
-  const previewStageRef = useRef(null);
+  const canvasRef = useRef(null);
 
-  const motionExport = useMotionExport({
-    layers: motionEngine.layers,
-    camera: motionCamera.camera,
-    canvasRef: {
-      get current() {
-        return previewStageRef.current?.getCanvas?.() || null;
-      }
+  const timeline = useEditorStore((s) => s.timeline);
+  const layers = useEditorStore((s) => s.layers);
+  const setTime = useEditorStore((s) => s.setTime);
+  const togglePlay = useEditorStore((s) => s.togglePlay);
+  const addLayer = useEditorStore((s) => s.addLayer);
+  const setLayers = useEditorStore((s) => s.setLayers);
+
+  usePlaybackEngine();
+
+  useEffect(() => {
+    if (!layers.length) {
+      setLayers([
+        {
+          id: "title_1",
+          type: "text",
+          text: "SPX Motion",
+          subtitle: "Unified playback + render engine",
+          x: 480,
+          y: 220,
+          color: "#ffffff",
+          fontSize: 56,
+          fontWeight: 800,
+          z: 1,
+          effects: [{ type: "blur", value: 0 }],
+        },
+        {
+          id: "shape_1",
+          type: "shape",
+          x: 390,
+          y: 300,
+          width: 180,
+          height: 80,
+          color: "#00ffc8",
+          z: 0,
+          opacity: 0.9,
+          animate: true,
+          speed: 1.25,
+          amplitude: 16,
+        },
+      ]);
     }
-  });
+  }, [layers.length, setLayers]);
 
-  useMotionPlayback({
-    isPlaying: motionEngine.isPlaying,
-    currentTime: motionEngine.currentTime,
-    setCurrentTime: motionEngine.setCurrentTime,
-    duration: motionEngine.duration,
-    loopRegion: motionEngine.loopRegion,
-  });
+  useEffect(() => {
+    let raf = null;
+
+    const draw = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        raf = requestAnimationFrame(draw);
+        return;
+      }
+
+      const ctx = canvas.getContext("2d");
+      renderLayers(ctx, layers, timeline.currentTime);
+      raf = requestAnimationFrame(draw);
+    };
+
+    draw();
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [layers, timeline.currentTime]);
+
+  const handleAddText = () => {
+    addLayer({
+      type: "text",
+      text: "New Text",
+      subtitle: "SPX Motion Layer",
+      x: 480,
+      y: 360,
+      color: "#ff9f45",
+      fontSize: 40,
+      fontWeight: 700,
+      z: layers.length,
+    });
+  };
+
+  const handleExportFrame = () => {
+    if (canvasRef.current) exportFrame(canvasRef.current, "spx-motion-frame");
+  };
+
+  const handleExportProject = () => {
+    exportProject({ timeline, layers }, "spx-motion-project");
+  };
 
   return (
-    <div className="motion-studio-page">
-      <MotionToolbar
-        addTextLayer={motionEngine.addTextLayer}
-        addLowerThirdLayer={motionEngine.addLowerThirdLayer}
-        isPlaying={motionEngine.isPlaying}
-        setIsPlaying={motionEngine.setIsPlaying}
-        currentTime={motionEngine.currentTime}
-        setCurrentTime={motionEngine.setCurrentTime}
-        duration={motionEngine.duration}
-      />
+    <div className="motion-studio-page" style={{ padding: 16 }}>
+      <div className="spx-comp-toolbar">
+        <input
+          className="spx-comp-project-input"
+          value={timeline.currentTime.toFixed(2)}
+          readOnly
+        />
+        <button className="spx-comp-btn spx-comp-btn-primary" onClick={togglePlay}>
+          {timeline.playing ? "Pause" : "Play"}
+        </button>
+        <button className="spx-comp-btn" onClick={() => setTime(0)}>
+          Rewind
+        </button>
+        <button className="spx-comp-btn" onClick={handleAddText}>
+          + Text Layer
+        </button>
+        <button className="spx-comp-btn spx-comp-btn-accent" onClick={handleExportFrame}>
+          Export Frame
+        </button>
+        <button className="spx-comp-btn" onClick={handleExportProject}>
+          Export Project
+        </button>
+      </div>
 
-      <div className="motion-studio-layout" style={{ display: "grid", gridTemplateColumns: "280px 1fr 340px", gap: 16 }}>
-        <div className="motion-left" style={{ display: "grid", gap: 16 }}>
-          <MotionLayerPanel
-            layers={state.layers}
-            selectedLayerId={state.selectedLayerId}
-            setSelectedLayerId={state.setSelectedLayerId}
-            removeLayer={state.removeLayer}
-          />
-
-          <MotionPresetManagerPanel
-            selectedLayer={motionEngine.selectedLayer}
-            updateLayer={motionEngine.updateLayer}
-            setLayers={motionEngine.setLayers}
-          />
-        </div>
-
-        <div className="motion-center" style={{ display: "grid", gap: 16 }}>
-          <MotionPreviewStageV2
-            ref={previewStageRef}
-            layers={motionEngine.evaluatedLayers}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 320px",
+          gap: 16,
+          alignItems: "start",
+        }}
+      >
+        <div className="motion-panel">
+          <div className="motion-panel-title">Preview</div>
+          <canvas
+            ref={canvasRef}
             width={960}
             height={540}
-            showTitleSafe={true}
-            camera={motionCamera.camera}
-          />
-
-          <MotionTimelinePanel
-            layers={state.layers}
-            duration={state.duration}
-            currentTime={state.currentTime}
-            setCurrentTime={state.setCurrentTime}
-            selectedLayerId={state.selectedLayerId}
-            setSelectedLayerId={state.setSelectedLayerId}
-            updateLayer={state.updateLayer}
-            setDuration={state.setDuration}
-            selectedKeyframeRef={state.selectedKeyframeRef}
-            setSelectedKeyframeRef={state.setSelectedKeyframeRef}
-            loopRegion={state.loopRegion}
-            setLoopRegion={state.setLoopRegion}
-            timelineZoom={state.timelineZoom}
-            setTimelineZoom={state.setTimelineZoom}
-          />
-
-          <MotionGraphEditorV2
-            selectedLayer={motionEngine.selectedLayer}
-            updateLayer={motionEngine.updateLayer}
+            style={{
+              width: "100%",
+              maxWidth: 960,
+              borderRadius: 14,
+              border: "1px solid rgba(0,255,200,0.12)",
+              background: "#0b1220",
+            }}
           />
         </div>
 
-        <div className="motion-right" style={{ display: "grid", gap: 16 }}>
-          <MotionPropertyInspector
-            selectedLayer={state.selectedLayer}
-            updateLayer={state.updateLayer}
-          />
-
-          <MotionKeyframePanel
-            selectedLayer={state.selectedLayer}
-            currentTime={state.currentTime}
-            duration={state.duration}
-            addKeyframeToSelected={state.addKeyframeToSelected}
-            removeKeyframeFromSelected={state.removeKeyframeFromSelected}
-          />
-
-          <MotionPathPanel
-            pathPresets={state.pathPresets}
-            selectedPathPreset={state.selectedPathPreset}
-            setSelectedPathPreset={state.setSelectedPathPreset}
-            applyPathPresetToSelected={state.applyPathPresetToSelected}
-            clearPathFromSelected={state.clearPathFromSelected}
-            selectedLayer={state.selectedLayer}
-          />
-
-          <MotionKeyframeEditorPanel
-            selectedLayer={state.selectedLayer}
-            currentTime={state.currentTime}
-            updateLayer={state.updateLayer}
-            selectedKeyframeRef={state.selectedKeyframeRef}
-            setSelectedKeyframeRef={state.setSelectedKeyframeRef}
-          />
-
-          <MotionCameraPanelV2
-            camera={motionCamera.camera}
-            updateCamera={motionCamera.updateCamera}
-            resetCamera={motionCamera.resetCamera}
-          />
-
-          <MotionMaskEffectsPanel
-            selectedLayer={motionEngine.selectedLayer}
-            updateLayer={motionEngine.updateLayer}
-          />
-
-          <MotionExportPanel
-            settings={motionExport.settings}
-            setSettings={motionExport.setSettings}
-            exportFrame={motionExport.exportFrame}
-            exportProject={motionExport.exportProject}
-          />
-
-          <MotionEngineDebugPanel
-            evaluatedLayers={motionEngine.evaluatedLayers}
-            currentTime={motionEngine.currentTime}
-          />
+        <div className="motion-panel">
+          <div className="motion-panel-title">Layers</div>
+          <div style={{ display: "grid", gap: 10 }}>
+            {layers.map((layer) => (
+              <div
+                key={layer.id}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "rgba(255,255,255,0.03)",
+                }}
+              >
+                <div style={{ fontWeight: 700 }}>{layer.type}</div>
+                <div style={{ fontSize: 12, opacity: 0.78 }}>
+                  {layer.text || layer.id}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
