@@ -218,28 +218,29 @@ export default function NodeCompositorPage() {
 
   return (
     <div className="node-compositor-page" style={{ padding: 16 }}>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
+      <div className="spx-comp-toolbar">
         <input
+          className="spx-comp-project-input"
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
-          style={{ minWidth: 220 }}
+          placeholder="Project Name"
         />
-        <button onClick={seedStarterGraph}>Starter Graph</button>
-        <button onClick={() => addNode("mediaIn", 120, 120)}>+ Media</button>
-        <button onClick={() => addNode("text", 120, 240)}>+ Text</button>
-        <button onClick={() => addNode("merge", 360, 180)}>+ Merge</button>
-        <button onClick={() => addNode("output", 640, 180)}>+ Output</button>
-        <button onClick={duplicateSelectedNode} disabled={!selectedNode}>Duplicate</button>
-        <button onClick={removeSelectedNode} disabled={!selectedNode}>Delete</button>
-        <button onClick={importMotionMedia} disabled={!motionPayload?.url}>Add Motion Media</button>
+        <button className="spx-comp-btn spx-comp-btn-primary" onClick={seedStarterGraph}>Starter Graph</button>
+        <button className="spx-comp-btn" onClick={() => addNode("mediaIn", 120, 120)}>+ Media</button>
+        <button className="spx-comp-btn" onClick={() => addNode("text", 120, 240)}>+ Text</button>
+        <button className="spx-comp-btn" onClick={() => addNode("merge", 360, 180)}>+ Merge</button>
+        <button className="spx-comp-btn" onClick={() => addNode("output", 640, 180)}>+ Output</button>
+        <button className="spx-comp-btn" onClick={duplicateSelectedNode} disabled={!selectedNode}>Duplicate</button>
+        <button className="spx-comp-btn spx-comp-btn-danger" onClick={removeSelectedNode} disabled={!selectedNode}>Delete</button>
+        <button className="spx-comp-btn spx-comp-btn-accent" onClick={importMotionMedia} disabled={!motionPayload?.url}>Add Motion Media</button>
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <button className={toolTab === "graph" ? "active" : ""} onClick={() => setToolTab("graph")}>Graph</button>
-        <button className={toolTab === "export" ? "active" : ""} onClick={() => setToolTab("export")}>Video Export</button>
-        <button className={toolTab === "beat" ? "active" : ""} onClick={() => setToolTab("beat")}>Beat Sync</button>
-        <button className={toolTab === "auto" ? "active" : ""} onClick={() => setToolTab("auto")}>AI Auto Edit</button>
-        <button className={toolTab === "vfx" ? "active" : ""} onClick={() => setToolTab("vfx")}>VFX</button>
+      <div className="spx-comp-tabs">
+        <button className={`spx-comp-tab ${toolTab === "graph" ? "active" : ""}`} onClick={() => setToolTab("graph")}>Graph</button>
+        <button className={`spx-comp-tab ${toolTab === "export" ? "active" : ""}`} onClick={() => setToolTab("export")}>Video Export</button>
+        <button className={`spx-comp-tab ${toolTab === "beat" ? "active" : ""}`} onClick={() => setToolTab("beat")}>Beat Sync</button>
+        <button className={`spx-comp-tab ${toolTab === "auto" ? "active" : ""}`} onClick={() => setToolTab("auto")}>AI Auto Edit</button>
+        <button className={`spx-comp-tab ${toolTab === "vfx" ? "active" : ""}`} onClick={() => setToolTab("vfx")}>VFX</button>
       </div>
 
       {toolTab === "graph" && (
