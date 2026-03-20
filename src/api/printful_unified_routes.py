@@ -5,26 +5,41 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 printful_unified_bp = Blueprint("printful_unified", __name__)
 
-PRINTFUL_API_URL = "https://api.printful.com"
-PRINTFUL_API_KEY = os.environ.get("PRINTFUL_API_KEY", "")
+PRINTFUL_API_URL   = "https://api.printful.com"
+PRINTFUL_CLIENT_ID = os.environ.get("PRINTFUL_CLIENT_ID", "")
+PRINTFUL_SECRET    = os.environ.get("PRINTFUL_CLIENT_SECRET", "")
 
-def pf_headers():
-    return {"Authorization": f"Bearer {PRINTFUL_API_KEY}", "Content-Type": "application/json"}
+_catalog_token = {"token": None}
 
-# ── Category map for Printful product types ──
-CATEGORY_MAP = {
-    "T-shirts": "T-Shirts", "Men\'s T-Shirts": "T-Shirts", "Women\'s T-Shirts": "T-Shirts",
-    "Kids T-Shirts": "T-Shirts", "Hoodies": "Hoodies", "Sweatshirts": "Hoodies",
-    "Hats": "Hats", "Caps": "Hats", "Beanies": "Hats",
-    "Tote Bags": "Bags", "Backpacks": "Bags", "Bags": "Bags",
-    "Mugs": "Mugs", "Drinkware": "Mugs",
-    "Posters": "Posters", "Canvas": "Posters", "Prints": "Posters",
-    "Phone Cases": "Accessories", "Pillows": "Accessories",
-    "Leggings": "Apparel", "Shorts": "Apparel", "Joggers": "Apparel",
-    "Jackets": "Jackets", "Long Sleeve Shirts": "T-Shirts",
-    "Tank Tops": "T-Shirts", "Crop Tops": "T-Shirts",
-    "Stickers": "Accessories", "Socks": "Accessories",
-}
+def get_app_token():
+    """Get OAuth2 client_credentials token for catalog/public endpoints."""
+    if _catalog_token["token"]:
+        return _catalog_token["token"]
+    try:
+        res = requests.post(
+            "https://www.printful.com/oauth/token",
+            data={
+                "grant_type":    "client_credentials",
+                "client_id":     PRINTFUL_CLIENT_ID,
+                "client_secret": PRINTFUL_SECRET,
+            },
+            timeout=10
+        )
+        if res.ok:
+            _catalog_token["token"] = res.json().get("access_token", "")
+            return _catalog_token["token"]
+    except Exception as e:
+        print(f"Printful token error: {e}")
+    return ""
+
+def pf_headers(user_token=None):
+    token = user_token or get_app_token()
+    return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+def get_user_token(user_id):
+    """Get per-user OAuth token if they connected their Printful store."""
+    user = User.query.get(user_id)
+    return getattr(user, "printful_access_token", None)
 
 @printful_unified_bp.route("/catalog", methods=["GET"])
 @jwt_required()
@@ -133,6 +148,7 @@ def get_product_detail(product_id):
 @jwt_required()
 def generate_mockup():
     user_id = get_jwt_identity()
+    user_token = get_user_token(user_id)
     data = request.json
     payload = {
         "variant_ids": data.get("variant_ids", []),
@@ -142,7 +158,7 @@ def generate_mockup():
     try:
         res = requests.post(
             f"{PRINTFUL_API_URL}/mockup-generator/create-task/{data.get('product_id')}",
-            json=payload, headers=pf_headers(), timeout=30
+            json=payload, headers=pf_headers(user_token), timeout=30
         )
         return jsonify(res.json()), res.status_code
     except Exception as e:
