@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useContext } from "rea
 import { Context } from "../store/appContext";
 import "../../styles/DJMixer.css";
 import MidiHardwareInput from "../component/MidiHardwareInput";
+import DVSTimecode from "../component/DVSTimecode";
 
 const BACKEND = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -860,6 +861,26 @@ export default function DJMixer(){
             <span className="dj-fv">{Math.round(s.vol*100)}%</span>
           </div>
         </div>
+
+        {/* ── DVS Timecode ── */}
+        <DVSTimecode
+          deckId={id}
+          color={color}
+          audioCtx={getCtx}
+          onPitch={(p) => {
+            dk.pitch = Math.abs(p);
+            if (dk.source) dk.source.playbackRate.value = Math.abs(p);
+            upd(id, {pitch: Math.abs(p)});
+            // Reverse play
+            if (p < 0 && dk.playing) {
+              dk.pause();
+              upd(id, {playing: false});
+            }
+          }}
+          onPosition={(pos) => {
+            // Sync playhead to vinyl position
+          }}
+        />
 
         {/* ── Load ── */}
         <div className="dj-load-sec">
