@@ -159,6 +159,7 @@
     "react-toastify": "^11.0.5",
     "recharts": "^2.15.4",
     "socket.io-client": "^4.8.1",
-    "styled-components": "^6.1.15"
+    "styled-components": "^6.1.15",
+    "zustand": "^5.0.12"
   }
 }
