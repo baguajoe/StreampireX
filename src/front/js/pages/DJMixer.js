@@ -119,43 +119,65 @@ const Turntable = React.memo(({ playing, progress, color, label }) => {
 
       ctx.restore();
 
-      // ── Tone arm ──
+      // ── S-shaped Tone Arm (Technics 1200 style) ──
       ctx.save();
-      const armBase = { x: W*0.82, y: H*0.12 };
-      const armAngle = -0.4 + progress * 0.5;
-      const armLen = W*0.52;
-      const armTip = {
-        x: armBase.x + Math.cos(Math.PI + armAngle) * armLen,
-        y: armBase.y + Math.sin(Math.PI + armAngle) * armLen,
-      };
+      const pivotX = W*0.83, pivotY = H*0.13;
+      const armAngle = -0.35 + progress * 0.45;
+      const perp = armAngle + Math.PI/2;
 
-      // Arm base pivot
-      ctx.fillStyle = "#444";
-      ctx.beginPath(); ctx.arc(armBase.x, armBase.y, 8, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = "#666";
-      ctx.beginPath(); ctx.arc(armBase.x, armBase.y, 5, 0, Math.PI*2); ctx.fill();
+      // Counterweight
+      const cwAngle = armAngle + Math.PI;
+      const cwX = pivotX + Math.cos(cwAngle)*W*0.18;
+      const cwY = pivotY + Math.sin(cwAngle)*W*0.18;
+      ctx.strokeStyle="#666"; ctx.lineWidth=4;
+      ctx.beginPath(); ctx.moveTo(cwX,cwY); ctx.lineTo(pivotX,pivotY); ctx.stroke();
+      ctx.fillStyle="#3a3a3a"; ctx.beginPath(); ctx.arc(cwX,cwY,7,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle="#555"; ctx.beginPath(); ctx.arc(cwX,cwY,5,0,Math.PI*2); ctx.fill();
 
-      // Arm body
-      ctx.strokeStyle = "#888";
-      ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(armBase.x, armBase.y); ctx.lineTo(armTip.x, armTip.y); ctx.stroke();
-      ctx.strokeStyle = "#aaa";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(armBase.x, armBase.y); ctx.lineTo(armTip.x, armTip.y); ctx.stroke();
+      // Pivot bearing
+      ctx.fillStyle="#333"; ctx.beginPath(); ctx.arc(pivotX,pivotY,11,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle="#555"; ctx.beginPath(); ctx.arc(pivotX,pivotY,8,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle="#888"; ctx.beginPath(); ctx.arc(pivotX,pivotY,4,0,Math.PI*2); ctx.fill();
+
+      // S-curve control points
+      const tipX = pivotX + Math.cos(armAngle)*W*0.46;
+      const tipY = pivotY + Math.sin(armAngle)*W*0.46;
+      const cp1x = pivotX + Math.cos(armAngle)*W*0.1 + Math.cos(perp)*W*0.06;
+      const cp1y = pivotY + Math.sin(armAngle)*W*0.1 + Math.sin(perp)*W*0.06;
+      const cp2x = pivotX + Math.cos(armAngle)*W*0.32 - Math.cos(perp)*W*0.04;
+      const cp2y = pivotY + Math.sin(armAngle)*W*0.32 - Math.sin(perp)*W*0.04;
+
+      // Shadow
+      ctx.strokeStyle="rgba(0,0,0,0.5)"; ctx.lineWidth=5;
+      ctx.beginPath(); ctx.moveTo(pivotX+1,pivotY+1);
+      ctx.bezierCurveTo(cp1x+1,cp1y+1,cp2x+1,cp2y+1,tipX+1,tipY+1); ctx.stroke();
+
+      // Main tube
+      ctx.strokeStyle="#777"; ctx.lineWidth=4;
+      ctx.beginPath(); ctx.moveTo(pivotX,pivotY);
+      ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,tipX,tipY); ctx.stroke();
+
+      // Highlight
+      ctx.strokeStyle="#bbb"; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(pivotX,pivotY);
+      ctx.bezierCurveTo(cp1x-Math.cos(perp)*1.5,cp1y-Math.sin(perp)*1.5,cp2x-Math.cos(perp)*1.5,cp2y-Math.sin(perp)*1.5,tipX,tipY); ctx.stroke();
 
       // Headshell
-      ctx.fillStyle = "#555";
-      ctx.beginPath();
-      ctx.ellipse(armTip.x, armTip.y, 10, 5, armAngle, 0, Math.PI*2);
-      ctx.fill();
+      ctx.save(); ctx.translate(tipX,tipY); ctx.rotate(armAngle+0.15);
+      ctx.fillStyle="#4a4a4a"; ctx.beginPath(); ctx.arc(0,0,6,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle="#3a3a3a"; ctx.fillRect(-4,0,8,18);
+      ctx.fillStyle="#555"; ctx.fillRect(-3,1,6,14);
+      ctx.fillStyle="#222"; ctx.fillRect(-3,12,6,5);
+      ctx.restore();
 
-      // Needle
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(armTip.x, armTip.y);
-      ctx.lineTo(armTip.x - Math.cos(armAngle)*8, armTip.y - Math.sin(armAngle)*8);
-      ctx.stroke();
+      // Stylus with glow
+      const stylusAngle=armAngle+0.15;
+      const nX=tipX+Math.cos(stylusAngle)*20, nY=tipY+Math.sin(stylusAngle)*20;
+      ctx.strokeStyle=color; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(tipX+Math.cos(stylusAngle)*14,tipY+Math.sin(stylusAngle)*14); ctx.lineTo(nX,nY); ctx.stroke();
+      ctx.shadowColor=color; ctx.shadowBlur=8;
+      ctx.fillStyle=color; ctx.beginPath(); ctx.arc(nX,nY,2,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0;
 
       ctx.restore();
 
@@ -437,8 +459,8 @@ export default function DJMixer(){
   const [xf,setXf]=useState(0.5);
   const [mvol,setMvol]=useState(1);
   const [ds,setDs]=useState({
-    A:{playing:false,loaded:false,bpm:null,key:null,title:"",artwork:null,audioType:"original",vol:1,low:0,mid:0,high:0,pitch:1,loop:false,hotcues:[null,null,null,null],slip:false,fx:"Filter",fxWet:0},
-    B:{playing:false,loaded:false,bpm:null,key:null,title:"",artwork:null,audioType:"original",vol:1,low:0,mid:0,high:0,pitch:1,loop:false,hotcues:[null,null,null,null],slip:false,fx:"Filter",fxWet:0},
+    A:{playing:false,loaded:false,bpm:null,key:null,title:"",artwork:null,audioType:"original",vol:1,low:0,mid:0,high:0,pitch:1,loop:false,hotcues:[null,null,null,null],slip:false,fx:"Filter",fxWet:0,stems:null,stemsLoading:false,stemVols:{},stemMutes:{}},
+    B:{playing:false,loaded:false,bpm:null,key:null,title:"",artwork:null,audioType:"original",vol:1,low:0,mid:0,high:0,pitch:1,loop:false,hotcues:[null,null,null,null],slip:false,fx:"Filter",fxWet:0,stems:null,stemsLoading:false,stemVols:{},stemMutes:{}},
   });
   const [lib,setLib]=useState([]);
   const [lf,setLf]=useState("all");
@@ -558,6 +580,105 @@ export default function DJMixer(){
     setSaving(false);
   };
 
+  // ── Stream destinations state ──
+  const [streamDests, setStreamDests] = useState({streampirex:false, twitch:false, youtube:false});
+  const streamRefs = useRef({});
+
+  const toggleStream = useCallback(async (destId) => {
+    const token = store?.token || localStorage.getItem("token");
+    if (streamDests[destId]) {
+      // Stop stream
+      try {
+        await fetch(`${BACKEND}/api/live-stream/stop`, {
+          method:"POST", headers:{"Content-Type":"application/json", Authorization:`Bearer ${token}`},
+          body: JSON.stringify({destination: destId})
+        });
+      } catch(e) { console.error("Stop stream error:", e); }
+      setStreamDests(p=>({...p,[destId]:false}));
+    } else {
+      // Start stream — capture master audio + visualizer canvas
+      try {
+        const c = getCtx();
+        const dest = c.createMediaStreamDestination();
+        mgRef.current?.connect(dest);
+        const audioTrack = dest.stream.getAudioTracks()[0];
+        // Get video from a hidden canvas for visualizer
+        const vizCanvas = document.querySelector(".dj-waveform");
+        let stream;
+        if (vizCanvas) {
+          const videoStream = vizCanvas.captureStream(30);
+          stream = new MediaStream([videoStream.getVideoTracks()[0], audioTrack]);
+        } else {
+          stream = dest.stream;
+        }
+        streamRefs.current[destId] = stream;
+        // Notify backend to start RTMP relay if Twitch/YouTube
+        if (destId !== "streampirex") {
+          await fetch(`${BACKEND}/api/live-stream/start-rtmp`, {
+            method:"POST", headers:{"Content-Type":"application/json", Authorization:`Bearer ${token}`},
+            body: JSON.stringify({destination: destId, title: `DJ Mix — Live`, stream_key: null})
+          }).catch(e => console.warn("RTMP relay:", e.message));
+        } else {
+          // Start StreamPireX live stream
+          await fetch(`${BACKEND}/api/live-stream/create`, {
+            method:"POST", headers:{"Content-Type":"application/json", Authorization:`Bearer ${token}`},
+            body: JSON.stringify({title:`DJ Mix — Live`, type:"audio", is_live:true})
+          }).catch(e => console.warn("SPX stream:", e.message));
+        }
+        setStreamDests(p=>({...p,[destId]:true}));
+      } catch(e) {
+        console.error("Stream start error:", e);
+        alert("Could not start stream: " + e.message);
+      }
+    }
+  }, [streamDests, store]);
+
+  // ── Stem separation ──
+  const handleStemSeparate = useCallback(async (id) => {
+    const dk = id==="A" ? deckA : deckB;
+    const s = id==="A" ? ds.A : ds.B;
+    if (!dk.buffer || !s.loaded) return;
+    upd(id, {stemsLoading:true});
+    const token = store?.token || localStorage.getItem("token");
+    try {
+      const c = getCtx();
+      // Encode buffer to WAV
+      const numCh=dk.buffer.numberOfChannels, sr=dk.buffer.sampleRate, len=dk.buffer.length;
+      const wavBuf=new ArrayBuffer(44+len*numCh*2);
+      const view=new DataView(wavBuf);
+      const writeStr=(o,s)=>{for(let i=0;i<s.length;i++)view.setUint8(o+i,s.charCodeAt(i));};
+      writeStr(0,"RIFF"); view.setUint32(4,36+len*numCh*2,true); writeStr(8,"WAVE"); writeStr(12,"fmt ");
+      view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,numCh,true);
+      view.setUint32(24,sr,true); view.setUint32(28,sr*numCh*2,true); view.setUint16(32,numCh*2,true);
+      view.setUint16(34,16,true); writeStr(36,"data"); view.setUint32(40,len*numCh*2,true);
+      let offset=44;
+      for(let i=0;i<len;i++) for(let ch=0;ch<numCh;ch++){
+        const samp=Math.max(-1,Math.min(1,dk.buffer.getChannelData(ch)[i]));
+        view.setInt16(offset,samp<0?samp*0x8000:samp*0x7FFF,true); offset+=2;
+      }
+      const blob=new Blob([wavBuf],{type:"audio/wav"});
+      const form=new FormData(); form.append("audio",blob,"deck_"+id+".wav"); form.append("model","htdemucs");
+      const res=await fetch(`${BACKEND}/api/ai/stems/separate-upload`,{method:"POST",headers:{Authorization:`Bearer ${token}`},body:form});
+      if(!res.ok) throw new Error("Stem separation failed — "+res.status);
+      const data=await res.json();
+      const stemUrls={drums:data.drums_url,bass:data.bass_url,vocals:data.vocals_url,other:data.other_url};
+      const stems={};
+      const out=id==="A"?xgA.current:xgB.current;
+      for(const [name,url] of Object.entries(stemUrls)){
+        if(!url) continue;
+        const r=await fetch(url); const ab=await r.arrayBuffer();
+        const buf=await c.decodeAudioData(ab);
+        const gn=c.createGain(); gn.gain.value=1; gn.connect(out||c.destination);
+        stems[name+"_buf"]=buf; stems[name+"_gain"]=gn;
+      }
+      upd(id,{stems,stemsLoading:false,stemVols:{drums:1,bass:1,vocals:1,other:1},stemMutes:{}});
+    } catch(e){
+      console.error("Stems error:",e);
+      upd(id,{stemsLoading:false});
+      alert("Stem separation failed: "+e.message);
+    }
+  }, [ds, store]);
+
   const HC_COLORS=["#ff4466","#00aaff","#00ff88","#ff8800"];
 
   const renderDeck=(id)=>{
@@ -580,7 +701,42 @@ export default function DJMixer(){
             </div>
           </div>
           {s.artwork&&<img src={s.artwork} alt="" className="dj-art"/>}
+          {s.loaded&&(
+            <button className={`dj-stems-btn ${s.stemsLoading?"loading":""} ${s.stems?"active":""}`}
+              onClick={()=>handleStemSeparate(id)} title="AI Stem Separation">
+              {s.stemsLoading?"⏳":"🎚"} STEMS
+            </button>
+          )}
         </div>
+
+        {/* ── Stem Mixer ── */}
+        {s.stems&&(
+          <div className="dj-stem-mixer">
+            <div className="dj-stem-label">STEMS — {s.title}</div>
+            {[["🥁","drums","#ff4466"],["🎸","bass","#ff8800"],["🎤","vocals","#00aaff"],["🎹","other","#00ffc8"]].map(([icon,stem,sc])=>(
+              <div key={stem} className="dj-stem-ch">
+                <span className="dj-stem-icon">{icon}</span>
+                <input type="range" className="dj-stem-fader" min={0} max={1} step={0.01}
+                  value={s.stemVols?.[stem]??1} style={{"--sc":sc}}
+                  onChange={e=>{
+                    const v=parseFloat(e.target.value);
+                    upd(id,{stemVols:{...(s.stemVols||{}),[stem]:v}});
+                    if(s.stems?.[stem+"_gain"])s.stems[stem+"_gain"].gain.value=v;
+                  }}/>
+                <button className={`dj-stem-mute ${s.stemMutes?.[stem]?"muted":""}`}
+                  style={{"--sc":sc}}
+                  onClick={()=>{
+                    const muted=!(s.stemMutes?.[stem]);
+                    upd(id,{stemMutes:{...(s.stemMutes||{}),[stem]:muted}});
+                    if(s.stems?.[stem+"_gain"])s.stems[stem+"_gain"].gain.value=muted?0:(s.stemVols?.[stem]??1);
+                  }}>
+                  {s.stemMutes?.[stem]?"M":"—"}
+                </button>
+                <span className="dj-stem-lbl">{stem}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ── Technics 1200 Turntable ── */}
         <div className="dj-turntable-wrap">
@@ -737,6 +893,36 @@ export default function DJMixer(){
                     onChange={e=>{const v=parseFloat(e.target.value);(id==="A"?deckA:deckB).setGain(v);upd(id,{vol:v});}}/>
                 </div>
               ))}
+            </div>
+
+            {/* ── Stream to Destinations ── */}
+            <div className="dj-stream-panel">
+              <div className="dj-stream-label">🔴 BROADCAST</div>
+              {[
+                {id:"streampirex", label:"StreamPireX", icon:"✨", color:"#00ffc8"},
+                {id:"twitch",      label:"Twitch",      icon:"🟣", color:"#9146ff"},
+                {id:"youtube",     label:"YouTube",     icon:"🔴", color:"#ff0000"},
+              ].map(dest=>(
+                <div key={dest.id} className="dj-stream-dest">
+                  <span style={{fontSize:12}}>{dest.icon}</span>
+                  <span className="dj-stream-name">{dest.label}</span>
+                  <button
+                    className={`dj-stream-btn ${streamDests[dest.id]?"live":""}`}
+                    style={{"--dc":dest.color}}
+                    onClick={()=>toggleStream(dest.id)}>
+                    {streamDests[dest.id]?"⏹ Stop":"▶ Go Live"}
+                  </button>
+                </div>
+              ))}
+              {Object.values(streamDests).some(Boolean)&&(
+                <div className="dj-stream-live-badge">
+                  <span className="dj-rec-dot"/>
+                  LIVE — {Object.entries(streamDests).filter(([,v])=>v).map(([k])=>k).join(" + ")}
+                </div>
+              )}
+              <div className="dj-stream-hint">
+                Configure stream keys in Settings → Streaming
+              </div>
             </div>
           </div>
 
