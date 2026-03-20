@@ -1,6 +1,51 @@
 import React, { useEffect, useMemo } from "react";
 import { requestRender } from "../utils/render/renderClient";
 import { useEditorStore } from "../store/useEditorStore";
+
+const COMP_KEY = "spx_compositor_project";
+
+// ── Shared Menu Bar Component ──
+function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
+  return (
+    <div className="spx-menu-bar">
+      {menus.map(menu => (
+        <MenuDropdown key={menu.label} label={menu.label} items={menu.items} />
+      ))}
+      <input
+        className="spx-project-name-input"
+        value={projectName || ""}
+        onChange={e => setProjectName(e.target.value)}
+        placeholder="Untitled Project"
+      />
+      <div style={{flex:1}}/>
+      {rightContent}
+    </div>
+  );
+}
+
+function MenuDropdown({ label, items }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="spx-menu-item" onMouseLeave={() => setOpen(false)}>
+      <button className="spx-menu-btn" onMouseEnter={() => setOpen(true)} onClick={() => setOpen(o => !o)}>
+        {label}
+      </button>
+      {open && (
+        <div className="spx-menu-dropdown">
+          {items.map((item, i) => item === "---"
+            ? <div key={i} style={{height:1,background:"#21262d",margin:"3px 0"}}/>
+            : <button key={item.label} className="spx-menu-dropdown-item"
+                onClick={() => { item.action(); setOpen(false); }}>
+                <span>{item.label}</span>
+                {item.shortcut && <span style={{color:"#4e6a82",fontSize:10,marginLeft:"auto"}}>{item.shortcut}</span>}
+              </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 import NodeGraph from "../component/compositor/NodeGraph";
 import NodeGraphPro from "../component/compositor/NodeGraphPro";
 import { evaluateGraph } from "../utils/compositor/nodeEngine";
@@ -34,6 +79,30 @@ export default function NodeCompositorPage() {
     graphRunnerRef.current = createGraphRunner();
   }
   const duration = 10;
+  const [projectName, setProjectName] = React.useState("Untitled Composite");
+
+  // Auto-save nodes/edges
+  React.useEffect(() => {
+    if (nodes.length > 0) {
+      try {
+        const serializable = nodes.map(n => ({...n}));
+        localStorage.setItem(COMP_KEY, JSON.stringify({ nodes: serializable, edges, name: projectName, savedAt: Date.now() }));
+      } catch(e) {}
+    }
+  }, [nodes, edges, projectName]);
+
+  // Load on mount
+  React.useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(COMP_KEY) || "null");
+      if (saved?.nodes?.length > 0) {
+        setNodes(saved.nodes);
+        if (saved.edges) setEdges(saved.edges);
+        if (saved.name) setProjectName(saved.name);
+      }
+    } catch(e) {}
+  }, []);
+
   const nodes = useEditorStore((s) => s.nodes);
   const setNodes = useEditorStore((s) => s.setNodes);
   const addNode = useEditorStore((s) => s.addNode);
@@ -143,7 +212,68 @@ export default function NodeCompositorPage() {
   };
 
   return (
-    <div className="node-compositor-page" style={{ display:"flex", flexDirection:"column", height:"calc(100vh - 60px)", overflow:"hidden" }}>
+    <div className="node-compositor-page"
+      style={{ display:"flex", flexDirection:"column", height:"calc(100vh - 60px)", overflow:"hidden" }}>
+      <AppMenuBar
+        projectName={projectName}
+        setProjectName={setProjectName}
+        rightContent={
+          <span style={{fontSize:10,color:"#4e6a82"}}>{nodes.length} nodes · {edges.length} edges</span>
+        }
+        menus={[
+          { label: "File", items: [
+            { label: "New Composite", action: () => { if(window.confirm("Clear?")){ setNodes([]); setEdges([]); localStorage.removeItem(COMP_KEY); } } },
+            { label: "Save",          shortcut: "Ctrl+S", action: () => { try { localStorage.setItem(COMP_KEY, JSON.stringify({nodes,edges,name:projectName,savedAt:Date.now()})); alert("Saved!"); } catch(e){} } },
+            "---",
+            { label: "Export PNG",  action: () => {} },
+            { label: "Export EXR",  action: () => {} },
+            { label: "Render Queue", action: handleRenderProject },
+          ]},
+          { label: "Edit", items: [
+            { label: "Undo",       shortcut: "Ctrl+Z",       action: () => {} },
+            { label: "Redo",       shortcut: "Ctrl+Shift+Z", action: () => {} },
+            "---",
+            { label: "Select All",    action: () => {} },
+            { label: "Delete Node",   action: () => {} },
+            { label: "Duplicate Node", action: () => {} },
+          ]},
+          { label: "Node", items: [
+            { label: "Add Media",      action: () => addNode({type:"media",     x:200,y:150,inputs:{},outputs:{}}) },
+            { label: "Add Text",       action: () => addNode({type:"text",      x:200,y:200,inputs:{},outputs:{}}) },
+            { label: "Add Color Grade",action: () => addNode({type:"colorgrade",x:300,y:150,inputs:{},outputs:{}}) },
+            { label: "Add Merge",      action: () => addNode({type:"merge",     x:400,y:150,inputs:{},outputs:{}}) },
+            { label: "Add Blur",       action: () => addNode({type:"blur",      x:400,y:200,params:{amount:10},inputs:{},outputs:{}}) },
+            { label: "Add ChromaKey",  action: () => addNode({type:"chromakey", x:300,y:200,inputs:{},outputs:{}}) },
+            { label: "Add LUT",        action: () => addNode({type:"lut",       x:350,y:250,inputs:{},outputs:{}}) },
+            { label: "Add Output",     action: () => addNode({type:"output",    x:600,y:200,inputs:{},outputs:{}}) },
+            "---",
+            { label: "Clear All Edges", action: () => setEdges([]) },
+            { label: "Reset Canvas",    action: () => { setNodes([]); setEdges([]); } },
+          ]},
+          { label: "View", items: [
+            { label: "Zoom In",    action: () => {} },
+            { label: "Zoom Out",   action: () => {} },
+            { label: "Fit All",    action: () => {} },
+            "---",
+            { label: "Toggle Preview",       action: () => {} },
+            { label: "Toggle Color Pipeline", action: () => {} },
+          ]},
+          { label: "Render", items: [
+            { label: "Render Frame",   action: handleRenderProject },
+            { label: "Render Range",   action: () => {} },
+            { label: "Add to Queue",   action: () => {} },
+            "---",
+            { label: "Output: PNG",    action: () => {} },
+            { label: "Output: ProRes", action: () => {} },
+            { label: "Output: EXR",    action: () => {} },
+          ]},
+          { label: "Help", items: [
+            { label: "Node Reference", action: () => alert("Connect nodes by dragging from output dot to input dot. Output node is required for render.") },
+            { label: "Shortcuts",      action: () => alert("Ctrl+Z=Undo  Del=Delete node  Ctrl+S=Save") },
+          ]},
+        ]}
+      />
+      <div style={{ display:"flex", flexDirection:"column", height:"calc(100vh - 60px)", overflow:"hidden" }}>
       <div style={{ display:"flex", alignItems:"center", gap:8, padding:"4px 12px", background:"#161b22", borderBottom:"1px solid #21262d", flexShrink:0 }}>
         <span style={{ color:"#00ffc8", fontWeight:700, fontSize:13 }}>🎛️ SPX Compositor</span>
         <div style={{ width:1, height:20, background:"#21262d", margin:"0 4px" }}/>

@@ -10,6 +10,51 @@ import { renderLayers } from "../utils/motionstudio/renderEngine";
 import { exportFrame, exportProject, exportVideo, importProject } from "../utils/export/exportEngine";
 import { ANIMATABLE_PROPS } from "../utils/motionstudio/keyframeEngine";
 
+const MOTION_KEY = "spx_motion_project";
+
+// ── Shared Menu Bar Component ──
+function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
+  return (
+    <div className="spx-menu-bar">
+      {menus.map(menu => (
+        <MenuDropdown key={menu.label} label={menu.label} items={menu.items} />
+      ))}
+      <input
+        className="spx-project-name-input"
+        value={projectName || ""}
+        onChange={e => setProjectName(e.target.value)}
+        placeholder="Untitled Project"
+      />
+      <div style={{flex:1}}/>
+      {rightContent}
+    </div>
+  );
+}
+
+function MenuDropdown({ label, items }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="spx-menu-item" onMouseLeave={() => setOpen(false)}>
+      <button className="spx-menu-btn" onMouseEnter={() => setOpen(true)} onClick={() => setOpen(o => !o)}>
+        {label}
+      </button>
+      {open && (
+        <div className="spx-menu-dropdown">
+          {items.map((item, i) => item === "---"
+            ? <div key={i} style={{height:1,background:"#21262d",margin:"3px 0"}}/>
+            : <button key={item.label} className="spx-menu-dropdown-item"
+                onClick={() => { item.action(); setOpen(false); }}>
+                <span>{item.label}</span>
+                {item.shortcut && <span style={{color:"#4e6a82",fontSize:10,marginLeft:"auto"}}>{item.shortcut}</span>}
+              </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 const S = {
   app:     { display:'flex', flexDirection:'column', height:'100vh', background:'#0d1117', color:'#dde6ef', fontFamily:"'JetBrains Mono',monospace", fontSize:12, overflow:'hidden' },
   topbar:  { display:'flex', alignItems:'center', gap:6, padding:'4px 12px', background:'#161b22', borderBottom:'1px solid #21262d', height:38, flexShrink:0 },
@@ -78,6 +123,27 @@ export default function MotionStudioPage() {
   const setFPS      = useEditorStore(s => s.setFPS);
 
   const [selectedId,   setSelectedId]   = useState(null);
+  const [projectName,  setProjectName]  = useState("Untitled Project");
+
+  // Auto-save
+  React.useEffect(() => {
+    if (layers.length > 0) {
+      try {
+        localStorage.setItem(MOTION_KEY, JSON.stringify({ layers, timeline, name: projectName, savedAt: Date.now() }));
+      } catch(e) {}
+    }
+  }, [layers, projectName]);
+
+  // Load on mount
+  React.useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(MOTION_KEY) || "null");
+      if (saved?.layers?.length > 0) {
+        setLayers(saved.layers);
+        if (saved.name) setProjectName(saved.name);
+      }
+    } catch(e) {}
+  }, []);
   const [activeTool,   setActiveTool]   = useState('select');
   const [activeTab,    setActiveTab]    = useState('layers');
   const [activeRTab,   setActiveRTab]   = useState('props');
@@ -213,6 +279,65 @@ export default function MotionStudioPage() {
 
   return (
     <div style={S.app}>
+      <AppMenuBar
+        projectName={projectName}
+        setProjectName={setProjectName}
+        rightContent={
+          <span style={{fontSize:10,color:"#4e6a82"}}>{layers.length} layers · {timeline.fps}fps</span>
+        }
+        menus={[
+          { label: "File", items: [
+            { label: "New Project", shortcut: "Ctrl+N", action: () => { if(window.confirm("Clear project?")) { setLayers([]); setProjectName("Untitled Project"); localStorage.removeItem(MOTION_KEY); } } },
+            { label: "Save", shortcut: "Ctrl+S", action: () => { try { localStorage.setItem(MOTION_KEY, JSON.stringify({layers,timeline,name:projectName,savedAt:Date.now()})); } catch(e){} alert("Saved!"); } },
+            "---",
+            { label: "Export Frame", action: handleExportFrame },
+            { label: "Export Video (WebM)", action: handleExportVideo },
+            { label: "Export Project (.spx)", action: handleExportProject },
+            "---",
+            { label: "Open Project (.spx)", action: () => fileInputRef.current?.click() },
+          ]},
+          { label: "Edit", items: [
+            { label: "Undo", shortcut: "Ctrl+Z", action: undo },
+            { label: "Redo", shortcut: "Ctrl+Shift+Z", action: redo },
+            "---",
+            { label: "Duplicate Layer", shortcut: "Ctrl+D", action: handleDuplicate },
+            { label: "Delete Layer", shortcut: "Del", action: () => selectedId && removeLayer(selectedId) },
+            { label: "Select All", shortcut: "Ctrl+A", action: () => {} },
+          ]},
+          { label: "View", items: [
+            { label: "Zoom In",  shortcut: "]", action: () => setZoom(z => Math.min(4, z+0.25)) },
+            { label: "Zoom Out", shortcut: "[", action: () => setZoom(z => Math.max(0.1, z-0.25)) },
+            { label: "Zoom 100%", shortcut: "1", action: () => setZoom(1) },
+            { label: "Zoom Fit",  shortcut: "0", action: () => setZoom(1) },
+            "---",
+            { label: showGrid ? "Hide Grid" : "Show Grid", action: () => setShowGrid(g => !g) },
+          ]},
+          { label: "Layer", items: [
+            { label: "Add Text",      action: () => handleAddLayer("text") },
+            { label: "Add Shape",     action: () => handleAddLayer("shape") },
+            { label: "Add Image",     action: () => handleAddLayer("image") },
+            { label: "Add Video",     action: () => handleAddLayer("video") },
+            { label: "Add Particles", action: () => handleAddLayer("particles") },
+            { label: "Add Gradient",  action: () => handleAddLayer("gradient") },
+            "---",
+            { label: "Move Up",   action: () => {} },
+            { label: "Move Down", action: () => {} },
+          ]},
+          { label: "Animation", items: [
+            { label: "Play/Pause",   shortcut: "Space", action: togglePlay },
+            { label: "Go to Start",  shortcut: "Home",  action: () => setTime(0) },
+            { label: "Go to End",    shortcut: "End",   action: () => setTime(timeline.duration) },
+            "---",
+            { label: "Add Keyframe", shortcut: "K", action: () => {} },
+            { label: "Ease In Out",  action: () => {} },
+            { label: "Ease Bounce",  action: () => {} },
+          ]},
+          { label: "Help", items: [
+            { label: "Keyboard Shortcuts", action: () => alert("Space=Play  V=Select  T=Text  U=Shape  R=Rotate  [/]=Zoom  Ctrl+Z=Undo  Ctrl+D=Duplicate  Del=Delete") },
+            { label: "About SPX Motion",   action: () => {} },
+          ]},
+        ]}
+      />
       {/* ── Top Bar ── */}
       <div style={S.topbar}>
         <span style={{color:'#00ffc8',fontWeight:700,marginRight:8,fontSize:13}}>✨ SPX Motion</span>

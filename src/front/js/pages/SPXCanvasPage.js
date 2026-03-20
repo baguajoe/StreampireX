@@ -56,6 +56,27 @@ function makeLayer(type, extras={}) {
   };
 }
 
+function SPXMenuDropdown({ label, items }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="spx-menu-item" onMouseLeave={() => setOpen(false)}>
+      <button className="spx-menu-btn" onMouseEnter={() => setOpen(true)} onClick={() => setOpen(o => !o)}>
+        {label}
+      </button>
+      {open && (
+        <div className="spx-menu-dropdown">
+          {items.map(item => (
+            <button key={item.label} className="spx-menu-dropdown-item"
+              onClick={() => { item.action(); setOpen(false); }}>
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SPXCanvasPage() {
   const canvasRef   = useRef(null);
   const stageRef    = useRef(null);

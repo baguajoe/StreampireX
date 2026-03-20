@@ -60,6 +60,16 @@ const DEFAULT_LAYER = (type,extras={}) => ({
   ...extras,
 });
 
+function SVXMenuDropdown({label,items}){
+  const [open,setOpen]=React.useState(false);
+  return(
+    <div className="spx-menu-item" onMouseLeave={()=>setOpen(false)}>
+      <button className="spx-menu-btn" onMouseEnter={()=>setOpen(true)} onClick={()=>setOpen(o=>!o)}>{label}</button>
+      {open&&(<div className="spx-menu-dropdown">{items.map(i=>(<button key={i.label} className="spx-menu-dropdown-item" onClick={()=>{i.action();setOpen(false);}}>{i.label}</button>))}</div>)}
+    </div>
+  );
+}
+
 export default function SPXVectorPage() {
   const svgRef = useRef(null);
 
