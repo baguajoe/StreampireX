@@ -12,7 +12,7 @@ import {
   Palette, Tv, Info, MousePointer, Hand, Type,
   Circle, Pen, Eraser, Crop, RotateCw, FlipHorizontal,
   ZoomIn, ZoomOut, Grid, Minimize2, Maximize2, MoreVertical, X, Crown, Star, Bolt,
-  Sliders, Image, Wand2, Sparkles, Sun, Droplets, Contrast,
+  Sliders, Image, Wand2, Sparkles, Sun, Moon, Droplets, Contrast,
   RefreshCw, SkipForward, SkipBack, Rewind, FastForward, Monitor, Camera,
   RotateCcw as Rotate, Maximize, ArrowUpDown, ArrowLeftRight,
   Disc, Radio, Gauge, Waves, Shuffle, TrendingUp, Target, Crosshair,
