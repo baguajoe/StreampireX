@@ -94,7 +94,7 @@ export default function MotionStudioPage() {
   useEffect(() => {
     if (!layers.length) {
       setLayers([
-        { id:'title_1', type:'text', name:'Title', text:'SPX Motion', subtitle:'After Effects-style studio',
+        { id:'title_1', type:'text', name:'Title', text:'SPX Motion', subtitle:'',
           x:240, y:200, color:'#ffffff', fontSize:56, fontWeight:800, z:1,
           opacity:1, rotation:0, scaleX:1, scaleY:1, effects:[], keyframes:{}, visible:true,
           glow:true, glowStrength:0.4 },
