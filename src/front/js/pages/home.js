@@ -244,6 +244,10 @@ const Home = () => {
 						<h4>❌ Without StreamPireX</h4>
 						<ul>
 							<li>🎬 Video Editor — $23/mo</li>
+							<li>✨ Motion Graphics (AE) — $54.99/mo</li>
+							<li>🔀 Node Compositor (DaVinci) — $295 one-time</li>
+							<li>🖼️ Design Tool (Figma) — $15/mo</li>
+							<li>🎛️ Amp Sim (Neural DSP) — $19.99/mo/plugin</li>
 							<li>🎚️ DAW Software — $10–30/mo</li>
 							<li>🎛️ Mastering Service — $10–50/track</li>
 							<li>🎵 Stem Splitter — $10–20/mo</li>
@@ -836,6 +840,98 @@ const Home = () => {
 			</section>
 
 			{/* ================================================================
+			    8b. SPX CREATIVE SUITE — Motion, Compositor, Canvas, Vector
+			    ================================================================ */}
+			<section style={{ padding:"80px 20px", background:"#0a0e16" }}>
+				<div style={{ maxWidth:1100, margin:"0 auto" }}>
+					<h2 style={{ fontSize:"clamp(1.8rem,3vw,2.8rem)", fontWeight:900, color:"#e6edf3", textAlign:"center", marginBottom:12, letterSpacing:-1 }}>
+						🎨 SPX Creative Suite
+					</h2>
+					<p style={{ textAlign:"center", color:"#8b949e", fontSize:15, maxWidth:700, margin:"0 auto 48px", lineHeight:1.7 }}>
+						Professional motion graphics, node compositing, canvas design, and vector illustration — all browser-based, all cloud-saved to your account.
+					</p>
+					<div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))", gap:20 }}>
+						{[
+							{ icon:"✨", name:"SPX Motion", desc:"After Effects-style motion studio. Keyframe animation, layers, easing curves, particle effects, and WebM export.", tag:"NEW", color:"#00ffc8" },
+							{ icon:"🔀", name:"SPX Compositor", desc:"DaVinci Fusion-style node compositor. Color grade, chroma key, blur, merge, LUT, and GPU multi-pass rendering.", tag:"NEW", color:"#bf5af2" },
+							{ icon:"🖼️", name:"SPX Canvas", desc:"Figma-lite canvas editor. Shapes, text, images, blend modes, filters, and PNG/JPG/WebP export.", tag:"FREE", color:"#ff6600" },
+							{ icon:"✒️", name:"SPX Vector", desc:"Illustrator-lite vector editor. Paths, shapes, boolean ops, and SVG export.", tag:"FREE", color:"#ffd60a" },
+						].map(tool => (
+							<div key={tool.name} style={{ background:"#0d1117", border:`1px solid ${tool.color}22`, borderRadius:16, padding:24, display:"flex", flexDirection:"column", gap:12 }}>
+								<div style={{ fontSize:36 }}>{tool.icon}</div>
+								<div style={{ display:"flex", alignItems:"center", gap:8 }}>
+									<h4 style={{ color:"#e6edf3", fontWeight:800, fontSize:16, margin:0 }}>{tool.name}</h4>
+									<span style={{ padding:"2px 8px", borderRadius:100, fontSize:10, fontWeight:800, background:`${tool.color}18`, border:`1px solid ${tool.color}44`, color:tool.color }}>{tool.tag}</span>
+								</div>
+								<p style={{ color:"#8b949e", fontSize:13, lineHeight:1.6, margin:0 }}>{tool.desc}</p>
+								<div style={{ fontSize:11, color:"#4e6a82", marginTop:"auto" }}>☁️ Auto-saves to cloud · File/Edit/View menus · Export to R2</div>
+							</div>
+						))}
+					</div>
+				</div>
+			</section>
+
+			{/* ================================================================
+			    8c. SPX ANALOG SUITE
+			    ================================================================ */}
+			<section style={{ padding:"80px 20px", background:"#06060f" }}>
+				<div style={{ maxWidth:1100, margin:"0 auto" }}>
+					<h2 style={{ fontSize:"clamp(1.8rem,3vw,2.8rem)", fontWeight:900, color:"#e6edf3", textAlign:"center", marginBottom:12, letterSpacing:-1 }}>
+						🎛️ SPX Analog Suite
+					</h2>
+					<p style={{ textAlign:"center", color:"#8b949e", fontSize:15, maxWidth:700, margin:"0 auto 48px", lineHeight:1.7 }}>
+						Professional analog-modeled processing inside your DAW. Access it from the <strong style={{color:"#00ffc8"}}>Console</strong> tab in the Recording Studio.
+					</p>
+					<div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:16 }}>
+						{[
+							{ icon:"🎚️", name:"Console FX Strip", desc:"Pro analog mixing console with per-channel EQ, compression, routing, and canvas-drawn VU meters." },
+							{ icon:"🎸", name:"Amp Simulator", desc:"6 amp models — Fender Clean, Marshall Crunch, Mesa Lead, Bass DI, Acoustic, Boutique. Cabinet sim included." },
+							{ icon:"📼", name:"Tape Saturation", desc:"Drive knob + warmth knob + high-frequency roll-off. Adds analog warmth to any track." },
+							{ icon:"⚡", name:"Harmonic Exciter", desc:"Aphex-style presence enhancer. Adds harmonic overtones to bring life to flat recordings." },
+							{ icon:"🔊", name:"Cabinet Sim", desc:"4 cab types via convolver — 1x12, 2x12, 4x12, Open Back. Transforms DI signals." },
+							{ icon:"🎛️", name:"Pedal Chain", desc:"Tuner → Compressor → Overdrive → Chorus → Delay → Reverb. Full signal chain for guitar and bass." },
+						].map(item => (
+							<div key={item.name} style={{ background:"#0d1117", border:"1px solid #21262d", borderRadius:12, padding:20 }}>
+								<div style={{ fontSize:28, marginBottom:8 }}>{item.icon}</div>
+								<h4 style={{ color:"#e6edf3", fontWeight:800, fontSize:14, margin:"0 0 8px" }}>{item.name}</h4>
+								<p style={{ color:"#8b949e", fontSize:12, lineHeight:1.6, margin:0 }}>{item.desc}</p>
+							</div>
+						))}
+					</div>
+					<div style={{ textAlign:"center", marginTop:32, color:"#4e6a82", fontSize:13 }}>
+						Competes with: Neural DSP ($19.99/mo/plugin) · IK AmpliTube ($399) · Fender Tone ($9.99/mo) — <strong style={{color:"#00ffc8"}}>all included in your StreamPireX subscription</strong>
+					</div>
+				</div>
+			</section>
+
+			{/* ================================================================
+			    8d. LICENSED INTERNET RADIO
+			    ================================================================ */}
+			<section style={{ padding:"80px 20px", background:"#0a0e16" }}>
+				<div style={{ maxWidth:1100, margin:"0 auto", textAlign:"center" }}>
+					<h2 style={{ fontSize:"clamp(1.8rem,3vw,2.8rem)", fontWeight:900, color:"#e6edf3", marginBottom:12, letterSpacing:-1 }}>
+						📻 Licensed Internet Radio
+					</h2>
+					<p style={{ color:"#8b949e", fontSize:15, maxWidth:700, margin:"0 auto 32px", lineHeight:1.7 }}>
+						StreamPireX radio stations operate under proper internet radio licensing. Broadcast legally, reach listeners worldwide, and let the AI DJ keep your station alive 24/7 — even while you sleep.
+					</p>
+					<div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:20, maxWidth:900, margin:"0 auto" }}>
+						{[
+							{ icon:"⚖️", title:"Properly Licensed", desc:"Internet radio licensing handled at the platform level. Broadcast your music legally to a global audience." },
+							{ icon:"🤖", title:"AI DJ — 7 Personas", desc:"Your station never goes silent. AI introduces tracks, reads listener requests, and keeps the vibe." },
+							{ icon:"🎙️", title:"Your Voice Clone", desc:"Clone your voice once and let it host your station. Intros, outros, shoutouts — sounds like you, runs without you." },
+						].map(item => (
+							<div key={item.title} style={{ background:"#0d1117", border:"1px solid rgba(0,255,200,0.1)", borderRadius:14, padding:24 }}>
+								<div style={{ fontSize:36, marginBottom:12 }}>{item.icon}</div>
+								<h4 style={{ color:"#e6edf3", fontWeight:800, marginBottom:8 }}>{item.title}</h4>
+								<p style={{ color:"#8b949e", fontSize:13, lineHeight:1.6 }}>{item.desc}</p>
+							</div>
+						))}
+					</div>
+				</div>
+			</section>
+
+			{/* ================================================================
 			    9. INDUSTRY HUB: EPK & COLLABORATIONS
 			    ================================================================ */}
 			<section className="epk-collab-spotlight">
@@ -942,6 +1038,41 @@ const Home = () => {
 						<h4>Video Editor</h4>
 						<p>Browser-based multi-track timeline, effects, transitions, templates, and export tools for every platform.</p>
 						<span className="feature-tag">Free</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">✨</div>
+						<h4>SPX Motion Studio</h4>
+						<p>After Effects-style motion graphics studio. Keyframe animation, particle effects, easing curves, and WebM video export.</p>
+						<span className="feature-tag new">NEW</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🔀</div>
+						<h4>SPX Node Compositor</h4>
+						<p>DaVinci Fusion-style node-based compositor. Color grade, chroma key, blur, merge, LUT, roto, and GPU multi-pass render.</p>
+						<span className="feature-tag new">NEW</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🖼️</div>
+						<h4>SPX Canvas</h4>
+						<p>Browser-based canvas editor with layers, blend modes, filters, text, shapes, and PNG/JPG/WebP export. Cloud-saved.</p>
+						<span className="feature-tag">Free</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">✒️</div>
+						<h4>SPX Vector</h4>
+						<p>Browser-based vector editor. Draw paths, shapes, and illustrations. Export to SVG. Cloud-saved to your account.</p>
+						<span className="feature-tag">Free</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎛️</div>
+						<h4>SPX Analog Suite</h4>
+						<p>Console FX strip, amp simulator (6 models), tape saturation, harmonic exciter, cabinet sim, and full pedal chain. All inside the DAW.</p>
+						<span className="feature-tag new">NEW</span>
 					</div>
 
 					<div className="feature-card highlight">

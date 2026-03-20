@@ -22,6 +22,7 @@ const ComparePage = () => {
                 <a href="#distribution">DISTRIBUTION</a>
                 <a href="#streaming">STREAMING</a>
                 <a href="#epk">EPK &amp; SOCIAL</a>
+                <a href="#creative">CREATIVE SUITE</a>
                 <a href="#film">FILM</a>
                 <a href="#academy">ACADEMY</a>
                 <a href="#revenue">REVENUE</a>
@@ -615,6 +616,62 @@ const ComparePage = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* SPX CREATIVE SUITE */}
+                <div className="sec-head" id="creative">
+                    <h2>🎨 SPX Creative Suite</h2>
+                    <div className="sec-line"></div>
+                    <div className="sec-tag">vs Adobe After Effects · DaVinci Fusion · Figma · Illustrator · Final Cut</div>
+                </div>
+                <div className="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th className="spx">StreamPireX</th>
+                                <th>After Effects</th>
+                                <th>DaVinci Fusion</th>
+                                <th>Figma</th>
+                                <th>Illustrator</th>
+                                <th>Canva Pro</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="cat"><td colSpan="7">✨ SPX Motion Studio</td></tr>
+                            <tr><td>Keyframe animation timeline</td><td className="spx"><span className="y">✓</span> <span className="b b-new">NEW</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td></tr>
+                            <tr><td>Layer-based composition</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Particle emitter effects</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Easing curves (bounce, elastic, spring)</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>WebM / video export</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Cloud save + File/Edit/View menus</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Browser-based (no download)</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td></tr>
+
+                            <tr className="cat"><td colSpan="7">🔀 SPX Node Compositor</td></tr>
+                            <tr><td>Node-based compositing</td><td className="spx"><span className="y">✓</span> <span className="b b-new">NEW</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Chroma key / green screen</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Color grade nodes (LUT, curves)</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>GPU multi-pass rendering</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Roto / mask editor</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+
+                            <tr className="cat"><td colSpan="7">🖼️ SPX Canvas + ✒️ SPX Vector</td></tr>
+                            <tr><td>Canvas / raster editor</td><td className="spx"><span className="y">✓</span> <span className="b b-free">FREE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Vector / SVG editor</td><td className="spx"><span className="y">✓</span> <span className="b b-free">FREE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td></tr>
+                            <tr><td>Layers + blend modes</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Export PNG / JPG / WebP / SVG</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Cloud save to R2</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Music production included same platform</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+
+                            <tr className="cat"><td colSpan="7">🎛️ SPX Analog Suite</td></tr>
+                            <tr><td>Console FX channel strip</td><td className="spx"><span className="y">✓</span> <span className="b b-new">NEW</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Amp simulator (6 models)</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Tape saturation + harmonic exciter</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Cabinet sim (4 types)</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Pedal chain (6 pedals)</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Pricing</td><td className="spx" style={{color:"var(--teal)",fontWeight:700}}>Included in subscription</td><td>$54.99/mo</td><td>Free (desktop)</td><td>$15/mo</td><td>$54.99/mo</td><td>$15/mo</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p className="footnote">After Effects = motion graphics only, $54.99/mo Adobe bundle. DaVinci Fusion = desktop only, free. Figma = design/vector, no video or audio. Neural DSP = $19.99/mo per amp plugin, no DAW.</p>
 
                 {/* REVENUE */}
                 <div className="sec-head" id="revenue">
