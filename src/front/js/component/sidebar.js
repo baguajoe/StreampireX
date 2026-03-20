@@ -716,6 +716,7 @@ const Sidebar = ({ user }) => {
 
       {showContent && (
         <>
+          {/* ── Creative Tools ── */}
           <MenuItem to="/video-editor" className={isActive("/video-editor") ? "active" : ""}>
             🎬 <span className="sidebar-label">Video Editor</span>
             <MenuHint className="sidebar-hint">FREE</MenuHint>
@@ -723,17 +724,17 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/motion-studio" className={isActive("/motion-studio") ? "active" : ""}>
             ✨ <span className="sidebar-label">SPX Motion</span>
           </MenuItem>
-
           <MenuItem to="/node-compositor" className={isActive("/node-compositor") ? "active" : ""}>
             🎛️ <span className="sidebar-label">SPX Compositor</span>
           </MenuItem>
-
           <MenuItem to="/spx-canvas" className={isActive("/spx-canvas") ? "active" : ""}>
             🎨 <span className="sidebar-label">SPX Canvas</span>
           </MenuItem>
           <MenuItem to="/spx-vector" className={isActive("/spx-vector") ? "active" : ""}>
             ✒️ <span className="sidebar-label">SPX Vector</span>
           </MenuItem>
+
+          {/* ── AI Tools ── */}
           <MenuItem to="/ai-video-studio" className={isActive("/ai-video-studio") ? "active" : ""}>
             🤖 <span className="sidebar-label">AI Video Studio</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
@@ -741,17 +742,31 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/ai-content-writer" className={isActive("/ai-content-writer") ? "active" : ""}>
             ✍️ <span className="sidebar-label">AI Content Writer</span>
           </MenuItem>
+
+          {/* ── Browse ── */}
           <MenuItem to="/browse-videos" className={isActive("/browse-videos") ? "active" : ""}>
             🎞️ <span className="sidebar-label">Browse Videos</span>
+          </MenuItem>
+          <MenuItem to="/reels" className={isActive("/reels") ? "active" : ""}>
+            📱 <span className="sidebar-label">Reels Feed</span>
+            <MenuHint className="sidebar-hint">For You</MenuHint>
+          </MenuItem>
+          <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>
+            📡 <span className="sidebar-label">Live Streams</span>
+          </MenuItem>
+
+          {/* ── Your Content ── */}
+          <MenuItem to="/my-video-channel" className={isActive("/my-video-channel") ? "active" : ""}>
+            📹 <span className="sidebar-label">My Channel</span>
+          </MenuItem>
+          <MenuItem to="/my-reels" className={isActive("/my-reels") ? "active" : ""}>
+            🎬 <span className="sidebar-label">My Reels</span>
           </MenuItem>
           <MenuItem to="/video-upload" className={isActive("/video-upload") ? "active" : ""}>
             📤 <span className="sidebar-label">Upload Video</span>
           </MenuItem>
-          <MenuItem to="/reels" className={isActive("/reels") ? "active" : ""}>
-            🎞️ <span className="sidebar-label">Reels</span>
-          </MenuItem>
-          <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>
-            📡 <span className="sidebar-label">Live Streams</span>
+          <MenuItem to="/upload-reel" className={isActive("/upload-reel") ? "active" : ""}>
+            ➕ <span className="sidebar-label">Upload Reel</span>
           </MenuItem>
           <MenuItem to="/collab-marketplace" className={isActive("/collab-marketplace") ? "active" : ""}>
             🤝 <span className="sidebar-label">Collab Marketplace</span>
