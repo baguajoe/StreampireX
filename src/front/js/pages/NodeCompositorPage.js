@@ -14,6 +14,11 @@ import RotoOverlayEditor from "../component/nodecompositor/pro/RotoOverlayEditor
 import TrackerPanelPro from "../component/nodecompositor/pro/TrackerPanelPro";
 import GPUMultiPassPanel from "../component/nodecompositor/pro/GPUMultiPassPanel";
 import RenderQueuePanel from "../component/nodecompositor/pro/RenderQueuePanel";
+import BackendRenderPanel from "../component/nodecompositor/pro/BackendRenderPanel";
+import MediaIngestPanel from "../component/nodecompositor/pro/MediaIngestPanel";
+import ColorPipelinePanel from "../component/nodecompositor/pro/ColorPipelinePanel";
+import RotoTimelinePanel from "../component/nodecompositor/pro/RotoTimelinePanel";
+import DependencyGraphPanel from "../component/nodecompositor/pro/DependencyGraphPanel";
 
 export default function NodeCompositorPage() {
   const [edges, setEdges] = React.useState([]);
@@ -62,6 +67,10 @@ export default function NodeCompositorPage() {
   }, [nodes.length, setNodes]);
 
   const graphResult = useMemo(() => evaluateGraph(nodes), [nodes]);
+
+  const addMediaNodeFromPanel = (node) => {
+    setNodes((prev) => [...prev, node]);
+  };
 
   const updateNode = (id, patch) => {
     setNodes(nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)));
@@ -203,12 +212,16 @@ export default function NodeCompositorPage() {
             currentTime={currentTime}
           />
 
+          <MediaIngestPanel onAddMediaNode={addMediaNodeFromPanel} />
+
           <GPUMultiPassPanel />
 
           <div className="motion-panel">
             <div className="motion-panel-title">Live Shader Preview</div>
             <ShaderPreviewCanvas shaderId="basicColor" height={220} />
           </div>
+
+          <RotoTimelinePanel />
 
           <RotoOverlayEditor
             shape={rotoShape}
@@ -219,12 +232,18 @@ export default function NodeCompositorPage() {
 
           <TrackerPanelPro />
 
+          <ColorPipelinePanel />
+
           <CompositorInspectorPro
             selectedNode={nodes.find((n) => n.id === selection.nodeId) || null}
             updateNode={updateNode}
           />
 
           <RenderQueuePanel />
+
+          <BackendRenderPanel />
+
+          <DependencyGraphPanel nodes={nodes} edges={edges} />
 
           <div className="motion-panel">
             <div className="motion-panel-title">Graph Output</div>
