@@ -8,6 +8,7 @@ import { useEditorStore } from "../store/useEditorStore";
 import usePlaybackEngine from "../hooks/usePlaybackEngine";
 import { renderLayers } from "../utils/motionstudio/renderEngine";
 import { exportFrame, exportProject, exportVideo, importProject } from "../utils/export/exportEngine";
+import { saveToCloud, listCloudProjects, loadFromCloud, deleteCloudProject } from "../utils/cloudSave";
 import { ANIMATABLE_PROPS } from "../utils/motionstudio/keyframeEngine";
 
 const MOTION_KEY = "spx_motion_project";
@@ -288,6 +289,24 @@ export default function MotionStudioPage() {
         menus={[
           { label: "File", items: [
             { label: "New Project", shortcut: "Ctrl+N", action: () => { if(window.confirm("Clear project?")) { setLayers([]); setProjectName("Untitled Project"); localStorage.removeItem(MOTION_KEY); } } },
+            { label: "Save to Cloud ☁", shortcut: "Ctrl+Shift+S", action: async () => {
+              try {
+                const r = await saveToCloud("motion", projectName, {layers, timeline, name: projectName});
+                alert("✅ Saved to cloud: " + r.name);
+              } catch(e) { alert("Cloud save failed: " + e.message); }
+            } },
+            { label: "Open from Cloud ☁", action: async () => {
+              try {
+                const projects = await listCloudProjects("motion");
+                if (!projects.length) { alert("No saved projects found."); return; }
+                const names = projects.map((p,i) => i+1+". "+p.name+" ("+new Date(p.modified).toLocaleDateString()+")").join("\n");
+                const choice = prompt("Choose project:\n"+names+"\nEnter number:");
+                const idx = parseInt(choice)-1;
+                if (isNaN(idx)||idx<0||idx>=projects.length) return;
+                const payload = await loadFromCloud(projects[idx].key);
+                if (payload) { alert("✅ Loaded: "+projects[idx].name); }
+              } catch(e) { alert("Load failed: "+e.message); }
+            } },
             { label: "Save", shortcut: "Ctrl+S", action: () => { try { localStorage.setItem(MOTION_KEY, JSON.stringify({layers,timeline,name:projectName,savedAt:Date.now()})); } catch(e){} alert("Saved!"); } },
             "---",
             { label: "Export Frame", action: handleExportFrame },

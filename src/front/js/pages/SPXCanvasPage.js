@@ -1,6 +1,7 @@
 // src/front/js/pages/SPXCanvasPage.js
 // SPX Canvas — Photoshop-rival canvas editor with real Canvas 2D rendering
 
+import { saveToCloud, listCloudProjects, loadFromCloud, deleteCloudProject } from "../utils/cloudSave";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { renderCanvas, hitTestLayers, exportCanvasPNG, exportCanvasJPG, exportCanvasWebP } from "../utils/spxcanvas/canvasEngine";
 import { drawSelectionMarquee, createRectSelection, createEllipseSelection, createLassoSelection, magicWandSelect } from "../utils/spxcanvas/selectionEngine";

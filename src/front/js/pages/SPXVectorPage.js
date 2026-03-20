@@ -1,6 +1,7 @@
 // src/front/js/pages/SPXVectorPage.js
 // SPX Vector — Illustrator-rival vector editor with full bezier pen tool
 
+import { saveToCloud, listCloudProjects, loadFromCloud, deleteCloudProject } from "../utils/cloudSave";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { anchorsToBezierPath, createAnchor, moveAnchor, updateInHandle, updateOutHandle } from "../utils/spxvector/bezierMath";
 import { booleanUnion, booleanSubtract, booleanIntersect, booleanExclude } from "../utils/spxvector/booleanOps";

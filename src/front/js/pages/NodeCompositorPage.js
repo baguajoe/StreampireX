@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import { requestRender } from "../utils/render/renderClient";
+import { saveToCloud, listCloudProjects, loadFromCloud, deleteCloudProject } from "../utils/cloudSave";
 import { useEditorStore } from "../store/useEditorStore";
 
 const COMP_KEY = "spx_compositor_project";
@@ -223,6 +224,24 @@ export default function NodeCompositorPage() {
         menus={[
           { label: "File", items: [
             { label: "New Composite", action: () => { if(window.confirm("Clear?")){ setNodes([]); setEdges([]); localStorage.removeItem(COMP_KEY); } } },
+            { label: "Save to Cloud ☁", shortcut: "Ctrl+Shift+S", action: async () => {
+              try {
+                const r = await saveToCloud("compositor", projectName, {nodes, edges, name: projectName});
+                alert("✅ Saved to cloud: " + r.name);
+              } catch(e) { alert("Cloud save failed: " + e.message); }
+            } },
+            { label: "Open from Cloud ☁", action: async () => {
+              try {
+                const projects = await listCloudProjects("compositor");
+                if (!projects.length) { alert("No saved projects found."); return; }
+                const names = projects.map((p,i) => i+1+". "+p.name+" ("+new Date(p.modified).toLocaleDateString()+")").join("\n");
+                const choice = prompt("Choose project:\n"+names+"\nEnter number:");
+                const idx = parseInt(choice)-1;
+                if (isNaN(idx)||idx<0||idx>=projects.length) return;
+                const payload = await loadFromCloud(projects[idx].key);
+                if (payload) { alert("✅ Loaded: "+projects[idx].name); }
+              } catch(e) { alert("Load failed: "+e.message); }
+            } },
             { label: "Save",          shortcut: "Ctrl+S", action: () => { try { localStorage.setItem(COMP_KEY, JSON.stringify({nodes,edges,name:projectName,savedAt:Date.now()})); alert("Saved!"); } catch(e){} } },
             "---",
             { label: "Export PNG",  action: () => {} },
