@@ -35,6 +35,7 @@ import KeyFinder from "../component/KeyFinder";
 import AIBeatAssistant from "../component/AIBeatAssistant";
 import ParametricEQGraph from "../component/ParametricEQGraph";
 import ConsoleFXPanel from "../component/ConsoleFXPanel";
+import AmpSimPlugin from "../component/AmpSimPlugin";
 import PanKnob from "../component/PanKnob";
 import { InlineStemSeparation, AudioToMIDIPanel, PitchCorrectionPanel } from "../component/DAWAdvancedFeatures";
 import SaveAsModal from '../component/SaveAsModal';
@@ -591,6 +592,12 @@ const RecordingStudio = ({ user }) => {
   // ── MIDI Hardware ──
   const [midiEnabled, setMidiEnabled] = React.useState(false);
   const [wamPlugins, setWamPlugins] = React.useState([]);
+  const [analogSubview, setAnalogSubview] = React.useState("ampsim");
+  const [tapeDrive, setTapeDrive] = React.useState(0.3);
+  const [tapeWarmth, setTapeWarmth] = React.useState(0.5);
+  const [tapeEnabled, setTapeEnabled] = React.useState(false);
+  const [harmonicEnabled, setHarmonicEnabled] = React.useState(false);
+  const [harmonicAmount, setHarmonicAmount] = React.useState(0.5);
 
   React.useEffect(() => {
     getInstalledWAMPlugins().then(p => setWamPlugins(p || [])).catch(() => {});
@@ -2755,6 +2762,14 @@ const RecordingStudio = ({ user }) => {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
             Master
           </button>
+          <button
+            className={`daw-view-tab ${viewMode === 'analog' ? 'active' : ''}`}
+            onClick={() => setViewMode('analog')}
+            title="SPX Analog Suite — Amp Sim, Tape Saturation, Harmonic Exciter, Cabinet Sim, Pedal Chain"
+            style={viewMode==='analog'?{background:'rgba(255,102,0,0.12)',color:'#ff6600',borderColor:'rgba(255,102,0,0.4)'}:{}}
+          >
+            🎛️ Analog Suite
+          </button>
         </div>
 
         {/* I/O & Status */}
@@ -3722,6 +3737,90 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {/* ──────── MASTERING VIEW ──────── */}
+        {viewMode === 'analog' && (
+          <div style={{flex:1,minHeight:0,overflowY:'auto',background:'#06060f'}}>
+            <div style={{display:'flex',background:'#0d1117',borderBottom:'1px solid #21262d',padding:'0 12px'}}>
+              {[['ampsim','🎸 Amp Sim'],['tape','📼 Tape & Harmonic'],['pedals','🎛️ Pedal Chain'],['console','🎚️ Console']].map(([id,label])=>(
+                <button key={id} onClick={()=>setAnalogSubview(id)} style={{
+                  padding:'10px 16px',background:'transparent',border:'none',
+                  borderBottom:analogSubview===id?'2px solid #ff6600':'2px solid transparent',
+                  color:analogSubview===id?'#ff6600':'#4e6a82',
+                  fontFamily:'JetBrains Mono,monospace',fontSize:11,fontWeight:700,cursor:'pointer'
+                }}>{label}</button>
+              ))}
+            </div>
+            {analogSubview==='ampsim'&&(
+              <div style={{padding:24}}>
+                <h3 style={{color:'#e6edf3',fontWeight:800,fontSize:16,margin:'0 0 6px'}}>🎸 Guitar & Bass Amp Simulator</h3>
+                <p style={{color:'#8b949e',fontSize:12,margin:'0 0 20px'}}>6 amp models · Cabinet sim · Pedal chain · Web Audio processing</p>
+                <AmpSimPlugin audioContext={null} inputNode={null} outputNode={null}/>
+              </div>
+            )}
+            {analogSubview==='tape'&&(
+              <div style={{padding:24,maxWidth:560,display:'flex',flexDirection:'column',gap:20}}>
+                <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:12,padding:20}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+                    <div><h4 style={{color:'#e6edf3',fontWeight:800,margin:'0 0 4px'}}>📼 Tape Saturation</h4>
+                    <p style={{color:'#8b949e',fontSize:12,margin:0}}>Analog warmth via waveshaper + lowpass filter</p></div>
+                    <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}>
+                      <input type="checkbox" checked={tapeEnabled} onChange={e=>{setTapeEnabled(e.target.checked);setFx(f=>({...f,tapeSaturation:{...f.tapeSaturation,enabled:e.target.checked}}));rebuildFxChain();}}/>
+                      <span style={{color:tapeEnabled?'#ff6600':'#4e6a82',fontWeight:700,fontSize:12}}>{tapeEnabled?'ON':'OFF'}</span>
+                    </label>
+                  </div>
+                  {[['DRIVE',tapeDrive,setTapeDrive,'drive'],['WARMTH',tapeWarmth,setTapeWarmth,'warmth']].map(([lbl,val,setter,key])=>(
+                    <div key={lbl} style={{marginBottom:12}}>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#4e6a82',marginBottom:5}}>
+                        <span>{lbl}</span><span style={{color:'#ff6600'}}>{(val*100).toFixed(0)}%</span>
+                      </div>
+                      <input type="range" min={0} max={1} step={0.01} value={val} style={{width:'100%',accentColor:'#ff6600'}}
+                        onChange={e=>{const v=parseFloat(e.target.value);setter(v);setFx(f=>({...f,tapeSaturation:{...f.tapeSaturation,[key]:v}}));rebuildFxChain();}}/>
+                    </div>
+                  ))}
+                </div>
+                <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:12,padding:20}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+                    <div><h4 style={{color:'#e6edf3',fontWeight:800,margin:'0 0 4px'}}>⚡ Harmonic Exciter</h4>
+                    <p style={{color:'#8b949e',fontSize:12,margin:0}}>Aphex-style presence enhancer — adds air and harmonic overtones</p></div>
+                    <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}>
+                      <input type="checkbox" checked={harmonicEnabled} onChange={e=>{setHarmonicEnabled(e.target.checked);setFx(f=>({...f,exciter:{...f.exciter,enabled:e.target.checked}}));rebuildFxChain();}}/>
+                      <span style={{color:harmonicEnabled?'#ffd60a':'#4e6a82',fontWeight:700,fontSize:12}}>{harmonicEnabled?'ON':'OFF'}</span>
+                    </label>
+                  </div>
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#4e6a82',marginBottom:5}}>
+                    <span>AMOUNT</span><span style={{color:'#ffd60a'}}>{(harmonicAmount*100).toFixed(0)}%</span>
+                  </div>
+                  <input type="range" min={0} max={1} step={0.01} value={harmonicAmount} style={{width:'100%',accentColor:'#ffd60a'}}
+                    onChange={e=>{const v=parseFloat(e.target.value);setHarmonicAmount(v);setFx(f=>({...f,exciter:{...f.exciter,amount:v}}));rebuildFxChain();}}/>
+                </div>
+              </div>
+            )}
+            {analogSubview==='pedals'&&(
+              <div style={{padding:24}}>
+                <h4 style={{color:'#e6edf3',fontWeight:800,marginBottom:8}}>🎛️ Signal Chain</h4>
+                <p style={{color:'#8b949e',fontSize:12,marginBottom:20}}>Analog-modeled effects in series — Tuner → Compressor → Overdrive → Chorus → Delay → Reverb</p>
+                <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+                  {[['🎵','Tuner'],['🗜️','Compressor'],['🔥','Overdrive'],['🌊','Chorus'],['⏱️','Delay'],['🏔️','Reverb']].map(([icon,name])=>(
+                    <div key={name} style={{width:100,height:120,background:'#0d1117',border:'1px solid #21262d',borderRadius:10,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,cursor:'pointer'}}
+                      onMouseEnter={e=>e.currentTarget.style.borderColor='#ff6600'}
+                      onMouseLeave={e=>e.currentTarget.style.borderColor='#21262d'}>
+                      <span style={{fontSize:28}}>{icon}</span>
+                      <span style={{fontSize:10,fontWeight:700,color:'#8b949e'}}>{name}</span>
+                      <div style={{width:22,height:22,borderRadius:'50%',border:'2px solid #ff6600',background:'#161b22'}}/>
+                    </div>
+                  ))}
+                </div>
+                <p style={{color:'#4e6a82',fontSize:11,marginTop:16}}>Full pedal chain in Amp Sim tab → Pedal Chain section</p>
+              </div>
+            )}
+            {analogSubview==='console'&&(
+              <div style={{padding:16,textAlign:'center',color:'#4e6a82',fontSize:13,marginTop:40}}>
+                <div style={{fontSize:32,marginBottom:12}}>🎚️</div>
+                <p>Full mixing console available in the <button onClick={()=>setViewMode('console')} style={{background:'none',border:'none',color:'#00ffc8',cursor:'pointer',fontSize:13,fontWeight:700}}>Console tab →</button></p>
+                <p style={{fontSize:11,marginTop:8}}>Per-channel EQ · Compression · VU meters · Routing · Inserts</p>
+              </div>
+            )}
+          </div>
+        )}
         {viewMode === 'speakersim' && (
           <SpeakerSimulator />
         )}
