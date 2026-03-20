@@ -1,4 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import KeyframePanel from '../keyframes/ui/KeyframePanel';
+import KeyframeTimelineStrip from '../keyframes/ui/KeyframeTimelineStrip';
+import { createKeyframe, upsertClipKeyframe, deleteClipKeyframe, patchClipKeyframe, getClipAnimatedValue, ensurePropertyKeyframes } from '../keyframes/engine/keyframeEngine';
+import { KEYFRAME_PROPERTIES, DEFAULT_KEYFRAME_VALUE_BY_PROPERTY, INTERPOLATION_TYPES } from '../keyframes/engine/keyframeTypes';
 import '../../styles/VideoEditorComponent.css';
 import {
   Play, Pause, Square, RotateCcw, Download, Upload, Volume2, VolumeX,
@@ -1991,6 +1995,12 @@ TIMELINE
   const [showAudioWaveforms, setShowAudioWaveforms] = useState(true);
   const [activeEffects, setActiveEffects] = useState({});
   const [showEffectsPanel, setShowEffectsPanel] = useState(true);
+  const [selectedKeyframeProperty, setSelectedKeyframeProperty] = useState(KEYFRAME_PROPERTIES.OPACITY);
+  const [showKeyframePanel, setShowKeyframePanel] = useState(true);
+  const [selectedKeyframeId, setSelectedKeyframeId] = useState(null);
+  const [selectedKeyframeDraftValue, setSelectedKeyframeDraftValue] = useState('');
+  const [selectedKeyframeDraftInterpolation, setSelectedKeyframeDraftInterpolation] = useState(INTERPOLATION_TYPES.LINEAR);
+
   const [programMonitorMuted, setProgramMonitorMuted] = useState(false);
   const [showCompositingPanel, setShowCompositingPanel] = useState(false);
   const [showColorGrading, setShowColorGrading] = useState(false);
@@ -2393,6 +2403,170 @@ TIMELINE
     const timelineWidth = rect.width;
     const clickTime = (x / timelineWidth) * duration;
     setCurrentTime(Math.max(0, Math.min(duration, clickTime)));
+  };
+
+
+  const keyframePropertyOptions = [
+    { label: 'Opacity', value: KEYFRAME_PROPERTIES.OPACITY },
+    { label: 'Position X', value: KEYFRAME_PROPERTIES.POSITION_X },
+    { label: 'Position Y', value: KEYFRAME_PROPERTIES.POSITION_Y },
+    { label: 'Scale X', value: KEYFRAME_PROPERTIES.SCALE_X },
+    { label: 'Scale Y', value: KEYFRAME_PROPERTIES.SCALE_Y },
+    { label: 'Rotation', value: KEYFRAME_PROPERTIES.ROTATION },
+    { label: 'Brightness', value: KEYFRAME_PROPERTIES.BRIGHTNESS },
+    { label: 'Contrast', value: KEYFRAME_PROPERTIES.CONTRAST },
+    { label: 'Saturation', value: KEYFRAME_PROPERTIES.SATURATION },
+    { label: 'Volume', value: KEYFRAME_PROPERTIES.VOLUME },
+  ];
+
+  const getSelectedClipCurrentAnimatedValue = () => {
+    if (!selectedClip) return 0;
+    const fallback = DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[selectedKeyframeProperty] ?? 0;
+    return getClipAnimatedValue(selectedClip, selectedKeyframeProperty, currentTime, fallback);
+  };
+
+  const handleAddKeyframe = (property, time, value) => {
+    if (!selectedClip) return;
+
+    const fallback = DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[property] ?? 0;
+    const nextValue = value ?? getClipAnimatedValue(selectedClip, property, time, fallback);
+
+    const createdKeyframe = createKeyframe({
+      time,
+      value: nextValue,
+    });
+
+    const nextClip = upsertClipKeyframe(
+      selectedClip,
+      property,
+      createdKeyframe
+    );
+
+    setTracks(prev =>
+      prev.map(track => ({
+        ...track,
+        clips: track.clips.map(clip => clip.id === selectedClip.id ? nextClip : clip)
+      }))
+    );
+
+    setSelectedClip(nextClip);
+    setSelectedKeyframeId(createdKeyframe.id);
+    syncSelectedKeyframeEditor(createdKeyframe);
+  };
+
+  const handleRemoveKeyframe = (property, keyframeId) => {
+    if (!selectedClip) return;
+
+    const nextClip = deleteClipKeyframe(selectedClip, property, keyframeId);
+
+    setTracks(prev =>
+      prev.map(track => ({
+        ...track,
+        clips: track.clips.map(clip => clip.id === selectedClip.id ? nextClip : clip)
+      }))
+    );
+
+    setSelectedClip(nextClip);
+
+    if (selectedKeyframeId === keyframeId) {
+      setSelectedKeyframeId(null);
+    }
+  };
+
+
+  const getSelectedClipTimelineDuration = () => {
+    if (!selectedClip) return Math.max(1, duration || 1);
+    return Math.max(
+      1,
+      selectedClip.duration ||
+      ((selectedClip.trimEnd || 0) - (selectedClip.trimStart || 0)) ||
+      duration ||
+      1
+    );
+  };
+
+
+  const getSelectedPropertyKeyframes = () => {
+    if (!selectedClip) return [];
+    return ensurePropertyKeyframes(selectedClip, selectedKeyframeProperty);
+  };
+
+  const getSelectedKeyframe = () => {
+    return getSelectedPropertyKeyframes().find(kf => kf.id === selectedKeyframeId) || null;
+  };
+
+  const syncSelectedKeyframeEditor = (keyframe) => {
+    if (!keyframe) {
+      setSelectedKeyframeDraftValue('');
+      setSelectedKeyframeDraftInterpolation(INTERPOLATION_TYPES.LINEAR);
+      return;
+    }
+    setSelectedKeyframeDraftValue(String(keyframe.value ?? ''));
+    setSelectedKeyframeDraftInterpolation(keyframe.interpolation || INTERPOLATION_TYPES.LINEAR);
+  };
+
+  const handleSelectKeyframe = (keyframeId) => {
+    setSelectedKeyframeId(keyframeId);
+    const keyframe = getSelectedPropertyKeyframes().find(kf => kf.id === keyframeId);
+    syncSelectedKeyframeEditor(keyframe);
+  };
+
+  const handleUpdateSelectedKeyframe = (patch = {}) => {
+    if (!selectedClip || !selectedKeyframeId) return;
+
+    const nextClip = patchClipKeyframe(
+      selectedClip,
+      selectedKeyframeProperty,
+      selectedKeyframeId,
+      patch
+    );
+
+    setTracks(prev =>
+      prev.map(track => ({
+        ...track,
+        clips: track.clips.map(clip => clip.id === selectedClip.id ? nextClip : clip)
+      }))
+    );
+
+    setSelectedClip(nextClip);
+
+    const nextKeyframe = ensurePropertyKeyframes(nextClip, selectedKeyframeProperty).find(
+      kf => kf.id === selectedKeyframeId
+    );
+    syncSelectedKeyframeEditor(nextKeyframe);
+  };
+
+  const handlePrevNextKeyframe = (direction = 1) => {
+    const keyframes = getSelectedPropertyKeyframes();
+    if (!keyframes.length) return;
+
+    const sorted = [...keyframes].sort((a, b) => a.time - b.time);
+    const currentIndex = sorted.findIndex(kf => kf.id === selectedKeyframeId);
+
+    let target = null;
+
+    if (currentIndex === -1) {
+      target = direction > 0 ? sorted[0] : sorted[sorted.length - 1];
+    } else {
+      const nextIndex = Math.max(0, Math.min(sorted.length - 1, currentIndex + direction));
+      target = sorted[nextIndex];
+    }
+
+    if (target) {
+      handleSelectKeyframe(target.id);
+      handleSeekToKeyframe(target.time);
+    }
+  };
+
+  const handleSeekToKeyframe = (time) => {
+    setCurrentTime(time);
+    if (videoRef?.current) {
+      try {
+        videoRef.current.currentTime = time;
+      } catch (e) {
+        console.log('Seek sync skipped:', e);
+      }
+    }
   };
 
   // Effect application function
@@ -4905,6 +5079,9 @@ TIMELINE
                                     left: '50%',
                                     transform: 'translate(-50%, -50%)',
                                     maxWidth: '100%',
+                                  opacity: animatedOpacity / 100,
+                                  transform: `translate(${animatedPositionX}px, ${animatedPositionY}px) scale(${animatedScaleX / 100}, ${animatedScaleY / 100}) rotate(${animatedRotation}deg)`,
+                                  transformOrigin: 'center center',
                                     maxHeight: '100%',
                                     opacity: fromOpacity
                                   }}
@@ -4997,30 +5174,101 @@ TIMELINE
                         }
 
                         // Build CSS filters from effects
-                        const buildCssFilters = (effects) => {
-                          if (!effects || effects.length === 0) return 'none';
+                        const buildCssFilters = (effects, activeClipRef, localTime) => {
+                          if (!effects || effects.length === 0) {
+                            const animatedBrightnessOnly = getClipAnimatedValue(
+                              activeClipRef,
+                              KEYFRAME_PROPERTIES.BRIGHTNESS,
+                              localTime,
+                              DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[KEYFRAME_PROPERTIES.BRIGHTNESS] ?? 50
+                            );
+                            const animatedContrastOnly = getClipAnimatedValue(
+                              activeClipRef,
+                              KEYFRAME_PROPERTIES.CONTRAST,
+                              localTime,
+                              DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[KEYFRAME_PROPERTIES.CONTRAST] ?? 50
+                            );
+                            const animatedSaturationOnly = getClipAnimatedValue(
+                              activeClipRef,
+                              KEYFRAME_PROPERTIES.SATURATION,
+                              localTime,
+                              DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[KEYFRAME_PROPERTIES.SATURATION] ?? 50
+                            );
+
+                            return [
+                              `brightness(${0.5 + (animatedBrightnessOnly / 100)})`,
+                              `contrast(${0.5 + (animatedContrastOnly / 100)})`,
+                              `saturate(${animatedSaturationOnly / 50})`
+                            ].join(' ');
+                          }
+
+                          const animatedBrightness = getClipAnimatedValue(
+                            activeClipRef,
+                            KEYFRAME_PROPERTIES.BRIGHTNESS,
+                            localTime,
+                            DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[KEYFRAME_PROPERTIES.BRIGHTNESS] ?? 50
+                          );
+
+                          const animatedContrast = getClipAnimatedValue(
+                            activeClipRef,
+                            KEYFRAME_PROPERTIES.CONTRAST,
+                            localTime,
+                            DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[KEYFRAME_PROPERTIES.CONTRAST] ?? 50
+                          );
+
+                          const animatedSaturation = getClipAnimatedValue(
+                            activeClipRef,
+                            KEYFRAME_PROPERTIES.SATURATION,
+                            localTime,
+                            DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[KEYFRAME_PROPERTIES.SATURATION] ?? 50
+                          );
 
                           const filters = effects.map(effect => {
                             const value = effect.value || 50;
-                            switch (effect.id) {
-                              case 'low_light_restore': return `brightness(${1 + (value / 140)}) contrast(${1 + (value / 300)}) saturate(${1 + (value / 500)})`;
-                              case 'shadow_recovery': return `brightness(${1 + (value / 180)}) contrast(${1 + (value / 500)})`;
-                              case 'denoise': return `contrast(${1 + (value / 800)}) saturate(${1 - (value / 1200)})`;
-                              case 'detail_boost': return `contrast(${1 + (value / 250)}) saturate(${1 + (value / 900)})`;
-                              case 'cinematic_relight': return `brightness(${1 + (value / 160)}) contrast(${1 + (value / 260)}) saturate(${1 + (value / 700)})`;
-                              case 'brightness': return `brightness(${0.5 + (value / 100)})`;
-                              case 'contrast': return `contrast(${0.5 + (value / 100)})`;
-                              case 'saturation': return `saturate(${value / 50})`;
-                              case 'hue': return `hue-rotate(${(value / 100) * 360}deg)`;
-                              case 'blur': return `blur(${value / 10}px)`;
-                              case 'grayscale': return `grayscale(${value}%)`;
-                              case 'sepia': return `sepia(${value}%)`;
-                              case 'invert': return `invert(${value}%)`;
-                              default: return '';
-                            }
-                          }).filter(f => f).join(' ');
+                            const animatedEffectValue = getClipAnimatedValue(
+                              activeClipRef,
+                              KEYFRAME_PROPERTIES.EFFECT_INTENSITY,
+                              localTime,
+                              value
+                            );
 
-                          return filters || 'none';
+                            switch (effect.id) {
+                              case 'low_light_restore':
+                                return `brightness(${1 + (animatedEffectValue / 140)}) contrast(${1 + (animatedEffectValue / 300)}) saturate(${1 + (animatedEffectValue / 500)})`;
+                              case 'shadow_recovery':
+                                return `brightness(${1 + (animatedEffectValue / 180)}) contrast(${1 + (animatedEffectValue / 500)})`;
+                              case 'denoise':
+                                return `contrast(${1 + (animatedEffectValue / 800)}) saturate(${1 - (animatedEffectValue / 1200)})`;
+                              case 'detail_boost':
+                                return `contrast(${1 + (animatedEffectValue / 250)}) saturate(${1 + (animatedEffectValue / 900)})`;
+                              case 'cinematic_relight':
+                                return `brightness(${1 + (animatedEffectValue / 160)}) contrast(${1 + (animatedEffectValue / 260)}) saturate(${1 + (animatedEffectValue / 700)})`;
+                              case 'brightness':
+                                return `brightness(${0.5 + (animatedBrightness / 100)})`;
+                              case 'contrast':
+                                return `contrast(${0.5 + (animatedContrast / 100)})`;
+                              case 'saturation':
+                                return `saturate(${animatedSaturation / 50})`;
+                              case 'hue':
+                                return `hue-rotate(${(animatedEffectValue / 100) * 360}deg)`;
+                              case 'blur':
+                                return `blur(${animatedEffectValue / 10}px)`;
+                              case 'grayscale':
+                                return `grayscale(${animatedEffectValue}%)`;
+                              case 'sepia':
+                                return `sepia(${animatedEffectValue}%)`;
+                              case 'invert':
+                                return `invert(${animatedEffectValue}%)`;
+                              default:
+                                return '';
+                            }
+                          }).filter(f => f);
+
+                          return filters.length ? filters.join(' ') : [
+                            `brightness(${0.5 + (animatedBrightness / 100)})`,
+                            `contrast(${0.5 + (animatedContrast / 100)})`,
+                            `saturate(${animatedSaturation / 50})`
+                          ].join(' ');
                         };
 
                         // Calculate fade overlay opacity
@@ -5077,7 +5325,50 @@ TIMELINE
                           return null;
                         };
 
-                        const cssFilters = buildCssFilters(activeClip.effects);
+                        const animatedOpacity = getClipAnimatedValue(
+                          activeClip,
+                          KEYFRAME_PROPERTIES.OPACITY,
+                          clipProgress * (activeClip.duration || 0),
+                          100
+                        );
+
+                        const animatedPositionX = getClipAnimatedValue(
+                          activeClip,
+                          KEYFRAME_PROPERTIES.POSITION_X,
+                          clipProgress * (activeClip.duration || 0),
+                          0
+                        );
+
+                        const animatedPositionY = getClipAnimatedValue(
+                          activeClip,
+                          KEYFRAME_PROPERTIES.POSITION_Y,
+                          clipProgress * (activeClip.duration || 0),
+                          0
+                        );
+
+                        const animatedScaleX = getClipAnimatedValue(
+                          activeClip,
+                          KEYFRAME_PROPERTIES.SCALE_X,
+                          clipProgress * (activeClip.duration || 0),
+                          100
+                        );
+
+                        const animatedScaleY = getClipAnimatedValue(
+                          activeClip,
+                          KEYFRAME_PROPERTIES.SCALE_Y,
+                          clipProgress * (activeClip.duration || 0),
+                          100
+                        );
+
+                        const animatedRotation = getClipAnimatedValue(
+                          activeClip,
+                          KEYFRAME_PROPERTIES.ROTATION,
+                          clipProgress * (activeClip.duration || 0),
+                          0
+                        );
+
+                        const localPreviewTime = clipProgress * (activeClip.duration || 0);
+                        const cssFilters = buildCssFilters(activeClip.effects, activeClip, localPreviewTime);
                         const fadeOverlay = getFadeOverlay(activeClip.effects, clipProgress);
 
                         return (
@@ -6519,6 +6810,113 @@ TIMELINE
                     })}
                   </div>
                 </div>
+
+
+                {/* Keyframe Panel */}
+                {showKeyframePanel && (
+                  <div className="presets-section">
+                    <h5>Animation / Keyframes</h5>
+                    <KeyframePanel
+                      selectedClip={selectedClip}
+                      propertyOptions={keyframePropertyOptions}
+                      selectedProperty={selectedKeyframeProperty}
+                      setSelectedProperty={(property) => {
+                        setSelectedKeyframeProperty(property);
+                        setSelectedKeyframeId(null);
+                        setSelectedKeyframeDraftValue('');
+                        setSelectedKeyframeDraftInterpolation(INTERPOLATION_TYPES.LINEAR);
+                      }}
+                      currentValue={getSelectedClipCurrentAnimatedValue()}
+                      currentTime={currentTime}
+                      keyframes={ensurePropertyKeyframes(selectedClip, selectedKeyframeProperty)}
+                      onAddKeyframe={handleAddKeyframe}
+                      onRemoveKeyframe={handleRemoveKeyframe}
+                      onSeekToKeyframe={handleSeekToKeyframe}
+                    />
+
+                    <KeyframeTimelineStrip
+                      keyframes={ensurePropertyKeyframes(selectedClip, selectedKeyframeProperty)}
+                      duration={getSelectedClipTimelineDuration()}
+                      currentTime={currentTime}
+                      selectedKeyframeId={selectedKeyframeId}
+                      onSelect={handleSelectKeyframe}
+                      onSeek={handleSeekToKeyframe}
+                      onRemove={(kfId) => handleRemoveKeyframe(selectedKeyframeProperty, kfId)}
+                      onAddAtTime={(time) =>
+                        handleAddKeyframe(
+                          selectedKeyframeProperty,
+                          time,
+                          getClipAnimatedValue(
+                            selectedClip,
+                            selectedKeyframeProperty,
+                            time,
+                            DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[selectedKeyframeProperty] ?? 0
+                          )
+                        )
+                      }
+                    />
+                    
+                    {/* Selected Keyframe Editor */}
+                    {selectedKeyframeId && getSelectedKeyframe() && (
+                      <div style={{
+                        marginTop: 12,
+                        padding: 12,
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: 8,
+                        background: 'rgba(255,255,255,0.03)'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                          <strong>Selected Keyframe</strong>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button type="button" onClick={() => handlePrevNextKeyframe(-1)}>◀ Prev</button>
+                            <button type="button" onClick={() => handlePrevNextKeyframe(1)}>Next ▶</button>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                          <div>
+                            <label style={{ display: 'block', marginBottom: 6 }}>Value</label>
+                            <input
+                              type="number"
+                              value={selectedKeyframeDraftValue}
+                              onChange={(e) => setSelectedKeyframeDraftValue(e.target.value)}
+                              onBlur={() => {
+                                const parsed = parseFloat(selectedKeyframeDraftValue);
+                                if (!Number.isNaN(parsed)) {
+                                  handleUpdateSelectedKeyframe({ value: parsed });
+                                }
+                              }}
+                              style={{ width: '100%', padding: 8 }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', marginBottom: 6 }}>Interpolation</label>
+                            <select
+                              value={selectedKeyframeDraftInterpolation}
+                              onChange={(e) => {
+                                const nextMode = e.target.value;
+                                setSelectedKeyframeDraftInterpolation(nextMode);
+                                handleUpdateSelectedKeyframe({ interpolation: nextMode });
+                              }}
+                              style={{ width: '100%', padding: 8 }}
+                            >
+                              <option value={INTERPOLATION_TYPES.LINEAR}>Linear</option>
+                              <option value={INTERPOLATION_TYPES.EASE_IN}>Ease In</option>
+                              <option value={INTERPOLATION_TYPES.EASE_OUT}>Ease Out</option>
+                              <option value={INTERPOLATION_TYPES.EASE_IN_OUT}>Ease In Out</option>
+                              <option value={INTERPOLATION_TYPES.HOLD}>Hold</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div style={{ marginTop: 10, opacity: 0.85, fontSize: 12 }}>
+                          Time: {Number(getSelectedKeyframe()?.time || 0).toFixed(2)}s
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Presets */}
                 <div className="presets-section">

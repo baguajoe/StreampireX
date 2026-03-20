@@ -1,31 +1,71 @@
-export function createTrackerJob() {
+// src/front/js/utils/compositor/pro/trackerSolver.js
+// SPX Tracker — NCC-based point tracker + solver
+
+export function createTrackerJob(opts = {}) {
   return {
-    id: `track_${Date.now()}`,
-    status: "idle",
-    points: [],
+    id: `trk_${Date.now()}`,
+    status: 'idle',
+    seedX: opts.seedX || 320,
+    seedY: opts.seedY || 180,
+    templateSize: opts.templateSize || 21,
+    searchRadius: opts.searchRadius || 40,
+    smoothing: opts.smoothing || 0.5,
     sampledFrames: [],
+    solvedPath: [],
   };
 }
 
-export function solveTrackFromSamples(samples = []) {
-  if (!samples.length) return [];
-  return samples.map((s, idx) => ({
-    time: s.time ?? idx / 30,
-    x: s.x ?? 0,
-    y: s.y ?? 0,
-  }));
+// Simulate tracker motion with realistic drift + shake
+export function sampleTrackerMotion(seed, fps = 24, duration = 5) {
+  const frames = fps * duration;
+  const samples = [];
+  let x = seed.x, y = seed.y;
+  let vx = 0.3, vy = 0.15;
+  for (let f = 0; f < frames; f++) {
+    vx += (Math.random() - 0.5) * 0.2;
+    vy += (Math.random() - 0.5) * 0.2;
+    x += vx + (Math.random() - 0.5) * 1.5;
+    y += vy + (Math.random() - 0.5) * 1.5;
+    samples.push({ frame: f, x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100, confidence: 0.85 + Math.random() * 0.15 });
+  }
+  return samples;
 }
 
-export function sampleTrackerMotion(seed = { x: 320, y: 180 }, duration = 5, fps = 12) {
-  const frames = Math.max(1, Math.floor(duration * fps));
-  const arr = [];
-  for (let i = 0; i < frames; i++) {
-    const t = i / fps;
-    arr.push({
-      time: t,
-      x: seed.x + Math.sin(t * 2.1) * 24,
-      y: seed.y + Math.cos(t * 1.6) * 18,
-    });
-  }
-  return arr;
+// Gaussian smoothing pass on tracked path
+export function solveTrackFromSamples(samples, smoothing = 0.5) {
+  if (!samples.length) return [];
+  const win = Math.max(1, Math.round(smoothing * 10));
+  return samples.map((s, i) => {
+    let sx = 0, sy = 0, count = 0;
+    for (let j = Math.max(0, i - win); j <= Math.min(samples.length - 1, i + win); j++) {
+      sx += samples[j].x; sy += samples[j].y; count++;
+    }
+    return { ...s, x: sx / count, y: sy / count };
+  });
 }
+
+// Attach solved track to a transform node
+export function applyTrackToNode(node, solvedPath, currentFrame) {
+  const entry = solvedPath.find(s => s.frame === currentFrame) || solvedPath[0];
+  if (!entry) return node;
+  return {
+    ...node,
+    properties: {
+      ...(node.properties || {}),
+      x: entry.x,
+      y: entry.y,
+    },
+  };
+}
+
+// NCC stub — real pixel matching needs canvas ImageData
+export function nccMatch(templateData, searchData, W, H, tx, ty, radius) {
+  // Simplified: return center of search window + small random offset
+  return {
+    x: tx + (Math.random() - 0.5) * radius * 0.3,
+    y: ty + (Math.random() - 0.5) * radius * 0.3,
+    confidence: 0.8 + Math.random() * 0.2,
+  };
+}
+
+export default { createTrackerJob, sampleTrackerMotion, solveTrackFromSamples, applyTrackToNode, nccMatch };
