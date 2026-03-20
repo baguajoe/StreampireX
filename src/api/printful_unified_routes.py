@@ -50,7 +50,8 @@ def get_catalog():
     per_page = int(request.args.get("per_page", 50))
 
     try:
-        res = requests.get(f"{PRINTFUL_API_URL}/products", headers=pf_headers(), timeout=15)
+        # Public endpoint — no auth required
+        res = requests.get(f"{PRINTFUL_API_URL}/products", timeout=15)
         if not res.ok:
             return jsonify({"error": "Printful API error", "products": []}), 200
         data = res.json().get("result", [])
@@ -93,7 +94,7 @@ def get_catalog():
 @jwt_required()
 def get_product_detail(product_id):
     try:
-        res = requests.get(f"{PRINTFUL_API_URL}/products/{product_id}", headers=pf_headers(), timeout=15)
+        res = requests.get(f"{PRINTFUL_API_URL}/products/{product_id}", timeout=15)  # public endpoint
         if not res.ok:
             return jsonify({"error": "Product not found"}), 404
         data = res.json().get("result", {})
