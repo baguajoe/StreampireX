@@ -231,6 +231,30 @@ const previewVideoEffect = async (publicId, effectId, intensity = 50) => {
 };
 
 /**
+ * Apply a single video effect on a video
+ */
+const applyVideoEffect = async (payload) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/apply-effect`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Apply effect failed');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error applying video effect:', error);
+    throw error;
+  }
+};
+
+
+/**
  * Concatenate multiple video clips
  * @param {Array} clips - Array of clip objects with public_id and optional trim
  * @returns {Promise<string>} - Concatenated video URL
@@ -2091,6 +2115,14 @@ TIMELINE
 
   // Comprehensive Effects Library
   const videoEffects = [
+    // AI / Restoration / Enhancement
+    { id: 'low_light_restore', name: 'Low-Light Restore', icon: Lightbulb, category: 'enhancement', description: 'Lift dark footage with denoise and relight' },
+    { id: 'shadow_recovery', name: 'Shadow Recovery', icon: Moon, category: 'enhancement', description: 'Recover detail from dark shadows' },
+    { id: 'denoise', name: 'Denoise', icon: Filter, category: 'enhancement', description: 'Reduce low-light and sensor noise' },
+    { id: 'detail_boost', name: 'Detail Boost', icon: Focus, category: 'enhancement', description: 'Recover edge detail and clarity' },
+    { id: 'cinematic_relight', name: 'Cinematic Relight', icon: Sparkles, category: 'enhancement', description: 'Smart cinematic relighting for dark clips' },
+
+
     // Fade Effects (NEW)
     { id: 'fadeIn', name: 'Fade In (Black)', icon: Sun, category: 'fade', description: 'Fade in from black' },
     { id: 'fadeOut', name: 'Fade Out (Black)', icon: Circle, category: 'fade', description: 'Fade out to black' },
@@ -2435,13 +2467,42 @@ TIMELINE
       // Video effect
       console.log(`🎬 Applying video effect "${effectId}" to clip ${clipId}`);
 
+      const backendVideoEffects = ['low_light_restore', 'shadow_recovery', 'denoise', 'detail_boost', 'cinematic_relight'];
+
       setActiveEffects(prev => ({
         ...prev,
         [clipId]: {
           ...prev[clipId],
-          [effectId]: value
+          [effectId]: value,
+          [`${effectId}_loading`]: true
         }
       }));
+
+      try {
+        if (backendVideoEffects.includes(effectId)) {
+          const payload = {
+            effect_id: effectId,
+            intensity: parseFloat(value)
+          };
+
+          if (clip.r2_key) payload.r2_key = clip.r2_key;
+          else if (clip.source_url) payload.source_url = clip.source_url;
+          else if (clip.mediaUrl) payload.source_url = clip.mediaUrl;
+          else if (clip.url) payload.source_url = clip.url;
+          else if (clip.cloudinary_public_id) payload.public_id = clip.cloudinary_public_id;
+
+          const result = await applyVideoEffect(payload);
+
+          if (result?.processed_url) {
+            setSelectedClip(prev => prev && prev.id === clipId ? {
+              ...prev,
+              previewUrl: result.processed_url,
+              mediaUrl: result.processed_url,
+              source_url: result.processed_url,
+              ...(result.r2_key ? { r2_key: result.r2_key } : {})
+            } : prev);
+          }
+        }
 
       setTracks(prevTracks => {
         const newTracks = prevTracks.map(track => ({
@@ -2481,6 +2542,18 @@ TIMELINE
       });
 
       console.log(`✅ Applied ${effectId} to video clip ${clipId} with intensity ${value}%`);
+      } catch (error) {
+        console.error('Video effect application error:', error);
+        alert(`Failed to apply ${effectId}: ${error.message}`);
+      } finally {
+        setActiveEffects(prev => ({
+          ...prev,
+          [clipId]: {
+            ...prev[clipId],
+            [`${effectId}_loading`]: false
+          }
+        }));
+      }
     }
   };
 
@@ -2509,23 +2582,52 @@ TIMELINE
       } catch (error) {
         console.error('Preview error:', error);
       }
-    } else if (clip.cloudinary_public_id) {
-      // Video effect preview using Cloudinary (NEW)
+    } else {
       try {
-        const previewUrl = await previewVideoEffect(clip.cloudinary_public_id, effectId, intensity);
+        let previewUrl = null;
 
-        // Update preview in program monitor
-        setSelectedClip({
-          ...clip,
-          previewUrl: previewUrl
-        });
+        if (clip.r2_key || clip.source_url || clip.mediaUrl || clip.url) {
+          const response = await fetch(`${backendURL}/api/video-editor/effect-preview`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              r2_key: clip.r2_key || '',
+              source_url: clip.source_url || clip.mediaUrl || clip.url || '',
+              effect_id: effectId,
+              intensity: intensity
+            })
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Preview failed');
+          }
+
+          const data = await response.json();
+          previewUrl = data.preview_url;
+        } else if (clip.cloudinary_public_id) {
+          previewUrl = await previewVideoEffect(clip.cloudinary_public_id, effectId, intensity);
+        }
+
+        if (previewUrl) {
+          setSelectedClip({
+            ...clip,
+            previewUrl: previewUrl
+          });
+
+          setActiveEffects(prev => ({
+            ...prev,
+            [clipId]: {
+              ...prev[clipId],
+              [`${effectId}_preview`]: previewUrl
+            }
+          }));
+        }
 
         console.log(`Previewing ${effectId} on video clip ${clipId}`);
       } catch (error) {
         console.error('Video preview error:', error);
       }
-    } else {
-      console.log(`Previewing ${effectId} on video clip ${clipId}`);
     }
   };
 
@@ -4019,7 +4121,45 @@ TIMELINE
                     )}
                   </div>
 
-                  {/* Color Correction */}
+                                    {/* Enhancement / Restoration */}
+                  <div className="effect-category">
+                    <div
+                      className="category-header"
+                      style={{ background: 'rgba(255, 204, 0, 0.08)' }}
+                    >
+                      <span>✨ Enhancement</span>
+                    </div>
+                    <div className="effect-list-category">
+                      {getEffectsByCategory('enhancement', videoEffects).map(effect => {
+                        const Icon = effect.icon;
+                        return (
+                          <div
+                            key={effect.id}
+                            className={`effect-item ${selectedClip ? 'clickable' : ''}`}
+                            draggable
+                            onDragStart={(e) => handleEffectDragStart(e, effect)}
+                            onDragEnd={handleEffectDragEnd}
+                            onClick={() => {
+                              if (selectedClip) {
+                                applyEffect(selectedClip.id, effect.id, 60);
+                              } else {
+                                alert('Please select a clip on the timeline first!');
+                              }
+                            }}
+                            title={selectedClip ? `Click to apply ${effect.name} to "${selectedClip.title}"` : `Select a clip first`}
+                            style={{ cursor: selectedClip ? 'pointer' : 'grab' }}
+                          >
+                            <Icon size={14} />
+                            <span>{effect.name}</span>
+                            {selectedClip && <div className="apply-hint" style={{ marginLeft: 'auto', fontSize: '10px', color: '#ffcc00' }}>AI</div>}
+                            <div className="drag-hint">📎</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+{/* Color Correction */}
                   <div className="effect-category">
                     <div
                       className="category-header"
@@ -4863,6 +5003,11 @@ TIMELINE
                           const filters = effects.map(effect => {
                             const value = effect.value || 50;
                             switch (effect.id) {
+                              case 'low_light_restore': return `brightness(${1 + (value / 140)}) contrast(${1 + (value / 300)}) saturate(${1 + (value / 500)})`;
+                              case 'shadow_recovery': return `brightness(${1 + (value / 180)}) contrast(${1 + (value / 500)})`;
+                              case 'denoise': return `contrast(${1 + (value / 800)}) saturate(${1 - (value / 1200)})`;
+                              case 'detail_boost': return `contrast(${1 + (value / 250)}) saturate(${1 + (value / 900)})`;
+                              case 'cinematic_relight': return `brightness(${1 + (value / 160)}) contrast(${1 + (value / 260)}) saturate(${1 + (value / 700)})`;
                               case 'brightness': return `brightness(${0.5 + (value / 100)})`;
                               case 'contrast': return `contrast(${0.5 + (value / 100)})`;
                               case 'saturation': return `saturate(${value / 50})`;

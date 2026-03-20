@@ -426,15 +426,26 @@ def get_effects():
     return jsonify({
         'success': True,
         'effects': {
+            'enhancement': [
+                {'id': 'low_light_restore', 'name': 'Low-Light Restore', 'param': 'intensity', 'min': 0, 'max': 100},
+                {'id': 'shadow_recovery', 'name': 'Shadow Recovery', 'param': 'intensity', 'min': 0, 'max': 100},
+                {'id': 'denoise', 'name': 'Denoise', 'param': 'intensity', 'min': 0, 'max': 100},
+                {'id': 'detail_boost', 'name': 'Detail Boost', 'param': 'intensity', 'min': 0, 'max': 100},
+                {'id': 'cinematic_relight', 'name': 'Cinematic Relight', 'param': 'intensity', 'min': 0, 'max': 100},
+            ],
             'color': [
                 {'id': 'brightness', 'name': 'Brightness', 'param': 'value', 'min': -1, 'max': 1},
-                {'id': 'contrast',   'name': 'Contrast',   'param': 'value', 'min': -1, 'max': 1},
-                {'id': 'saturation', 'name': 'Saturation', 'param': 'value', 'min': 0,  'max': 3},
-                {'id': 'grayscale',  'name': 'Grayscale',  'param': None},
-                {'id': 'sepia',      'name': 'Sepia',      'param': None},
+                {'id': 'contrast', 'name': 'Contrast', 'param': 'value', 'min': -1, 'max': 1},
+                {'id': 'saturation', 'name': 'Saturation', 'param': 'value', 'min': 0, 'max': 3},
+                {'id': 'grayscale', 'name': 'Grayscale', 'param': None},
+                {'id': 'sepia', 'name': 'Sepia', 'param': None},
             ],
-            'blur':  [{'id': 'blur',  'name': 'Blur',  'param': 'radius', 'min': 1, 'max': 20}],
-            'speed': [{'id': 'speed', 'name': 'Speed', 'param': 'factor', 'min': 0.25, 'max': 4}],
+            'blur': [
+                {'id': 'blur', 'name': 'Blur', 'param': 'radius', 'min': 1, 'max': 20}
+            ],
+            'speed': [
+                {'id': 'speed', 'name': 'Speed', 'param': 'factor', 'min': 0.25, 'max': 4}
+            ]
         }
     }), 200
 
@@ -466,3 +477,199 @@ def save_project():
         return jsonify({'success': True, 'project_id': project_id, 'message': 'Project saved'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+def build_effect_filter(effect_id, intensity=50):
+    """
+    Build FFmpeg video filter chain for enhancement / restoration.
+    intensity: 0-100
+    """
+    i = max(0, min(100, int(intensity)))
+    n = i / 100.0
+
+    if effect_id == 'low_light_restore':
+        gamma = 1.05 + (n * 0.45)
+        contrast = 1.00 + (n * 0.18)
+        saturation = 1.00 + (n * 0.12)
+        brightness = 0.00 + (n * 0.03)
+        denoise = 2 + int(n * 6)
+        unsharp = 0.2 + (n * 1.0)
+
+        return ",".join([
+            f"hqdn3d={denoise}:{denoise}:{max(1, denoise//2)}:{max(1, denoise//2)}",
+            f"eq=brightness={brightness:.3f}:contrast={contrast:.3f}:saturation={saturation:.3f}:gamma={gamma:.3f}",
+            "curves=all='0/0 0.18/0.28 0.45/0.52 0.75/0.82 1/1'",
+            f"unsharp=5:5:{unsharp:.2f}:5:5:0.0"
+        ])
+
+    elif effect_id == 'shadow_recovery':
+        gamma = 1.02 + (n * 0.35)
+        contrast = 1.00 + (n * 0.10)
+        return ",".join([
+            f"eq=contrast={contrast:.3f}:gamma={gamma:.3f}",
+            "curves=all='0/0.05 0.20/0.32 0.50/0.55 0.80/0.84 1/1'"
+        ])
+
+    elif effect_id == 'denoise':
+        denoise = 2 + int(n * 10)
+        return f"hqdn3d={denoise}:{denoise}:{max(1, denoise//2)}:{max(1, denoise//2)}"
+
+    elif effect_id == 'detail_boost':
+        sharpen = 0.4 + (n * 1.6)
+        return f"unsharp=5:5:{sharpen:.2f}:5:5:0.0"
+
+    elif effect_id == 'cinematic_relight':
+        gamma = 1.03 + (n * 0.30)
+        contrast = 1.02 + (n * 0.20)
+        saturation = 1.00 + (n * 0.08)
+        sharpen = 0.25 + (n * 0.75)
+        return ",".join([
+            "hqdn3d=3:3:2:2",
+            f"eq=contrast={contrast:.3f}:saturation={saturation:.3f}:gamma={gamma:.3f}",
+            "curves=all='0/0.03 0.22/0.30 0.50/0.52 0.78/0.84 1/0.98'",
+            f"unsharp=5:5:{sharpen:.2f}:5:5:0.0"
+        ])
+
+    elif effect_id == 'brightness':
+        brightness_value = (i - 50) / 50.0
+        return f"eq=brightness={brightness_value:.3f}"
+
+    elif effect_id == 'contrast':
+        contrast_value = 0.5 + (i / 100.0)
+        return f"eq=contrast={contrast_value:.3f}"
+
+    elif effect_id == 'saturation':
+        sat_value = max(0, i / 50.0)
+        return f"eq=saturation={sat_value:.3f}"
+
+    elif effect_id == 'blur':
+        blur_radius = max(1, i / 10.0)
+        return f"boxblur={blur_radius:.2f}"
+
+    elif effect_id == 'sharpen':
+        sharpen_value = i / 100.0
+        return f"unsharp=5:5:{sharpen_value:.2f}"
+
+    return None
+
+
+@video_editor_bp.route('/api/video-editor/effect-preview', methods=['POST'])
+@jwt_required()
+def effect_preview():
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+
+    source_url = data.get('source_url', '')
+    r2_key = data.get('r2_key') or data.get('public_id', '')
+    effect_id = data.get('effect_id', '')
+    intensity = int(data.get('intensity', 50))
+
+    if not (source_url or r2_key):
+        return jsonify({'error': 'source_url or r2_key required'}), 400
+
+    vf = build_effect_filter(effect_id, intensity)
+    if not vf:
+        return jsonify({'error': f'Unsupported effect: {effect_id}'}), 400
+
+    uid = uuid.uuid4().hex[:12]
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, f'input_{uid}.mp4')
+        output_path = os.path.join(tmpdir, f'preview_{uid}.mp4')
+
+        if source_url:
+            import requests as req
+            r = req.get(source_url, timeout=120)
+            r.raise_for_status()
+            with open(input_path, 'wb') as f:
+                f.write(r.content)
+        else:
+            if not download_from_r2(r2_key, input_path):
+                return jsonify({'error': 'Could not fetch source file'}), 500
+
+        success, stderr = run_ffmpeg([
+            '-i', input_path,
+            '-vf', vf,
+            '-c:v', 'libx264',
+            '-preset', 'veryfast',
+            '-crf', '22',
+            '-c:a', 'copy',
+            '-movflags', '+faststart',
+            output_path
+        ], timeout=600)
+
+        if not success:
+            return jsonify({'error': f'Preview failed: {stderr[-500:]}'}), 500
+
+        out_key = f'editor/{user_id}/preview_{effect_id}_{uid}.mp4'
+        url = upload_to_r2(output_path, out_key, 'video/mp4')
+        if not url:
+            return jsonify({'error': 'Preview upload failed'}), 500
+
+        return jsonify({
+            'success': True,
+            'preview_url': url,
+            'r2_key': out_key,
+            'effect_id': effect_id,
+            'intensity': intensity
+        }), 200
+
+
+@video_editor_bp.route('/api/video-editor/apply-effect', methods=['POST'])
+@jwt_required()
+def apply_effect():
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+
+    source_url = data.get('source_url', '')
+    r2_key = data.get('r2_key') or data.get('public_id', '')
+    effect_id = data.get('effect_id', '')
+    intensity = int(data.get('intensity', 50))
+
+    if not (source_url or r2_key):
+        return jsonify({'error': 'source_url or r2_key required'}), 400
+
+    vf = build_effect_filter(effect_id, intensity)
+    if not vf:
+        return jsonify({'error': f'Unsupported effect: {effect_id}'}), 400
+
+    uid = uuid.uuid4().hex[:12]
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, f'input_{uid}.mp4')
+        output_path = os.path.join(tmpdir, f'effect_{uid}.mp4')
+
+        if source_url:
+            import requests as req
+            r = req.get(source_url, timeout=120)
+            r.raise_for_status()
+            with open(input_path, 'wb') as f:
+                f.write(r.content)
+        else:
+            if not download_from_r2(r2_key, input_path):
+                return jsonify({'error': 'Could not fetch source file'}), 500
+
+        success, stderr = run_ffmpeg([
+            '-i', input_path,
+            '-vf', vf,
+            '-c:v', 'libx264',
+            '-preset', 'fast',
+            '-crf', '20',
+            '-c:a', 'copy',
+            '-movflags', '+faststart',
+            output_path
+        ], timeout=600)
+
+        if not success:
+            return jsonify({'error': f'Apply effect failed: {stderr[-500:]}'}), 500
+
+        out_key = f'editor/{user_id}/effect_{effect_id}_{uid}.mp4'
+        url = upload_to_r2(output_path, out_key, 'video/mp4')
+        if not url:
+            return jsonify({'error': 'Effect upload failed'}), 500
+
+        return jsonify({
+            'success': True,
+            'processed_url': url,
+            'r2_key': out_key,
+            'effect_id': effect_id,
+            'intensity': intensity
+        }), 200
+

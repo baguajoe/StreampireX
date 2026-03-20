@@ -1,0 +1,1238 @@
+========== 1 ==========
+
+    if (!response.ok) {
+      throw new Error(`Failed to get assets: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.assets || [];
+  } catch (error) {
+    console.error('Error fetching editor assets:', error);
+    throw error;
+  }
+};
+
+/**
+ * Apply transformations to a video clip
+ * @param {Object} clipData - Clip data with transformations
+ * @returns {Promise<string>} - Transformed video URL
+ */
+const transformVideo = async (clipData) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/transform`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(clipData)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Transform failed');
+    }
+
+    const data = await response.json();
+    return data.transformed_url;
+  } catch (error) {
+    console.error('Error transforming video:', error);
+    throw error;
+  }
+};
+
+/**
+ * Trim a video to specified timestamps
+ * @param {string} publicId - Cloudinary public ID
+ * @param {number} startTime - Start time in seconds
+ * @param {number} endTime - End time in seconds
+ * @returns {Promise<string>} - Trimmed video URL
+ */
+const trimVideoClip = async (publicId, startTime, endTime) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/trim`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        public_id: publicId,
+        start_time: startTime,
+        end_time: endTime
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Trim failed');
+    }
+
+    const data = await response.json();
+    return data.trimmed_url;
+  } catch (error) {
+    console.error('Error trimming video:', error);
+    throw error;
+  }
+};
+
+/**
+ * Preview a single effect on a video
+ * @param {string} publicId - Cloudinary public ID
+ * @param {string} effectId - Effect identifier
+ * @param {number} intensity - Effect intensity (0-100)
+ * @returns {Promise<string>} - Preview video URL
+ */
+const previewVideoEffect = async (publicId, effectId, intensity = 50) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/effect-preview`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        public_id: publicId,
+        effect_id: effectId,
+        intensity: intensity
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Preview failed');
+    }
+
+    const data = await response.json();
+    return data.preview_url;
+  } catch (error) {
+    console.error('Error previewing effect:', error);
+    throw error;
+  }
+};
+
+/**
+ * Concatenate multiple video clips
+ * @param {Array} clips - Array of clip objects with public_id and optional trim
+ * @returns {Promise<string>} - Concatenated video URL
+ */
+const concatenateVideos = async (clips) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/concatenate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ clips })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Concatenation failed');
+    }
+
+    const data = await response.json();
+    return data.concatenated_url;
+  } catch (error) {
+    console.error('Error concatenating videos:', error);
+    throw error;
+  }
+};
+
+/**
+ * Add video/image overlay (picture-in-picture)
+ * @param {string} basePublicId - Base video public ID
+ * @param {string} overlayPublicId - Overlay video/image public ID
+ * @param {Object} options - Position, scale, opacity, start time
+ * @returns {Promise<string>} - Video URL with overlay
+ */
+const addVideoOverlay = async (basePublicId, overlayPublicId, options = {}) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/add-overlay`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        base_public_id: basePublicId,
+        overlay_public_id: overlayPublicId,
+        position: options.position || 'bottom-right',
+        scale: options.scale || 30,
+        opacity: options.opacity || 100,
+        start_time: options.startTime || 0
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Overlay failed');
+    }
+
+    const data = await response.json();
+    return data.overlay_url;
+  } catch (error) {
+    console.error('Error adding overlay:', error);
+    throw error;
+  }
+};
+
+/**
+ * Add text overlay to video
+ * @param {string} publicId - Video public ID
+ * @param {string} text - Text to overlay
+ * @param {Object} options - Font size, color, position
+ * @returns {Promise<string>} - Video URL with text
+ */
+const addTextOverlay = async (publicId, text, options = {}) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/add-text`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        public_id: publicId,
+        text: text,
+        font_size: options.fontSize || 40,
+        color: options.color || 'white',
+        position: options.position || 'bottom-left'
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Text overlay failed');
+    }
+
+    const data = await response.json();
+    return data.text_overlay_url;
+  } catch (error) {
+    console.error('Error adding text overlay:', error);
+    throw error;
+  }
+};
+
+/**
+ * Export the complete video project
+ * @param {Object} projectData - Timeline and settings data
+ * @returns {Promise<Object>} - Export result with URL
+ */
+const exportProject = async (projectData) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/export`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(projectData)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Export failed');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error exporting project:', error);
+    throw error;
+  }
+};
+
+/**
+ * Generate thumbnail from video at specific timestamp
+ * @param {string} publicId - Video public ID
+ * @param {number} timestamp - Timestamp in seconds
+ * @returns {Promise<string>} - Thumbnail URL
+ */
+const generateThumbnail = async (publicId, timestamp = 0) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/thumbnail`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        public_id: publicId,
+        timestamp: timestamp
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Thumbnail generation failed');
+    }
+
+    const data = await response.json();
+    return data.thumbnail_url;
+  } catch (error) {
+    console.error('Error generating thumbnail:', error);
+    throw error;
+  }
+};
+
+/**
+ * Save project to database
+ * @param {Object} projectData - Project data to save
+ * @returns {Promise<Object>} - Saved project data
+ */
+const saveProjectToBackend = async (projectData) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/save-project`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(projectData)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Save failed');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error saving project:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get available effects list
+ * @returns {Promise<Object>} - Effects organized by category
+ */
+const getAvailableEffectsFromAPI = async () => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/effects`, {
+      method: 'GET'
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get effects');
+    }
+
+    const data = await response.json();
+    return data.effects;
+  } catch (error) {
+    console.error('Error fetching effects:', error);
+    return null;
+  }
+};
+
+/**
+\n========== 2 ==========
+    'hue', 'saturation', 'color', 'luminosity', 'linear-burn', 'linear-dodge',
+    'vivid-light', 'linear-light', 'pin-light', 'hard-mix', 'subtract', 'divide'
+  ];
+
+  // Comprehensive Effects Library
+  const videoEffects = [
+    // Fade Effects (NEW)
+    { id: 'fadeIn', name: 'Fade In (Black)', icon: Sun, category: 'fade', description: 'Fade in from black' },
+    { id: 'fadeOut', name: 'Fade Out (Black)', icon: Circle, category: 'fade', description: 'Fade out to black' },
+    { id: 'fadeInWhite', name: 'Fade In (White)', icon: Sun, category: 'fade', description: 'Fade in from white' },
+    { id: 'fadeOutWhite', name: 'Fade Out (White)', icon: Sun, category: 'fade', description: 'Fade out to white' },
+    { id: 'crossDissolve', name: 'Cross Dissolve', icon: Layers, category: 'fade', description: 'Dissolve effect at start and end' },
+
+    // Basic Color Correction
+    { id: 'brightness', name: 'Brightness', icon: Sun, category: 'color', description: 'Adjust overall brightness' },
+    { id: 'contrast', name: 'Contrast', icon: Contrast, category: 'color', description: 'Enhance contrast ratio' },
+    { id: 'saturation', name: 'Saturation', icon: Droplets, category: 'color', description: 'Color intensity control' },
+    { id: 'hue', name: 'Hue Shift', icon: Rainbow, category: 'color', description: 'Shift color spectrum' },
+    { id: 'gamma', name: 'Gamma Correction', icon: Gauge, category: 'color', description: 'Midtone adjustment' },
+    { id: 'exposure', name: 'Exposure', icon: Camera, category: 'color', description: 'Simulate camera exposure' },
+
+    // Advanced Color Grading
+    { id: 'colorBalance', name: 'Color Balance', icon: Palette, category: 'colorGrading', description: 'Adjust shadows/highlights' },
+    { id: 'curves', name: 'Color Curves', icon: TrendingUp, category: 'colorGrading', description: 'Precise tone control' },
+    { id: 'levels', name: 'Levels', icon: BarChart, category: 'colorGrading', description: 'Input/output levels' },
+    { id: 'colorWheel', name: 'Color Wheels', icon: Circle, category: 'colorGrading', description: 'Three-way color correction' },
+    { id: 'lut', name: 'LUT Correction', icon: Layers, category: 'colorGrading', description: 'Apply color lookup tables' },
+    { id: 'vectorscope', name: 'Vectorscope', icon: Target, category: 'colorGrading', description: 'Color analysis tool' },
+
+    // Blur & Sharpening
+    { id: 'blur', name: 'Gaussian Blur', icon: Circle, category: 'blur', description: 'Standard blur effect' },
+    { id: 'motionBlur', name: 'Motion Blur', icon: Move, category: 'blur', description: 'Directional motion blur' },
+    { id: 'radialBlur', name: 'Radial Blur', icon: RadioIcon, category: 'blur', description: 'Circular blur effect' },
+    { id: 'surfaceBlur', name: 'Surface Blur', icon: Waves, category: 'blur', description: 'Edge-preserving blur' },
+    { id: 'sharpen', name: 'Sharpen', icon: Zap, category: 'sharpen', description: 'Enhance image sharpness' },
+    { id: 'unsharpMask', name: 'Unsharp Mask', icon: Focus, category: 'sharpen', description: 'Professional sharpening' },
+
+    // Distortion Effects
+    { id: 'lens', name: 'Lens Distortion', icon: Focus, category: 'distortion', description: 'Simulate lens effects' },
+    { id: 'fisheye', name: 'Fisheye', icon: Circle, category: 'distortion', description: 'Wide-angle lens effect' },
+    { id: 'ripple', name: 'Ripple', icon: Waves, category: 'distortion', description: 'Water ripple effect' },
+    { id: 'twirl', name: 'Twirl', icon: RotateCw, category: 'distortion', description: 'Spiral distortion' },
+    { id: 'pinch', name: 'Pinch', icon: Minimize2, category: 'distortion', description: 'Pinch/bulge effect' },
+    { id: 'perspective', name: 'Perspective', icon: Diamond, category: 'distortion', description: 'Corner pin adjustment' },
+
+    // Stylize Effects
+    { id: 'posterize', name: 'Posterize', icon: Layers, category: 'stylize', description: 'Reduce color levels' },
+    { id: 'solarize', name: 'Solarize', icon: Sun, category: 'stylize', description: 'Tone reversal effect' },
+    { id: 'emboss', name: 'Emboss', icon: Triangle, category: 'stylize', description: '3D relief effect' },
+    { id: 'findEdges', name: 'Find Edges', icon: Crosshair, category: 'stylize', description: 'Edge detection' },
+    { id: 'glowEdges', name: 'Glowing Edges', icon: Lightbulb, category: 'stylize', description: 'Luminous edge effect' },
+    { id: 'oilPaint', name: 'Oil Paint', icon: Paintbrush, category: 'stylize', description: 'Artistic paint effect' },
+
+    // Keying & Masking
+    { id: 'chromaKey', name: 'Chroma Key', icon: Palette, category: 'keying', description: 'Green/blue screen removal' },
+    { id: 'colorKey', name: 'Color Key', icon: Target, category: 'keying', description: 'Color-based keying' },
+    { id: 'differenceKey', name: 'Difference Key', icon: Filter, category: 'keying', description: 'Background subtraction' },
+    { id: 'luminanceKey', name: 'Luminance Key', icon: Sun, category: 'keying', description: 'Brightness-based key' },
+    { id: 'mask', name: 'Alpha Mask', icon: Crosshair, category: 'keying', description: 'Transparency masking' },
+
+    // Noise & Grain
+    { id: 'addNoise', name: 'Add Noise', icon: Hash, category: 'noise', description: 'Film grain simulation' },
+    { id: 'removeNoise', name: 'Noise Reduction', icon: Filter, category: 'noise', description: 'Clean up grainy footage' },
+    { id: 'dustAndScratches', name: 'Dust & Scratches', icon: Brush, category: 'noise', description: 'Film restoration' },
+    { id: 'median', name: 'Median Filter', icon: Gauge, category: 'noise', description: 'Noise smoothing' },
+
+    // Time Effects
+    { id: 'timeRemap', name: 'Time Remapping', icon: RefreshCw, category: 'time', description: 'Variable speed control' },
+    { id: 'posterizeTime', name: 'Posterize Time', icon: PlayCircle, category: 'time', description: 'Frame rate reduction' },
+    { id: 'echo', name: 'Echo', icon: Copy, category: 'time', description: 'Temporal echo effect' },
+    { id: 'strobe', name: 'Strobe Light', icon: Bolt, category: 'time', description: 'Flashing strobe effect' },
+
+    // Lighting Effects
+    { id: 'dropShadow', name: 'Drop Shadow', icon: Square, category: 'lighting', description: 'Cast shadow behind object' },
+    { id: 'innerShadow', name: 'Inner Shadow', icon: Circle, category: 'lighting', description: 'Inset shadow effect' },
+    { id: 'glow', name: 'Outer Glow', icon: Sun, category: 'lighting', description: 'Luminous glow effect' },
+    { id: 'innerGlow', name: 'Inner Glow', icon: Lightbulb, category: 'lighting', description: 'Internal glow effect' },
+    { id: 'bevel', name: 'Bevel & Emboss', icon: Diamond, category: 'lighting', description: '3D edge lighting' },
+    { id: 'lensFlare', name: 'Lens Flare', icon: Star, category: 'lighting', description: 'Camera lens flare' },
+
+    // Generate Effects
+    { id: 'gradientRamp', name: 'Gradient Ramp', icon: TrendingUp, category: 'generate', description: 'Color gradient overlay' },
+    { id: 'checkerboard', name: 'Checkerboard', icon: Grid, category: 'generate', description: 'Pattern generator' },
+    { id: 'fractalNoise', name: 'Fractal Noise', icon: Waves, category: 'generate', description: 'Procedural texture' },
+    { id: 'cellPattern', name: 'Cell Pattern', icon: Hexagon, category: 'generate', description: 'Cellular texture' }
+  ];
+
+  const audioEffects = [
+    // Dynamics
+    { id: 'compressor', name: 'Compressor', icon: Minimize2, category: 'dynamics', description: 'Dynamic range control' },
+    { id: 'limiter', name: 'Limiter', icon: Maximize2, category: 'dynamics', description: 'Prevent audio clipping' },
+    { id: 'expander', name: 'Expander', icon: ArrowUpDown, category: 'dynamics', description: 'Increase dynamic range' },
+    { id: 'gate', name: 'Noise Gate', icon: Volume2, category: 'dynamics', description: 'Silence quiet sounds' },
+    { id: 'multiband', name: 'Multiband Compressor', icon: BarChart, category: 'dynamics', description: 'Frequency-specific compression' },
+
+    // EQ & Filtering
+    { id: 'equalizer', name: 'Parametric EQ', icon: Sliders, category: 'eq', description: 'Frequency adjustment' },
+    { id: 'graphicEQ', name: 'Graphic EQ', icon: BarChart, category: 'eq', description: 'Fixed-band equalizer' },
+    { id: 'highPass', name: 'High Pass Filter', icon: ChevronUp, category: 'eq', description: 'Remove low frequencies' },
+    { id: 'lowPass', name: 'Low Pass Filter', icon: ChevronDown, category: 'eq', description: 'Remove high frequencies' },
+    { id: 'bandPass', name: 'Band Pass Filter', icon: Filter, category: 'eq', description: 'Isolate frequency range' },
+    { id: 'notch', name: 'Notch Filter', icon: Target, category: 'eq', description: 'Remove specific frequency' },
+
+    // Modulation
+    { id: 'chorus', name: 'Chorus', icon: Copy, category: 'modulation', description: 'Thicken sound with copies' },
+    { id: 'flanger', name: 'Flanger', icon: Waves, category: 'modulation', description: 'Sweeping comb filter' },
+    { id: 'phaser', name: 'Phaser', icon: Circle, category: 'modulation', description: 'Phase shifting effect' },
+    { id: 'tremolo', name: 'Tremolo', icon: Volume1, category: 'modulation', description: 'Volume modulation' },
+    { id: 'vibrato', name: 'Vibrato', icon: Waves, category: 'modulation', description: 'Pitch modulation' },
+    { id: 'ringMod', name: 'Ring Modulator', icon: RadioIcon, category: 'modulation', description: 'Frequency multiplication' },
+
+    // Time-Based
+    { id: 'reverb', name: 'Reverb', icon: AudioWaveform, category: 'time', description: 'Spatial ambience' },
+    { id: 'delay', name: 'Delay', icon: SkipForward, category: 'time', description: 'Echo effect' },
+    { id: 'multitapDelay', name: 'Multitap Delay', icon: Copy, category: 'time', description: 'Multiple echo taps' },
+    { id: 'pitchShift', name: 'Pitch Shift', icon: ChevronUp, category: 'time', description: 'Change pitch without tempo' },
+    { id: 'timeStretch', name: 'Time Stretch', icon: ArrowLeftRight, category: 'time', description: 'Change tempo without pitch' },
+
+    // Distortion
+    { id: 'overdrive', name: 'Overdrive', icon: Zap, category: 'distortion', description: 'Soft saturation' },
+    { id: 'distortion', name: 'Distortion', icon: Bolt, category: 'distortion', description: 'Hard clipping' },
+    { id: 'bitCrusher', name: 'Bit Crusher', icon: Binary, category: 'distortion', description: 'Digital degradation' },
+    { id: 'waveshaper', name: 'Waveshaper', icon: TrendingUp, category: 'distortion', description: 'Custom distortion curve' },
+    { id: 'saturation', name: 'Tape Saturation', icon: Disc, category: 'distortion', description: 'Analog warmth' },
+
+    // Restoration
+    { id: 'noiseReduction', name: 'Noise Reduction', icon: Filter, category: 'restoration', description: 'Remove unwanted noise' },
+    { id: 'spectralRepair', name: 'Spectral Repair', icon: Wand2, category: 'restoration', description: 'Fix audio problems' },
+    { id: 'clickRemoval', name: 'Click Removal', icon: X, category: 'restoration', description: 'Remove pops and clicks' },
+    { id: 'deEsser', name: 'De-esser', icon: Mic, category: 'restoration', description: 'Reduce sibilance' },
+    { id: 'deHum', name: 'De-hum', icon: WifiOff, category: 'restoration', description: 'Remove electrical hum' },
+
+    // Spatial
+    { id: 'stereoWiden', name: 'Stereo Widener', icon: Maximize2, category: 'spatial', description: 'Expand stereo field' },
+    { id: 'monoMaker', name: 'Mono Maker', icon: Minimize2, category: 'spatial', description: 'Convert to mono' },
+    { id: 'haasEffect', name: 'Haas Effect', icon: ArrowLeftRight, category: 'spatial', description: 'Stereo placement' },
+    { id: 'binaural', name: 'Binaural Panner', icon: Headphones, category: 'spatial', description: '3D audio positioning' },
+
+    // Analysis
+    { id: 'spectrumAnalyzer', name: 'Spectrum Analyzer', icon: AreaChart, category: 'analysis', description: 'Frequency visualization' },
+    { id: 'phaseMeter', name: 'Phase Meter', icon: Target, category: 'analysis', description: 'Stereo phase analysis' },
+    { id: 'levelMeter', name: 'Level Meter', icon: Activity, category: 'analysis', description: 'Audio level monitoring' },
+    { id: 'loudnessMeter', name: 'Loudness Meter', icon: Volume2, category: 'analysis', description: 'Broadcast loudness' }
+  ];
+
+  // Combine for compatibility
+  const effects = [...videoEffects, ...audioEffects];
+
+  // Enhanced Transitions
+  const transitions = [
+    // Basic Transitions
+    { id: 'crossDissolve', name: 'Cross Dissolve', icon: Layers, duration: 1, category: 'basic' },
+    { id: 'fade', name: 'Fade to Black', icon: Circle, duration: 0.5, category: 'basic' },
+    { id: 'fadeWhite', name: 'Fade to White', icon: Sun, duration: 0.5, category: 'basic' },
+    { id: 'dip', name: 'Dip to Color', icon: Palette, duration: 1, category: 'basic' },
+
+    // Wipe Transitions
+    { id: 'wipeLeft', name: 'Wipe Left', icon: Move, duration: 1, category: 'wipe' },
+\n========== 3 ==========
+    const x = e.clientX - rect.left;
+    const timelineWidth = rect.width;
+    const clickTime = (x / timelineWidth) * duration;
+    setCurrentTime(Math.max(0, Math.min(duration, clickTime)));
+  };
+
+  // Effect application function
+  const applyEffect = async (clipId, effectId, value) => {
+    const clip = tracks.flatMap(track => track.clips).find(c => c.id === clipId);
+
+    if (!clip) {
+      console.error('Clip not found');
+      return;
+    }
+
+    if (clip.type === 'audio' || audioEffects.some(e => e.id === effectId)) {
+      try {
+        setActiveEffects(prev => ({
+          ...prev,
+          [clipId]: {
+            ...prev[clipId],
+            [`${effectId}_loading`]: true
+          }
+        }));
+
+        const result = await applyAudioEffect(clipId, effectId, value);
+
+        if (result.success) {
+          setTracks(prevTracks =>
+            prevTracks.map(track => ({
+              ...track,
+              clips: track.clips.map(c =>
+                c.id === clipId
+                  ? {
+                    ...c,
+                    file_url: result.processed_audio_url,
+                    effects: [
+                      ...c.effects.filter(e => e.id !== effectId),
+                      { id: effectId, value: parseFloat(value), enabled: true }
+                    ]
+                  }
+                  : c
+              )
+            }))
+          );
+
+          console.log(`✅ Applied ${effectId} to audio clip ${clipId} with intensity ${value}%`);
+        } else {
+          throw new Error(result.error || 'Effect application failed');
+        }
+
+        setActiveEffects(prev => ({
+          ...prev,
+          [clipId]: {
+            ...prev[clipId],
+            [effectId]: value,
+            [`${effectId}_loading`]: false
+          }
+        }));
+
+      } catch (error) {
+        console.error('Audio effect application error:', error);
+
+        setActiveEffects(prev => ({
+          ...prev,
+          [clipId]: {
+            ...prev[clipId],
+            [`${effectId}_loading`]: false
+          }
+        }));
+
+        alert(`Failed to apply ${effectId}: ${error.message}`);
+        return;
+      }
+    } else {
+      // Video effect
+      console.log(`🎬 Applying video effect "${effectId}" to clip ${clipId}`);
+
+      setActiveEffects(prev => ({
+        ...prev,
+        [clipId]: {
+          ...prev[clipId],
+          [effectId]: value
+        }
+      }));
+
+      setTracks(prevTracks => {
+        const newTracks = prevTracks.map(track => ({
+          ...track,
+          clips: track.clips.map(c => {
+            if (c.id === clipId) {
+              const currentEffects = c.effects || [];
+              const newEffects = [
+                ...currentEffects.filter(e => e.id !== effectId),
+                { id: effectId, value: parseFloat(value), enabled: true }
+              ];
+              console.log(`🎬 Clip "${c.title}" effects updated:`, newEffects);
+              return {
+                ...c,
+                effects: newEffects
+              };
+            }
+            return c;
+          })
+        }));
+        return newTracks;
+      });
+
+      // Update selected clip to show effect immediately
+      setSelectedClip(prev => {
+        if (prev && prev.id === clipId) {
+          const currentEffects = prev.effects || [];
+          return {
+            ...prev,
+            effects: [
+              ...currentEffects.filter(e => e.id !== effectId),
+              { id: effectId, value: parseFloat(value), enabled: true }
+            ]
+          };
+        }
+        return prev;
+      });
+
+      console.log(`✅ Applied ${effectId} to video clip ${clipId} with intensity ${value}%`);
+    }
+  };
+
+  // Enhanced Effect Preview Function
+  const previewEffect = async (clipId, effectId, intensity) => {
+    const clip = tracks.flatMap(track => track.clips).find(c => c.id === clipId);
+
+    if (!clip) return;
+
+    if (clip.type === 'audio' || audioEffects.some(e => e.id === effectId)) {
+      try {
+        const result = await previewAudioEffect(clipId, effectId, intensity);
+
+        if (result.success && result.preview_audio) {
+          const audio = new Audio(result.preview_audio);
+          audio.play();
+
+          setActiveEffects(prev => ({
+            ...prev,
+            [clipId]: {
+              ...prev[clipId],
+              [`${effectId}_preview`]: result.preview_audio
+            }
+          }));
+        }
+      } catch (error) {
+        console.error('Preview error:', error);
+      }
+    } else if (clip.cloudinary_public_id) {
+      // Video effect preview using Cloudinary (NEW)
+      try {
+        const previewUrl = await previewVideoEffect(clip.cloudinary_public_id, effectId, intensity);
+
+        // Update preview in program monitor
+        setSelectedClip({
+          ...clip,
+          previewUrl: previewUrl
+        });
+
+        console.log(`Previewing ${effectId} on video clip ${clipId}`);
+      } catch (error) {
+        console.error('Video preview error:', error);
+      }
+    } else {
+      console.log(`Previewing ${effectId} on video clip ${clipId}`);
+    }
+  };
+
+  // Auto-suggest effects based on audio analysis
+  const suggestEffects = async (clipId) => {
+    const clip = tracks.flatMap(track => track.clips).find(c => c.id === clipId);
+
+\n========== 4 ==========
+                <h4>Video Effects</h4>
+                <button className="dropdown-toggle">
+                  {showVideoEffects ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </button>
+              </div>
+              {showVideoEffects && (
+                <div className="effects-organized">
+                  {/* Fade Effects - Most Common */}
+                  <div className="effect-category">
+                    <div
+                      className="category-header"
+                      onClick={() => setShowFadeEffects(!showFadeEffects)}
+                      style={{ background: 'rgba(0, 255, 200, 0.1)' }}
+                    >
+                      <span>⭐ Fade Effects</span>
+                      <button className="category-toggle">
+                        {showFadeEffects ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                      </button>
+                    </div>
+                    {showFadeEffects && (
+                      <div className="effect-list-category">
+                        {getEffectsByCategory('fade', videoEffects).map(effect => {
+                          const Icon = effect.icon;
+                          return (
+                            <div
+                              key={effect.id}
+                              className={`effect-item ${selectedClip ? 'clickable' : ''}`}
+                              draggable
+                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+                              onDragEnd={handleEffectDragEnd}
+                              onClick={() => {
+                                if (selectedClip) {
+                                  console.log(`🎨 Click apply ${effect.name} to ${selectedClip.title}`);
+                                  applyEffect(selectedClip.id, effect.id, 50);
+                                  alert(`✅ Applied "${effect.name}" to "${selectedClip.title}"!\n\nNote: The effect is saved to the clip. It will be applied during export.`);
+                                } else {
+                                  alert('Please select a clip on the timeline first!');
+                                }
+                              }}
+                              title={selectedClip ? `Click to apply ${effect.name} to "${selectedClip.title}"` : `Select a clip first`}
+                              style={{ cursor: selectedClip ? 'pointer' : 'grab' }}
+                            >
+                              <Icon size={14} />
+                              <span>{effect.name}</span>
+                              {selectedClip && <div className="apply-hint" style={{ marginLeft: 'auto', fontSize: '10px', color: '#00ffc8' }}>+ Click</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Color Correction */}
+                  <div className="effect-category">
+                    <div
+                      className="category-header"
+                      onClick={() => setShowColorCorrection(!showColorCorrection)}
+                    >
+                      <span>Color Correction</span>
+                      <button className="category-toggle">
+                        {showColorCorrection ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                      </button>
+                    </div>
+                    {showColorCorrection && (
+                      <div className="effect-list-category">
+                        {getEffectsByCategory('color', videoEffects).map(effect => {
+                          const Icon = effect.icon;
+                          return (
+                            <div
+                              key={effect.id}
+                              className={`effect-item ${selectedClip ? 'clickable' : ''}`}
+                              draggable
+                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+                              onDragEnd={handleEffectDragEnd}
+                              onClick={() => {
+                                if (selectedClip) {
+                                  console.log(`🎨 Click apply ${effect.name} to ${selectedClip.title}`);
+                                  applyEffect(selectedClip.id, effect.id, 50);
+                                } else {
+                                  alert('Please select a clip on the timeline first!');
+                                }
+                              }}
+                              title={selectedClip ? `Click to apply ${effect.name} to "${selectedClip.title}"` : `Drag to a clip or select a clip first`}
+                              style={{ cursor: selectedClip ? 'pointer' : 'grab' }}
+                            >
+                              <Icon size={14} />
+                              <span>{effect.name}</span>
+                              {selectedClip && <div className="apply-hint" style={{ marginLeft: 'auto', fontSize: '10px', color: '#00ffc8' }}>+ Click</div>}
+                              <div className="drag-hint">📎</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Color Grading
+
+                  {/* Color Grading */}
+                  <div className="effect-category">
+                    <div
+                      className="category-header"
+                      onClick={() => setShowCompositing(!showCompositing)}
+                    >
+                      <span>Color Grading</span>
+                      <button className="category-toggle">
+                        {showCompositing ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                      </button>
+                    </div>
+                    {showCompositing && (
+                      <div className="effect-list-category">
+                        {getEffectsByCategory('colorGrading', videoEffects).map(effect => {
+                          const Icon = effect.icon;
+                          return (
+                            <div
+                              key={effect.id}
+                              className="effect-item"
+                              draggable
+                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+                              onDragEnd={handleEffectDragEnd}
+                              title={effect.description}
+                            >
+                              <Icon size={14} />
+                              <span>{effect.name}</span>
+                              <div className="drag-hint">📎</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Blur & Sharpen */}
+                  <div className="effect-category">
+                    <div
+                      className="category-header"
+                      onClick={() => setShowDistortion(!showDistortion)}
+                    >
+                      <span>Blur & Sharpen</span>
+                      <button className="category-toggle">
+                        {showDistortion ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                      </button>
+                    </div>
+                    {showDistortion && (
+                      <div className="effect-list-category">
+                        {[...getEffectsByCategory('blur', videoEffects), ...getEffectsByCategory('sharpen', videoEffects)].map(effect => {
+                          const Icon = effect.icon;
+                          return (
+                            <div
+                              key={effect.id}
+                              className="effect-item"
+                              draggable
+                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+                              onDragEnd={handleEffectDragEnd}
+                              title={effect.description}
+                            >
+                              <Icon size={14} />
+                              <span>{effect.name}</span>
+                              <div className="drag-hint">📎</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Keying & Masking */}
+                  <div className="effect-category">
+                    <div
+                      className="category-header"
+                      onClick={() => setShowKeying(!showKeying)}
+                    >
+                      <span>Keying & Masking</span>
+                      <button className="category-toggle">
+                        {showKeying ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                      </button>
+                    </div>
+                    {showKeying && (
+                      <div className="effect-list-category">
+                        {getEffectsByCategory('keying', videoEffects).map(effect => {
+                          const Icon = effect.icon;
+                          return (
+                            <div
+                              key={effect.id}
+                              className="effect-item"
+                              draggable
+                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+                              onDragEnd={handleEffectDragEnd}
+                              title={effect.description}
+                            >
+                              <Icon size={14} />
+                              <span>{effect.name}</span>
+                              <div className="drag-hint">📎</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Stylize Effects */}
+                  <div className="effect-category">
+                    <div
+                      className="category-header"
+                      onClick={() => setShowMotionGraphics(!showMotionGraphics)}
+                    >
+                      <span>Stylize</span>
+                      <button className="category-toggle">
+                        {showMotionGraphics ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                      </button>
+                    </div>
+                    {showMotionGraphics && (
+                      <div className="effect-list-category">
+                        {getEffectsByCategory('stylize', videoEffects).map(effect => {
+                          const Icon = effect.icon;
+                          return (
+                            <div
+                              key={effect.id}
+                              className="effect-item"
+                              draggable
+                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+                              onDragEnd={handleEffectDragEnd}
+                              title={effect.description}
+                            >
+                              <Icon size={14} />
+                              <span>{effect.name}</span>
+                              <div className="drag-hint">📎</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Generate Effects */}
+                  <div className="effect-category">
+                    <div
+                      className="category-header"
+                      onClick={() => setShowGenerator(!showGenerator)}
+                    >
+                      <span>Generate</span>
+                      <button className="category-toggle">
+                        {showGenerator ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                      </button>
+                    </div>
+                    {showGenerator && (
+                      <div className="effect-list-category">
+                        {getEffectsByCategory('generate', videoEffects).map(effect => {
+                          const Icon = effect.icon;
+                          return (
+                            <div
+                              key={effect.id}
+                              className="effect-item"
+                              draggable
+                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+                              onDragEnd={handleEffectDragEnd}
+                              title={effect.description}
+                            >
+                              <Icon size={14} />
+                              <span>{effect.name}</span>
+                              <div className="drag-hint">📎</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Audio Effects - Organized by Category */}
+            <div className="toolbar-section">
+              <div
+                className="section-header"
+                onClick={() => setShowAudioEffects(!showAudioEffects)}
+              >
+                <h4>Audio Effects</h4>
+                <button className="dropdown-toggle">
+                  {showAudioEffects ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </button>
+              </div>
+              {showAudioEffects && (
+                <div className="effects-organized">
+                  {['dynamics', 'eq', 'modulation', 'time', 'distortion', 'restoration', 'spatial'].map(category => (
+                    <div key={category} className="effect-category">
+                      <div className="category-header">
+                        <span>{category.charAt(0).toUpperCase() + category.slice(1)}</span>
+                      </div>
+                      <div className="effect-list-category">
+                        {getEffectsByCategory(category, audioEffects).map(effect => {
+                          const Icon = effect.icon;
+                          return (
+                            <div
+                              key={effect.id}
+                              className="effect-item"
+                              draggable
+                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+                              onDragEnd={handleEffectDragEnd}
+                              title={effect.description}
+                            >
+                              <Icon size={14} />
+                              <span>{effect.name}</span>
+                              <div className="effect-controls">
+                                <button
+                                  className="preview-btn"
+                                  onClick={() => selectedClip && previewEffect(selectedClip.id, effect.id, 50)}
+                                  title="Preview Effect"
+                                  disabled={!selectedClip || selectedClip.type !== 'audio'}
+                                >
+                                  <Play size={10} />
+                                </button>
+                                <button
+                                  className="quick-apply-btn"
+                                  onClick={() => selectedClip && applyEffect(selectedClip.id, effect.id, 50)}
+                                  title="Apply Effect"
+                                  disabled={!selectedClip}
+                                >
+                                  <Plus size={10} />
+\n========== 5 ==========
+      {/* Enhanced Effects Panel */}
+      {
+        showEffectsPanel && (
+          <div className="effects-panel-enhanced">
+            <div className="effects-panel-header">
+              <h4>
+                {selectedClip
+                  ? `Effects Stack - ${selectedClip.title}`
+                  : selectedTransition
+                    ? 'Transition Properties'
+                    : 'Effects Panel'
+                }
+              </h4>
+              <button onClick={closeEffectsPanel} className="close-panel-btn">
+                <X size={14} />
+              </button>
+            </div>
+
+            {selectedClip ? (
+              <div className="effects-panel-content-enhanced">
+                {/* Effects Stack */}
+                <div className="effects-stack">
+                  <div className="stack-header">
+                    <h5>Effects Stack ({selectedClip.effects?.length || 0})</h5>
+                    <div className="stack-controls">
+                      <button className="stack-btn" title="Reset All">
+                        <RefreshCw size={12} />
+                      </button>
+                      <button className="stack-btn" title="Copy Effects">
+                        <Copy size={12} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {selectedClip.effects && selectedClip.effects.length > 0 ? (
+                    <div className="applied-effects-list">
+                      {selectedClip.effects.map((appliedEffect, index) => {
+                        const effectData = effects.find(e => e.id === appliedEffect.id);
+                        return (
+                          <div key={appliedEffect.id} className="applied-effect-item-enhanced">
+                            <div className="effect-item-header">
+                              <div className="effect-info-left">
+                                <button
+                                  className={`effect-toggle ${appliedEffect.enabled ? 'enabled' : 'disabled'}`}
+                                  onClick={() => toggleEffect(selectedClip.id, appliedEffect.id)}
+                                  title={appliedEffect.enabled ? 'Disable Effect' : 'Enable Effect'}
+                                >
+                                  {appliedEffect.enabled ? <Eye size={12} /> : <EyeOff size={12} />}
+                                </button>
+                                <div className="effect-details">
+                                  <span className="effect-name">{effectData?.name || appliedEffect.id}</span>
+                                  <span className="effect-category">{effectData?.category || 'Unknown'}</span>
+                                </div>
+                              </div>
+                              <div className="effect-controls-right">
+                                <span className="effect-value">{appliedEffect.value}%</span>
+                                <button
+                                  className="effect-remove"
+                                  onClick={() => removeEffect(selectedClip.id, appliedEffect.id)}
+                                  title="Remove Effect"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="effect-parameters">
+                              <div className="parameter-row">
+                                <label>Intensity</label>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={appliedEffect.value}
+                                  onChange={(e) => applyEffect(selectedClip.id, appliedEffect.id, e.target.value)}
+                                  className="effect-slider-enhanced"
+                                  disabled={!appliedEffect.enabled}
+                                />
+                              </div>
+
+                              {/* Specific effect parameters */}
+                              {effectData?.category === 'colorGrading' && (
+                                <>
+                                  <div className="parameter-row">
+                                    <label>Highlights</label>
+                                    <input type="range" min="-100" max="100" defaultValue="0" className="effect-slider-enhanced" />
+                                  </div>
+                                  <div className="parameter-row">
+                                    <label>Shadows</label>
+                                    <input type="range" min="-100" max="100" defaultValue="0" className="effect-slider-enhanced" />
+                                  </div>
+                                  <div className="parameter-row">
+                                    <label>Midtones</label>
+                                    <input type="range" min="-100" max="100" defaultValue="0" className="effect-slider-enhanced" />
+                                  </div>
+                                </>
+                              )}
+
+                              {effectData?.category === 'blur' && (
+                                <>
+                                  <div className="parameter-row">
+                                    <label>Blur Radius</label>
+                                    <input type="range" min="0" max="50" defaultValue="5" className="effect-slider-enhanced" />
+                                  </div>
+                                  <div className="parameter-row">
+                                    <label>Quality</label>
+                                    <select className="effect-select">
+                                      <option>Low</option>
+                                      <option>Medium</option>
+                                      <option>High</option>
+                                    </select>
+                                  </div>
+                                </>
+                              )}
+
+                              {effectData?.category === 'keying' && (
+                                <>
+                                  <div className="parameter-row">
+                                    <label>Key Color</label>
+                                    <input type="color" defaultValue="#00ff00" className="color-picker" />
+                                  </div>
+                                  <div className="parameter-row">
+                                    <label>Tolerance</label>
+                                    <input type="range" min="0" max="100" defaultValue="20" className="effect-slider-enhanced" />
+                                  </div>
+                                  <div className="parameter-row">
+                                    <label>Edge Feather</label>
+                                    <input type="range" min="0" max="50" defaultValue="5" className="effect-slider-enhanced" />
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="no-effects-message">
+                      <Wand2 size={24} />
+                      <p>No effects applied</p>
+                      <span>Drag effects from the left panel</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Apply Effects */}
+                <div className="quick-apply-section">
+                  <h5>Quick Apply</h5>
+                  <div className="quick-effects-grid-enhanced">
+                    {effects.filter(effect =>
+                      selectedClip.type === 'video' ? videoEffects.includes(effect) : audioEffects.includes(effect)
+                    ).slice(0, 8).map(effect => {
+                      const Icon = effect.icon;
+                      return (
+                        <button
+                          key={effect.id}
+                          className="quick-effect-btn-enhanced"
+                          onClick={() => applyEffect(selectedClip.id, effect.id, 50)}
+                          title={effect.description}
+                        >
+                          <Icon size={14} />
+                          <span>{effect.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Presets */}
+                <div className="presets-section">
+                  <h5>Effect Presets</h5>
+                  <div className="preset-list">
+                    {selectedClip && selectedClip.type === 'audio' ? (
+                      <>
+                        {Object.keys(audioPresets).map(presetName => (
+                          <button
+                            key={presetName}
+                            className="preset-btn"
+                            onClick={() => applyPreset(selectedClip.id, presetName)}
+                          >
+                            <Sparkles size={12} />
+                            {presetName.charAt(0).toUpperCase() + presetName.slice(1)} Style
+                          </button>
+                        ))}
+
+                        {/* Auto-suggest button */}
+\n========== 6 ==========
+                        // Debug: Log clip effects
+                        if (activeClip.effects && activeClip.effects.length > 0) {
+                          console.log(`🎬 Active clip "${activeClip.title}" has effects:`, activeClip.effects, `Progress: ${(clipProgress * 100).toFixed(1)}%`);
+                        }
+
+                        // Build CSS filters from effects
+                        const buildCssFilters = (effects) => {
+                          if (!effects || effects.length === 0) return 'none';
+
+                          const filters = effects.map(effect => {
+                            const value = effect.value || 50;
+                            switch (effect.id) {
+                              case 'brightness': return `brightness(${0.5 + (value / 100)})`;
+                              case 'contrast': return `contrast(${0.5 + (value / 100)})`;
+                              case 'saturation': return `saturate(${value / 50})`;
+                              case 'hue': return `hue-rotate(${(value / 100) * 360}deg)`;
+                              case 'blur': return `blur(${value / 10}px)`;
+                              case 'grayscale': return `grayscale(${value}%)`;
+                              case 'sepia': return `sepia(${value}%)`;
+                              case 'invert': return `invert(${value}%)`;
+                              default: return '';
+                            }
+                          }).filter(f => f).join(' ');
+
+                          return filters || 'none';
+                        };
+
+                        // Calculate fade overlay opacity
+                        const getFadeOverlay = (effects, progress) => {
+                          if (!effects || effects.length === 0) return null;
+
+                          const fadeDuration = 0.3; // 30% of clip for fade (more visible)
+
+                          // Check for crossDissolve first (applies at both start AND end)
+                          const hasCrossDissolve = effects.some(e => e.id === 'crossDissolve');
+                          if (hasCrossDissolve) {
+                            if (progress < fadeDuration) {
+                              const opacity = 1 - (progress / fadeDuration);
+                              console.log(`🎬 Cross Dissolve (In): opacity ${opacity.toFixed(2)}`);
+                              return { color: 'black', opacity };
+                            }
+                            if (progress > (1 - fadeDuration)) {
+                              const opacity = (progress - (1 - fadeDuration)) / fadeDuration;
+                              console.log(`🎬 Cross Dissolve (Out): opacity ${opacity.toFixed(2)}`);
+                              return { color: 'black', opacity };
+                            }
+                          }
+
+                          for (const effect of effects) {
+                            if (effect.id === 'fadeIn') {
+                              if (progress < fadeDuration) {
+                                const opacity = 1 - (progress / fadeDuration);
+                                console.log(`🎬 Fade In: opacity ${opacity.toFixed(2)}`);
+                                return { color: 'black', opacity };
+                              }
+                            }
+                            if (effect.id === 'fadeOut') {
+                              if (progress > (1 - fadeDuration)) {
+                                const opacity = (progress - (1 - fadeDuration)) / fadeDuration;
+                                console.log(`🎬 Fade Out: opacity ${opacity.toFixed(2)}`);
+                                return { color: 'black', opacity };
+                              }
+                            }
+                            if (effect.id === 'fadeInWhite') {
+                              if (progress < fadeDuration) {
+                                const opacity = 1 - (progress / fadeDuration);
+                                console.log(`🎬 Fade In White: opacity ${opacity.toFixed(2)}`);
+                                return { color: 'white', opacity };
+                              }
+                            }
+                            if (effect.id === 'fadeOutWhite') {
+                              if (progress > (1 - fadeDuration)) {
+                                const opacity = (progress - (1 - fadeDuration)) / fadeDuration;
+                                console.log(`🎬 Fade Out White: opacity ${opacity.toFixed(2)}`);
+                                return { color: 'white', opacity };
+                              }
+                            }
+                          }
+                          return null;
+                        };
+
+                        const cssFilters = buildCssFilters(activeClip.effects);
+                        const fadeOverlay = getFadeOverlay(activeClip.effects, clipProgress);
+
+                        return (
+                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', background: '#000' }}>
+                            {activeClip.type === 'video' && (
+                              <video
+                                key={activeClip.id}
+                                src={activeClip.previewUrl || activeClip.mediaUrl}
+                                style={{
+                                  maxWidth: '100%',
