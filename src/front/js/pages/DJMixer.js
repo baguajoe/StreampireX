@@ -1154,6 +1154,11 @@ export default function DJMixer(){
       )}
 
       {/* ── MIDI Controller Panel ── */}
+      {midiEnabled&&!(/Chrome|Edg/.test(navigator.userAgent))&&(
+        <div style={{background:'rgba(255,100,0,0.1)',border:'1px solid rgba(255,100,0,0.3)',borderRadius:8,padding:'10px 16px',margin:'8px 0',fontSize:12,color:'#ff9500',display:'flex',alignItems:'center',gap:8}}>
+          ⚠️ <span>MIDI controllers require <strong>Chrome or Edge</strong> browser. Firefox and Safari do not support Web MIDI.</span>
+        </div>
+      )}
       {midiEnabled&&(
         <div style={{position:"fixed",bottom:220,right:16,zIndex:100,width:320}}>
           <MidiHardwareInput
