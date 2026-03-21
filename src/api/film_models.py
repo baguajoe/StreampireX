@@ -422,3 +422,60 @@ class FestivalVote(db.Model):
             'user_id':       self.user_id,
             'created_at':    self.created_at.isoformat() if self.created_at else None,
         }
+
+# =============================================================================
+# WATCHLIST
+# =============================================================================
+class WatchlistItem(db.Model):
+    __tablename__ = 'watchlist_item'
+    __table_args__ = {'extend_existing': True}
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    film_id    = db.Column(db.Integer, db.ForeignKey('film.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# =============================================================================
+# WATCH PROGRESS — Continue watching
+# =============================================================================
+class WatchProgress(db.Model):
+    __tablename__ = 'watch_progress'
+    __table_args__ = {'extend_existing': True}
+    id               = db.Column(db.Integer, primary_key=True)
+    user_id          = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    film_id          = db.Column(db.Integer, db.ForeignKey('film.id'), nullable=False)
+    position_seconds = db.Column(db.Float, default=0)
+    percent          = db.Column(db.Float, default=0)
+    updated_at       = db.Column(db.DateTime, default=datetime.utcnow)
+
+# =============================================================================
+# WATCH EVENT — Analytics
+# =============================================================================
+class WatchEvent(db.Model):
+    __tablename__ = 'watch_event'
+    __table_args__ = {'extend_existing': True}
+    id         = db.Column(db.Integer, primary_key=True)
+    film_id    = db.Column(db.Integer, db.ForeignKey('film.id'), nullable=False)
+    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    event      = db.Column(db.String(50), default='play')  # play, pause, complete, seek
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# =============================================================================
+# FILM CHAPTER — Netflix-style chapters/timestamps
+# =============================================================================
+class FilmChapter(db.Model):
+    __tablename__ = 'film_chapter'
+    __table_args__ = {'extend_existing': True}
+    id             = db.Column(db.Integer, primary_key=True)
+    film_id        = db.Column(db.Integer, db.ForeignKey('film.id'), nullable=False)
+    title          = db.Column(db.String(200), nullable=False)
+    start_seconds  = db.Column(db.Float, nullable=False)
+    thumbnail_url  = db.Column(db.String(500), nullable=True)
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'film_id': self.film_id,
+            'title': self.title,
+            'start_seconds': self.start_seconds,
+            'thumbnail_url': self.thumbnail_url,
+        }

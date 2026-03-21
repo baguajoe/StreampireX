@@ -26,7 +26,8 @@ from api.models import User
 from api.film_models import (
     Film, FilmCredit, FilmReview, Theatre, TheatreFollow,
     Screening, ScreeningTicket, FilmPurchase,
-    FestivalSubmission, FestivalVote
+    FestivalSubmission, FestivalVote,
+    WatchlistItem, WatchProgress, WatchEvent, FilmChapter
 )
 
 film_bp = Blueprint('film', __name__, url_prefix='/api/film')
@@ -993,3 +994,191 @@ def my_festival_submissions():
     submissions = FestivalSubmission.query.filter_by(creator_id=user_id)\
         .order_by(FestivalSubmission.created_at.desc()).all()
     return jsonify([s.serialize() for s in submissions]), 200
+
+# =============================================================================
+# HLS STREAMING — Generate signed streaming URL
+# =============================================================================
+@film_bp.route('/films/<int:film_id>/stream', methods=['GET'])
+@jwt_required(optional=True)
+def stream_film(film_id):
+    film = Film.query.get_or_404(film_id)
+    user_id = get_jwt_identity()
+
+    # Check access
+    if film.pricing_model == 'free':
+        pass  # always accessible
+    elif film.pricing_model in ['rent', 'buy']:
+        if not user_id:
+            return jsonify({'error': 'Login required'}), 401
+        purchase = FilmPurchase.query.filter_by(
+            film_id=film_id, user_id=user_id
+        ).first()
+        if not purchase:
+            return jsonify({'error': 'Purchase required', 'pricing_model': film.pricing_model}), 403
+        if purchase.access_type == 'rent' and purchase.expires_at:
+            if purchase.expires_at < datetime.utcnow():
+                return jsonify({'error': 'Rental expired'}), 403
+
+    # Generate signed R2 URL (1hr expiry)
+    try:
+        client = get_r2_client()
+        signed_url = client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': R2_BUCKET, 'Key': film.film_url.replace(R2_PUBLIC_URL + '/', '')},
+            ExpiresIn=3600
+        )
+    except Exception:
+        signed_url = film.film_url  # fallback to direct URL
+
+    # Log watch event
+    if user_id:
+        try:
+            event = WatchEvent(film_id=film_id, user_id=user_id, event='play')
+            db.session.add(event)
+            db.session.commit()
+        except Exception:
+            pass
+
+    return jsonify({'stream_url': signed_url, 'film': film.serialize()})
+
+
+# =============================================================================
+# WATCHLIST
+# =============================================================================
+@film_bp.route('/watchlist', methods=['GET'])
+@jwt_required()
+def get_watchlist():
+    user_id = get_jwt_identity()
+    items = WatchlistItem.query.filter_by(user_id=user_id).order_by(
+        WatchlistItem.created_at.desc()
+    ).all()
+    film_ids = [i.film_id for i in items]
+    films = Film.query.filter(Film.id.in_(film_ids)).all()
+    return jsonify([f.serialize() for f in films])
+
+
+@film_bp.route('/watchlist/<int:film_id>', methods=['POST'])
+@jwt_required()
+def add_to_watchlist(film_id):
+    user_id = get_jwt_identity()
+    existing = WatchlistItem.query.filter_by(film_id=film_id, user_id=user_id).first()
+    if existing:
+        db.session.delete(existing)
+        db.session.commit()
+        return jsonify({'status': 'removed'})
+    item = WatchlistItem(film_id=film_id, user_id=user_id)
+    db.session.add(item)
+    db.session.commit()
+    return jsonify({'status': 'added'})
+
+
+# =============================================================================
+# CONTINUE WATCHING
+# =============================================================================
+@film_bp.route('/continue-watching', methods=['GET'])
+@jwt_required()
+def continue_watching():
+    user_id = get_jwt_identity()
+    progress = WatchProgress.query.filter_by(user_id=user_id).filter(
+        WatchProgress.percent < 95
+    ).order_by(WatchProgress.updated_at.desc()).limit(20).all()
+    result = []
+    for p in progress:
+        film = Film.query.get(p.film_id)
+        if film:
+            d = film.serialize()
+            d['watch_progress'] = p.percent
+            d['watch_position'] = p.position_seconds
+            result.append(d)
+    return jsonify(result)
+
+
+@film_bp.route('/progress/<int:film_id>', methods=['POST'])
+@jwt_required()
+def save_progress(film_id):
+    user_id = get_jwt_identity()
+    data = request.json or {}
+    position = data.get('position_seconds', 0)
+    duration = data.get('duration_seconds', 1)
+    percent = min(100, round((position / max(duration, 1)) * 100))
+
+    progress = WatchProgress.query.filter_by(film_id=film_id, user_id=user_id).first()
+    if not progress:
+        progress = WatchProgress(film_id=film_id, user_id=user_id)
+        db.session.add(progress)
+    progress.position_seconds = position
+    progress.percent = percent
+    progress.updated_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({'status': 'saved', 'percent': percent})
+
+
+# =============================================================================
+# CHAPTERS
+# =============================================================================
+@film_bp.route('/films/<int:film_id>/chapters', methods=['GET'])
+def get_chapters(film_id):
+    chapters = FilmChapter.query.filter_by(film_id=film_id).order_by(
+        FilmChapter.start_seconds
+    ).all()
+    return jsonify([c.serialize() for c in chapters])
+
+
+@film_bp.route('/films/<int:film_id>/chapters', methods=['POST'])
+@jwt_required()
+def save_chapters(film_id):
+    user_id = get_jwt_identity()
+    film = Film.query.get_or_404(film_id)
+    if film.creator_id != user_id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    data = request.json or {}
+    chapters = data.get('chapters', [])
+    FilmChapter.query.filter_by(film_id=film_id).delete()
+    for ch in chapters:
+        c = FilmChapter(
+            film_id=film_id,
+            title=ch.get('title', ''),
+            start_seconds=ch.get('start_seconds', 0),
+            thumbnail_url=ch.get('thumbnail_url', '')
+        )
+        db.session.add(c)
+    db.session.commit()
+    return jsonify({'status': 'saved', 'count': len(chapters)})
+
+
+# =============================================================================
+# ANALYTICS
+# =============================================================================
+@film_bp.route('/films/<int:film_id>/analytics', methods=['GET'])
+@jwt_required()
+def film_analytics(film_id):
+    user_id = get_jwt_identity()
+    film = Film.query.get_or_404(film_id)
+    if film.creator_id != user_id:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    total_views = WatchEvent.query.filter_by(film_id=film_id, event='play').count()
+    completions = WatchProgress.query.filter_by(film_id=film_id).filter(
+        WatchProgress.percent >= 90
+    ).count()
+    watchlist_adds = WatchlistItem.query.filter_by(film_id=film_id).count()
+    purchases = FilmPurchase.query.filter_by(film_id=film_id).count()
+    revenue = db.session.query(db.func.sum(FilmPurchase.amount_paid)).filter_by(
+        film_id=film_id
+    ).scalar() or 0
+
+    avg_progress = db.session.query(db.func.avg(WatchProgress.percent)).filter_by(
+        film_id=film_id
+    ).scalar() or 0
+
+    return jsonify({
+        'total_views': total_views,
+        'completions': completions,
+        'completion_rate': round((completions / max(total_views, 1)) * 100, 1),
+        'avg_watch_percent': round(avg_progress, 1),
+        'watchlist_adds': watchlist_adds,
+        'purchases': purchases,
+        'revenue': float(revenue),
+        'platform_cut': float(revenue) * PLATFORM_CUT,
+        'creator_earnings': float(revenue) * (1 - PLATFORM_CUT),
+    })

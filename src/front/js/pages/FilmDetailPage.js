@@ -85,6 +85,44 @@ const FilmDetailPage = () => {
     fetchFilm();
   }, [id]);
 
+  const toggleWatchlist = async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/film/watchlist/${film?.id}`, {
+        method: 'POST', headers: getJSONHeaders()
+      });
+      const data = await res.json();
+      setInWatchlist(data.status === 'added');
+    } catch(e) { console.error(e); }
+  };
+
+  const fetchStream = async (filmId) => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/film/films/${filmId}/stream`, {
+        headers: getHeaders()
+      });
+      const data = await res.json();
+      if (data.stream_url) setStreamUrl(data.stream_url);
+    } catch(e) { console.error(e); }
+  };
+
+  const fetchChapters = async (filmId) => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/film/films/${filmId}/chapters`);
+      const data = await res.json();
+      setChapters(data || []);
+    } catch(e) { console.error(e); }
+  };
+
+  const saveProgress = async (position, duration) => {
+    if (!film?.id) return;
+    try {
+      await fetch(`${BACKEND_URL}/api/film/progress/${film.id}`, {
+        method: 'POST', headers: getJSONHeaders(),
+        body: JSON.stringify({ position_seconds: position, duration_seconds: duration })
+      });
+    } catch(e) {}
+  };
+
   const fetchFilm = async () => {
     setLoading(true);
     try {
