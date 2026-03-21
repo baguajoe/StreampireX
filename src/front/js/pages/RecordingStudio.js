@@ -810,7 +810,7 @@ const RecordingStudio = ({ user }) => {
   //    gain → pan → splitter → L/R analysers → destination ──
   const getCtx = useCallback(() => {
     if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
-      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "interactive", sampleRate: 44100 });
 
       masterGainRef.current = audioCtxRef.current.createGain();
       masterGainRef.current.gain.value = masterVolume;
