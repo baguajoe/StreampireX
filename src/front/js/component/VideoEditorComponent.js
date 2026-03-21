@@ -1,3 +1,236 @@
+
+// ─────────────────────────────────────────────
+// ColorGradingPanel — Lift/Gamma/Gain wheels
+// ─────────────────────────────────────────────
+const ColorWheel = ({ label, value, onChange, size = 120 }) => {
+  const canvasRef = React.useRef(null);
+  const dragging = React.useRef(false);
+
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const cx = size / 2, cy = size / 2, r = size / 2 - 4;
+
+    // Draw color wheel
+    for (let angle = 0; angle < 360; angle++) {
+      const startAngle = (angle - 1) * Math.PI / 180;
+      const endAngle = (angle + 1) * Math.PI / 180;
+      const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      gradient.addColorStop(0, `hsla(${angle}, 0%, 50%, 1)`);
+      gradient.addColorStop(1, `hsla(${angle}, 100%, 50%, 1)`);
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, startAngle, endAngle);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+    }
+
+    // Draw center indicator
+    const ix = cx + (value.x || 0) * r * 0.8;
+    const iy = cy + (value.y || 0) * r * 0.8;
+    ctx.beginPath();
+    ctx.arc(ix, iy, 5, 0, Math.PI * 2);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fill();
+  }, [value, size]);
+
+  const handleMouse = (e) => {
+    if (!dragging.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const cx = size / 2, cy = size / 2, r = size / 2 - 4;
+    const x = Math.max(-1, Math.min(1, (e.clientX - rect.left - cx) / r));
+    const y = Math.max(-1, Math.min(1, (e.clientY - rect.top - cy) / r));
+    onChange({ ...value, x, y });
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+      <canvas ref={canvasRef} width={size} height={size}
+        style={{ borderRadius: '50%', cursor: 'crosshair', border: '1px solid #21262d' }}
+        onMouseDown={() => { dragging.current = true; }}
+        onMouseMove={handleMouse}
+        onMouseUp={() => { dragging.current = false; }}
+        onMouseLeave={() => { dragging.current = false; }}
+      />
+      <div style={{ fontSize: 10, fontWeight: 700, color: '#4e6a82', textTransform: 'uppercase', letterSpacing: 1 }}>{label}</div>
+      <input type="range" min={-100} max={100} value={Math.round((value.brightness || 0) * 100)}
+        style={{ width: size, accentColor: '#00ffc8' }}
+        onChange={e => onChange({ ...value, brightness: parseInt(e.target.value) / 100 })}/>
+    </div>
+  );
+};
+
+
+// ─────────────────────────────────────────────
+// MulticamEditor — switch between camera angles
+// ─────────────────────────────────────────────
+const MulticamEditor = ({ clips, onAngleSwitch, currentTime }) => {
+  const [angles, setAngles] = React.useState(
+    clips?.filter(c => c.type === 'video').slice(0, 4).map((c, i) => ({
+      id: i, label: `Cam ${i + 1}`, clip: c, active: i === 0
+    })) || []
+  );
+  const [syncOffset, setSyncOffset] = React.useState({});
+  const [recording, setRecording] = React.useState(false);
+  const [switches, setSwitches] = React.useState([]);
+
+  const switchToAngle = React.useCallback((angleId) => {
+    setAngles(prev => prev.map(a => ({ ...a, active: a.id === angleId })));
+    if (recording) {
+      setSwitches(prev => [...prev, { time: currentTime, angleId }]);
+    }
+    onAngleSwitch?.(angleId, currentTime);
+  }, [recording, currentTime, onAngleSwitch]);
+
+  return (
+    <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: 12, padding: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div>
+          <h4 style={{ color: '#e6edf3', fontWeight: 800, margin: '0 0 4px', fontSize: 14 }}>🎥 Multicam Editor</h4>
+          <p style={{ color: '#8b949e', fontSize: 12, margin: 0 }}>Switch between camera angles in real time</p>
+        </div>
+        <button onClick={() => setRecording(r => !r)}
+          style={{ padding: '6px 14px', background: recording ? 'rgba(248,81,73,0.15)' : 'rgba(0,255,200,0.08)', border: `1px solid ${recording ? '#f85149' : 'rgba(0,255,200,0.3)'}`, borderRadius: 7, color: recording ? '#f85149' : '#00ffc8', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+          {recording ? '⏹ Stop Recording' : '⏺ Record Switches'}
+        </button>
+      </div>
+
+      {angles.length === 0 ? (
+        <div style={{ color: '#4e6a82', fontSize: 12, textAlign: 'center', padding: 20 }}>
+          Add video clips to your timeline to use multicam editing
+        </div>
+      ) : (
+        <>
+          {/* Camera grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(angles.length, 2)}, 1fr)`, gap: 8, marginBottom: 16 }}>
+            {angles.map(angle => (
+              <div key={angle.id}
+                onClick={() => switchToAngle(angle.id)}
+                style={{ position: 'relative', aspectRatio: '16/9', background: '#06060f', borderRadius: 8, border: `2px solid ${angle.active ? '#00ffc8' : '#21262d'}`, cursor: 'pointer', overflow: 'hidden', transition: 'border-color 0.15s' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4e6a82', fontSize: 24 }}>🎥</div>
+                <div style={{ position: 'absolute', bottom: 6, left: 8, fontSize: 10, fontWeight: 800, color: angle.active ? '#00ffc8' : '#8b949e', background: 'rgba(0,0,0,0.7)', padding: '2px 8px', borderRadius: 4 }}>
+                  {angle.label} {angle.active && '● LIVE'}
+                </div>
+                {/* Sync offset */}
+                <div style={{ position: 'absolute', top: 6, right: 8 }}>
+                  <input type="number" value={syncOffset[angle.id] || 0} step={0.1}
+                    onClick={e => e.stopPropagation()}
+                    onChange={e => setSyncOffset(prev => ({ ...prev, [angle.id]: parseFloat(e.target.value) }))}
+                    style={{ width: 50, background: 'rgba(0,0,0,0.7)', border: '1px solid #21262d', borderRadius: 4, color: '#8b949e', fontSize: 9, padding: '2px 4px', textAlign: 'center' }}
+                    title="Sync offset (seconds)"/>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Switch timeline */}
+          {switches.length > 0 && (
+            <div style={{ background: '#06060f', borderRadius: 8, padding: 12 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#4e6a82', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Recorded Switches</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {switches.map((sw, i) => (
+                  <div key={i} style={{ padding: '3px 8px', background: 'rgba(0,255,200,0.08)', border: '1px solid rgba(0,255,200,0.2)', borderRadius: 4, fontSize: 10, color: '#00ffc8' }}>
+                    {sw.time.toFixed(1)}s → Cam {sw.angleId + 1}
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setSwitches([])}
+                style={{ marginTop: 8, padding: '4px 10px', background: 'transparent', border: '1px solid #21262d', borderRadius: 5, color: '#4e6a82', fontSize: 10, cursor: 'pointer' }}>
+                Clear
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+const ColorGradingPanel = ({ onGrade }) => {
+  const [lift,  setLift]  = React.useState({ x: 0, y: 0, brightness: 0 });
+  const [gamma, setGamma] = React.useState({ x: 0, y: 0, brightness: 0 });
+  const [gain,  setGain]  = React.useState({ x: 0, y: 0, brightness: 0 });
+  const [saturation, setSaturation] = React.useState(100);
+  const [contrast,   setContrast]   = React.useState(100);
+  const [temperature, setTemperature] = React.useState(0);
+  const [tint,       setTint]        = React.useState(0);
+  const [activePreset, setActivePreset] = React.useState(null);
+
+  const PRESETS = [
+    { name: 'Cinematic', sat: 85,  con: 110, temp: -10, tint: 0 },
+    { name: 'Vivid',     sat: 130, con: 105, temp: 5,   tint: 0 },
+    { name: 'Matte',     sat: 90,  con: 85,  temp: 0,   tint: 5 },
+    { name: 'B&W',       sat: 0,   con: 110, temp: 0,   tint: 0 },
+    { name: 'Warm',      sat: 105, con: 100, temp: 20,  tint: 5 },
+    { name: 'Cool',      sat: 100, con: 100, temp: -20, tint: -5 },
+    { name: 'Golden Hr', sat: 115, con: 105, temp: 30,  tint: 10 },
+    { name: 'Teal/Org',  sat: 110, con: 108, temp: -5,  tint: 0 },
+  ];
+
+  const applyGrade = React.useCallback(() => {
+    onGrade?.({ lift, gamma, gain, saturation, contrast, temperature, tint });
+  }, [lift, gamma, gain, saturation, contrast, temperature, tint, onGrade]);
+
+  return (
+    <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h4 style={{ color: '#e6edf3', fontWeight: 800, margin: 0, fontSize: 14 }}>🎨 Color Grading</h4>
+        <button onClick={applyGrade} style={{ padding: '5px 14px', background: 'rgba(0,255,200,0.1)', border: '1px solid rgba(0,255,200,0.3)', borderRadius: 6, color: '#00ffc8', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Apply</button>
+      </div>
+
+      {/* Presets */}
+      <div>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#4e6a82', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Presets</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {PRESETS.map(p => (
+            <button key={p.name}
+              onClick={() => { setSaturation(p.sat); setContrast(p.con); setTemperature(p.temp); setTint(p.tint); setActivePreset(p.name); }}
+              style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid', borderColor: activePreset === p.name ? '#00ffc8' : '#21262d', background: activePreset === p.name ? 'rgba(0,255,200,0.1)' : 'transparent', color: activePreset === p.name ? '#00ffc8' : '#8b949e', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+              {p.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Color Wheels */}
+      <div style={{ display: 'flex', gap: 20, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <ColorWheel label="Lift (Shadows)"   value={lift}  onChange={setLift}  size={110} />
+        <ColorWheel label="Gamma (Mids)"     value={gamma} onChange={setGamma} size={110} />
+        <ColorWheel label="Gain (Highlights)" value={gain}  onChange={setGain}  size={110} />
+      </div>
+
+      {/* Sliders */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        {[
+          ['Saturation', saturation, setSaturation, 0, 200, '#bf5af2'],
+          ['Contrast',   contrast,   setContrast,   50, 150, '#ff6600'],
+          ['Temperature', temperature, setTemperature, -50, 50, '#ffd60a'],
+          ['Tint',       tint,       setTint,       -50, 50, '#30d158'],
+        ].map(([lbl, val, setter, min, max, color]) => (
+          <div key={lbl}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 700, color: '#4e6a82', marginBottom: 5 }}>
+              <span>{lbl}</span><span style={{ color }}>{val}</span>
+            </div>
+            <input type="range" min={min} max={max} value={val}
+              style={{ width: '100%', accentColor: color }}
+              onChange={e => setter(parseInt(e.target.value))}/>
+          </div>
+        ))}
+      </div>
+
+      {/* Reset */}
+      <button onClick={() => { setLift({x:0,y:0,brightness:0}); setGamma({x:0,y:0,brightness:0}); setGain({x:0,y:0,brightness:0}); setSaturation(100); setContrast(100); setTemperature(0); setTint(0); setActivePreset(null); }}
+        style={{ padding: '6px 14px', background: 'transparent', border: '1px solid #21262d', borderRadius: 6, color: '#4e6a82', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, cursor: 'pointer', alignSelf: 'flex-start' }}>
+        Reset
+      </button>
+    </div>
+  );
+};
+
 import React, { useState, useEffect, useRef } from 'react';
 import KeyframePanel from '../keyframes/ui/KeyframePanel';
 import KeyframeTimelineStrip from '../keyframes/ui/KeyframeTimelineStrip';

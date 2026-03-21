@@ -6,6 +6,41 @@ import DVSTimecode from "../component/DVSTimecode";
 
 const BACKEND = process.env.REACT_APP_BACKEND_URL || "";
 
+
+// ── DJ Controller Profiles ──
+const CONTROLLER_PROFILES = {
+  "Akai MPK Mini": {
+    desc: "Akai MPK Mini — 25 keys, 8 pads, 8 knobs",
+    map: { 1:"xfader", 7:"vol_a", 8:"vol_b", 10:"low_a", 11:"mid_a", 74:"filter_a",
+           70:"high_a", 71:"low_b", 72:"mid_b", 73:"high_b" },
+    pads: { 36:"cue_a_1", 37:"cue_a_2", 38:"cue_a_3", 39:"cue_a_4",
+            40:"cue_b_1", 41:"cue_b_2", 42:"cue_b_3", 43:"cue_b_4" },
+  },
+  "Novation Launchpad": {
+    desc: "Novation Launchpad — 8x8 grid, 64 pads",
+    map: { 7:"vol_a", 8:"vol_b" },
+    pads: { 36:"cue_a_1", 37:"cue_a_2", 38:"cue_a_3", 39:"cue_a_4",
+            44:"play_a", 45:"play_b", 46:"sync", 47:"cue_a" },
+  },
+  "Pioneer DDJ-200": {
+    desc: "Pioneer DDJ-200 — 2-deck controller, jog wheels",
+    map: { 7:"vol_a", 8:"vol_b", 10:"low_a", 11:"mid_a", 12:"high_a",
+           13:"low_b", 14:"mid_b", 15:"high_b", 1:"xfader" },
+    pads: { 36:"cue_a_1", 37:"cue_a_2", 40:"play_a", 41:"play_b", 46:"sync" },
+  },
+  "Native Instruments Traktor": {
+    desc: "NI Traktor Kontrol S2/S4",
+    map: { 7:"vol_a", 8:"vol_b", 10:"low_a", 11:"mid_a", 74:"filter_a",
+           75:"filter_b", 1:"xfader" },
+    pads: { 36:"cue_a_1", 37:"cue_a_2", 38:"cue_a_3", 39:"cue_a_4", 44:"play_a", 45:"play_b" },
+  },
+  "Custom": {
+    desc: "Custom — build your own mapping",
+    map: {},
+    pads: {},
+  },
+};
+
 const CAMELOT = {
   "C major":"8B","A minor":"8A","G major":"9B","E minor":"9A","D major":"10B","B minor":"10A",
   "A major":"11B","F# minor":"11A","E major":"12B","C# minor":"12A","B major":"1B","G# minor":"1A",
@@ -479,6 +514,8 @@ export default function DJMixer(){
   const [saving,setSaving]=useState(false);
   const [activeTab,setActiveTab]=useState("decks");
   const [midiEnabled,setMidiEnabled]=useState(false);
+  const [controllerProfile,setControllerProfile]=useState("Custom");
+  const [showProfilePicker,setShowProfilePicker]=useState(false);
   const [midiMap,setMidiMap]=useState({
     // CC -> action mapping (customizable)
     1:  "xfader",    // mod wheel -> crossfader
@@ -595,6 +632,14 @@ export default function DJMixer(){
   // ── Stream destinations state ──
   const [streamDests, setStreamDests] = useState({streampirex:false, twitch:false, youtube:false});
   const streamRefs = useRef({});
+
+  const applyControllerProfile = React.useCallback((profileName) => {
+    const profile = CONTROLLER_PROFILES[profileName];
+    if (!profile) return;
+    setMidiMap(profile.map);
+    setControllerProfile(profileName);
+    setShowProfilePicker(false);
+  }, []);
 
   const toggleStream = useCallback(async (destId) => {
     const token = store?.token || localStorage.getItem("token");
@@ -932,6 +977,26 @@ export default function DJMixer(){
             title="Toggle MIDI controller">
             🎹 MIDI
           </button>
+          {midiEnabled&&(
+            <div style={{position:"relative"}}>
+              <button className="dj-tab" style={{color:"#8b949e",fontSize:10}}
+                onClick={()=>setShowProfilePicker(p=>!p)}>
+                🎮 {controllerProfile} ▾
+              </button>
+              {showProfilePicker&&(
+                <div style={{position:"absolute",top:"100%",left:0,zIndex:200,background:"#161b22",border:"1px solid #30363d",borderRadius:8,padding:4,minWidth:220,boxShadow:"0 8px 32px rgba(0,0,0,0.7)"}}>
+                  {Object.entries(CONTROLLER_PROFILES).map(([name,prof])=>(
+                    <button key={name}
+                      onClick={()=>applyControllerProfile(name)}
+                      style={{display:"block",width:"100%",padding:"8px 12px",background:controllerProfile===name?"rgba(0,255,200,0.08)":"transparent",border:"none",borderRadius:5,color:controllerProfile===name?"#00ffc8":"#8b949e",fontFamily:"JetBrains Mono,monospace",fontSize:10,fontWeight:700,textAlign:"left",cursor:"pointer"}}>
+                      <div>{name}</div>
+                      <div style={{fontSize:9,color:"#4e6a82",fontWeight:400,marginTop:2}}>{prof.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {!rec?<button className="dj-rec" onClick={startRec}>⏺ REC</button>:<button className="dj-rec on" onClick={stopRec}>⏹ STOP</button>}
           {recBlob&&<><button className="dj-exp" onClick={dlMix}>⬇ Download</button><button className="dj-exp save" onClick={()=>setSaveModal(true)}>☁ Save</button></>}
           {rec&&<div className="dj-rec-live"><span className="dj-rec-dot"/>REC</div>}
