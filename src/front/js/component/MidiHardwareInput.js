@@ -271,3 +271,197 @@ const MidiHardwareInput = ({
 };
 
 export default MidiHardwareInput;
+// =============================================================================
+// MIDI OUTPUT — Send MIDI to hardware synths, drum machines, etc.
+// =============================================================================
+// Works with: Any class-compliant USB MIDI device
+// Examples: Moog Subsequent 37, Roland JX-3P, Korg Minilogue, Arturia,
+//           Teenage Engineering, Elektron, any hardware synth with USB MIDI
+// =============================================================================
+
+export function useMidiOutput() {
+  const [outputs, setOutputs] = React.useState([]);
+  const [activeOutput, setActiveOutput] = React.useState(null);
+  const [midiAccess, setMidiAccess] = React.useState(null);
+  const outputRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!navigator.requestMIDIAccess) return;
+    navigator.requestMIDIAccess({ sysex: false }).then(access => {
+      setMidiAccess(access);
+      const outs = [];
+      access.outputs.forEach((out, id) => {
+        outs.push({ id, name: out.name, manufacturer: out.manufacturer, state: out.state });
+      });
+      setOutputs(outs);
+      // Auto-connect first output
+      if (outs.length > 0) {
+        const first = access.outputs.values().next().value;
+        outputRef.current = first;
+        setActiveOutput({ id: first.id, name: first.name });
+      }
+      // Listen for device changes
+      access.onstatechange = () => {
+        const updated = [];
+        access.outputs.forEach((out, id) => {
+          updated.push({ id, name: out.name, manufacturer: out.manufacturer, state: out.state });
+        });
+        setOutputs(updated);
+      };
+    }).catch(err => console.warn('MIDI Output error:', err));
+  }, []);
+
+  const connectOutput = React.useCallback((deviceId) => {
+    if (!midiAccess) return;
+    const out = midiAccess.outputs.get(deviceId);
+    if (out) {
+      outputRef.current = out;
+      setActiveOutput({ id: deviceId, name: out.name });
+    }
+  }, [midiAccess]);
+
+  // ── Send note on ──
+  const noteOn = React.useCallback((note, velocity = 100, channel = 0) => {
+    if (!outputRef.current) return;
+    outputRef.current.send([0x90 | (channel & 0x0F), note & 0x7F, velocity & 0x7F]);
+  }, []);
+
+  // ── Send note off ──
+  const noteOff = React.useCallback((note, channel = 0) => {
+    if (!outputRef.current) return;
+    outputRef.current.send([0x80 | (channel & 0x0F), note & 0x7F, 0]);
+  }, []);
+
+  // ── Send CC ──
+  const sendCC = React.useCallback((cc, value, channel = 0) => {
+    if (!outputRef.current) return;
+    outputRef.current.send([0xB0 | (channel & 0x0F), cc & 0x7F, value & 0x7F]);
+  }, []);
+
+  // ── Send pitch bend ──
+  const sendPitchBend = React.useCallback((value, channel = 0) => {
+    // value: -8192 to 8191
+    if (!outputRef.current) return;
+    const v = Math.max(-8192, Math.min(8191, value)) + 8192;
+    outputRef.current.send([0xE0 | (channel & 0x0F), v & 0x7F, (v >> 7) & 0x7F]);
+  }, []);
+
+  // ── Send program change ──
+  const sendProgramChange = React.useCallback((program, channel = 0) => {
+    if (!outputRef.current) return;
+    outputRef.current.send([0xC0 | (channel & 0x0F), program & 0x7F]);
+  }, []);
+
+  // ── Send clock ──
+  const sendClock = React.useCallback(() => {
+    if (!outputRef.current) return;
+    outputRef.current.send([0xF8]);
+  }, []);
+
+  // ── Send start ──
+  const sendStart = React.useCallback(() => {
+    if (!outputRef.current) return;
+    outputRef.current.send([0xFA]);
+  }, []);
+
+  // ── Send stop ──
+  const sendStop = React.useCallback(() => {
+    if (!outputRef.current) return;
+    outputRef.current.send([0xFC]);
+  }, []);
+
+  // ── All notes off (panic) ──
+  const allNotesOff = React.useCallback((channel = 0) => {
+    if (!outputRef.current) return;
+    outputRef.current.send([0xB0 | (channel & 0x0F), 123, 0]);
+  }, []);
+
+  // ── Send full chord ──
+  const sendChord = React.useCallback((notes, velocity = 100, channel = 0) => {
+    notes.forEach(note => noteOn(note, velocity, channel));
+  }, [noteOn]);
+
+  // ── Release full chord ──
+  const releaseChord = React.useCallback((notes, channel = 0) => {
+    notes.forEach(note => noteOff(note, channel));
+  }, [noteOff]);
+
+  // ── Send MIDI clock sync at BPM ──
+  const startClockSync = React.useCallback((bpm) => {
+    const intervalMs = (60 / bpm / 24) * 1000; // 24 ppqn
+    const id = setInterval(() => sendClock(), intervalMs);
+    sendStart();
+    return () => { clearInterval(id); sendStop(); };
+  }, [sendClock, sendStart, sendStop]);
+
+  return {
+    outputs,
+    activeOutput,
+    connectOutput,
+    noteOn,
+    noteOff,
+    sendCC,
+    sendPitchBend,
+    sendProgramChange,
+    sendClock,
+    sendStart,
+    sendStop,
+    allNotesOff,
+    sendChord,
+    releaseChord,
+    startClockSync,
+    isConnected: !!activeOutput,
+  };
+}
+
+// =============================================================================
+// MidiOutputPanel — UI component for selecting MIDI output device
+// =============================================================================
+export function MidiOutputPanel({ onOutputReady }) {
+  const midi = useMidiOutput();
+
+  React.useEffect(() => {
+    if (midi.isConnected && onOutputReady) onOutputReady(midi);
+  }, [midi.isConnected]);
+
+  const S = {
+    panel: { background: '#0d1117', border: '1px solid #30363d', borderRadius: 8, padding: 12, fontFamily: 'monospace', fontSize: 11, color: '#cdd6f4' },
+    title: { color: '#cba6f7', fontWeight: 700, marginBottom: 8, fontSize: 12 },
+    row: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 },
+    select: { flex: 1, background: '#161b22', border: '1px solid #30363d', color: '#cdd6f4', borderRadius: 4, padding: '3px 6px', fontSize: 11 },
+    badge: { padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, background: midi.isConnected ? 'rgba(0,255,100,0.15)' : 'rgba(255,100,100,0.15)', color: midi.isConnected ? '#00ff64' : '#ff6464' },
+    btn: { padding: '3px 10px', borderRadius: 4, border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 700, background: '#313244', color: '#cdd6f4' },
+  };
+
+  return (
+    <div style={S.panel}>
+      <div style={S.title}>🎹 MIDI Output</div>
+      <div style={S.row}>
+        <select style={S.select}
+          value={midi.activeOutput?.id || ''}
+          onChange={e => midi.connectOutput(e.target.value)}>
+          {midi.outputs.length === 0
+            ? <option value=''>No MIDI output devices found</option>
+            : midi.outputs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)
+          }
+        </select>
+        <span style={S.badge}>{midi.isConnected ? '● LIVE' : '○ OFF'}</span>
+      </div>
+      {midi.isConnected && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <button style={S.btn} onClick={() => midi.allNotesOff()}>⚡ Panic</button>
+          <button style={S.btn} onClick={() => midi.sendStart()}>▶ Start</button>
+          <button style={S.btn} onClick={() => midi.sendStop()}>■ Stop</button>
+          <div style={{ fontSize: 10, color: '#585b70', alignSelf: 'center' }}>
+            {midi.activeOutput?.name}
+          </div>
+        </div>
+      )}
+      {!navigator.requestMIDIAccess && (
+        <div style={{ color: '#ff9500', fontSize: 10, marginTop: 6 }}>
+          ⚠️ MIDI requires Chrome or Edge browser
+        </div>
+      )}
+    </div>
+  );
+}
