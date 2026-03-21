@@ -93,6 +93,16 @@ export default function SPXVectorPage() {
   const [gridSize,     setGridSize]     = useState(20);
   const [showHandles,  setShowHandles]  = useState(true);
   const [dragState,    setDragState]    = useState(null);
+  const [showTracePanel, setShowTracePanel] = useState(false);
+  const [traceThreshold, setTraceThreshold] = useState(128);
+  const [traceMode,      setTraceMode]      = useState('bw'); // bw, color, gray
+  const [tracing,        setTracing]        = useState(false);
+  const [showPatterns,   setShowPatterns]   = useState(false);
+  const [showSymbols,    setShowSymbols]    = useState(false);
+  const [symbols,        setSymbols]        = useState([]);
+  const [artboards,      setArtboards]      = useState([{id:'ab1',name:'Artboard 1',x:0,y:0,width:1920,height:1080}]);
+  const [activeArtboard, setActiveArtboard] = useState('ab1');
+  const traceInputRef = useRef(null);
 
   const selectedId = selectedIds[0] || null;
   const selectedLayer = useMemo(()=>project.layers.find(l=>l.id===selectedId)||null,[project.layers,selectedId]);
@@ -189,6 +199,129 @@ export default function SPXVectorPage() {
       return l;
     })}));
   },[selectedIds,project.layers,snapshot]);
+
+  // ─── Auto Trace (Bitmap → Vector) ──────────────────────────────────────────
+  const handleTraceImage = useCallback((e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setTracing(true);
+    setStatus('Tracing image...');
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx2 = canvas.getContext('2d');
+        ctx2.drawImage(img, 0, 0);
+        const imageData = ctx2.getImageData(0, 0, img.width, img.height);
+        const data = imageData.data;
+        // Convert to grayscale bitmap for tracing
+        const bmp = [];
+        for (let y = 0; y < img.height; y++) {
+          bmp.push([]);
+          for (let x = 0; x < img.width; x++) {
+            const i = (y * img.width + x) * 4;
+            const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+            bmp[y].push(gray < traceThreshold ? 1 : 0);
+          }
+        }
+        // Simple contour tracing — march squares algorithm
+        const paths = traceContours(bmp, img.width, img.height);
+        snapshot();
+        const scaleX = project.width / img.width;
+        const scaleY = project.height / img.height;
+        paths.forEach((anchors, i) => {
+          const scaled = anchors.map(a => ({
+            ...a,
+            x: a.x * scaleX, y: a.y * scaleY,
+            inX: a.inX * scaleX, inY: a.inY * scaleY,
+            outX: a.outX * scaleX, outY: a.outY * scaleY,
+          }));
+          const layer = DEFAULT_LAYER('path', {
+            anchors: scaled, closed: true,
+            name: `Trace ${i+1}`,
+            fill: traceMode === 'bw' ? '#000000' : fillColor,
+            stroke: 'none',
+          });
+          setProject(p => ({...p, layers: [...p.layers, layer]}));
+        });
+        setTracing(false);
+        setShowTracePanel(false);
+        setStatus(`Traced ${paths.length} paths from image`);
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }, [traceThreshold, traceMode, snapshot, project.width, project.height, fillColor]);
+
+  // March squares contour tracer
+  function traceContours(bmp, w, h) {
+    const visited = Array.from({length: h}, () => new Uint8Array(w));
+    const paths = [];
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        if (bmp[y][x] === 1 && !visited[y][x]) {
+          const path = [];
+          let cx = x, cy = y;
+          let dir = 0; // 0=right,1=down,2=left,3=up
+          let steps = 0;
+          do {
+            visited[cy][cx] = 1;
+            path.push({x: cx, y: cy, inX: cx-2, inY: cy, outX: cx+2, outY: cy});
+            const nx = [1,-1,0,0][dir]+cx, ny = [0,0,1,-1][dir]+cy;
+            if (nx>=0&&nx<w&&ny>=0&&ny<h&&bmp[ny][nx]===1&&!visited[ny][nx]) { cx=nx; cy=ny; }
+            else dir=(dir+1)%4;
+            steps++;
+          } while ((cx!==x||cy!==y) && steps < 2000);
+          if (path.length >= 4) paths.push(path);
+        }
+      }
+    }
+    return paths.slice(0, 50); // max 50 paths
+  }
+
+  // ─── Pattern Fills ────────────────────────────────────────────────────────
+  const PATTERN_PRESETS = [
+    { id:'dots',    name:'Dots',    svg:'<circle cx="4" cy="4" r="2" fill="currentColor"/>' },
+    { id:'lines',   name:'Lines',   svg:'<line x1="0" y1="4" x2="8" y2="4" stroke="currentColor" strokeWidth="1"/>' },
+    { id:'grid',    name:'Grid',    svg:'<path d="M8 0V8M0 8H8" stroke="currentColor" strokeWidth="0.5" fill="none"/>' },
+    { id:'checker', name:'Checker', svg:'<rect width="4" height="4" fill="currentColor"/><rect x="4" y="4" width="4" height="4" fill="currentColor"/>' },
+    { id:'diagonal',name:'Diagonal',svg:'<line x1="0" y1="8" x2="8" y2="0" stroke="currentColor" strokeWidth="1"/>' },
+    { id:'cross',   name:'Cross',   svg:'<path d="M4 0V8M0 4H8" stroke="currentColor" strokeWidth="1"/>' },
+  ];
+
+  const applyPattern = useCallback((patternId) => {
+    if (!selectedId) return;
+    updateLayer(selectedId, { fill: { type: 'pattern', patternId, color: fillColor } });
+    setStatus(`Applied pattern: ${patternId}`);
+  }, [selectedId, fillColor, updateLayer]);
+
+  // ─── Symbols ─────────────────────────────────────────────────────────────
+  const defineSymbol = useCallback(() => {
+    if (!selectedLayer) return;
+    snapshot();
+    const sym = { id: uid(), name: selectedLayer.name + ' Symbol', layer: JSON.parse(JSON.stringify(selectedLayer)) };
+    setSymbols(prev => [...prev, sym]);
+    setStatus(`Symbol defined: ${sym.name}`);
+  }, [selectedLayer, snapshot]);
+
+  const placeSymbol = useCallback((sym) => {
+    snapshot();
+    const instance = { ...JSON.parse(JSON.stringify(sym.layer)), id: uid(), name: sym.name + ' Instance', x: 200, y: 200, symbolId: sym.id };
+    setProject(p => ({...p, layers: [...p.layers, instance]}));
+    setSelectedIds([instance.id]);
+    setStatus(`Placed symbol: ${sym.name}`);
+  }, [snapshot]);
+
+  // ─── Artboards ────────────────────────────────────────────────────────────
+  const addArtboard = useCallback(() => {
+    const ab = { id: uid(), name: `Artboard ${artboards.length + 1}`, x: artboards.length * (project.width + 100), y: 0, width: project.width, height: project.height };
+    setArtboards(prev => [...prev, ab]);
+    setActiveArtboard(ab.id);
+    setStatus(`Added ${ab.name}`);
+  }, [artboards, project.width, project.height]);
 
   // ─── SVG Point Helpers ────────────────────────────────────────────────────
   const getSVGPoint = useCallback((e)=>{
@@ -323,7 +456,12 @@ export default function SPXVectorPage() {
 
   // ─── SVG Layer Rendering ──────────────────────────────────────────────────
   function renderSVGLayer(layer) {
-    const fill=layer.fill||'none';
+    let fill = layer.fill || 'none';
+    if (fill && typeof fill === 'object' && fill.type === 'pattern') {
+      fill = `url(#pat_${fill.patternId})`;
+    } else if (fill && typeof fill === 'object' && fill.type === 'linear') {
+      fill = `url(#grad_${layer.id})`;
+    }
     const stroke=layer.stroke||'none';
     const sw=layer.strokeWidth||1;
     const opacity=layer.opacity??1;
@@ -440,12 +578,86 @@ export default function SPXVectorPage() {
           </>
         )}
         <div style={{flex:1}}/>
+        <button style={S.btn(showTracePanel)} onClick={()=>setShowTracePanel(v=>!v)} title="Image Trace — convert bitmap to vector">🔍 Trace</button>
+        <button style={S.btn(showSymbols)} onClick={()=>setShowSymbols(v=>!v)} title="Symbols library">⊛ Symbols</button>
+        <button style={S.btn(showPatterns)} onClick={()=>setShowPatterns(v=>!v)} title="Pattern fills">⊞ Patterns</button>
+        <button style={S.btn()} onClick={addArtboard} title="Add artboard">＋ Board</button>
+        <div style={{width:1,height:20,background:'#444',margin:'0 4px'}}/>
         <button style={S.btn()} onClick={()=>exportFullSVG(project,project.name)}>💾 SVG</button>
         <button style={S.btn()} onClick={()=>{ const s=JSON.stringify(project); const b=new Blob([s],{type:'application/json'}); const u=URL.createObjectURL(b); const a=document.createElement('a');a.href=u;a.download=project.name+'.spxv';a.click(); }}>💾 .spxv</button>
         <span style={{color:'#888',fontSize:10}}>Zoom:</span>
         <button style={S.btn()} onClick={()=>setZoom(z=>Math.max(0.05,z/1.25))}>−</button>
         <span style={{color:'#ff6600',width:40,textAlign:'center'}}>{Math.round(zoom*100)}%</span>
         <button style={S.btn()} onClick={()=>setZoom(z=>Math.min(16,z*1.25))}>+</button>
+      </div>
+
+      {/* ── Image Trace Panel ── */}
+      {showTracePanel && (
+        <div style={{display:'flex',alignItems:'center',gap:12,padding:'6px 16px',background:'#1a1a2e',borderBottom:'1px solid #333',flexWrap:'wrap'}}>
+          <span style={{color:'#00ffc8',fontWeight:700,fontSize:11}}>IMAGE TRACE</span>
+          <select value={traceMode} onChange={e=>setTraceMode(e.target.value)}
+            style={{background:'#333',color:'#dde6ef',border:'1px solid #444',borderRadius:3,padding:'2px 6px',fontSize:11}}>
+            <option value="bw">Black & White</option>
+            <option value="color">Color</option>
+            <option value="gray">Grayscale</option>
+          </select>
+          <label style={{fontSize:11,color:'#888',display:'flex',alignItems:'center',gap:6}}>
+            Threshold
+            <input type="range" min={0} max={255} value={traceThreshold} onChange={e=>setTraceThreshold(Number(e.target.value))} style={{width:80,accentColor:'#00ffc8'}}/>
+            <span style={{color:'#00ffc8',minWidth:28}}>{traceThreshold}</span>
+          </label>
+          <button style={{...S.btn(true),background:'#00ffc8',color:'#000'}}
+            onClick={()=>traceInputRef.current?.click()} disabled={tracing}>
+            {tracing ? '⏳ Tracing...' : '🔍 Choose Image'}
+          </button>
+          <input ref={traceInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleTraceImage}/>
+          <button style={S.btn()} onClick={()=>setShowTracePanel(false)}>✕</button>
+        </div>
+      )}
+
+      {/* ── Symbols Panel ── */}
+      {showSymbols && (
+        <div style={{display:'flex',alignItems:'center',gap:8,padding:'6px 16px',background:'#1a1a2e',borderBottom:'1px solid #333',flexWrap:'wrap'}}>
+          <span style={{color:'#ff9500',fontWeight:700,fontSize:11}}>SYMBOLS</span>
+          <button style={{...S.btn(false),background:'#333'}} onClick={defineSymbol} disabled={!selectedLayer}>
+            ⊛ Define from Selection
+          </button>
+          {symbols.length === 0 && <span style={{color:'#555',fontSize:10}}>No symbols yet — select a layer and click Define</span>}
+          {symbols.map(sym => (
+            <button key={sym.id} style={{...S.btn(false),background:'#2a2a3e',border:'1px solid #444'}}
+              onClick={()=>placeSymbol(sym)} title={`Place ${sym.name}`}>
+              ⊛ {sym.name}
+            </button>
+          ))}
+          <button style={S.btn()} onClick={()=>setShowSymbols(false)}>✕</button>
+        </div>
+      )}
+
+      {/* ── Patterns Panel ── */}
+      {showPatterns && (
+        <div style={{display:'flex',alignItems:'center',gap:8,padding:'6px 16px',background:'#1a1a2e',borderBottom:'1px solid #333',flexWrap:'wrap'}}>
+          <span style={{color:'#ff6600',fontWeight:700,fontSize:11}}>PATTERN FILLS</span>
+          {PATTERN_PRESETS.map(p => (
+            <button key={p.id} style={{...S.btn(false),background:'#2a2a3e',border:'1px solid #444',display:'flex',alignItems:'center',gap:4}}
+              onClick={()=>applyPattern(p.id)} title={`Apply ${p.name} pattern`} disabled={!selectedId}>
+              <svg width={16} height={16} style={{border:'1px solid #333'}}>
+                <rect width={16} height={16} fill={`url(#pat_${p.id})`}/>
+              </svg>
+              {p.name}
+            </button>
+          ))}
+          <button style={S.btn()} onClick={()=>setShowPatterns(false)}>✕</button>
+        </div>
+      )}
+
+      {/* ── Artboards Panel ── */}
+      <div style={{display:'flex',alignItems:'center',gap:6,padding:'3px 16px',background:'#1e1e1e',borderBottom:'1px solid #2a2a2a',overflowX:'auto'}}>
+        <span style={{color:'#555',fontSize:10,whiteSpace:'nowrap'}}>BOARDS:</span>
+        {artboards.map(ab => (
+          <button key={ab.id} style={{...S.btn(activeArtboard===ab.id),whiteSpace:'nowrap',fontSize:10}}
+            onClick={()=>setActiveArtboard(ab.id)}>{ab.name}</button>
+        ))}
+        <button style={{...S.btn(false),fontSize:10}} onClick={addArtboard}>＋</button>
       </div>
 
       <div style={S.body}>
@@ -481,6 +693,23 @@ export default function SPXVectorPage() {
             onMouseMove={onSVGMouseMove}
             onMouseUp={onSVGMouseUp}
           >
+            {/* Pattern Defs */}
+            <defs>
+              {PATTERN_PRESETS.map(p => (
+                <pattern key={p.id} id={`pat_${p.id}`} width="8" height="8" patternUnits="userSpaceOnUse">
+                  <g dangerouslySetInnerHTML={{__html: p.svg.replace(/currentColor/g, fillColor)}}/>
+                </pattern>
+              ))}
+            </defs>
+            {/* Artboard outlines */}
+            {artboards.map(ab => (
+              <g key={ab.id}>
+                <rect x={ab.x} y={ab.y} width={ab.width} height={ab.height}
+                  fill="none" stroke={activeArtboard===ab.id?'#ff6600':'#444'} strokeWidth={1} pointerEvents="none"/>
+                <text x={ab.x} y={ab.y-4} fontSize={11} fill={activeArtboard===ab.id?'#ff6600':'#666'}
+                  fontFamily="monospace" pointerEvents="none">{ab.name}</text>
+              </g>
+            ))}
             {/* Grid */}
             {showGrid&&Array.from({length:Math.floor(project.width/gridSize)+1},(_,i)=>(
               <line key={`gx${i}`} x1={i*gridSize} y1={0} x2={i*gridSize} y2={project.height} stroke="rgba(255,255,255,0.05)" strokeWidth={0.5}/>
