@@ -35,6 +35,24 @@ import KeyFinder from "../component/KeyFinder";
 import AIBeatAssistant from "../component/AIBeatAssistant";
 import ParametricEQGraph from "../component/ParametricEQGraph";
 import ConsoleFXPanel from "../component/ConsoleFXPanel";
+
+// ── Latency compensation utility ──
+const getLatencyMs = (ctx) => {
+  if (!ctx) return 0;
+  const base = ctx.baseLatency || 0;
+  const output = ctx.outputLatency || 0;
+  return Math.round((base + output) * 1000);
+};
+
+const LOW_LATENCY_TIPS = [
+  "Use Chrome or Edge for lowest latency",
+  "Close other browser tabs and apps",
+  "Use a USB audio interface instead of built-in mic",
+  "Enable exclusive mode on your audio device",
+  "Set buffer size to 128 or 256 samples in your OS audio settings",
+  "Use wired headphones — Bluetooth adds 100-200ms",
+];
+
 import AmpSimPlugin from "../component/AmpSimPlugin";
 import PanKnob from "../component/PanKnob";
 import { InlineStemSeparation, AudioToMIDIPanel, PitchCorrectionPanel } from "../component/DAWAdvancedFeatures";
@@ -593,6 +611,10 @@ const RecordingStudio = ({ user }) => {
   const [midiEnabled, setMidiEnabled] = React.useState(false);
   const [wamPlugins, setWamPlugins] = React.useState([]);
   const [analogSubview, setAnalogSubview] = React.useState("ampsim");
+  const [latencyMs, setLatencyMs] = React.useState(0);
+  const [monitoringEnabled, setMonitoringEnabled] = React.useState(false);
+  const [latencyCompMs, setLatencyCompMs] = React.useState(0);
+  const monitorGainRef = React.useRef(null);
   const [tapeDrive, setTapeDrive] = React.useState(0.3);
   const [tapeWarmth, setTapeWarmth] = React.useState(0.5);
   const [tapeEnabled, setTapeEnabled] = React.useState(false);
@@ -2077,6 +2099,40 @@ const RecordingStudio = ({ user }) => {
     );
     setStatus(`AI: Track ${trackIndex + 1} compressor applied`);
   }, []);
+  // ── Direct monitoring with latency compensation ──
+  const toggleMonitoring = React.useCallback((trackIndex) => {
+    const ctx = audioCtxRef?.current;
+    if (!ctx) return;
+    if (monitoringEnabled) {
+      monitorGainRef.current?.disconnect();
+      monitorGainRef.current = null;
+      setMonitoringEnabled(false);
+      setStatus("Direct monitoring OFF");
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ audio: {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+      latency: 0,
+    }}).then(stream => {
+      const src = ctx.createMediaStreamSource(stream);
+      const gain = ctx.createGain();
+      gain.gain.value = 0.8;
+      // Latency compensation delay node
+      const delay = ctx.createDelay(0.5);
+      delay.delayTime.value = Math.max(0, latencyCompMs / 1000);
+      src.connect(delay);
+      delay.connect(gain);
+      gain.connect(ctx.destination);
+      monitorGainRef.current = gain;
+      setMonitoringEnabled(true);
+      const ms = getLatencyMs(ctx);
+      setLatencyMs(ms);
+      setStatus(`Direct monitoring ON — latency: ${ms}ms`);
+    }).catch(e => setStatus("Monitoring error: " + e.message));
+  }, [monitoringEnabled, latencyCompMs]);
+
   // ── Vocal Processor → Console FX bridge ──
   const handleApplyVocalFx = useCallback((fxSettings) => {
     const idx = tracks.findIndex(t => t.armed);
@@ -2774,6 +2830,29 @@ const RecordingStudio = ({ user }) => {
 
         {/* I/O & Status */}
         <div className="daw-topbar-right">
+          {/* Latency display */}
+          {latencyMs > 0 && (
+            <div style={{
+              display:'flex', alignItems:'center', gap:6,
+              padding:'3px 10px',
+              background: latencyMs < 20 ? 'rgba(48,209,88,0.1)' : latencyMs < 50 ? 'rgba(255,214,10,0.1)' : 'rgba(248,81,73,0.1)',
+              border: `1px solid ${latencyMs < 20 ? 'rgba(48,209,88,0.3)' : latencyMs < 50 ? 'rgba(255,214,10,0.3)' : 'rgba(248,81,73,0.3)'}`,
+              borderRadius:5,
+            }}>
+              <span style={{fontSize:9,fontWeight:800,color: latencyMs < 20 ? '#30d158' : latencyMs < 50 ? '#ffd60a' : '#f85149'}}>
+                ⚡ {latencyMs}ms
+              </span>
+            </div>
+          )}
+          {/* Direct monitoring toggle */}
+          <button
+            className={`daw-icon-btn ${monitoringEnabled ? 'active' : ''}`}
+            onClick={() => toggleMonitoring(selectedTrack)}
+            title={`Direct monitoring ${monitoringEnabled ? 'ON' : 'OFF'} — hear yourself through the DAW with zero-latency passthrough`}
+            style={monitoringEnabled ? {background:'rgba(0,255,200,0.15)',borderColor:'#00ffc8',color:'#00ffc8'} : {}}
+          >
+            🎧
+          </button>
           <select
             value={selectedDevice}
             onChange={(e) => setSelectedDevice(e.target.value)}
