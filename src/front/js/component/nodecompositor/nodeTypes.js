@@ -435,6 +435,144 @@ export const NODE_TYPES = {
   }
 };
 
+
+  lightWrap: {
+    type: "lightWrap",
+    label: "Light Wrap",
+    color: "#ffeb3b",
+    inputs: ["foreground", "background"],
+    outputs: ["image"],
+    defaults: {
+      name: "Light Wrap",
+      amount: 0.5,
+      softness: 20,
+      falloff: 2.0,
+      opacity: 1
+    }
+  },
+  zDefocus: {
+    type: "zDefocus",
+    label: "Z Defocus",
+    color: "#00bcd4",
+    inputs: ["image"],
+    outputs: ["image"],
+    defaults: {
+      name: "Z Defocus",
+      focalPoint: 0.5,
+      maxBlur: 20,
+      fStop: 2.8,
+      opacity: 1
+    }
+  },
+  colorMatrix: {
+    type: "colorMatrix",
+    label: "Color Matrix",
+    color: "#e91e63",
+    inputs: ["image"],
+    outputs: ["image"],
+    defaults: {
+      name: "Color Matrix",
+      rr: 1, rg: 0, rb: 0,
+      gr: 0, gg: 1, gb: 0,
+      br: 0, bg: 0, bb: 1,
+      opacity: 1
+    }
+  },
+  iDistort: {
+    type: "iDistort",
+    label: "iDistort",
+    color: "#ff5722",
+    inputs: ["image", "uvmap"],
+    outputs: ["image"],
+    defaults: {
+      name: "iDistort",
+      uStrength: 50,
+      vStrength: 50,
+      opacity: 1
+    }
+  },
+  timeOffset: {
+    type: "timeOffset",
+    label: "Time Offset",
+    color: "#607d8b",
+    inputs: ["image"],
+    outputs: ["image"],
+    defaults: {
+      name: "Time Offset",
+      offset: 0,
+      timeScale: 1.0,
+      opacity: 1
+    }
+  },
+  premult: {
+    type: "premult",
+    label: "Premult",
+    color: "#795548",
+    inputs: ["image"],
+    outputs: ["image"],
+    defaults: {
+      name: "Premult",
+      mode: "premult",
+      opacity: 1
+    }
+  },
+  shuffle: {
+    type: "shuffle",
+    label: "Shuffle Channels",
+    color: "#9e9e9e",
+    inputs: ["image"],
+    outputs: ["image"],
+    defaults: {
+      name: "Shuffle",
+      red: "red",
+      green: "green",
+      blue: "blue",
+      alpha: "alpha",
+      opacity: 1
+    }
+  },
+  grade: {
+    type: "grade",
+    label: "Grade",
+    color: "#f06292",
+    inputs: ["image"],
+    outputs: ["image"],
+    defaults: {
+      name: "Grade",
+      blackPoint: 0,
+      whitePoint: 1,
+      lift: 0,
+      gain: 1,
+      multiply: 1,
+      offset: 0,
+      gamma: 1,
+      opacity: 1
+    }
+  },
+  unpremult: {
+    type: "unpremult",
+    label: "Unpremult",
+    color: "#a1887f",
+    inputs: ["image"],
+    outputs: ["image"],
+    defaults: {
+      name: "Unpremult",
+      opacity: 1
+    }
+  },
+  switch: {
+    type: "switch",
+    label: "Switch",
+    color: "#78909c",
+    inputs: ["image_a", "image_b"],
+    outputs: ["image"],
+    defaults: {
+      name: "Switch",
+      which: 0,
+      opacity: 1
+    }
+  },
+
 export const BLEND_MODES = [
   "normal", "screen", "multiply", "overlay", "lighten", "darken",
   "color-dodge", "color-burn", "hard-light", "soft-light",
