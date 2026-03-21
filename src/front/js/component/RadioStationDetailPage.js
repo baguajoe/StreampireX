@@ -1130,15 +1130,15 @@ const RadioStationDetailPage = () => {
                   className={`play-pause-btn ${isPlaying ? 'playing' : ''}`}
                   onClick={isPlaying ? handlePauseClick : handlePlay}
                   disabled={audioLoading || (audioError && !audioError.canRetry)}
+                  style={{ whiteSpace: 'nowrap', overflow: 'hidden', minWidth: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                 >
                   {audioLoading ? (
-                    <div className="loading-spinner"></div>
+                    <><div className="loading-spinner"></div><span>Loading...</span></>
                   ) : isPlaying ? (
-                    '⏸️'
+                    <><span>⏸️</span><span>Pause</span></>
                   ) : (
-                    '▶️'
+                    <><span>▶️</span><span>Play</span></>
                   )}
-                  <span>{audioLoading ? 'Loading...' : isPlaying ? 'Pause' : 'Play'}</span>
                 </button>
 
                 {/* Volume Control */}
@@ -1171,8 +1171,6 @@ const RadioStationDetailPage = () => {
             </div>
 
             <div className="station-controls">
-              {renderPlayButton()}
-
               <button className="favorite-button">
                 ❤️ Add to Favorites
               </button>

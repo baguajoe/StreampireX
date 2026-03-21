@@ -242,7 +242,7 @@ export default function NodeCompositorPage() {
                 if (payload) { alert("✅ Loaded: "+projects[idx].name); }
               } catch(e) { alert("Load failed: "+e.message); }
             } },
-            { label: "Save",          shortcut: "Ctrl+S", action: () => { try { localStorage.setItem(COMP_KEY, JSON.stringify({nodes,edges,name:projectName,savedAt:Date.now()})); alert("Saved!"); } catch(e){} } },
+            { label: "Save", shortcut: "Ctrl+S", action: () => { try { localStorage.setItem(COMP_KEY, JSON.stringify({nodes,edges,name:projectName,savedAt:Date.now()})); alert("Saved!"); } catch(e){} } },
             "---",
             { label: "Export PNG",  action: () => {} },
             { label: "Export EXR",  action: () => {} },
@@ -274,7 +274,7 @@ export default function NodeCompositorPage() {
             { label: "Zoom Out",   action: () => {} },
             { label: "Fit All",    action: () => {} },
             "---",
-            { label: "Toggle Preview",       action: () => {} },
+            { label: "Toggle Preview",        action: () => {} },
             { label: "Toggle Color Pipeline", action: () => {} },
           ]},
           { label: "Render", items: [
@@ -292,120 +292,121 @@ export default function NodeCompositorPage() {
           ]},
         ]}
       />
-      <div style={{ display:"flex", flexDirection:"column", height:"calc(100vh - 60px)", overflow:"hidden" }}>
-      <div style={{ display:"flex", alignItems:"center", gap:8, padding:"4px 12px", background:"#161b22", borderBottom:"1px solid #21262d", flexShrink:0 }}>
-        <span style={{ color:"#00ffc8", fontWeight:700, fontSize:13 }}>🎛️ SPX Compositor</span>
-        <div style={{ width:1, height:20, background:"#21262d", margin:"0 4px" }}/>
-        <button className="spx-comp-btn" onClick={() => setPlaying(p => !p)}>{playing ? "⏸ Pause" : "▶ Play"}</button>
-        <button className="spx-comp-btn" onClick={() => setCurrentTime(0)}>⏮</button>
-        <span style={{ color:"#00ffc8", fontFamily:"monospace", fontSize:11 }}>{currentTime.toFixed(2)}s / {duration}s</span>
-        <div style={{ flex:1 }}/>
-        <button className="spx-comp-btn" onClick={() => setEdges([])}>Clear Edges</button>
-        <button className="spx-comp-btn" onClick={() => { setNodes([]); setEdges([]); }}>Reset</button>
-        <button className="spx-comp-btn spx-comp-btn-primary" onClick={handleRenderProject}>▶ Render</button>
-      </div>
-      {/* ── 3-Panel Fusion-style Layout ── */}
-      <div style={{ display:"flex", flex:1, overflow:"hidden", gap:0 }}>
+      <div style={{ display:"flex", flexDirection:"column", flex:1, overflow:"hidden" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8, padding:"4px 12px", background:"#161b22", borderBottom:"1px solid #21262d", flexShrink:0 }}>
+          <span style={{ color:"#00ffc8", fontWeight:700, fontSize:13 }}>🎛️ SPX Compositor</span>
+          <div style={{ width:1, height:20, background:"#21262d", margin:"0 4px" }}/>
+          <button className="spx-comp-btn" onClick={() => setPlaying(p => !p)}>{playing ? "⏸ Pause" : "▶ Play"}</button>
+          <button className="spx-comp-btn" onClick={() => setCurrentTime(0)}>⏮</button>
+          <span style={{ color:"#00ffc8", fontFamily:"monospace", fontSize:11 }}>{currentTime.toFixed(2)}s / {duration}s</span>
+          <div style={{ flex:1 }}/>
+          <button className="spx-comp-btn" onClick={() => setEdges([])}>Clear Edges</button>
+          <button className="spx-comp-btn" onClick={() => { setNodes([]); setEdges([]); }}>Reset</button>
+          <button className="spx-comp-btn spx-comp-btn-primary" onClick={handleRenderProject}>▶ Render</button>
+        </div>
+        {/* ── 3-Panel Fusion-style Layout ── */}
+        <div style={{ display:"flex", flex:1, overflow:"hidden", gap:0 }}>
 
-        {/* LEFT — Node Library + Inspector */}
-        <div style={{ width:280, background:"#0d1117", borderRight:"1px solid #21262d",
-          display:"flex", flexDirection:"column", overflowY:"auto", flexShrink:0 }}>
+          {/* LEFT — Node Library + Inspector */}
+          <div style={{ width:280, background:"#0d1117", borderRight:"1px solid #21262d",
+            display:"flex", flexDirection:"column", overflowY:"auto", flexShrink:0 }}>
 
-          <div style={{ padding:"8px 10px", borderBottom:"1px solid #21262d" }}>
-            <div style={{ color:"#8b949e", fontSize:10, textTransform:"uppercase", letterSpacing:1, marginBottom:6 }}>Node Library</div>
-            <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
-              {[
-                ["Media","media"],["Text","text"],["Solid","solid"],["Gradient","gradient"],
-                ["Merge","merge"],["Over","over"],["Multiply","multiply"],["Screen","screen"],
-                ["Blur","blur"],["Sharpen","sharpen"],["ChromaKey","chromakey"],["LUT","lut"],
-                ["Transform","transform"],["Crop","crop"],["ColorGrade","colorgrade"],
-                ["Roto","roto"],["Mask","mask"],["Shader","shader"],["Particles","particles"],["Output","output"],
-              ].map(([label,type]) => (
-                <button key={type} onClick={() => addNode({
-                  type, x:120+nodes.length*20, y:100+nodes.length*15,
-                  properties:{name:label}, inputs:{}, outputs:{},
-                })} style={{ padding:"2px 6px", borderRadius:3, cursor:"pointer", fontSize:9, fontWeight:700,
-                  background:"#21262d", color:"#8b949e", border:"none", marginBottom:2 }}>
-                  {label}
-                </button>
-              ))}
+            <div style={{ padding:"8px 10px", borderBottom:"1px solid #21262d" }}>
+              <div style={{ color:"#8b949e", fontSize:10, textTransform:"uppercase", letterSpacing:1, marginBottom:6 }}>Node Library</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+                {[
+                  ["Media","media"],["Text","text"],["Solid","solid"],["Gradient","gradient"],
+                  ["Merge","merge"],["Over","over"],["Multiply","multiply"],["Screen","screen"],
+                  ["Blur","blur"],["Sharpen","sharpen"],["ChromaKey","chromakey"],["LUT","lut"],
+                  ["Transform","transform"],["Crop","crop"],["ColorGrade","colorgrade"],
+                  ["Roto","roto"],["Mask","mask"],["Shader","shader"],["Particles","particles"],["Output","output"],
+                ].map(([label,type]) => (
+                  <button key={type} onClick={() => addNode({
+                    type, x:120+nodes.length*20, y:100+nodes.length*15,
+                    properties:{name:label}, inputs:{}, outputs:{},
+                  })} style={{ padding:"2px 6px", borderRadius:3, cursor:"pointer", fontSize:9, fontWeight:700,
+                    background:"#21262d", color:"#8b949e", border:"none", marginBottom:2 }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <MediaIngestPanel onAddMediaNode={addMediaNodeFromPanel} />
+            <ColorPipelinePanel />
+            <TrackerPanelPro />
+          </div>
+
+          {/* CENTER — Node Graph + Timeline */}
+          <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+            <div style={{ flex:1, overflow:"hidden", position:"relative" }}>
+              <NodeGraphPro
+                nodes={nodes}
+                edges={edges}
+                selectedId={selection.nodeId}
+                onSelect={(id) => setSelection({ nodeId: id })}
+                onNodesChange={setNodes}
+                onEdgesChange={setEdges}
+              />
+            </div>
+            <div style={{ borderTop:"1px solid #21262d", flexShrink:0 }}>
+              <CompositorTimeline
+                currentTime={currentTime}
+                duration={duration}
+                setCurrentTime={setCurrentTime}
+                playing={playing}
+                onTogglePlay={() => setPlaying((p) => !p)}
+              />
             </div>
           </div>
 
-          <MediaIngestPanel onAddMediaNode={addMediaNodeFromPanel} />
-          <ColorPipelinePanel />
-          <TrackerPanelPro />
-        </div>
+          {/* RIGHT — Preview + Inspector + Panels */}
+          <div style={{ width:340, background:"#0d1117", borderLeft:"1px solid #21262d",
+            display:"flex", flexDirection:"column", overflowY:"auto", flexShrink:0 }}>
 
-        {/* CENTER — Node Graph + Timeline */}
-        <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-          <div style={{ flex:1, overflow:"hidden", position:"relative" }}>
-            <NodeGraphPro
-              nodes={nodes}
-              edges={edges}
-              selectedId={selection.nodeId}
-              onSelect={(id) => setSelection({ nodeId: id })}
-              onNodesChange={setNodes}
-              onEdgesChange={setEdges}
+            <CompositorPreviewPro nodes={nodes} edges={edges} currentTime={currentTime} />
+
+            <CompositorInspectorPro
+              selectedNode={nodes.find(n => n.id === selection.nodeId) || null}
+              updateNode={updateNode}
             />
-          </div>
-          <div style={{ borderTop:"1px solid #21262d", flexShrink:0 }}>
-            <CompositorTimeline
-              currentTime={currentTime}
-              duration={duration}
-              setCurrentTime={setCurrentTime}
-              playing={playing}
-              onTogglePlay={() => setPlaying((p) => !p)}
-            />
-          </div>
-        </div>
 
-        {/* RIGHT — Preview + Inspector + Panels */}
-        <div style={{ width:340, background:"#0d1117", borderLeft:"1px solid #21262d",
-          display:"flex", flexDirection:"column", overflowY:"auto", flexShrink:0 }}>
+            <GPUMultiPassPanel />
 
-          <CompositorPreviewPro nodes={nodes} edges={edges} currentTime={currentTime} />
+            <div className="motion-panel">
+              <div className="motion-panel-title">Live Shader Preview</div>
+              <ShaderPreviewCanvas shaderId="basicColor" height={180} />
+            </div>
 
-          <CompositorInspectorPro
-            selectedNode={nodes.find(n => n.id === selection.nodeId) || null}
-            updateNode={updateNode}
-          />
+            <RotoOverlayEditor shape={rotoShape} setShape={setRotoShape} width={320} height={180} />
+            <RotoTimelinePanel />
+            <RenderQueuePanel />
+            <BackendRenderPanel />
+            <DependencyGraphPanel nodes={nodes} edges={edges} />
+            <NodeEnginePanel frame={Math.floor(currentTime * 30)} evaluation={engineEvaluation} />
 
-          <GPUMultiPassPanel />
+            <div style={{ padding:8 }}>
+              <button onClick={handleRenderProject}
+                style={{ width:"100%", padding:"8px", borderRadius:6, cursor:"pointer",
+                  fontWeight:700, fontSize:12, background:"#00ffc8", color:"#000", border:"none" }}>
+                ▶ Render Project
+              </button>
+            </div>
 
-          <div className="motion-panel">
-            <div className="motion-panel-title">Live Shader Preview</div>
-            <ShaderPreviewCanvas shaderId="basicColor" height={180} />
-          </div>
-
-          <RotoOverlayEditor shape={rotoShape} setShape={setRotoShape} width={320} height={180} />
-          <RotoTimelinePanel />
-          <RenderQueuePanel />
-          <BackendRenderPanel />
-          <DependencyGraphPanel nodes={nodes} edges={edges} />
-          <NodeEnginePanel frame={Math.floor(currentTime * 30)} evaluation={engineEvaluation} />
-
-          <div style={{ padding:8 }}>
-            <button onClick={handleRenderProject}
-              style={{ width:"100%", padding:"8px", borderRadius:6, cursor:"pointer",
-                fontWeight:700, fontSize:12, background:"#00ffc8", color:"#000", border:"none" }}>
-              ▶ Render Project
-            </button>
-          </div>
-
-          <div className="motion-panel">
-            <div className="motion-panel-title">Graph Output</div>
-            <pre
-              style={{
-                margin: 0,
-                whiteSpace: "pre-wrap",
-                fontSize: 12,
-                lineHeight: 1.5,
-                color: "#d9eaff",
-              }}
-            >
+            <div className="motion-panel">
+              <div className="motion-panel-title">Graph Output</div>
+              <pre
+                style={{
+                  margin: 0,
+                  whiteSpace: "pre-wrap",
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                  color: "#d9eaff",
+                }}
+              >
 {JSON.stringify({ currentTime, edges, rotoShape, graphResult, engineEvaluation }, null, 2)}
-            </pre>
+              </pre>
+            </div>
           </div>
         </div>
       </div>

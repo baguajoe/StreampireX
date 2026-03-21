@@ -149,7 +149,6 @@ export default function MotionStudioPage() {
   const [activeTab,    setActiveTab]    = useState('layers');
   const [activeRTab,   setActiveRTab]   = useState('props');
   const [zoom,         setZoom]         = useState(1);
-  const [projectName,  setProjectName]  = useState('Untitled Project');
   const [showGrid,     setShowGrid]     = useState(false);
   const [exporting,    setExporting]    = useState(false);
 

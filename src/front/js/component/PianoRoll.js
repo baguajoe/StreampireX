@@ -9,6 +9,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import '../../styles/PianoRoll.css';
+import { quantizeNotes } from './QuantizeEngine';
 
 // =============================================================================
 // CONSTANTS
@@ -61,6 +62,188 @@ const PianoRoll = ({
   const [ghostNote, setGhostNote] = useState(null);
   const [playheadBeat, setPlayheadBeat] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [quantizeStrength, setQuantizeStrength] = useState(100);
+  const [quantizeSwing, setQuantizeSwing] = useState(0);
+  const [showCCLane, setShowCCLane] = useState(false);
+  const [showHumanize, setShowHumanize] = useState(false);
+  const [transposeAmount, setTransposeAmount] = useState(0);
+  const [stepInputMode, setStepInputMode] = useState(false);
+  const [stepInputBeat, setStepInputBeat] = useState(0);
+  const [stepInputLength, setStepInputLength] = useState(0.25);
+  const [humanizeTiming, setHumanizeTiming] = useState(15);
+  const [humanizeVelocity, setHumanizeVelocity] = useState(10);
+  const [activeCCType, setActiveCCType] = useState(1); // 1=mod, 7=vol, 10=pan, 11=expr, 64=sustain
+  const [ccData, setCCData] = useState({}); // { [ccNum]: [{beat, value}] }
+  const ccCanvasRef = useRef(null);
+  const CC_TYPES = [
+    { value: 1,  label: 'Mod Wheel' },
+    { value: 7,  label: 'Volume' },
+    { value: 10, label: 'Pan' },
+    { value: 11, label: 'Expression' },
+    { value: 64, label: 'Sustain' },
+    { value: 74, label: 'Brightness' },
+  ];
+
+  const handleQuantize = useCallback(() => {
+    const grid = SNAP_VALUES[snapIdx];
+    const targets = selectedNotes.size > 0
+      ? notes.filter(n => selectedNotes.has(n.id))
+      : notes;
+    const others = selectedNotes.size > 0
+      ? notes.filter(n => !selectedNotes.has(n.id))
+      : [];
+    const quantized = quantizeNotes(targets, {
+      gridSize: grid,
+      strength: quantizeStrength,
+      swing: quantizeSwing,
+      quantizeNoteLength: false,
+    });
+    const next = selectedNotes.size > 0 ? [...others, ...quantized] : quantized;
+    setUndoStack(prev => [...prev, notes]);
+    setRedoStack([]);
+    setNotes(next);
+    if (onNotesChange) onNotesChange(next);
+  }, [notes, selectedNotes, snapIdx, quantizeStrength, quantizeSwing, onNotesChange]);
+
+  const handleHumanize = useCallback(() => {
+    const targets = selectedNotes.size > 0
+      ? notes.filter(n => selectedNotes.has(n.id))
+      : notes;
+    const others = selectedNotes.size > 0
+      ? notes.filter(n => !selectedNotes.has(n.id))
+      : [];
+    const humanized = targets.map(n => {
+      const timingOffset = (Math.random() * 2 - 1) * (humanizeTiming / 1000) * (120 / 60);
+      const velOffset = Math.round((Math.random() * 2 - 1) * humanizeVelocity);
+      return {
+        ...n,
+        start: Math.max(0, n.start + timingOffset),
+        velocity: Math.max(1, Math.min(127, (n.velocity || 100) + velOffset)),
+      };
+    });
+    const next = selectedNotes.size > 0 ? [...others, ...humanized] : humanized;
+    setUndoStack(prev => [...prev, notes]);
+    setRedoStack([]);
+    setNotes(next);
+    if (onNotesChange) onNotesChange(next);
+    setShowHumanize(false);
+  }, [notes, selectedNotes, humanizeTiming, humanizeVelocity, onNotesChange]);
+
+  // ── Global Transpose ──
+  const handleTranspose = useCallback((semitones) => {
+    if (!semitones) return;
+    const targets = selectedNotes.size > 0
+      ? notes.filter(n => selectedNotes.has(n.id))
+      : notes;
+    const others = selectedNotes.size > 0
+      ? notes.filter(n => !selectedNotes.has(n.id))
+      : [];
+    const transposed = targets.map(n => ({
+      ...n,
+      midi: Math.max(0, Math.min(127, (n.midi || n.note || 60) + semitones)),
+    }));
+    const next = selectedNotes.size > 0 ? [...others, ...transposed] : transposed;
+    setUndoStack(prev => [...prev, notes]);
+    setRedoStack([]);
+    setNotes(next);
+    if (onNotesChange) onNotesChange(next);
+    setTransposeAmount(0);
+  }, [notes, selectedNotes, onNotesChange]);
+
+  // ── Step Input ──
+  const handleStepInputNote = useCallback((midiNote, velocity = 100) => {
+    if (!stepInputMode) return;
+    const id = `step_${Date.now()}_${midiNote}`;
+    const newNote = {
+      id,
+      midi: midiNote,
+      note: midiNote,
+      start: stepInputBeat,
+      startBeat: stepInputBeat,
+      duration: stepInputLength,
+      velocity,
+      channel: 0,
+    };
+    setUndoStack(prev => [...prev, notes]);
+    setRedoStack([]);
+    setNotes(prev => {
+      const next = [...prev, newNote];
+      if (onNotesChange) onNotesChange(next);
+      return next;
+    });
+    setStepInputBeat(prev => prev + stepInputLength);
+    if (onPlayNote) onPlayNote(midiNote, velocity / 127);
+  }, [stepInputMode, stepInputBeat, stepInputLength, notes, onNotesChange, onPlayNote]);
+
+  // ── Draw CC lane ──
+  const drawCCLane = useCallback(() => {
+    const canvas = ccCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Background
+    ctx.fillStyle = '#080e18';
+    ctx.fillRect(0, 0, w, h);
+
+    // Grid lines
+    ctx.strokeStyle = 'rgba(0,255,200,0.06)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = (h / 4) * i;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+
+    // Label
+    const ccType = CC_TYPES.find(c => c.value === activeCCType);
+    ctx.fillStyle = 'rgba(0,255,200,0.5)';
+    ctx.font = '10px monospace';
+    ctx.fillText(`CC${activeCCType} ${ccType?.label || ''}`, 4, 12);
+
+    // CC points
+    const points = ccData[activeCCType] || [];
+    if (points.length === 0) return;
+    const sorted = [...points].sort((a, b) => a.beat - b.beat);
+    ctx.strokeStyle = '#00ffc8';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    sorted.forEach((pt, i) => {
+      const x = (pt.beat / totalBeats) * w - scrollX;
+      const y = h - (pt.value / 127) * h;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Dots
+    ctx.fillStyle = '#00ffc8';
+    sorted.forEach(pt => {
+      const x = (pt.beat / totalBeats) * w - scrollX;
+      const y = h - (pt.value / 127) * h;
+      ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+    });
+  }, [ccData, activeCCType, totalBeats, scrollX]);
+
+  useEffect(() => { if (showCCLane) drawCCLane(); }, [showCCLane, drawCCLane]);
+
+  // ── CC lane mouse handler ──
+  const handleCCMouseDown = useCallback((e) => {
+    const canvas = ccCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const beat = ((x + scrollX) / canvas.width) * totalBeats;
+    const value = Math.round((1 - y / canvas.height) * 127);
+    const clamped = Math.max(0, Math.min(127, value));
+    const id = `cc_${Date.now()}`;
+    setCCData(prev => ({
+      ...prev,
+      [activeCCType]: [...(prev[activeCCType] || []), { id, beat, value: clamped }]
+        .sort((a, b) => a.beat - b.beat)
+    }));
+  }, [activeCCType, scrollX, totalBeats]);
 
   const canvasRef = useRef(null);
   const velCanvasRef = useRef(null);
@@ -733,6 +916,156 @@ const PianoRoll = ({
         </div>
 
         <div className="pr-toolbar-right">
+          <div className="pr-tool-group">
+            <div className="pr-divider" />
+            <select
+              value={quantizeStrength}
+              onChange={e => setQuantizeStrength(Number(e.target.value))}
+              className="pr-tool-btn"
+              title="Quantize strength"
+              style={{ padding: '3px 5px', fontSize: '0.72rem' }}
+            >
+              <option value={100}>Q 100%</option>
+              <option value={75}>Q 75%</option>
+              <option value={50}>Q 50%</option>
+              <option value={25}>Q 25%</option>
+            </select>
+            <select
+              value={quantizeSwing}
+              onChange={e => setQuantizeSwing(Number(e.target.value))}
+              className="pr-tool-btn"
+              title="Swing"
+              style={{ padding: '3px 5px', fontSize: '0.72rem' }}
+            >
+              <option value={0}>Straight</option>
+              <option value={25}>Swing 25</option>
+              <option value={50}>Swing 50</option>
+              <option value={67}>Swing 67</option>
+            </select>
+            <button
+              className="pr-tool-btn"
+              onClick={handleQuantize}
+              title={`Quantize ${selectedNotes.size > 0 ? 'selected' : 'all'} notes to ${SNAP_LABELS[snapIdx]} grid`}
+              style={{ fontWeight: 700, color: '#00ffc8' }}
+            >
+              Q
+            </button>
+            <button
+              className="pr-tool-btn"
+              onClick={() => setShowHumanize(v => !v)}
+              title="Humanize — randomize timing and velocity for a natural feel"
+              style={{ fontWeight: 700, color: showHumanize ? '#ff9500' : undefined }}
+            >
+              HUM
+            </button>
+          </div>
+          <div className="pr-tool-group">
+            <div className="pr-divider" />
+            <button
+              className="pr-tool-btn"
+              onClick={() => handleTranspose(-12)}
+              title="Transpose down one octave"
+              style={{ fontSize: '0.7rem' }}
+            >-8ve</button>
+            <button
+              className="pr-tool-btn"
+              onClick={() => handleTranspose(-1)}
+              title="Transpose down one semitone"
+              style={{ fontSize: '0.7rem' }}
+            >-1</button>
+            <input
+              type="number"
+              min={-24}
+              max={24}
+              value={transposeAmount}
+              onChange={e => setTransposeAmount(Number(e.target.value))}
+              onKeyDown={e => { if (e.key === 'Enter') handleTranspose(transposeAmount); }}
+              style={{ width: 42, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#c9d1d9', borderRadius: 4, padding: '3px 5px', fontSize: '0.72rem', textAlign: 'center' }}
+              title="Semitones to transpose — press Enter to apply"
+            />
+            <button
+              className="pr-tool-btn"
+              onClick={() => handleTranspose(1)}
+              title="Transpose up one semitone"
+              style={{ fontSize: '0.7rem' }}
+            >+1</button>
+            <button
+              className="pr-tool-btn"
+              onClick={() => handleTranspose(12)}
+              title="Transpose up one octave"
+              style={{ fontSize: '0.7rem' }}
+            >+8ve</button>
+          </div>
+          <div className="pr-tool-group">
+            <div className="pr-divider" />
+            <button
+              className={`pr-tool-btn ${stepInputMode ? 'active' : ''}`}
+              onClick={() => { setStepInputMode(v => !v); setStepInputBeat(0); }}
+              title="Step Input — enter notes one at a time from MIDI controller without transport rolling"
+              style={{ fontWeight: 700, color: stepInputMode ? '#ff9500' : undefined, borderColor: stepInputMode ? 'rgba(255,149,0,0.5)' : undefined }}
+            >
+              STEP
+            </button>
+            {stepInputMode && (
+              <>
+                <select
+                  className="pr-tool-btn"
+                  value={stepInputLength}
+                  onChange={e => setStepInputLength(Number(e.target.value))}
+                  style={{ fontSize: '0.7rem', padding: '2px 5px' }}
+                  title="Step length"
+                >
+                  <option value={1}>1/4</option>
+                  <option value={0.5}>1/8</option>
+                  <option value={0.25}>1/16</option>
+                  <option value={0.125}>1/32</option>
+                  <option value={2}>1/2</option>
+                  <option value={4}>1 Bar</option>
+                </select>
+                <span style={{ fontSize: '0.68rem', color: '#ff9500', padding: '0 4px', whiteSpace: 'nowrap' }}>
+                  Beat {stepInputBeat.toFixed(2)}
+                </span>
+                <button
+                  className="pr-tool-btn"
+                  onClick={() => setStepInputBeat(prev => Math.max(0, prev - stepInputLength))}
+                  title="Step back"
+                  style={{ fontSize: '0.7rem' }}
+                >←</button>
+                <button
+                  className="pr-tool-btn"
+                  onClick={() => setStepInputBeat(0)}
+                  title="Reset step position to bar 1"
+                  style={{ fontSize: '0.7rem' }}
+                >⏮</button>
+              </>
+            )}
+          </div>
+          {showHumanize && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', background: 'rgba(255,149,0,0.08)', border: '1px solid rgba(255,149,0,0.25)', borderRadius: 6 }}>
+              <span style={{ fontSize: '0.7rem', color: '#ff9500', fontWeight: 700 }}>HUMANIZE</span>
+              <label style={{ fontSize: '0.68rem', color: '#8b949e', display: 'flex', alignItems: 'center', gap: 4 }}>
+                Timing
+                <input type="range" min={0} max={50} value={humanizeTiming}
+                  onChange={e => setHumanizeTiming(Number(e.target.value))}
+                  style={{ width: 70, accentColor: '#ff9500' }} />
+                <span style={{ color: '#ff9500', minWidth: 28 }}>{humanizeTiming}ms</span>
+              </label>
+              <label style={{ fontSize: '0.68rem', color: '#8b949e', display: 'flex', alignItems: 'center', gap: 4 }}>
+                Velocity
+                <input type="range" min={0} max={40} value={humanizeVelocity}
+                  onChange={e => setHumanizeVelocity(Number(e.target.value))}
+                  style={{ width: 70, accentColor: '#ff9500' }} />
+                <span style={{ color: '#ff9500', minWidth: 28 }}>±{humanizeVelocity}</span>
+              </label>
+              <button
+                className="pr-tool-btn"
+                onClick={handleHumanize}
+                style={{ fontWeight: 700, color: '#ff9500', borderColor: 'rgba(255,149,0,0.4)' }}
+              >
+                Apply
+              </button>
+            </div>
+          )}
           {keyRoot && scaleName && (
             <span className="pr-key-display">🎵 {keyRoot} {scaleName}</span>
           )}
@@ -768,6 +1101,47 @@ const PianoRoll = ({
         />
       )}
 
+      {/* CC Automation Lane */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 8px', background: '#0a0f1a', borderTop: '1px solid rgba(0,255,200,0.08)' }}>
+        <button
+          className="pr-tool-btn"
+          onClick={() => setShowCCLane(v => !v)}
+          style={{ fontSize: '0.7rem', padding: '2px 8px', color: showCCLane ? '#00ffc8' : undefined }}
+          title="Toggle CC automation lane"
+        >
+          CC
+        </button>
+        {showCCLane && (
+          <select
+            className="pr-tool-btn"
+            value={activeCCType}
+            onChange={e => setActiveCCType(Number(e.target.value))}
+            style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+          >
+            {CC_TYPES.map(c => (
+              <option key={c.value} value={c.value}>CC{c.value} {c.label}</option>
+            ))}
+          </select>
+        )}
+        {showCCLane && (
+          <button
+            className="pr-tool-btn"
+            onClick={() => setCCData(prev => ({ ...prev, [activeCCType]: [] }))}
+            style={{ fontSize: '0.7rem', padding: '2px 8px', color: '#ff6b6b' }}
+            title="Clear this CC lane"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      {showCCLane && (
+        <canvas
+          ref={ccCanvasRef}
+          className="pr-vel-canvas"
+          style={{ height: 60, cursor: 'crosshair', borderTop: '1px solid rgba(0,255,200,0.1)' }}
+          onMouseDown={handleCCMouseDown}
+        />
+      )}
       {/* Status Bar */}
       <div className="pr-statusbar">
         <span>{tool.toUpperCase()}</span>

@@ -86,6 +86,7 @@ import DrumKitConnector from "../component/DrumKitConnector";
 
 // ── Add these with the other component imports at the top ──
 import useDAWHistory from '../component/useDAWHistory';
+import TakeLanes from '../component/TakeLanes';
 import ArrangeClipEditor from '../component/ArrangeClipEditor';
 import TrackGroupBus from '../component/TrackGroupBus';
 import DAWMeteringTools from '../component/DAWMeteringTools';
@@ -664,9 +665,12 @@ const RecordingStudio = ({ user }) => {
   const [masterMeterLevels, setMasterMeterLevels] = useState({ left: 0, right: 0, peak: 0 }); // NEW
 
   const [pianoRollNotes, setPianoRollNotes] = useState([]);
+  const pianoRollStepInputRef = useRef(null); // ref to PianoRoll's handleStepInputNote
   const [pianoRollKey, setPianoRollKey] = useState("C");
   const [pianoRollScale, setPianoRollScale] = useState("major");
   const [selectedTrack, setSelectedTrack] = useState(0);
+  const [showTakeLanes, setShowTakeLanes] = useState(false);
+  const [takeLanesTrackIndex, setTakeLanesTrackIndex] = useState(null);
   const [showSaveAsModal, setShowSaveAsModal] = useState(false);
   const [saveAsData, setSaveAsData] = useState(null);
 
@@ -2417,6 +2421,9 @@ const RecordingStudio = ({ user }) => {
       case "view:vocal":
         setViewMode("vocal");
         break;
+      case "view:takelanes":
+        setViewMode("takelanes");
+        break;
       case "view:plugins":
         setViewMode("plugins");
         break;
@@ -2641,8 +2648,8 @@ const RecordingStudio = ({ user }) => {
               onNoteOff={(note) => {}}
               onCC={(cc, val) => {
                 // map CC to faders/knobs
-                if (cc === 7)  tracks.forEach((t,i) => { if(selectedTrack===i) updateTrackParam(i,"vol",val/127); });
-                if (cc === 10) tracks.forEach((t,i) => { if(selectedTrack===i) updateTrackParam(i,"pan",(val-64)/64); });
+                if (cc === 7)  tracks.forEach((t,i) => { if(selectedTrack===i) updateTrack(i, { volume: val/127 }); });
+                if (cc === 10) tracks.forEach((t,i) => { if(selectedTrack===i) updateTrack(i, { pan: (val-64)/64 }); });
               }}
               onPadTrigger={(pad) => setStatus(`Pad ${pad} triggered`)}
             />
@@ -4033,6 +4040,32 @@ const RecordingStudio = ({ user }) => {
                 setStatus(`Vocal MIDI render → Track ${idx + 1}`);
               }}
               onClose={() => setViewMode("arrange")}
+            />
+          </div>
+        )}
+
+        {/* ──────── TAKE LANES VIEW ──────── */}
+        {viewMode === "takelanes" && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <TakeLanes
+              audioContext={audioCtxRef.current}
+              bpm={bpm}
+              onCompositeReady={(compositeBuffer, name) => {
+                const ai = tracks.findIndex(t => t.armed);
+                const targetIdx = ai !== -1 ? ai : selectedTrackIndex;
+                const audioUrl = URL.createObjectURL(
+                  new Blob([], { type: 'audio/wav' })
+                );
+                updateTrack(targetIdx, {
+                  audioBuffer: compositeBuffer,
+                  audio_url: audioUrl,
+                  name: name || 'Comp',
+                });
+                createRegionFromImport(targetIdx, compositeBuffer, name || 'Comp', audioUrl);
+                setStatus(`✓ ${name} → Track ${targetIdx + 1}`);
+                setViewMode('arrange');
+              }}
+              isEmbedded={true}
             />
           </div>
         )}

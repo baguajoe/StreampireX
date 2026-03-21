@@ -446,7 +446,9 @@ const AppShell = ({ user }) => {
                                 <Route path="/seller-dashboard" element={<Navigate to="/dashboard" replace />} />
                                 <Route path="/artist-dashboard" element={<Navigate to="/dashboard" replace />} />
                                 <Route path="/podcast-dashboard" element={<PodcastDashboard />} />
+                                <Route path="/my-podcasts" element={<PodcastDashboard />} />
                                 <Route path="/radio-station-dashboard" element={<RadioStationDashboard />} />
+                                <Route path="/my-radio-stations" element={<RadioStationDashboard />} />
                                 <Route path="/video-channel-dashboard" element={<VideoChannelDashboard />} />
                                 <Route path="/sales-dashboard" element={<SalesDashboard />} />
                                 <Route path="/payout-dashboard" element={<PayoutDashboard />} />

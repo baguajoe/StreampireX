@@ -79,6 +79,44 @@ try:
 except ImportError:
     pass
     # from api.cloudinary_setup import uploadFile
+# ── R2 upload helper for radio (matches film_routes.py pattern) ──────────────
+import boto3 as _boto3
+from botocore.client import Config as _BotoConfig
+
+def _get_radio_r2_client():
+    return _boto3.client(
+        's3',
+        endpoint_url=os.environ.get('R2_ENDPOINT_URL'),
+        aws_access_key_id=os.environ.get('R2_ACCESS_KEY'),
+        aws_secret_access_key=os.environ.get('R2_SECRET_KEY'),
+        config=_BotoConfig(signature_version='s3v4'),
+        region_name='auto'
+    )
+
+def _upload_radio_file_to_r2(file_obj, folder, filename, content_type):
+    """Upload a radio station file to R2 and return the public URL."""
+    try:
+        import uuid as _uuid
+        client = _get_radio_r2_client()
+        bucket = os.environ.get('R2_BUCKET_NAME', 'streampirex-media')
+        public_base = os.environ.get('R2_PUBLIC_URL', '').rstrip('/')
+        ext = filename.rsplit('.', 1)[-1] if '.' in filename else 'bin'
+        key = f"{folder}/{_uuid.uuid4().hex}.{ext}"
+        client.upload_fileobj(
+            file_obj,
+            bucket,
+            key,
+            ExtraArgs={'ContentType': content_type}
+        )
+        url = f"{public_base}/{key}"
+        print(f"✅ Uploaded to R2: {url}")
+        return url
+    except Exception as e:
+        print(f"❌ R2 upload error: {e}")
+        return None
+
+# ── end R2 radio helper ──────────────────────────────────────────────────────
+
 from functools import wraps
 
 from pedalboard import (
@@ -2022,35 +2060,46 @@ def create_radio_station_fixed():
         initial_mix_url = None
         mix_filename = None
 
-        # ✅ Handle logo upload with Cloudinary
+        # ✅ Handle logo upload with R2
         if 'logo' in request.files:
             logo_file = request.files['logo']
             if logo_file and logo_file.filename:
+                import mimetypes as _mt
                 logo_filename = secure_filename(logo_file.filename)
-                logo_url = uploadFile(logo_file, logo_filename)
-                print(f"✅ Logo uploaded to Cloudinary: {logo_url}")
+                logo_ct = _mt.guess_type(logo_filename)[0] or 'image/jpeg'
+                logo_url = _upload_radio_file_to_r2(logo_file, 'radio/logos', logo_filename, logo_ct)
+                print(f"✅ Logo uploaded to R2: {logo_url}")
 
-        # ✅ Handle cover upload with Cloudinary
+        # ✅ Handle cover upload with R2
         if 'cover' in request.files or 'coverPhoto' in request.files:
             cover_file = request.files.get('cover') or request.files.get('coverPhoto')
             if cover_file and cover_file.filename:
+                import mimetypes as _mt
                 cover_filename = secure_filename(cover_file.filename)
-                cover_url = uploadFile(cover_file, cover_filename)
-                print(f"✅ Cover uploaded to Cloudinary: {cover_url}")
+                cover_ct = _mt.guess_type(cover_filename)[0] or 'image/jpeg'
+                cover_url = _upload_radio_file_to_r2(cover_file, 'radio/covers', cover_filename, cover_ct)
+                print(f"✅ Cover uploaded to R2: {cover_url}")
 
-        # ✅ Handle initial mix upload with Cloudinary
+        # ✅ Handle initial mix upload with R2
         if 'initialMix' in request.files:
             mix_file = request.files['initialMix']
             if mix_file and mix_file.filename:
                 mix_filename = secure_filename(mix_file.filename)
-                initial_mix_url = uploadFile(mix_file, mix_filename)
-                print(f"✅ Audio uploaded to Cloudinary: {initial_mix_url}")
+                # Detect audio content type
+                ext = mix_filename.rsplit('.', 1)[-1].lower() if '.' in mix_filename else ''
+                audio_ct_map = {
+                    'mp3': 'audio/mpeg', 'wav': 'audio/wav', 'ogg': 'audio/ogg',
+                    'flac': 'audio/flac', 'm4a': 'audio/mp4', 'aac': 'audio/aac'
+                }
+                mix_ct = audio_ct_map.get(ext, 'audio/mpeg')
+                initial_mix_url = _upload_radio_file_to_r2(mix_file, 'radio/audio', mix_filename, mix_ct)
+                print(f"✅ Audio uploaded to R2: {initial_mix_url}")
 
         # Get creator info
         creator = User.query.get(user_id)
         creator_name = creator.username if creator else "Unknown"
 
-        # ✅ Create station with Cloudinary URLs
+        # ✅ Create station with R2 URLs
         new_station = RadioStation(
             user_id=user_id,
             name=name,
