@@ -145,5 +145,152 @@ function hslToRgb(h,s,l){
   return[hue2rgb(p,q,h+1/3)*255,hue2rgb(p,q,h)*255,hue2rgb(p,q,h-1/3)*255];
 }
 
+
+// ─── Exposure ─────────────────────────────────────────────────────────────────
+export function applyExposure(imageData, exposure=0, offset=0, gamma=1) {
+  const d = imageData.data;
+  const exp = Math.pow(2, exposure);
+  for (let i=0; i<d.length; i+=4) {
+    for (let c=0; c<3; c++) {
+      let v = (d[i+c]/255) * exp + offset;
+      v = Math.pow(Math.max(0,v), 1/gamma);
+      d[i+c] = Math.min(255, Math.max(0, v*255));
+    }
+  }
+  return imageData;
+}
+
+// ─── Photo Filters ────────────────────────────────────────────────────────────
+export function applyPhotoFilter(imageData, filterType='warming', density=0.25) {
+  const FILTERS = {
+    warming:   [255, 138, 0],
+    cooling:   [0,   138, 255],
+    sepia:     [112, 66,  20],
+    magenta:   [255, 0,   255],
+    green:     [0,   255, 0],
+    red:       [255, 0,   0],
+  };
+  const [fr,fg,fb] = FILTERS[filterType] || FILTERS.warming;
+  const d = imageData.data;
+  for (let i=0; i<d.length; i+=4) {
+    d[i]   = Math.min(255, d[i]   + (fr - d[i])   * density);
+    d[i+1] = Math.min(255, d[i+1] + (fg - d[i+1]) * density);
+    d[i+2] = Math.min(255, d[i+2] + (fb - d[i+2]) * density);
+  }
+  return imageData;
+}
+
+// ─── Dodge (lighten) ─────────────────────────────────────────────────────────
+export function applyDodge(imageData, x, y, radius, strength=0.3, W) {
+  const d = imageData.data;
+  for (let py=Math.max(0,y-radius); py<Math.min(imageData.height||9999,y+radius); py++) {
+    for (let px=Math.max(0,x-radius); px<Math.min(W,x+radius); px++) {
+      const dist = Math.sqrt((px-x)**2+(py-y)**2);
+      if (dist > radius) continue;
+      const falloff = (1 - dist/radius) * strength;
+      const idx = (py*W+px)*4;
+      for (let c=0; c<3; c++)
+        d[idx+c] = Math.min(255, d[idx+c] + (255-d[idx+c]) * falloff);
+    }
+  }
+  return imageData;
+}
+
+// ─── Burn (darken) ───────────────────────────────────────────────────────────
+export function applyBurn(imageData, x, y, radius, strength=0.3, W) {
+  const d = imageData.data;
+  for (let py=Math.max(0,y-radius); py<Math.min(imageData.height||9999,y+radius); py++) {
+    for (let px=Math.max(0,x-radius); px<Math.min(W,x+radius); px++) {
+      const dist = Math.sqrt((px-x)**2+(py-y)**2);
+      if (dist > radius) continue;
+      const falloff = (1 - dist/radius) * strength;
+      const idx = (py*W+px)*4;
+      for (let c=0; c<3; c++)
+        d[idx+c] = Math.max(0, d[idx+c] - d[idx+c] * falloff);
+    }
+  }
+  return imageData;
+}
+
+// ─── Smudge ──────────────────────────────────────────────────────────────────
+export function applySmudge(imageData, x, y, dx, dy, radius, strength=0.5, W) {
+  const d = imageData.data;
+  const src = new Uint8ClampedArray(d);
+  for (let py=Math.max(0,y-radius); py<y+radius; py++) {
+    for (let px=Math.max(0,x-radius); px<x+radius; px++) {
+      const dist = Math.sqrt((px-x)**2+(py-y)**2);
+      if (dist > radius) continue;
+      const falloff = (1 - dist/radius) * strength;
+      const sx = Math.min(W-1, Math.max(0, px-Math.round(dx*falloff)));
+      const sy = Math.max(0, py-Math.round(dy*falloff));
+      const dstIdx = (py*W+px)*4;
+      const srcIdx = (sy*W+sx)*4;
+      for (let c=0; c<4; c++)
+        d[dstIdx+c] = src[dstIdx+c]*(1-falloff) + src[srcIdx+c]*falloff;
+    }
+  }
+  return imageData;
+}
+
+// ─── Clone Stamp ─────────────────────────────────────────────────────────────
+export function applyCloneStamp(imageData, srcX, srcY, dstX, dstY, radius, W) {
+  const d = imageData.data;
+  const src = new Uint8ClampedArray(d);
+  for (let py=-radius; py<=radius; py++) {
+    for (let px=-radius; px<=radius; px++) {
+      if (px**2+py**2 > radius**2) continue;
+      const sx = srcX+px, sy = srcY+py;
+      const dx2 = dstX+px, dy2 = dstY+py;
+      if (sx<0||sy<0||dx2<0||dy2<0) continue;
+      const srcIdx = (sy*W+sx)*4;
+      const dstIdx = (dy2*W+dx2)*4;
+      for (let c=0; c<4; c++) d[dstIdx+c] = src[srcIdx+c];
+    }
+  }
+  return imageData;
+}
+
+// ─── Healing (simple average-based) ─────────────────────────────────────────
+export function applyHealing(imageData, x, y, radius, W, H) {
+  const d = imageData.data;
+  // Sample surrounding area average
+  const margin = Math.floor(radius * 1.5);
+  let rSum=0,gSum=0,bSum=0,count=0;
+  for (let py=Math.max(0,y-margin); py<Math.min(H,y+margin); py++) {
+    for (let px=Math.max(0,x-margin); px<Math.min(W,x+margin); px++) {
+      const dist = Math.sqrt((px-x)**2+(py-y)**2);
+      if (dist <= radius) continue; // skip center, use surroundings
+      if (dist > margin) continue;
+      const idx = (py*W+px)*4;
+      rSum+=d[idx]; gSum+=d[idx+1]; bSum+=d[idx+2]; count++;
+    }
+  }
+  if (!count) return imageData;
+  const rAvg=rSum/count, gAvg=gSum/count, bAvg=bSum/count;
+  for (let py=Math.max(0,y-radius); py<Math.min(H,y+radius); py++) {
+    for (let px=Math.max(0,x-radius); px<Math.min(W,x+radius); px++) {
+      const dist = Math.sqrt((px-x)**2+(py-y)**2);
+      if (dist > radius) continue;
+      const falloff = 1 - dist/radius;
+      const idx = (py*W+px)*4;
+      d[idx]   = d[idx]   * (1-falloff) + rAvg * falloff;
+      d[idx+1] = d[idx+1] * (1-falloff) + gAvg * falloff;
+      d[idx+2] = d[idx+2] * (1-falloff) + bAvg * falloff;
+    }
+  }
+  return imageData;
+}
+
+// ─── Layer Mask (apply alpha mask from grayscale data) ───────────────────────
+export function applyLayerMask(imageData, maskData) {
+  const d = imageData.data;
+  const m = maskData.data;
+  for (let i=0; i<d.length; i+=4) {
+    const maskAlpha = (m[i]*0.299 + m[i+1]*0.587 + m[i+2]*0.114) / 255;
+    d[i+3] = Math.round(d[i+3] * maskAlpha);
+  }
+  return imageData;
+}
+
 export default { applyBrightnessContrast, applyHueSaturation, applyLevels, applyCurves,
   applyColorBalance, applyVibrance, applySharpening, applyNoiseReduction };

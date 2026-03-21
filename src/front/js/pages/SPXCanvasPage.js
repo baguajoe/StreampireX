@@ -18,6 +18,11 @@ const TOOLS = [
   { id:'lasso',      icon:'⌇',  label:'Lasso Select',   shortcut:'L', group:'select' },
   { id:'magic_wand', icon:'✦',  label:'Magic Wand',     shortcut:'W', group:'select' },
   { id:'crop',       icon:'⛶',  label:'Crop',           shortcut:'C', group:'transform' },
+  { id:'heal',       icon:'✚',  label:'Healing Brush',  shortcut:'J', group:'retouch' },
+  { id:'clone',      icon:'⊕',  label:'Clone Stamp',    shortcut:'S', group:'retouch' },
+  { id:'dodge',      icon:'◯',  label:'Dodge',          shortcut:'O', group:'retouch' },
+  { id:'burn',       icon:'●',  label:'Burn',           shortcut:'O', group:'retouch' },
+  { id:'smudge',     icon:'∿',  label:'Smudge',         shortcut:'',  group:'retouch' },
   { id:'brush',      icon:'🖌', label:'Brush',          shortcut:'B', group:'paint' },
   { id:'eraser',     icon:'◻',  label:'Eraser',         shortcut:'E', group:'paint' },
   { id:'fill',       icon:'🪣', label:'Fill',           shortcut:'G', group:'paint' },
@@ -99,6 +104,11 @@ export default function SPXCanvasPage() {
   const [brushSize,    setBrushSize]    = useState(12);
   const [brushHardness,setBrushHardness]= useState(0.8);
   const [brushOpacity, setBrushOpacity] = useState(1);
+  const [cloneSrc,     setCloneSrc]     = useState(null);
+  const [showMaskPanel,setShowMaskPanel] = useState(false);
+  const [photoFilter,  setPhotoFilter]   = useState('warming');
+  const [filterDensity,setFilterDensity] = useState(0.25);
+  const [exposure,     setExposure]      = useState(0);
   const [showGrid,     setShowGrid]     = useState(false);
   const [showRulers,   setShowRulers]   = useState(true);
   const [snapToGrid,   setSnapToGrid]   = useState(false);
@@ -596,6 +606,9 @@ export default function SPXCanvasPage() {
             <div style={{padding:10,display:'flex',flexDirection:'column',gap:6}}>
               <div style={S.label}>Layer Effects</div>
               {[
+                {type:'exposure',label:'Exposure',key:'value',min:-3,max:3,step:0.1,default:0},
+                {type:'vibrance',label:'Vibrance',key:'value',min:-1,max:1,step:0.05,default:0},
+                {type:'photo_filter',label:'Photo Filter',key:'value',min:0,max:1,step:0.05,default:0.25},
                 {type:'blur',label:'Blur',key:'value',min:0,max:50,default:4},
                 {type:'brightness',label:'Brightness',key:'value',min:0,max:3,step:0.1,default:1},
                 {type:'contrast',label:'Contrast',key:'value',min:0,max:3,step:0.1,default:1},
