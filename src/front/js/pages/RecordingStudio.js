@@ -2741,6 +2741,9 @@ const RecordingStudio = ({ user }) => {
         break;
       case "track:duplicate": {
         if (!tracks[sel]) break;
+        const dup = {...tracks[sel], id: Date.now(), name: (tracks[sel].name??`Track ${sel+1}`) + " copy"};
+        setTracks(t => [...t, dup]); setStatus(`Track ${sel+1} duplicated`); break;
+      }
       case "track:color": {
         const pal=["#34c759","#ff9500","#007aff","#af52de","#ff3b30","#5ac8fa","#ff2d55","#ffcc00","#ff6b35","#00ffc8"];
         const next=pal[(pal.indexOf(tracks[sel]?.color??pal[0])+1)%pal.length];
