@@ -623,7 +623,7 @@ const RecordingStudio = ({ user }) => {
   const [harmonicAmount, setHarmonicAmount] = React.useState(0.5);
 
   React.useEffect(() => {
-    getInstalledWAMPlugins().then(p => setWamPlugins(p || [])).catch(() => {});
+    setWamPlugins(getInstalledWAMPlugins() || []);
   }, []);
 
   const collab = useDAWCollaboration({
