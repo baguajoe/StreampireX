@@ -1067,8 +1067,8 @@ const SynthCreator = ({ onClose, onAssignToPad, onAssignToTrack }) => {
                 <Toggle value={preset.fx.chorus.on} onChange={v => setFx('chorus', 'on', v)} label="ON" />
               } />
               <div className="sc-knob-row">
-                <Knob value={preset.fx.chorus.rate} min={0.1} max={10} step={0.1} onChange={v => setFx('chorus', 'rate', v)} label="RATE" unit="Hz" size={44} />
-                <Knob value={preset.fx.chorus.mix} min={0} max={1} step={0.01} onChange={v => setFx('chorus', 'mix', v)} label="MIX" size={44} />
+                <Knob value={preset.fx.chorus.rate} min={0.1} max={10} step={0.1} onChange={v => setFx('chorus', 'rate', v)} label="RATE" unit="Hz" size={56} />
+                <Knob value={preset.fx.chorus.mix} min={0} max={1} step={0.01} onChange={v => setFx('chorus', 'mix', v)} label="MIX" size={56} />
               </div>
             </div>
 
@@ -1078,8 +1078,8 @@ const SynthCreator = ({ onClose, onAssignToPad, onAssignToTrack }) => {
                 <Toggle value={preset.fx.phaser.on} onChange={v => setFx('phaser', 'on', v)} label="ON" />
               } />
               <div className="sc-knob-row">
-                <Knob value={preset.fx.phaser.rate} min={0.05} max={5} step={0.05} onChange={v => setFx('phaser', 'rate', v)} label="RATE" unit="Hz" size={44} color="#5ac8fa" />
-                <Knob value={preset.fx.phaser.mix} min={0} max={1} step={0.01} onChange={v => setFx('phaser', 'mix', v)} label="MIX" size={44} color="#5ac8fa" />
+                <Knob value={preset.fx.phaser.rate} min={0.05} max={5} step={0.05} onChange={v => setFx('phaser', 'rate', v)} label="RATE" unit="Hz" size={56} color="#5ac8fa" />
+                <Knob value={preset.fx.phaser.mix} min={0} max={1} step={0.01} onChange={v => setFx('phaser', 'mix', v)} label="MIX" size={56} color="#5ac8fa" />
               </div>
             </div>
 
@@ -1089,8 +1089,8 @@ const SynthCreator = ({ onClose, onAssignToPad, onAssignToTrack }) => {
                 <Toggle value={preset.fx.flanger.on} onChange={v => setFx('flanger', 'on', v)} label="ON" />
               } />
               <div className="sc-knob-row">
-                <Knob value={preset.fx.flanger.rate} min={0.05} max={5} step={0.05} onChange={v => setFx('flanger', 'rate', v)} label="RATE" unit="Hz" size={44} color="#34d399" />
-                <Knob value={preset.fx.flanger.mix} min={0} max={1} step={0.01} onChange={v => setFx('flanger', 'mix', v)} label="MIX" size={44} color="#34d399" />
+                <Knob value={preset.fx.flanger.rate} min={0.05} max={5} step={0.05} onChange={v => setFx('flanger', 'rate', v)} label="RATE" unit="Hz" size={56} color="#34d399" />
+                <Knob value={preset.fx.flanger.mix} min={0} max={1} step={0.01} onChange={v => setFx('flanger', 'mix', v)} label="MIX" size={56} color="#34d399" />
               </div>
             </div>
 
@@ -1108,8 +1108,8 @@ const SynthCreator = ({ onClose, onAssignToPad, onAssignToTrack }) => {
                 <Toggle value={preset.fx.bitcrush.on} onChange={v => setFx('bitcrush', 'on', v)} label="ON" />
               } />
               <div className="sc-knob-row">
-                <Knob value={preset.fx.bitcrush.bits} min={2} max={16} step={1} onChange={v => setFx('bitcrush', 'bits', v)} label="BITS" size={44} color="#f97316" />
-                <Knob value={preset.fx.bitcrush.sr} min={0.01} max={1} step={0.01} onChange={v => setFx('bitcrush', 'sr', v)} label="SR RED" size={44} color="#f97316" />
+                <Knob value={preset.fx.bitcrush.bits} min={2} max={16} step={1} onChange={v => setFx('bitcrush', 'bits', v)} label="BITS" size={56} color="#f97316" />
+                <Knob value={preset.fx.bitcrush.sr} min={0.01} max={1} step={0.01} onChange={v => setFx('bitcrush', 'sr', v)} label="SR RED" size={56} color="#f97316" />
               </div>
             </div>
 
@@ -1119,8 +1119,8 @@ const SynthCreator = ({ onClose, onAssignToPad, onAssignToTrack }) => {
                 <Toggle value={preset.fx.reverb.on} onChange={v => setFx('reverb', 'on', v)} label="ON" />
               } />
               <div className="sc-knob-row">
-                <Knob value={preset.fx.reverb.decay} min={0.1} max={10} step={0.1} onChange={v => setFx('reverb', 'decay', v)} label="DECAY" unit="s" size={44} color="#a78bfa" />
-                <Knob value={preset.fx.reverb.mix} min={0} max={1} step={0.01} onChange={v => setFx('reverb', 'mix', v)} label="MIX" size={44} color="#a78bfa" />
+                <Knob value={preset.fx.reverb.decay} min={0.1} max={10} step={0.1} onChange={v => setFx('reverb', 'decay', v)} label="DECAY" unit="s" size={56} color="#a78bfa" />
+                <Knob value={preset.fx.reverb.mix} min={0} max={1} step={0.01} onChange={v => setFx('reverb', 'mix', v)} label="MIX" size={56} color="#a78bfa" />
               </div>
             </div>
 

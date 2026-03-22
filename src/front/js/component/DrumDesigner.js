@@ -597,16 +597,16 @@ const DrumDesigner = ({ onClose, onAssignToPad }) => {
         <div className="dd-toggles">
           <div className="dd-toggle-row">
             <Toggle value={p.clickOn} onChange={v => set('clickOn', v)} label="CLICK" />
-            <DDKnob value={p.clickGain} min={0} max={1} step={0.01} onChange={v => set('clickGain', v)} label="Click Vol" size={44} color={knobColor} />
-            <DDKnob value={p.clickDecay} min={0.001} max={0.05} step={0.001} log onChange={v => set('clickDecay', v)} label="Click Dec" size={44} unit="s" color={knobColor} />
+            <DDKnob value={p.clickGain} min={0} max={1} step={0.01} onChange={v => set('clickGain', v)} label="Click Vol" size={56} color={knobColor} />
+            <DDKnob value={p.clickDecay} min={0.001} max={0.05} step={0.001} log onChange={v => set('clickDecay', v)} label="Click Dec" size={56} unit="s" color={knobColor} />
           </div>
           <div className="dd-toggle-row">
             <Toggle value={p.noiseOn} onChange={v => set('noiseOn', v)} label="NOISE" />
-            <DDKnob value={p.noiseGain} min={0} max={1} step={0.01} onChange={v => set('noiseGain', v)} label="Noise Vol" size={44} color={knobColor} />
+            <DDKnob value={p.noiseGain} min={0} max={1} step={0.01} onChange={v => set('noiseGain', v)} label="Noise Vol" size={56} color={knobColor} />
           </div>
           <div className="dd-toggle-row">
             <Toggle value={p.distOn} onChange={v => set('distOn', v)} label="DIST" />
-            <DDKnob value={p.distAmt} min={0} max={100} step={1} onChange={v => set('distAmt', v)} label="Drive" size={44} color="#f97316" />
+            <DDKnob value={p.distAmt} min={0} max={100} step={1} onChange={v => set('distAmt', v)} label="Drive" size={56} color="#f97316" />
           </div>
         </div>
       </div>
@@ -625,7 +625,7 @@ const DrumDesigner = ({ onClose, onAssignToPad }) => {
         <div className="dd-toggles">
           <div className="dd-toggle-row">
             <Toggle value={p.satOn} onChange={v => set('satOn', v)} label="SATURATION" />
-            <DDKnob value={p.satAmt} min={0} max={1} step={0.01} onChange={v => set('satAmt', v)} label="Sat Amt" size={44} color="#f97316" />
+            <DDKnob value={p.satAmt} min={0} max={1} step={0.01} onChange={v => set('satAmt', v)} label="Sat Amt" size={56} color="#f97316" />
           </div>
         </div>
       </div>
@@ -645,12 +645,12 @@ const DrumDesigner = ({ onClose, onAssignToPad }) => {
         <div className="dd-toggles">
           <div className="dd-toggle-row">
             <Toggle value={p.crackOn} onChange={v => set('crackOn', v)} label="CRACK" />
-            <DDKnob value={p.crackGain} min={0} max={1} step={0.01} onChange={v => set('crackGain', v)} label="Crack Vol" size={44} color={knobColor} />
+            <DDKnob value={p.crackGain} min={0} max={1} step={0.01} onChange={v => set('crackGain', v)} label="Crack Vol" size={56} color={knobColor} />
           </div>
           <div className="dd-toggle-row">
             <Toggle value={p.reverbOn} onChange={v => set('reverbOn', v)} label="REVERB" />
-            <DDKnob value={p.reverbMix} min={0} max={1} step={0.01} onChange={v => set('reverbMix', v)} label="Verb Mix" size={44} color="#a78bfa" />
-            <DDKnob value={p.reverbDecay} min={0.1} max={3} step={0.1} onChange={v => set('reverbDecay', v)} label="Verb Dec" size={44} unit="s" color="#a78bfa" />
+            <DDKnob value={p.reverbMix} min={0} max={1} step={0.01} onChange={v => set('reverbMix', v)} label="Verb Mix" size={56} color="#a78bfa" />
+            <DDKnob value={p.reverbDecay} min={0.1} max={3} step={0.1} onChange={v => set('reverbDecay', v)} label="Verb Dec" size={56} unit="s" color="#a78bfa" />
           </div>
         </div>
       </div>
@@ -667,8 +667,8 @@ const DrumDesigner = ({ onClose, onAssignToPad }) => {
         <div className="dd-toggles">
           <div className="dd-toggle-row">
             <Toggle value={p.reverbOn} onChange={v => set('reverbOn', v)} label="REVERB" />
-            <DDKnob value={p.reverbMix} min={0} max={1} step={0.01} onChange={v => set('reverbMix', v)} label="Verb Mix" size={44} color="#a78bfa" />
-            <DDKnob value={p.reverbDecay} min={0.1} max={3} step={0.1} onChange={v => set('reverbDecay', v)} label="Verb Dec" size={44} unit="s" color="#a78bfa" />
+            <DDKnob value={p.reverbMix} min={0} max={1} step={0.01} onChange={v => set('reverbMix', v)} label="Verb Mix" size={56} color="#a78bfa" />
+            <DDKnob value={p.reverbDecay} min={0.1} max={3} step={0.1} onChange={v => set('reverbDecay', v)} label="Verb Dec" size={56} unit="s" color="#a78bfa" />
           </div>
         </div>
       </div>

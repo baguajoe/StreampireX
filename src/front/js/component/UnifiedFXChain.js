@@ -741,7 +741,7 @@ const UnifiedFXChain = ({
                                     value={fx[p] ?? min}
                                     color={slot.color}
                                     onChange={(v) => setParam(slot.key, p, v)}
-                                    size={36}
+                                    size={60}
                                   />
                                   <span
                                     style={{

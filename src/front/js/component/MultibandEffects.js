@@ -450,7 +450,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
             value={masterMakeup}
             onChange={setMasterMakeup}
             color="#00ffc8"
-            size={40}
+            size={64}
             fmt={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}`}
           />
           <span style={{ color: '#00ffc8', fontWeight: 800, fontSize: '14px', minWidth: '44px' }}>

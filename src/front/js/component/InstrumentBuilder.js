@@ -654,15 +654,15 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
                     ))}
                   </div>
                   <div className="ib-knob-row">
-                    <Knob value={editLayer.oct} min={-2} max={2} step={1} onChange={v => updateLayer(editLayer.id, 'oct', v)} label="OCT" size={44} color={LAYER_COLORS.synth} />
-                    <Knob value={editLayer.semi} min={-12} max={12} step={1} onChange={v => updateLayer(editLayer.id, 'semi', v)} label="SEMI" size={44} color={LAYER_COLORS.synth} />
-                    <Knob value={editLayer.detune} min={-100} max={100} step={1} onChange={v => updateLayer(editLayer.id, 'detune', v)} label="DETUNE" unit="¢" size={44} color={LAYER_COLORS.synth} />
+                    <Knob value={editLayer.oct} min={-2} max={2} step={1} onChange={v => updateLayer(editLayer.id, 'oct', v)} label="OCT" size={56} color={LAYER_COLORS.synth} />
+                    <Knob value={editLayer.semi} min={-12} max={12} step={1} onChange={v => updateLayer(editLayer.id, 'semi', v)} label="SEMI" size={56} color={LAYER_COLORS.synth} />
+                    <Knob value={editLayer.detune} min={-100} max={100} step={1} onChange={v => updateLayer(editLayer.id, 'detune', v)} label="DETUNE" unit="¢" size={56} color={LAYER_COLORS.synth} />
                   </div>
                   <div className="ib-knob-row" style={{ marginTop: 10 }}>
-                    <Knob value={editLayer.attack} min={0.001} max={4} step={0.001} log onChange={v => updateLayer(editLayer.id, 'attack', v)} label="ATK" unit="s" size={44} color={LAYER_COLORS.synth} />
-                    <Knob value={editLayer.decay} min={0.01} max={4} step={0.01} log onChange={v => updateLayer(editLayer.id, 'decay', v)} label="DEC" unit="s" size={44} color={LAYER_COLORS.synth} />
-                    <Knob value={editLayer.sustain} min={0} max={1} step={0.01} onChange={v => updateLayer(editLayer.id, 'sustain', v)} label="SUS" size={44} color={LAYER_COLORS.synth} />
-                    <Knob value={editLayer.release} min={0.01} max={8} step={0.01} log onChange={v => updateLayer(editLayer.id, 'release', v)} label="REL" unit="s" size={44} color={LAYER_COLORS.synth} />
+                    <Knob value={editLayer.attack} min={0.001} max={4} step={0.001} log onChange={v => updateLayer(editLayer.id, 'attack', v)} label="ATK" unit="s" size={56} color={LAYER_COLORS.synth} />
+                    <Knob value={editLayer.decay} min={0.01} max={4} step={0.01} log onChange={v => updateLayer(editLayer.id, 'decay', v)} label="DEC" unit="s" size={56} color={LAYER_COLORS.synth} />
+                    <Knob value={editLayer.sustain} min={0} max={1} step={0.01} onChange={v => updateLayer(editLayer.id, 'sustain', v)} label="SUS" size={56} color={LAYER_COLORS.synth} />
+                    <Knob value={editLayer.release} min={0.01} max={8} step={0.01} log onChange={v => updateLayer(editLayer.id, 'release', v)} label="REL" unit="s" size={56} color={LAYER_COLORS.synth} />
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
                     <button className={`ib-pill ${editLayer.filter ? 'ib-pill-active' : ''}`}
@@ -676,8 +676,8 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
                   </div>
                   {editLayer.filter && (
                     <div className="ib-knob-row" style={{ marginTop: 8 }}>
-                      <Knob value={editLayer.filterCutoff} min={20} max={20000} step={1} log onChange={v => updateLayer(editLayer.id, 'filterCutoff', v)} label="CUTOFF" unit="Hz" size={44} color="#5ac8fa" />
-                      <Knob value={editLayer.filterRes} min={0.1} max={20} step={0.1} onChange={v => updateLayer(editLayer.id, 'filterRes', v)} label="Q" size={44} color="#5ac8fa" />
+                      <Knob value={editLayer.filterCutoff} min={20} max={20000} step={1} log onChange={v => updateLayer(editLayer.id, 'filterCutoff', v)} label="CUTOFF" unit="Hz" size={56} color="#5ac8fa" />
+                      <Knob value={editLayer.filterRes} min={0.1} max={20} step={0.1} onChange={v => updateLayer(editLayer.id, 'filterRes', v)} label="Q" size={56} color="#5ac8fa" />
                     </div>
                   )}
                 </div>
@@ -699,8 +699,8 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
                     <div>
                       <p style={{ fontSize: '0.6rem', color: '#00ffc8', marginBottom: 10 }}>✓ {editLayer.fileName}</p>
                       <div className="ib-knob-row">
-                        <Knob value={editLayer.pitch} min={-24} max={24} step={1} onChange={v => updateLayer(editLayer.id, 'pitch', v)} label="PITCH" unit="st" size={44} color={LAYER_COLORS.sample} />
-                        <Knob value={editLayer.rootNote} min={0} max={127} step={1} onChange={v => updateLayer(editLayer.id, 'rootNote', v)} label="ROOT" size={44} color={LAYER_COLORS.sample} />
+                        <Knob value={editLayer.pitch} min={-24} max={24} step={1} onChange={v => updateLayer(editLayer.id, 'pitch', v)} label="PITCH" unit="st" size={56} color={LAYER_COLORS.sample} />
+                        <Knob value={editLayer.rootNote} min={0} max={127} step={1} onChange={v => updateLayer(editLayer.id, 'rootNote', v)} label="ROOT" size={56} color={LAYER_COLORS.sample} />
                       </div>
                       <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                         <button className={`ib-pill ${editLayer.loopOn ? 'ib-pill-active' : ''}`}
@@ -714,10 +714,10 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
                         </label>
                       </div>
                       <div className="ib-knob-row" style={{ marginTop: 10 }}>
-                        <Knob value={editLayer.attack} min={0.001} max={4} step={0.001} log onChange={v => updateLayer(editLayer.id, 'attack', v)} label="ATK" unit="s" size={44} color={LAYER_COLORS.sample} />
-                        <Knob value={editLayer.decay} min={0.01} max={4} step={0.01} log onChange={v => updateLayer(editLayer.id, 'decay', v)} label="DEC" unit="s" size={44} color={LAYER_COLORS.sample} />
-                        <Knob value={editLayer.sustain} min={0} max={1} step={0.01} onChange={v => updateLayer(editLayer.id, 'sustain', v)} label="SUS" size={44} color={LAYER_COLORS.sample} />
-                        <Knob value={editLayer.release} min={0.01} max={8} step={0.01} log onChange={v => updateLayer(editLayer.id, 'release', v)} label="REL" unit="s" size={44} color={LAYER_COLORS.sample} />
+                        <Knob value={editLayer.attack} min={0.001} max={4} step={0.001} log onChange={v => updateLayer(editLayer.id, 'attack', v)} label="ATK" unit="s" size={56} color={LAYER_COLORS.sample} />
+                        <Knob value={editLayer.decay} min={0.01} max={4} step={0.01} log onChange={v => updateLayer(editLayer.id, 'decay', v)} label="DEC" unit="s" size={56} color={LAYER_COLORS.sample} />
+                        <Knob value={editLayer.sustain} min={0} max={1} step={0.01} onChange={v => updateLayer(editLayer.id, 'sustain', v)} label="SUS" size={56} color={LAYER_COLORS.sample} />
+                        <Knob value={editLayer.release} min={0.01} max={8} step={0.01} log onChange={v => updateLayer(editLayer.id, 'release', v)} label="REL" unit="s" size={56} color={LAYER_COLORS.sample} />
                       </div>
                     </div>
                   )}
@@ -727,9 +727,9 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
               {/* SUB PARAMS */}
               {editLayer.type === 'sub' && (
                 <div className="ib-knob-row">
-                  <Knob value={editLayer.oct} min={-3} max={-1} step={1} onChange={v => updateLayer(editLayer.id, 'oct', v)} label="OCT" size={44} color={LAYER_COLORS.sub} />
-                  <Knob value={editLayer.attack} min={0.001} max={0.5} step={0.001} log onChange={v => updateLayer(editLayer.id, 'attack', v)} label="ATK" unit="s" size={44} color={LAYER_COLORS.sub} />
-                  <Knob value={editLayer.release} min={0.01} max={4} step={0.01} log onChange={v => updateLayer(editLayer.id, 'release', v)} label="REL" unit="s" size={44} color={LAYER_COLORS.sub} />
+                  <Knob value={editLayer.oct} min={-3} max={-1} step={1} onChange={v => updateLayer(editLayer.id, 'oct', v)} label="OCT" size={56} color={LAYER_COLORS.sub} />
+                  <Knob value={editLayer.attack} min={0.001} max={0.5} step={0.001} log onChange={v => updateLayer(editLayer.id, 'attack', v)} label="ATK" unit="s" size={56} color={LAYER_COLORS.sub} />
+                  <Knob value={editLayer.release} min={0.01} max={4} step={0.01} log onChange={v => updateLayer(editLayer.id, 'release', v)} label="REL" unit="s" size={56} color={LAYER_COLORS.sub} />
                 </div>
               )}
 
@@ -743,18 +743,18 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
                     ))}
                   </div>
                   <div className="ib-knob-row">
-                    <Knob value={editLayer.attack} min={0.001} max={2} step={0.001} log onChange={v => updateLayer(editLayer.id, 'attack', v)} label="ATK" unit="s" size={44} color={LAYER_COLORS.noise} />
-                    <Knob value={editLayer.decay} min={0.01} max={4} step={0.01} log onChange={v => updateLayer(editLayer.id, 'decay', v)} label="DEC" unit="s" size={44} color={LAYER_COLORS.noise} />
-                    <Knob value={editLayer.sustain} min={0} max={1} step={0.01} onChange={v => updateLayer(editLayer.id, 'sustain', v)} label="SUS" size={44} color={LAYER_COLORS.noise} />
-                    <Knob value={editLayer.release} min={0.01} max={4} step={0.01} log onChange={v => updateLayer(editLayer.id, 'release', v)} label="REL" unit="s" size={44} color={LAYER_COLORS.noise} />
+                    <Knob value={editLayer.attack} min={0.001} max={2} step={0.001} log onChange={v => updateLayer(editLayer.id, 'attack', v)} label="ATK" unit="s" size={56} color={LAYER_COLORS.noise} />
+                    <Knob value={editLayer.decay} min={0.01} max={4} step={0.01} log onChange={v => updateLayer(editLayer.id, 'decay', v)} label="DEC" unit="s" size={56} color={LAYER_COLORS.noise} />
+                    <Knob value={editLayer.sustain} min={0} max={1} step={0.01} onChange={v => updateLayer(editLayer.id, 'sustain', v)} label="SUS" size={56} color={LAYER_COLORS.noise} />
+                    <Knob value={editLayer.release} min={0.01} max={4} step={0.01} log onChange={v => updateLayer(editLayer.id, 'release', v)} label="REL" unit="s" size={56} color={LAYER_COLORS.noise} />
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
                     <button className={`ib-pill ${editLayer.filter ? 'ib-pill-active' : ''}`}
                       onClick={() => updateLayer(editLayer.id, 'filter', !editLayer.filter)}>Filter ON</button>
                     {editLayer.filter && (
                       <div className="ib-knob-row" style={{ marginTop: 6 }}>
-                        <Knob value={editLayer.filterCutoff} min={100} max={16000} step={10} log onChange={v => updateLayer(editLayer.id, 'filterCutoff', v)} label="CUTOFF" unit="Hz" size={44} color="#5ac8fa" />
-                        <Knob value={editLayer.filterRes} min={0.1} max={20} step={0.1} onChange={v => updateLayer(editLayer.id, 'filterRes', v)} label="Q" size={44} color="#5ac8fa" />
+                        <Knob value={editLayer.filterCutoff} min={100} max={16000} step={10} log onChange={v => updateLayer(editLayer.id, 'filterCutoff', v)} label="CUTOFF" unit="Hz" size={56} color="#5ac8fa" />
+                        <Knob value={editLayer.filterRes} min={0.1} max={20} step={0.1} onChange={v => updateLayer(editLayer.id, 'filterRes', v)} label="Q" size={56} color="#5ac8fa" />
                       </div>
                     )}
                   </div>
