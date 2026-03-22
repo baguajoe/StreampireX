@@ -1682,13 +1682,28 @@
 }
 
 /* ── Plugin Modal (Vocal Processor / Mic Simulator) ── */
+.daw-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3) !important;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.daw-modal-overlay > * {
+  pointer-events: all;
+}
+
 .daw-plugin-modal {
   position: relative;
   background: #1a1d27;
   border: 1px solid rgba(0,255,200,0.2);
   border-radius: 12px;
-  width: min(900px, 95vw);
-  max-height: 85vh;
+  width: min(900px, 60vw);
+  max-height: 80vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0,0,0,0.8);
   padding: 8px;
