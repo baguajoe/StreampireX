@@ -244,7 +244,19 @@ export default function SPXCanvasPage() {
     };
   }, [zoom]);
 
-  const onMouseDown = useCallback((e) => {
+  // ── Drawing Tablet Support (Wacom, Huion, XP-Pen, Apple Pencil) ──
+  const tabletPressure = useRef(1.0);
+  const tabletTiltX = useRef(0);
+  const tabletTiltY = useRef(0);
+
+  const onPointerDown = useCallback((e) => {
+    // Capture pointer for tablet support
+    e.currentTarget.setPointerCapture(e.pointerId);
+    // Read tablet pressure (0.0-1.0), default 1.0 for mouse
+    tabletPressure.current = e.pressure || 1.0;
+    tabletTiltX.current = e.tiltX || 0;
+    tabletTiltY.current = e.tiltY || 0;
+    const e2 = { ...e, clientX: e.clientX, clientY: e.clientY };
     const pt = getCanvasPoint(e);
     const snapped = snapToGrid ? { x:Math.round(pt.x/gridSize)*gridSize, y:Math.round(pt.y/gridSize)*gridSize } : pt;
 
@@ -275,7 +287,11 @@ export default function SPXCanvasPage() {
       const id = addLayer('brush', {
         points:[snapped],
         color: activeTool==='eraser' ? project.background : brushColor,
-        brushSize, brushOpacity, brushHardness,
+        brushSize: Math.max(1, brushSize * tabletPressure.current),
+        brushOpacity: brushOpacity * (0.3 + tabletPressure.current * 0.7),
+        brushHardness,
+        tiltX: tabletTiltX.current,
+        tiltY: tabletTiltY.current,
         blendMode: activeTool==='eraser' ? 'destination-out' : 'source-over',
         name: activeTool==='brush' ? 'Brush Stroke' : 'Eraser Stroke',
       });
@@ -301,7 +317,13 @@ export default function SPXCanvasPage() {
     }
   }, [activeTool, project, getCanvasPoint, addLayer, brushColor, brushSize, brushOpacity, brushHardness, snapshot, snapToGrid, gridSize]);
 
-  const onMouseMove = useCallback((e) => {
+  const onPointerMove = useCallback((e) => {
+    // Update tablet pressure on move
+    if (e.pressure > 0) {
+      tabletPressure.current = e.pressure;
+      tabletTiltX.current = e.tiltX || 0;
+      tabletTiltY.current = e.tiltY || 0;
+    }
     if (!dragState) return;
     const pt = getCanvasPoint(e);
 
@@ -348,7 +370,7 @@ export default function SPXCanvasPage() {
     }
   }, [dragState, getCanvasPoint, updateLayer, project.width, project.height]);
 
-  const onMouseUp = useCallback(() => {
+  const onPointerUp = useCallback(() => {
     if (dragState?.kind==='crop' && selection) {
       snapshot();
       setProject(p=>({...p, width:Math.round(selection.width||p.width), height:Math.round(selection.height||p.height)}));
@@ -461,7 +483,11 @@ export default function SPXCanvasPage() {
 
         {/* ── Canvas Center ── */}
         <div style={S.center} ref={stageRef}
-          onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerLeave={onPointerUp}
+          style={{touchAction:'none'}}
           style={{...S.center, cursor:
             activeTool==='move'?'default':activeTool==='zoom_in'?'zoom-in':
             activeTool==='zoom_out'?'zoom-out':activeTool==='hand'?'grab':
