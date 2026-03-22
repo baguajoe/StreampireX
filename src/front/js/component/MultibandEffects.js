@@ -89,7 +89,7 @@ const KnobCell = ({ label, value, min, max, step, fmt, color, onChange, size = 6
     <span
       style={{
         color,
-        fontSize: '12px',
+        fontSize: '14px',
         fontWeight: 800,
         fontFamily: "'JetBrains Mono', monospace",
         letterSpacing: '0.03em',
@@ -101,7 +101,7 @@ const KnobCell = ({ label, value, min, max, step, fmt, color, onChange, size = 6
     <span
       style={{
         color: '#8b949e',
-        fontSize: '9px',
+        fontSize: '11px',
         textTransform: 'uppercase',
         letterSpacing: '0.12em',
         textAlign: 'center',
@@ -376,7 +376,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
           <div style={{ color: '#e6edf3', fontWeight: 800, fontSize: '13px', letterSpacing: '0.12em' }}>
             MULTIBAND
           </div>
-          <div style={{ color: '#6e7681', fontSize: '9px', letterSpacing: '0.08em', marginTop: '1px' }}>
+          <div style={{ color: '#6e7681', fontSize: '11px', letterSpacing: '0.08em', marginTop: '1px' }}>
             3-BAND COMPRESSOR + SATURATION
           </div>
         </div>
@@ -388,7 +388,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
               background: 'rgba(255,255,255,0.06)',
               borderRadius: '6px',
               color: '#8b949e',
-              fontSize: '10px',
+              fontSize: '12px',
               border: '1px solid rgba(255,255,255,0.08)',
             }}
           >
@@ -420,7 +420,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                 borderRadius: '5px',
                 padding: '4px 14px',
                 cursor: 'pointer',
-                fontSize: '10px',
+                fontSize: '12px',
                 fontFamily: 'inherit',
                 fontWeight: viewMode === v ? 700 : 400,
                 transition: 'all 0.12s',
@@ -444,7 +444,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
             border: '1px solid rgba(0,255,200,0.15)',
           }}
         >
-          <span style={{ color: '#6e7681', fontSize: '9px', letterSpacing: '0.1em' }}>MASTER</span>
+          <span style={{ color: '#6e7681', fontSize: '11px', letterSpacing: '0.1em' }}>MASTER</span>
           <Knob
             min={-12} max={12} step={0.5}
             value={masterMakeup}
@@ -453,7 +453,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
             size={40}
             fmt={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}`}
           />
-          <span style={{ color: '#00ffc8', fontWeight: 800, fontSize: '12px', minWidth: '44px' }}>
+          <span style={{ color: '#00ffc8', fontWeight: 800, fontSize: '14px', minWidth: '44px' }}>
             {masterMakeup > 0 ? '+' : ''}{masterMakeup}dB
           </span>
         </div>
@@ -469,7 +469,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
             padding: '6px 18px',
             cursor: 'pointer',
             fontFamily: 'inherit',
-            fontSize: '10px',
+            fontSize: '12px',
             fontWeight: 800,
             letterSpacing: '0.1em',
             transition: 'all 0.15s',
@@ -555,7 +555,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                 >
                   {def.label}
                 </span>
-                <span style={{ color: '#484f58', fontSize: '9px', flex: 1 }}>{def.freqRange}</span>
+                <span style={{ color: '#484f58', fontSize: '11px', flex: 1 }}>{def.freqRange}</span>
 
                 {/* Solo / Mute */}
                 <button
@@ -570,7 +570,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                     borderRadius: '4px',
                     padding: '2px 7px',
                     cursor: 'pointer',
-                    fontSize: '9px',
+                    fontSize: '11px',
                     fontFamily: 'inherit',
                     fontWeight: 700,
                     letterSpacing: '0.05em',
@@ -587,7 +587,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                     borderRadius: '4px',
                     padding: '2px 7px',
                     cursor: 'pointer',
-                    fontSize: '9px',
+                    fontSize: '11px',
                     fontFamily: 'inherit',
                     fontWeight: 700,
                     letterSpacing: '0.05em',
@@ -623,7 +623,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                       }}
                     />
                   </div>
-                  <span style={{ color: def.color, fontSize: '9px', fontWeight: 700 }}>
+                  <span style={{ color: def.color, fontSize: '11px', fontWeight: 700 }}>
                     -{grLevels[i].toFixed(1)}
                   </span>
                 </div>
@@ -668,8 +668,8 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
 
               {/* Threshold / ratio readout */}
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-                <span style={{ color: '#6e7681', fontSize: '9px' }}>{band.threshold}dB</span>
-                <span style={{ color: '#6e7681', fontSize: '9px' }}>{band.ratio.toFixed(1)}:1</span>
+                <span style={{ color: '#6e7681', fontSize: '11px' }}>{band.threshold}dB</span>
+                <span style={{ color: '#6e7681', fontSize: '11px' }}>{band.ratio.toFixed(1)}:1</span>
               </div>
             </div>
           );
@@ -741,7 +741,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                 >
                   {BAND_DEFS[activeBand].label} BAND
                 </span>
-                <span style={{ color: '#6e7681', fontSize: '11px' }}>
+                <span style={{ color: '#6e7681', fontSize: '13px' }}>
                   {BAND_DEFS[activeBand].freqRange}
                 </span>
               </div>
@@ -774,7 +774,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                 <div
                   style={{
                     color: '#484f58',
-                    fontSize: '9px',
+                    fontSize: '11px',
                     letterSpacing: '0.15em',
                     marginBottom: '8px',
                     fontWeight: 700,
@@ -794,7 +794,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                         borderRadius: '6px',
                         padding: '6px 16px',
                         cursor: 'pointer',
-                        fontSize: '10px',
+                        fontSize: '12px',
                         fontFamily: 'inherit',
                         fontWeight: 700,
                         letterSpacing: '0.08em',
@@ -823,7 +823,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
               <div
                 style={{
                   color: '#6e7681',
-                  fontSize: '9px',
+                  fontSize: '11px',
                   letterSpacing: '0.15em',
                   textAlign: 'center',
                   fontWeight: 700,
@@ -893,7 +893,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                   >
                     -{grLevels[activeBand].toFixed(1)}
                   </div>
-                  <div style={{ color: '#6e7681', fontSize: '9px', marginTop: '2px' }}>dB GR</div>
+                  <div style={{ color: '#6e7681', fontSize: '11px', marginTop: '2px' }}>dB GR</div>
                 </div>
               </div>
 
@@ -907,14 +907,14 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', alignItems: 'center' }}>
-                  <span style={{ color: '#6e7681', fontSize: '9px', letterSpacing: '0.08em' }}>LOW XO</span>
-                  <span style={{ color: '#ff6b6b', fontWeight: 700, fontSize: '11px' }}>
+                  <span style={{ color: '#6e7681', fontSize: '11px', letterSpacing: '0.08em' }}>LOW XO</span>
+                  <span style={{ color: '#ff6b6b', fontWeight: 700, fontSize: '13px' }}>
                     {bands[0].xover >= 1000 ? `${(bands[0].xover / 1000).toFixed(1)}kHz` : `${bands[0].xover}Hz`}
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#6e7681', fontSize: '9px', letterSpacing: '0.08em' }}>MID XO</span>
-                  <span style={{ color: '#00ffc8', fontWeight: 700, fontSize: '11px' }}>
+                  <span style={{ color: '#6e7681', fontSize: '11px', letterSpacing: '0.08em' }}>MID XO</span>
+                  <span style={{ color: '#00ffc8', fontWeight: 700, fontSize: '13px' }}>
                     {bands[1].xover >= 1000 ? `${(bands[1].xover / 1000).toFixed(1)}kHz` : `${bands[1].xover}Hz`}
                   </span>
                 </div>
@@ -926,7 +926,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
         {/* ─ SCOPE VIEW ─ */}
         {viewMode === 'scope' && (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ color: '#6e7681', fontSize: '9px', letterSpacing: '0.12em', fontWeight: 700 }}>
+            <div style={{ color: '#6e7681', fontSize: '11px', letterSpacing: '0.12em', fontWeight: 700 }}>
               OSCILLOSCOPE — LOW BAND OUTPUT
             </div>
             <canvas
@@ -958,13 +958,13 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                     boxShadow: activeBand === i ? `0 0 16px ${def.glow}` : 'none',
                   }}
                 >
-                  <div style={{ color: def.color, fontSize: '11px', marginBottom: '4px', fontWeight: 700, letterSpacing: '0.1em' }}>
+                  <div style={{ color: def.color, fontSize: '13px', marginBottom: '4px', fontWeight: 700, letterSpacing: '0.1em' }}>
                     {def.label}
                   </div>
                   <div style={{ color: '#e6edf3', fontSize: '20px', fontWeight: 800 }}>
                     -{grLevels[i].toFixed(1)}
                   </div>
-                  <div style={{ color: '#6e7681', fontSize: '9px', marginTop: '2px' }}>dB GR</div>
+                  <div style={{ color: '#6e7681', fontSize: '11px', marginTop: '2px' }}>dB GR</div>
                 </div>
               ))}
             </div>
@@ -980,7 +980,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
           display: 'flex',
           gap: '14px',
           color: '#484f58',
-          fontSize: '9px',
+          fontSize: '11px',
           flexShrink: 0,
           background: 'rgba(0,0,0,0.3)',
           letterSpacing: '0.08em',

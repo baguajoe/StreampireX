@@ -67,7 +67,7 @@ const KnobCell = ({ label, value, min, max, step, fmt, color, onChange, size = 5
     <span
       style={{
         color,
-        fontSize: '10px',
+        fontSize: '12px',
         fontWeight: 700,
         fontFamily: "'JetBrains Mono', monospace",
         letterSpacing: '0.02em',
@@ -136,19 +136,19 @@ const ToolSlot = ({ label, icon, color, enabled, onToggle, expanded, onExpand, c
           color: enabled ? '#e6edf3' : '#484f58',
           fontWeight: enabled ? 700 : 400,
           flex: 1,
-          fontSize: '11px',
+          fontSize: '13px',
           letterSpacing: '0.05em',
         }}
       >
         {label}
       </span>
       {!enabled && (
-        <span style={{ color: '#2d333b', fontSize: '9px' }}>BYPASSED</span>
+        <span style={{ color: '#2d333b', fontSize: '11px' }}>BYPASSED</span>
       )}
       <span
         style={{
           color: '#484f58',
-          fontSize: '10px',
+          fontSize: '12px',
           transform: expanded ? 'rotate(180deg)' : 'none',
           transition: 'transform 0.15s',
         }}
@@ -571,7 +571,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
           style={{
             color: '#e6edf3',
             fontWeight: 800,
-            fontSize: '12px',
+            fontSize: '14px',
             letterSpacing: '0.15em',
           }}
         >
@@ -579,7 +579,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
         </span>
         <div style={{ flex: 1 }} />
 
-        <span style={{ color: '#484f58', fontSize: '9px' }}>TARGET</span>
+        <span style={{ color: '#484f58', fontSize: '11px' }}>TARGET</span>
         <select
           value={target}
           onChange={(e) => setTarget(e.target.value)}
@@ -590,7 +590,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
             borderRadius: '5px',
             padding: '3px 8px',
             fontFamily: 'inherit',
-            fontSize: '9px',
+            fontSize: '11px',
             fontWeight: 800,
           }}
         >
@@ -613,7 +613,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
               padding: '3px 9px',
               cursor: 'pointer',
               fontFamily: 'inherit',
-              fontSize: '9px',
+              fontSize: '11px',
               fontWeight: 800,
               textTransform: 'uppercase',
             }}
@@ -653,27 +653,27 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ color: '#484f58', fontSize: '9px' }}>INTEGRATED</span>
+          <span style={{ color: '#484f58', fontSize: '11px' }}>INTEGRATED</span>
           <span style={{ color: lufsColor(lufs), fontWeight: 800, fontSize: '20px', minWidth: '60px' }}>
             {lufs > -99 ? lufs.toFixed(1) : '—'}
           </span>
-          <span style={{ color: '#484f58', fontSize: '9px' }}>LUFS</span>
+          <span style={{ color: '#484f58', fontSize: '11px' }}>LUFS</span>
         </div>
 
         <div style={{ width: '1px', height: '20px', background: '#21262d' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ color: '#484f58', fontSize: '9px' }}>SHORT</span>
+          <span style={{ color: '#484f58', fontSize: '11px' }}>SHORT</span>
           <span style={{ color: lufsColor(lufsShort), fontWeight: 700, fontSize: '14px', minWidth: '48px' }}>
             {lufsShort > -99 ? lufsShort.toFixed(1) : '—'}
           </span>
-          <span style={{ color: '#484f58', fontSize: '9px' }}>LUFS</span>
+          <span style={{ color: '#484f58', fontSize: '11px' }}>LUFS</span>
         </div>
 
         <div style={{ width: '1px', height: '20px', background: '#21262d' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ color: '#484f58', fontSize: '9px' }}>PEAK</span>
+          <span style={{ color: '#484f58', fontSize: '11px' }}>PEAK</span>
           <span
             style={{
               color: clipping ? '#ff2d55' : '#cdd9e5',
@@ -688,7 +688,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
             <span
               style={{
                 color: '#ff2d55',
-                fontSize: '9px',
+                fontSize: '11px',
                 fontWeight: 800,
                 animation: 'blink 0.5s infinite',
               }}
@@ -701,7 +701,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
         <div style={{ flex: 1 }} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ color: '#484f58', fontSize: '9px' }}>TARGET {tgt?.lufs} LUFS</span>
+          <span style={{ color: '#484f58', fontSize: '11px' }}>TARGET {tgt?.lufs} LUFS</span>
           <div
             style={{
               position: 'relative',
@@ -738,7 +738,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <span style={{ color: '#484f58', fontSize: '9px' }}>CORR</span>
+          <span style={{ color: '#484f58', fontSize: '11px' }}>CORR</span>
           <div
             style={{
               position: 'relative',
@@ -775,7 +775,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
           <span
             style={{
               color: correlation > 0 ? '#00ffc8' : '#ff6b6b',
-              fontSize: '9px',
+              fontSize: '11px',
               fontWeight: 700,
               minWidth: '28px',
             }}
@@ -1127,7 +1127,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 flexDirection: 'column',
               }}
             >
-              <div style={{ color: '#484f58', fontSize: '9px', letterSpacing: '0.12em', marginBottom: '8px' }}>
+              <div style={{ color: '#484f58', fontSize: '11px', letterSpacing: '0.12em', marginBottom: '8px' }}>
                 INTEGRATED LUFS — HISTORY
               </div>
               <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: '1px' }}>
@@ -1149,7 +1149,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
                 <span style={{ color: '#2d333b', fontSize: '8px' }}>-40 LUFS</span>
-                <span style={{ color: '#ffd60a', fontSize: '9px', fontWeight: 800 }}>
+                <span style={{ color: '#ffd60a', fontSize: '11px', fontWeight: 800 }}>
                   Target: {tgt.lufs} LUFS
                 </span>
                 <span style={{ color: '#2d333b', fontSize: '8px' }}>0 LUFS</span>
@@ -1168,7 +1168,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 gap: '6px',
               }}
             >
-              <div style={{ color: '#484f58', fontSize: '9px', letterSpacing: '0.12em', marginBottom: '4px' }}>
+              <div style={{ color: '#484f58', fontSize: '11px', letterSpacing: '0.12em', marginBottom: '4px' }}>
                 PLATFORM CHECK
               </div>
               {Object.entries(STREAMING_TARGETS).map(([k, v]) => {
@@ -1177,15 +1177,15 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 const loud = diff > 1.5;
                 return (
                   <div key={k} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: ok ? '#00ffc8' : loud ? '#ff6b6b' : '#ffd60a', fontSize: '10px' }}>
+                    <span style={{ color: ok ? '#00ffc8' : loud ? '#ff6b6b' : '#ffd60a', fontSize: '12px' }}>
                       {ok ? '✓' : loud ? '↓' : '↑'}
                     </span>
-                    <span style={{ flex: 1, color: '#6e7681', fontSize: '9px' }}>{k}</span>
+                    <span style={{ flex: 1, color: '#6e7681', fontSize: '11px' }}>{k}</span>
                     <span style={{ color: '#484f58', fontSize: '8px' }}>{v.lufs} LUFS</span>
                     <span
                       style={{
                         color: ok ? '#00ffc8' : '#ff6b6b',
-                        fontSize: '9px',
+                        fontSize: '11px',
                         fontWeight: 700,
                         minWidth: '48px',
                         textAlign: 'right',
@@ -1214,7 +1214,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 flexDirection: 'column',
               }}
             >
-              <div style={{ color: '#484f58', fontSize: '9px', letterSpacing: '0.12em', marginBottom: '8px' }}>
+              <div style={{ color: '#484f58', fontSize: '11px', letterSpacing: '0.12em', marginBottom: '8px' }}>
                 SPECTRAL ANALYZER
               </div>
               <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: '2px' }}>
@@ -1266,7 +1266,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 alignItems: 'center',
               }}
             >
-              <div style={{ color: '#484f58', fontSize: '9px', letterSpacing: '0.12em', marginBottom: '8px' }}>
+              <div style={{ color: '#484f58', fontSize: '11px', letterSpacing: '0.12em', marginBottom: '8px' }}>
                 GONIOMETER (STEREO PHASE)
               </div>
               <div
@@ -1307,7 +1307,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 <span style={{ position: 'absolute', right: '4px',  top: '50%',   transform: 'translateY(-50%)', color: '#2d333b', fontSize: '8px' }}>R</span>
               </div>
 
-              <div style={{ marginTop: '10px', color: '#6e7681', fontSize: '9px', textAlign: 'center' }}>
+              <div style={{ marginTop: '10px', color: '#6e7681', fontSize: '11px', textAlign: 'center' }}>
                 Correlation:{' '}
                 <span
                   style={{
