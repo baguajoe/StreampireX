@@ -1684,12 +1684,13 @@
 /* ── Plugin Modal (Vocal Processor / Mic Simulator) ── */
 .daw-modal-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.3) !important;
+  top: 60px;
+  right: 20px;
+  background: transparent !important;
   z-index: 500;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-end;
   pointer-events: none;
 }
 
