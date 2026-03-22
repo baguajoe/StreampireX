@@ -1414,6 +1414,29 @@ const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
           </button>
         )}
 
+        {/* For audio files, add to audio track only */}
+        {selectedMedia?.type === 'audio' && (
+          <button
+            onClick={() => onAddToTimeline(selectedMedia, 0, selectedMedia.duration || 30, 'audio')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '10px 16px',
+              background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            <AudioWaveform size={14} />
+            Add to Audio Track
+          </button>
+        )}
+
         {/* For images, just add to timeline */}
         {selectedMedia?.type === 'image' && (
           <button
@@ -5760,7 +5783,9 @@ TIMELINE
             {showSourceMonitor && sourceMonitorMedia && (
               <SourceMonitor
                 selectedMedia={sourceMonitorMedia}
-                onAddToTimeline={(media, inPoint, outPoint, insertType = 'both') => {
+                onAddToTimeline={(media, inPoint, outPoint, insertType) => {
+                  // Auto-detect insert type based on media type
+                  if (!insertType) insertType = media.type === 'audio' ? 'audio' : 'both';
                   const videoTrack = tracks.find(t => t.type === 'video');
                   const audioTrack = tracks.find(t => t.type === 'audio');
 
@@ -5774,7 +5799,7 @@ TIMELINE
                   };
 
                   // Insert Video
-                  if ((insertType === 'video' || insertType === 'both') && media.type !== 'audio') {
+                  if ((insertType === 'video' || insertType === 'both') && media.type !== 'audio') { // video/image only
                     if (videoTrack && !videoTrack.locked) {
                       const videoClip = {
                         id: Date.now(),
