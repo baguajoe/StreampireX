@@ -1330,24 +1330,39 @@ const RecordingStudio = ({ user }) => {
 
   // ── Playback ──
   const startMetronome = (ctx) => {
+    if (metroRef.current) {
+      clearInterval(metroRef.current);
+      metroRef.current = null;
+    }
+    const beats = timeSignature && timeSignature[0] ? timeSignature[0] : 4;
     const iv = (60 / bpm) * 1000;
     let beat = 0;
-    const click = (down) => {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.frequency.value = down ? 1000 : 800;
-      g.gain.value = 0.3;
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
-      o.connect(g);
-      g.connect(ctx.destination);
-      o.start(ctx.currentTime);
-      o.stop(ctx.currentTime + 0.05);
+    const click = (isDownbeat) => {
+      try {
+        if (!ctx || ctx.state === "closed") return;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.frequency.value = isDownbeat ? 1000 : 800;
+        g.gain.setValueAtTime(0.35, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.start(ctx.currentTime);
+        o.stop(ctx.currentTime + 0.06);
+      } catch (e) {}
     };
     click(true);
     metroRef.current = setInterval(() => {
-      beat = (beat + 1) % 4;
+      beat = (beat + 1) % beats;
       click(beat === 0);
     }, iv);
+  };
+
+  const stopMetronome = () => {
+    if (metroRef.current) {
+      clearInterval(metroRef.current);
+      metroRef.current = null;
+    }
   };
 
   const playCountIn = (ctx) =>
@@ -1368,7 +1383,7 @@ const RecordingStudio = ({ user }) => {
       click();
       const id = setInterval(() => {
         c++;
-        if (c >= 4) {
+        if (c >= (timeSignature && timeSignature[0] ? timeSignature[0] : 4)) {
           clearInterval(id);
           res();
         } else click();
@@ -1466,7 +1481,10 @@ const RecordingStudio = ({ user }) => {
     });
     trackSourcesRef.current = [];
 
-    if (metroRef.current) clearInterval(metroRef.current);
+    if (!metronomeOn && metroRef.current) {
+      clearInterval(metroRef.current);
+      metroRef.current = null;
+    }
     if (timeRef.current) clearInterval(timeRef.current);
 
     stopMeterAnimation();
@@ -1640,6 +1658,8 @@ const RecordingStudio = ({ user }) => {
   const stopEverything = () => {
     stopRecording();
     stopPlayback();
+    stopMetronome();
+    setMetronomeOn(false);
     playOffsetRef.current = 0;
     setCurrentTime(0);
   };
@@ -2602,7 +2622,16 @@ const RecordingStudio = ({ user }) => {
 
           <button
             className={`daw-transport-btn daw-metro-btn ${metronomeOn ? "active" : ""}`}
-            onClick={() => setMetronomeOn(!metronomeOn)}
+            onClick={() => {
+              const ctx = getCtx();
+              if (metronomeOn) {
+                stopMetronome();
+                setMetronomeOn(false);
+              } else {
+                startMetronome(ctx);
+                setMetronomeOn(true);
+              }
+            }}
             title="Metronome"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
