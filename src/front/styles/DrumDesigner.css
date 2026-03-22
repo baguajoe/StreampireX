@@ -33,17 +33,17 @@
 
 .dd-type-btn {
   display: flex; flex-direction: column; align-items: center;
-  padding: 6px 10px; background: transparent;
+  padding: 10px 16px; background: transparent;
   border: 1px solid #1e2d3d; border-radius: 5px;
-  cursor: pointer; transition: all 0.12s; gap: 2px; min-width: 52px;
+  cursor: pointer; transition: all 0.12s; gap: 4px; min-width: 70px;
 }
 .dd-type-btn:hover { border-color: #3a5570; background: #0d1520; }
 .dd-type-btn.active { border-color: #00ffc8; background: #0d1a26; box-shadow: 0 0 8px rgba(0,255,200,0.15); }
-.dd-type-icon { font-size: 1.1rem; }
-.dd-type-label { font-size: 0.5rem; color: #7a9ab8; letter-spacing: 1px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
+.dd-type-icon { font-size: 1.6rem; }
+.dd-type-label { font-size: 0.65rem; color: #7a9ab8; letter-spacing: 1px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
 .dd-type-btn.active .dd-type-label { color: #00ffc8; }
 
-.dd-params-container { padding: 14px; flex: 1; overflow-y: auto; }
+.dd-params-container { padding: 24px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
 .dd-params-title {
   font-size: 0.6rem; font-weight: 700; color: #5a7088;
   text-transform: uppercase; letter-spacing: 2px; margin-bottom: 14px;
@@ -51,12 +51,19 @@
 }
 
 .dd-params-grid {
-  display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;
-  width: 100%; padding: 8px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 24px;
+  align-items: start;
+  width: 100%;
+  padding: 16px 0;
 }
 
 .dd-toggles {
-  display: flex; flex-direction: column; gap: 8px; width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  width: 100%;
   margin-top: 4px;
 }
 
