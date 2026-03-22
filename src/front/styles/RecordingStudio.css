@@ -1375,9 +1375,9 @@
 }
 
 .master-channel {
-  width: 240px !important;
-  min-width: 240px !important;
-  max-width: 240px !important;
+  width: 160px !important;
+  min-width: 160px !important;
+  max-width: 160px !important;
 }
 
 /* ---------- make panels inside channel read better ---------- */
@@ -1572,9 +1572,9 @@
   }
 
   .master-channel {
-    width: 220px !important;
-    min-width: 220px !important;
-    max-width: 220px !important;
+    width: 160px !important;
+    min-width: 160px !important;
+    max-width: 160px !important;
   }
 }
 
