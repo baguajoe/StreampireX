@@ -1,0 +1,73 @@
+/* =============================================================================
+   DAWFeatures2.css — MIDI Panel, Onboarding, Chord Track, Comp Takes
+   ============================================================================= */
+
+/* ── MIDI Mapping Panel ── */
+.midi-map-panel { display:flex; flex-direction:column; background:#1a1a1a; color:#e0e0e0; font-size:12px; border:1px solid #333; border-radius:6px; overflow:hidden; max-height:500px; }
+.mmp-header { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#111; border-bottom:1px solid #2a2a2a; }
+.mmp-title { font-size:13px; font-weight:600; color:#fff; }
+.mmp-close { background:none; border:none; color:#888; cursor:pointer; font-size:14px; padding:2px 6px; border-radius:3px; }
+.mmp-close:hover { color:#fff; background:#333; }
+.mmp-info { padding:8px 12px; background:#161616; border-bottom:1px solid #2a2a2a; font-size:11px; color:#666; }
+.mmp-body { display:flex; flex:1; overflow:hidden; }
+.mmp-sidebar { width:100px; background:#141414; border-right:1px solid #2a2a2a; padding:4px; display:flex; flex-direction:column; gap:2px; }
+.mmp-cat-btn { padding:5px 8px; background:none; border:none; color:#888; cursor:pointer; font-size:11px; text-align:left; border-radius:3px; transition:all 0.1s; }
+.mmp-cat-btn:hover { background:#1e1e1e; color:#ccc; }
+.mmp-cat-btn.active { background:#1e1e2e; color:#a78bfa; }
+.mmp-content { flex:1; overflow-y:auto; padding:4px; }
+.mmp-row { display:flex; align-items:center; justify-content:space-between; padding:5px 8px; border-radius:3px; transition:background 0.1s; }
+.mmp-row:hover { background:#1e1e1e; }
+.mmp-action-label { font-size:11px; color:#ccc; flex:1; }
+.mmp-assigned { display:flex; align-items:center; gap:4px; }
+.mmp-cc-badge { background:#2a2a4a; color:#a78bfa; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:600; border:1px solid #3333aa; }
+.mmp-unmap-btn { background:none; border:none; color:#555; cursor:pointer; font-size:10px; padding:1px 4px; border-radius:2px; }
+.mmp-unmap-btn:hover { color:#ff3b30; background:#2a1a1a; }
+.mmp-learn-btn { background:#2a2a2a; border:1px solid #3a3a3a; color:#888; padding:3px 10px; border-radius:3px; font-size:10px; cursor:pointer; transition:all 0.1s; }
+.mmp-learn-btn:hover { background:#1e1e2e; border-color:#a78bfa; color:#a78bfa; }
+
+/* ── Onboarding ── */
+.onboarding-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9999; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(8px); }
+.onboarding-modal { background:#111; border:1px solid #2a2a2a; border-radius:12px; width:520px; max-width:90vw; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.8); }
+.ob-progress { display:flex; gap:6px; padding:16px 20px 0; }
+.ob-progress-dot { width:8px; height:8px; border-radius:50%; background:#2a2a2a; transition:background 0.2s; }
+.ob-progress-dot.active { background:#a78bfa; }
+.ob-content { padding:24px; }
+.ob-title { font-size:22px; font-weight:700; color:#fff; margin:0 0 6px; }
+.ob-subtitle { font-size:13px; color:#888; margin:0 0 16px; }
+.ob-question { font-size:12px; color:#666; margin:0 0 12px; }
+.ob-choices { display:flex; flex-wrap:wrap; gap:8px; }
+.ob-choice { background:#1e1e1e; border:1px solid #2a2a2a; color:#ccc; padding:8px 14px; border-radius:6px; cursor:pointer; font-size:12px; transition:all 0.1s; }
+.ob-choice:hover { background:#252525; border-color:#444; color:#fff; }
+.ob-choice.selected { background:#1e1e2e; border-color:#a78bfa; color:#a78bfa; }
+.ob-choice-wide { width:100%; display:flex; flex-direction:column; align-items:flex-start; gap:2px; }
+.ob-choice-label { font-size:13px; font-weight:500; }
+.ob-choice-sub { font-size:11px; color:#666; }
+.ob-choice-wide.selected .ob-choice-sub { color:#a78bfa88; }
+.ob-tips { display:flex; flex-direction:column; gap:10px; }
+.ob-tip { font-size:12px; color:#ccc; display:flex; gap:8px; align-items:flex-start; line-height:1.4; }
+.ob-tip strong { color:#fff; }
+.ob-footer { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; background:#0a0a0a; border-top:1px solid #1a1a1a; }
+.ob-skip { background:none; border:none; color:#555; cursor:pointer; font-size:12px; }
+.ob-skip:hover { color:#888; }
+.ob-next { background:#a78bfa; border:none; color:#fff; padding:10px 24px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; transition:background 0.1s; }
+.ob-next:hover { background:#9333ea; }
+.ob-next:disabled { background:#333; color:#666; cursor:not-allowed; }
+
+/* ── Comp Takes ── */
+.comp-takes { background:#141414; border:1px solid #2a2a2a; border-radius:4px; overflow:hidden; }
+.ct-header { display:flex; align-items:center; justify-content:space-between; padding:5px 8px; background:#111; border-bottom:1px solid #222; }
+.ct-title { font-size:11px; color:#888; font-weight:600; }
+.ct-add-btn { background:#2a2a2a; border:1px solid #333; color:#aaa; padding:2px 8px; border-radius:3px; font-size:10px; cursor:pointer; }
+.ct-add-btn:hover { background:#34c759; border-color:#34c759; color:#000; }
+.ct-list { display:flex; flex-direction:column; }
+.ct-row { display:flex; align-items:center; gap:6px; padding:4px 8px; transition:background 0.1s; }
+.ct-row:hover { background:#1e1e1e; }
+.ct-row.active { background:#1e1e2e; }
+.ct-select-btn { background:none; border:none; color:#555; cursor:pointer; font-size:12px; width:16px; flex-shrink:0; }
+.ct-row.active .ct-select-btn { color:#34c759; }
+.ct-take-name { flex:1; font-size:11px; color:#ccc; }
+.ct-take-actions { display:flex; gap:3px; }
+.ct-solo-btn { background:none; border:none; color:#666; cursor:pointer; font-size:10px; padding:1px 4px; }
+.ct-solo-btn:hover { color:#fff; }
+.ct-delete-btn { background:none; border:none; color:#444; cursor:pointer; font-size:10px; padding:1px 4px; }
+.ct-delete-btn:hover { color:#ff3b30; }

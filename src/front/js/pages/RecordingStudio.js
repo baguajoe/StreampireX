@@ -23,6 +23,12 @@ import SendToMotionButton from "../component/SendToMotionButton";
 import { sendToMotion } from "../utils/motionHelpers";
 
 import ArrangerView from "../component/ArrangerView";
+import SampleLibrary from "../component/SampleLibrary";
+import PluginRackUI from "../component/PluginRackUI";
+import { MIDIMappingPanel, OnboardingFlow, ChordTrack, CompTakeManager, transposeByChord } from "../component/DAWFeatures2";
+import "../../styles/SampleLibrary.css";
+import "../../styles/PluginRackUI.css";
+import "../../styles/DAWFeatures2.css";
 import { AudioEngine } from "../component/audio/engine/AudioEngine";
 import AIMixAssistant from "../component/AIMixAssistant";
 import ChannelStripAIMix from "../component/ChannelStripAIMix";
@@ -720,6 +726,15 @@ const RecordingStudio = ({ user }) => {
   const playStartRef = useRef(0);
   const playOffsetRef = useRef(0);
   const spxEngineRef  = useRef(null);  // SPX AudioEngine instance
+  const [showSampleLibrary,  setShowSampleLibrary]  = React.useState(false);
+  const [showPluginRack,     setShowPluginRack]      = React.useState(false);
+  const [showMidiMapping,    setShowMidiMapping]     = React.useState(false);
+  const [showOnboarding,     setShowOnboarding]      = React.useState(() => !localStorage.getItem('spx_onboarded'));
+  const [chords,             setChords]              = React.useState([]);
+  const [takes,              setTakes]               = React.useState([]);
+  const [activeTake,         setActiveTake]          = React.useState(null);
+  const [pluginRackTrack,    setPluginRackTrack]     = React.useState(null);
+  const [trackPlugins,       setTrackPlugins]        = React.useState({});
 
   // ── Loop / Cycle state ──────────────────────────────────────────────────
   const [cycleEnabled, setCycleEnabled] = React.useState(false);
@@ -2979,6 +2994,10 @@ const RecordingStudio = ({ user }) => {
       case "midi:clearAll":
         if(window.confirm("Clear all piano roll notes?"))setPianoRollNotes?.([]);break;
       case "audio:settings": setShowAudioSettings(true); break;
+      case "view:sampleLibrary": setShowSampleLibrary(s => !s); break;
+      case "view:pluginRack":    setShowPluginRack(s => !s); break;
+      case "view:midiMapping":   setShowMidiMapping(s => !s); break;
+      case "view:onboarding":    setShowOnboarding(true); break;
       case "file:projectSettings": {
         const nm=window.prompt("Project name:",projectName??"Untitled");
         if(nm?.trim())setProjectName?.(nm.trim());
