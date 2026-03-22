@@ -2777,10 +2777,12 @@ const RecordingStudio = ({ user }) => {
           startBeat:+(n.startBeat+(Math.random()-.5)*.04).toFixed(4),
           velocity:+Math.max(.05,Math.min(1,(n.velocity??.8)+(Math.random()-.5)*.15)).toFixed(3)}));
         setPianoRollNotes?.(h);setStatus(`✓ Humanized ${h.length} notes`); break;
+      }
       case "midi:quantize": {
         const g=0.25;
         setPianoRollNotes?.(p=>p.map(n=>({...n,startBeat:Math.round(n.startBeat/g)*g})));
         setStatus("✓ Quantized to 1/16"); break;
+      }
       case "midi:transpose": {
         const s=window.prompt("Semitones (+/-)","0");
         if(s!==null&&!isNaN(parseInt(s))){
@@ -2788,6 +2790,7 @@ const RecordingStudio = ({ user }) => {
           setPianoRollNotes?.(p=>p.map(note=>({...note,note:Math.max(0,Math.min(127,(note.note??60)+n))})));
           setStatus(`✓ Transposed ${n>0?"+":""}${n} semitones`);
         } break;
+      }
       case "midi:velocity": {
         const pct=window.prompt("Scale velocity %","100");
         if(pct&&!isNaN(parseFloat(pct))){
@@ -2795,6 +2798,7 @@ const RecordingStudio = ({ user }) => {
           setPianoRollNotes?.(p=>p.map(n=>({...n,velocity:+Math.max(.05,Math.min(1,(n.velocity??.8)*sc)).toFixed(3)})));
           setStatus(`✓ Velocity ×${pct}%`);
         } break;
+      }
       case "midi:clearAll":
         if(window.confirm("Clear all piano roll notes?"))setPianoRollNotes?.([]);break;
       case "audio:settings": setShowAudioSettings(true); break;
@@ -2803,6 +2807,7 @@ const RecordingStudio = ({ user }) => {
         if(nm?.trim())setProjectName?.(nm.trim());
         const b=window.prompt("BPM:",String(bpm??120));
         if(b&&!isNaN(parseInt(b)))setBpm?.(Math.max(20,Math.min(300,parseInt(b)))); break;
+      }
       default:
         setStatus(`ℹ Unhandled action: ${action}`);
         break;
