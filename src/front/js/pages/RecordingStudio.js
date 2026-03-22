@@ -3694,7 +3694,6 @@ const RecordingStudio = ({ user }) => {
                 </div>
               </div>
             )}
-            </div>
           </div>
         )}
 
