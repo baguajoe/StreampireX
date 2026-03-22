@@ -621,6 +621,9 @@
     0 0 0 1px rgba(255,138,61,0.04),
     0 0 18px rgba(255,138,61,0.08),
     var(--rs-shadow-md);
+  height: 680px !important;
+  min-height: 680px !important;
+  max-height: 680px !important;
 }
 
 .daw-ch-routing,
@@ -1757,4 +1760,111 @@
 .rs-mixer-row,
 .daw-mixer-row {
   align-items: stretch;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Split-Screen Layout — Arrange top, Mixer bottom simultaneously
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Root container in split mode */
+.rs-split-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Top pane: Arrange view */
+.rs-split-top {
+  flex: 0 0 auto;
+  height: var(--rs-split-top-h, 50%);
+  min-height: 180px;
+  overflow: hidden;
+  border-bottom: 2px solid #1c2128;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Bottom pane: Mixer / Console */
+.rs-split-bottom {
+  flex: 1 1 auto;
+  min-height: 200px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Resize handle between panes */
+.rs-split-handle {
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: transparent;
+  cursor: ns-resize;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rs-split-handle:hover { background: rgba(0, 255, 200, 0.08); }
+.rs-split-handle::after {
+  content: '';
+  width: 48px;
+  height: 3px;
+  background: #2d333b;
+  border-radius: 2px;
+  transition: background 0.15s;
+}
+.rs-split-handle:hover::after { background: #00ffc8; }
+
+/* Split screen toggle button in toolbar */
+.rs-split-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid #30363d;
+  background: transparent;
+  color: #6e7681;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.rs-split-toggle-btn:hover {
+  border-color: #484f58;
+  color: #cdd9e5;
+}
+.rs-split-toggle-btn.active {
+  border-color: #00ffc844;
+  color: #00ffc8;
+  background: #00ffc810;
+}
+.rs-split-toggle-btn svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+/* Pane label badge */
+.rs-split-pane-label {
+  position: absolute;
+  top: 6px;
+  left: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #2d333b;
+  text-transform: uppercase;
+  pointer-events: none;
+  z-index: 10;
 }

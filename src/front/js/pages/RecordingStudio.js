@@ -594,6 +594,13 @@ const RecordingStudio = ({ user }) => {
   // ✅ Default view is Arrange (NOT record)
   const [viewMode, setViewMode] = useState("arrange");
 
+  // ── Split Screen ────────────────────────────────────────────────────────
+  const [splitScreen,    setSplitScreen]    = useState(false);
+  const [splitTopH,      setSplitTopH]      = useState(50); // percent
+  const splitDragRef                        = React.useRef(false);
+  const splitContainerRef                   = React.useRef(null);
+  // ────────────────────────────────────────────────────────────────────────
+
   const [projectName, setProjectName] = useState("Untitled Project");
   const [projectId, setProjectId] = useState(null);
   const [projects, setProjects] = useState([]);
@@ -1820,6 +1827,29 @@ const RecordingStudio = ({ user }) => {
   };
   // ─────────────────────────────────────────────────────────────────────
 
+  
+  // ── Split screen resize drag ─────────────────────────────────────────────
+  const handleSplitMouseDown = React.useCallback((e) => {
+    e.preventDefault();
+    splitDragRef.current = true;
+    const container = splitContainerRef.current;
+    if (!container) return;
+    const onMove = (me) => {
+      if (!splitDragRef.current) return;
+      const rect = container.getBoundingClientRect();
+      const pct  = Math.max(20, Math.min(80, ((me.clientY - rect.top) / rect.height) * 100));
+      setSplitTopH(Math.round(pct));
+    };
+    const onUp = () => {
+      splitDragRef.current = false;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, []);
+  // ─────────────────────────────────────────────────────────────────────────
+
     const rewind = () => {
     if (isPlaying) stopPlayback();
     playOffsetRef.current = 0;
@@ -2831,7 +2861,20 @@ const RecordingStudio = ({ user }) => {
             <span className="daw-lcd-bpm">{bpm} BPM</span>
           </div>
 
-          <button
+          
+              {/* ── Split Screen Toggle ── */}
+              <button
+                className={`rs-split-toggle-btn ${splitScreen ? 'active' : ''}`}
+                onClick={() => setSplitScreen(s => !s)}
+                title={splitScreen ? 'Exit split view' : 'Split view: Arrange + Mixer'}
+              >
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <rect x="1" y="1" width="10" height="4.5" rx="0.5"/>
+                  <rect x="1" y="6.5" width="10" height="4.5" rx="0.5"/>
+                </svg>
+                SPLIT
+              </button>
+              <button
             className={`daw-transport-btn daw-metro-btn ${metronomeOn ? "active" : ""}`}
             onClick={() => {
               const ctx = getCtx();
@@ -3178,7 +3221,7 @@ const RecordingStudio = ({ user }) => {
             onBpmChange={handleBpmChange}
             onTimeSignatureChange={handleTimeSignatureChange}
             onToggleFx={handleToggleFx}
-            onBounce={() => setStatus("ℹ Bounce handler not included in this paste")}
+            onBounce={mixDownProject}
             onSave={saveProject}
             saving={saving}
             instrumentEngine={instrumentEngine}
