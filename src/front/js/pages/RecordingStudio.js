@@ -23,6 +23,7 @@ import SendToMotionButton from "../component/SendToMotionButton";
 import { sendToMotion } from "../utils/motionHelpers";
 
 import ArrangerView from "../component/ArrangerView";
+import { AudioEngine } from "../component/audio/engine/AudioEngine";
 import AIMixAssistant from "../component/AIMixAssistant";
 import ChannelStripAIMix from "../component/ChannelStripAIMix";
 import SamplerBeatMaker from "../component/SamplerBeatMaker";
@@ -718,6 +719,19 @@ const RecordingStudio = ({ user }) => {
   const chunksRef = useRef([]);
   const playStartRef = useRef(0);
   const playOffsetRef = useRef(0);
+  const spxEngineRef  = useRef(null);  // SPX AudioEngine instance
+
+  // ── Loop / Cycle state ──────────────────────────────────────────────────
+  const [cycleEnabled, setCycleEnabled] = React.useState(false);
+  const [cycleStart,   setCycleStart]   = React.useState(0);   // beats
+  const [cycleEnd,     setCycleEnd]     = React.useState(8);   // beats
+  const loopCheckRef  = useRef(null);  // RAF for loop check
+
+  // ── MIDI controller mapping ─────────────────────────────────────────────
+  const midiMappingsRef  = useRef(new Map()); // cc# → { action, trackIdx }
+  const midiLearnRef     = useRef(null);       // { cc target } during learn
+  const [midiLearnMode,  setMidiLearnMode]  = React.useState(false);
+  const [midiMappings,   setMidiMappings]   = React.useState([]);
   const metroRef = useRef(null);
   const timeRef = useRef(null);
   const canvasRefs = useRef([]);
@@ -866,12 +880,172 @@ const RecordingStudio = ({ user }) => {
       masterPanRef.current.connect(audioCtxRef.current.destination);
     }
     if (audioCtxRef.current.state === "suspended") audioCtxRef.current.resume();
+
+    // ── Init SPX AudioEngine using same context ──────────────────────────
+    if (!spxEngineRef.current) {
+      const engine = AudioEngine.getInstance();
+      if (!engine.context || engine.context.state === 'closed') {
+        engine.context = audioCtxRef.current;
+        engine._buildMasterBus().catch(console.warn);
+        engine._loadWorklets().catch(console.warn);
+        engine._startScheduler();
+      }
+      spxEngineRef.current = engine;
+    }
+
     return audioCtxRef.current;
   }, [masterVolume, masterPan]);
 
   useEffect(() => {
     if (masterGainRef.current) masterGainRef.current.gain.value = masterVolume;
   }, [masterVolume]);
+
+  // ── Loop enforcement — checks playhead vs cycle region ─────────────────
+  const startLoopCheck = React.useCallback(() => {
+    if (loopCheckRef.current) cancelAnimationFrame(loopCheckRef.current);
+    const check = () => {
+      if (!cycleEnabled || !isPlaying) { loopCheckRef.current = null; return; }
+      const beatNow = playOffsetRef.current
+        + (audioCtxRef.current ? (audioCtxRef.current.currentTime - playStartRef.current) * (bpm / 60) : 0);
+      if (beatNow >= cycleEnd) {
+        // Jump back to cycle start
+        const jumpToSec = cycleStart * (60 / bpm);
+        playOffsetRef.current = cycleStart;
+        playStartRef.current  = audioCtxRef.current?.currentTime || 0;
+        setCurrentTime?.(jumpToSec);
+      }
+      loopCheckRef.current = requestAnimationFrame(check);
+    };
+    loopCheckRef.current = requestAnimationFrame(check);
+  }, [cycleEnabled, cycleStart, cycleEnd, bpm, isPlaying]);
+
+  // Start/stop loop check when play state or cycle changes
+  React.useEffect(() => {
+    if (isPlaying && cycleEnabled) startLoopCheck();
+    else if (loopCheckRef.current) { cancelAnimationFrame(loopCheckRef.current); loopCheckRef.current = null; }
+  }, [isPlaying, cycleEnabled, startLoopCheck]);
+
+  // ── MIDI Controller Setup ───────────────────────────────────────────────
+  React.useEffect(() => {
+    if (!midiEnabled) return;
+    let midiAccess = null;
+
+    navigator.requestMIDIAccess?.({ sysex: false }).then(access => {
+      midiAccess = access;
+      const handleMsg = (msg) => {
+        const [status, cc, value] = msg.data;
+        const isCC = (status & 0xF0) === 0xB0;
+        if (!isCC) return;
+
+        // MIDI Learn mode
+        if (midiLearnRef.current) {
+          const { target } = midiLearnRef.current;
+          midiMappingsRef.current.set(cc, target);
+          setMidiMappings([...midiMappingsRef.current.entries()].map(([k,v]) => ({ cc: k, ...v })));
+          midiLearnRef.current = null;
+          setMidiLearnMode(false);
+          setStatus(`✓ CC${cc} mapped to ${target.action}`);
+          return;
+        }
+
+        const mapping = midiMappingsRef.current.get(cc);
+        if (!mapping) {
+          // Default mappings for common controllers
+          handleDefaultMidiCC(cc, value);
+          return;
+        }
+        handleMappedMidiCC(mapping, value);
+      };
+
+      access.inputs.forEach(input => { input.onmidimessage = handleMsg; });
+      access.onstatechange = () => {
+        access.inputs.forEach(input => { input.onmidimessage = handleMsg; });
+      };
+    }).catch(e => console.warn('[MIDI] Access denied:', e));
+
+    return () => {
+      if (midiAccess) midiAccess.inputs.forEach(i => { i.onmidimessage = null; });
+    };
+  }, [midiEnabled]);
+
+  const handleDefaultMidiCC = React.useCallback((cc, value) => {
+    const norm = value / 127;
+    // Common default mappings
+    switch(cc) {
+      case 1:  // Mod wheel → master volume
+        setMasterVolume(norm);
+        break;
+      case 7:  // Volume → master volume
+        setMasterVolume(norm);
+        break;
+      case 10: // Pan → master pan
+        setMasterPan((norm * 2) - 1);
+        break;
+      case 64: // Sustain pedal → play/stop
+        if (value >= 64) handleTransportAction(isPlaying ? 'stop' : 'play');
+        break;
+      case 93: // Effect 1 → cycle toggle
+        if (value >= 64) setCycleEnabled(e => !e);
+        break;
+    }
+    // Track volume via CC 102–117 (16 tracks)
+    if (cc >= 102 && cc <= 117) {
+      const trackIdx = cc - 102;
+      if (tracks[trackIdx]) {
+        setTracks(prev => prev.map((t, i) =>
+          i === trackIdx ? { ...t, volume: Math.round(norm * 127) } : t
+        ));
+      }
+    }
+    // Track mute via CC 118–133
+    if (cc >= 118 && cc <= 133) {
+      const trackIdx = cc - 118;
+      if (tracks[trackIdx] && value >= 64) {
+        setTracks(prev => prev.map((t, i) =>
+          i === trackIdx ? { ...t, muted: !t.muted } : t
+        ));
+      }
+    }
+  }, [isPlaying, tracks]);
+
+  const handleMappedMidiCC = React.useCallback((mapping, value) => {
+    const norm = value / 127;
+    switch(mapping.action) {
+      case 'masterVolume':   setMasterVolume(norm); break;
+      case 'masterPan':      setMasterPan((norm * 2) - 1); break;
+      case 'play':           if (value >= 64) handleTransportAction('play'); break;
+      case 'stop':           if (value >= 64) handleTransportAction('stop'); break;
+      case 'record':         if (value >= 64) handleTransportAction('record'); break;
+      case 'cycleToggle':    if (value >= 64) setCycleEnabled(e => !e); break;
+      case 'trackVolume':
+        if (mapping.trackIdx !== undefined && tracks[mapping.trackIdx]) {
+          setTracks(prev => prev.map((t, i) =>
+            i === mapping.trackIdx ? { ...t, volume: Math.round(norm * 127) } : t
+          ));
+        }
+        break;
+      case 'trackMute':
+        if (mapping.trackIdx !== undefined && tracks[mapping.trackIdx] && value >= 64) {
+          setTracks(prev => prev.map((t, i) =>
+            i === mapping.trackIdx ? { ...t, muted: !t.muted } : t
+          ));
+        }
+        break;
+      case 'trackSolo':
+        if (mapping.trackIdx !== undefined && tracks[mapping.trackIdx] && value >= 64) {
+          setTracks(prev => prev.map((t, i) =>
+            i === mapping.trackIdx ? { ...t, soloed: !t.soloed } : t
+          ));
+        }
+        break;
+    }
+  }, [tracks]);
+
+  const startMidiLearn = React.useCallback((target) => {
+    midiLearnRef.current = { target };
+    setMidiLearnMode(true);
+    setStatus(`🎹 Move a knob/fader on your controller to map to: ${target.action}`);
+  }, []);
 
   // ── NEW: Master pan live update ──
   useEffect(() => {
@@ -2756,6 +2930,9 @@ const RecordingStudio = ({ user }) => {
       case "transport:metronome":
         metronomeOn?stopMetronome?.():startMetronome?.(audioCtxRef?.current);
         setMetronomeOn(m=>!m);setStatus(`Metronome ${metronomeOn?"OFF":"ON"}`); break;
+      case "transport:cycle":
+        setCycleEnabled(e => !e);
+        setStatus(`Cycle ${cycleEnabled ? "OFF" : "ON"}`); break;
       case "transport:countIn":
         setCountIn?.(c=>!c);setStatus(`Count-in ${countIn?"OFF":"ON"}`); break;
       case "transport:setBpm": {
@@ -3274,6 +3451,11 @@ const RecordingStudio = ({ user }) => {
         {!splitScreen && viewMode === "arrange" && (
           <div style={{ position: "relative" }}>
           <ArrangerView
+            cycleEnabled={cycleEnabled}
+            cycleStart={cycleStart}
+            cycleEnd={cycleEnd}
+            onCycleChange={(start, end) => { setCycleStart(start); setCycleEnd(end); }}
+            onCycleToggle={() => setCycleEnabled(e => !e)}
             tracks={tracks}
             setTracks={setTracks}
             bpm={bpm}

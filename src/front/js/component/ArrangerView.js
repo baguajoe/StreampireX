@@ -754,6 +754,11 @@ const ArrangerView = ({
   saving = false,
   // Browse Sounds callback
   onBrowseSounds,
+  // ── Bar selection → loop region ────────────────────────────────────────
+  // Shift+click on a bar number in the ruler sets loop start
+  // Shift+click+drag selects a range and sets cycle region
+  // Double-click on cycle region toggles cycle on/off
+
   // Cycle/loop callbacks — parent (RecordingStudio) manages the actual loop logic
   cycleStart: cycleStartProp,
   cycleEnd: cycleEndProp,
@@ -1116,7 +1121,7 @@ const ArrangerView = ({
                 {/* Cycle region highlight on lanes */}
                 {cycleEnabled && cycleStart != null && cycleEnd != null && cycleEnd > cycleStart && (
                   <div
-                    className="arr-cycle-lane-highlight"
+                    className="arr-cycle-lane-highlight arr-cycle-active"
                     style={{
                       left: `${beatToPx(cycleStart, zoom)}px`,
                       width: `${beatToPx(cycleEnd - cycleStart, zoom)}px`,
