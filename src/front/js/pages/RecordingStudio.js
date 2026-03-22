@@ -3783,6 +3783,7 @@ const RecordingStudio = ({ user }) => {
                 if (ai !== -1) uploadTrack(blob, ai);
               }}
             />
+            </div>
           </div>
         )}
         {/* ──────── PLUGIN RACK VIEW ──────── */}
