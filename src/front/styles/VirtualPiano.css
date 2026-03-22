@@ -8,6 +8,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
+  flex: 1;
   background: #0d1117;
   color: #c9d1d9;
   font-family: 'Segoe UI', -apple-system, sans-serif;
