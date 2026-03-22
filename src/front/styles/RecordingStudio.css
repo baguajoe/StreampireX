@@ -1868,3 +1868,61 @@
   pointer-events: none;
   z-index: 10;
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Master channel — stretch fader to fill full inner height
+   The container is 680px but the fader was fixed at 208px leaving
+   empty space at the bottom. This makes the fader fill all unused space.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Make the master channel itself a flex column */
+.daw-channel.master-channel,
+.daw-master {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fader area fills all remaining space after the header sections */
+.master-channel .daw-ch-fader-area,
+.daw-master .daw-ch-fader-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fader row also stretches */
+.master-channel .daw-ch-fader-row,
+.daw-master .daw-ch-fader-row {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+/* The fader input fills 100% of whatever space it gets */
+.master-channel .daw-ch-fader input[type="range"],
+.daw-master .daw-ch-fader input[type="range"],
+.master-channel .daw-ch-fader-area input[type="range"],
+.daw-master .daw-ch-fader-area input[type="range"] {
+  height: 100% !important;
+  min-height: 300px;
+}
+
+/* The meter bar beside the fader also stretches */
+.master-channel .daw-ch-meter,
+.daw-master .daw-ch-meter {
+  height: 100%;
+  min-height: 300px;
+}
+
+/* Any direct flex children inside master fader area stretch too */
+.master-channel .daw-ch-fader,
+.daw-master .daw-ch-fader {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
