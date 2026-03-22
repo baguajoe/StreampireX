@@ -2748,9 +2748,11 @@ const RecordingStudio = ({ user }) => {
         const pal=["#34c759","#ff9500","#007aff","#af52de","#ff3b30","#5ac8fa","#ff2d55","#ffcc00","#ff6b35","#00ffc8"];
         const next=pal[(pal.indexOf(tracks[sel]?.color??pal[0])+1)%pal.length];
         updateTrack(sel,{color:next});setStatus(`Track ${sel+1} color → ${next}`); break;
+      }
       case "track:rename": {
         const n=window.prompt("Rename track:",tracks[sel]?.name??`Track ${sel+1}`);
         if(n?.trim())updateTrack(sel,{name:n.trim()});break;
+      }
       case "transport:metronome":
         metronomeOn?stopMetronome?.():startMetronome?.(audioCtxRef?.current);
         setMetronomeOn(m=>!m);setStatus(`Metronome ${metronomeOn?"OFF":"ON"}`); break;
@@ -2759,12 +2761,15 @@ const RecordingStudio = ({ user }) => {
       case "transport:setBpm": {
         const b=window.prompt("Set BPM:",String(bpm??120));
         if(b&&!isNaN(parseInt(b)))setBpm(Math.max(20,Math.min(300,parseInt(b)))); break;
+      }
       case "transport:timeSignature": {
         const ts=window.prompt("Time signature (e.g. 4/4):",`${(timeSignature??[4,4])[0]}/${(timeSignature??[4,4])[1]}`);
         if(ts){const[top,bot]=ts.split("/").map(Number);if(top>0&&bot>0)setTimeSignature?.([top,bot]);} break;
+      }
       case "transport:goToEnd": {
         const mx=Math.max(...tracks.map(t=>t.audioBuffer?.duration??0),0);
         if(playOffsetRef)playOffsetRef.current=mx;setCurrentTime?.(mx); break;
+      }
       case "midi:hardware":
         setMidiEnabled?.(m=>!m);setStatus(midiEnabled?"MIDI OFF":"MIDI controller enabled"); break;
       case "midi:humanize": {
