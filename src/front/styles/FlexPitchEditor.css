@@ -1,0 +1,239 @@
+/* =============================================================================
+   FlexPitchEditor.css
+   Location: src/front/styles/FlexPitchEditor.css
+   ============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
+
+.fpe-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #080c12;
+  color: #cdd9e5;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  overflow: hidden;
+  border: 1px solid #1c2128;
+  border-radius: 8px;
+}
+
+/* ── HEADER ── */
+.fpe-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(90deg, #0d1520 0%, #080c12 100%);
+  border-bottom: 1px solid #1c2128;
+  flex-shrink: 0;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fpe-header-left,
+.fpe-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fpe-title {
+  color: #e6edf3;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+}
+
+.fpe-track-name {
+  color: #484f58;
+  font-size: 12px;
+}
+
+.fpe-shifted-badge {
+  background: #ffd60a22;
+  border: 1px solid #ffd60a44;
+  color: #ffd60a;
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Snap toggle */
+.fpe-snap-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #6e7681;
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+}
+.fpe-snap-toggle input { cursor: pointer; accent-color: #00ffc8; }
+
+/* Zoom controls */
+.fpe-zoom-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #1c2128;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.fpe-zoom-btn {
+  background: #0d1117;
+  border: none;
+  color: #6e7681;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  transition: all 0.1s;
+}
+.fpe-zoom-btn:hover { background: #161b22; color: #cdd9e5; }
+
+.fpe-zoom-label {
+  color: #6e7681;
+  font-size: 11px;
+  min-width: 32px;
+  text-align: center;
+}
+
+/* Buttons */
+.fpe-btn {
+  padding: 5px 12px;
+  border-radius: 5px;
+  border: 1.5px solid;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.fpe-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.fpe-btn--analyze { border-color: #4a9eff44; color: #4a9eff; background: transparent; }
+.fpe-btn--analyze:hover:not(:disabled) { border-color: #4a9eff; background: #4a9eff18; }
+
+.fpe-btn--reset { border-color: #ff6b6b44; color: #ff6b6b; background: transparent; }
+.fpe-btn--reset:hover:not(:disabled) { border-color: #ff6b6b; background: #ff6b6b18; }
+
+.fpe-btn--export { border-color: #00ffc844; color: #00ffc8; background: transparent; }
+.fpe-btn--export:hover:not(:disabled) { border-color: #00ffc8; background: #00ffc818; }
+
+.fpe-close-btn {
+  background: none;
+  border: 1px solid #30363d;
+  color: #6e7681;
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  transition: all 0.12s;
+}
+.fpe-close-btn:hover { border-color: #ff3b5c; color: #ff3b5c; }
+
+/* ── STATUS BAR ── */
+.fpe-status {
+  padding: 5px 14px;
+  background: #0a0e14;
+  border-bottom: 1px solid #1c2128;
+  color: #484f58;
+  font-size: 11px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── CANVAS AREA ── */
+.fpe-canvas-wrap {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.fpe-piano-canvas {
+  flex-shrink: 0;
+  display: block;
+  cursor: default;
+}
+
+.fpe-canvas-scroll {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #1c2128 transparent;
+}
+.fpe-canvas-scroll::-webkit-scrollbar { height: 4px; }
+.fpe-canvas-scroll::-webkit-scrollbar-thumb { background: #1c2128; border-radius: 2px; }
+
+.fpe-note-canvas {
+  display: block;
+  cursor: ns-resize;
+  user-select: none;
+  width: 100%;
+}
+
+/* ── NOTE DETAIL BAR ── */
+.fpe-note-detail {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  background: #0d1520;
+  border-top: 1px solid #1c2128;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.fpe-nd-label {
+  color: #cdd9e5;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fpe-nd-arrow { color: #ffd60a; }
+
+.fpe-nd-sep { color: #21262d; }
+
+.fpe-nd-input {
+  background: #161b22;
+  border: 1px solid #30363d;
+  color: #00ffc8;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  width: 48px;
+  text-align: center;
+  outline: none;
+}
+.fpe-nd-input:focus { border-color: #00ffc8; }
+
+.fpe-nd-reset {
+  background: none;
+  border: 1px solid #30363d;
+  color: #6e7681;
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+  transition: all 0.12s;
+}
+.fpe-nd-reset:hover { border-color: #ff6b6b; color: #ff6b6b; }

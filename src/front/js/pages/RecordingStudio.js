@@ -15,6 +15,7 @@
 // - Simple MIDI export (pianoRollNotes -> .mid download)
 // - InstrumentTrackEngine integration (GM Synth, Samples, External MIDI, Beat Maker → Arrange)
 // =============================================================================
+import FlexPitchEditor from '../component/FlexPitchEditor';
 import React, { useState, useEffect, useRef, useCallback, useMemo, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { Context } from "../store/appContext";
@@ -595,7 +596,14 @@ const RecordingStudio = ({ user }) => {
   const [viewMode, setViewMode] = useState("arrange");
 
   // ── Split Screen ────────────────────────────────────────────────────────
-  const [splitScreen,    setSplitScreen]    = useState(false);
+
+  // ── Flex Pitch ──────────────────────────────────────────────────────────────
+  const [showFlexPitch,    setShowFlexPitch]    = React.useState(false);
+  const [flexPitchBuffer,  setFlexPitchBuffer]  = React.useState(null);
+  const [flexPitchTrack,   setFlexPitchTrack]   = React.useState(null);
+  // ────────────────────────────────────────────────────────────────────────────
+
+    const [splitScreen,    setSplitScreen]    = useState(false);
   const [splitTopH,      setSplitTopH]      = useState(50); // percent
   const splitDragRef                        = React.useRef(false);
   const splitContainerRef                   = React.useRef(null);
@@ -1849,6 +1857,27 @@ const RecordingStudio = ({ user }) => {
     window.addEventListener('mouseup', onUp);
   }, []);
   // ─────────────────────────────────────────────────────────────────────────
+
+  
+  // ── Open flex pitch editor for a track ──────────────────────────────────────
+  const openFlexPitch = React.useCallback((ti) => {
+    const t = tracks[ti];
+    if (!t?.audioBuffer) {
+      setStatus(`⚠ Track ${ti + 1} has no audio — record or import first`);
+      return;
+    }
+    setFlexPitchBuffer(t.audioBuffer);
+    setFlexPitchTrack(ti);
+    setShowFlexPitch(true);
+  }, [tracks]);
+
+  const handleFlexPitchExport = React.useCallback((correctedBuffer) => {
+    if (flexPitchTrack === null) return;
+    updateTrack(flexPitchTrack, { audioBuffer: correctedBuffer });
+    setStatus(`✓ Pitch corrections applied to Track ${flexPitchTrack + 1}`);
+    setShowFlexPitch(false);
+  }, [flexPitchTrack, updateTrack]);
+  // ────────────────────────────────────────────────────────────────────────────
 
     const rewind = () => {
     if (isPlaying) stopPlayback();
@@ -3235,7 +3264,26 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {/* ──────── CONSOLE VIEW — Cubase-style with CubaseMeter + Master Pan Knob ──────── */}
-                {/* ══ SPLIT SCREEN: Arrange top + Mixer bottom simultaneously ══════════ */}
+        
+        {/* ══ FLEX PITCH EDITOR OVERLAY ══════════════════════════════════════ */}
+        {showFlexPitch && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 200,
+            background: 'rgba(4,8,15,0.95)',
+            display: 'flex', flexDirection: 'column',
+          }}>
+            <FlexPitchEditor
+              audioBuffer={flexPitchBuffer}
+              audioContext={audioCtxRef?.current}
+              trackName={tracks[flexPitchTrack]?.name ?? `Track ${(flexPitchTrack ?? 0) + 1}`}
+              onClose={() => setShowFlexPitch(false)}
+              onExport={handleFlexPitchExport}
+            />
+          </div>
+        )}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+
+        {/* ══ SPLIT SCREEN: Arrange top + Mixer bottom simultaneously ══════════ */}
         {splitScreen && (
           <div
             ref={splitContainerRef}

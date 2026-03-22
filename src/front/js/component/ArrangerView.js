@@ -15,6 +15,8 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import '../../styles/ArrangerView.css';
+import AutomationLane, { AUTO_PARAMS, getValueAtTime } from './AutomationLane';
+
 
 // =============================================================================
 // TIER CONFIGURATION — matches seed_pricing_plans.py
@@ -96,6 +98,15 @@ const formatBarBeat = (beat, timeSignatureTop) => {
 const WaveformMini = React.memo(({ audioUrl, color, width, height }) => {
   const canvasRef = useRef(null);
   const [waveData, setWaveData] = useState(null);
+
+  // ── Per-track automation ─────────────────────────────────────────────────
+  const [automation, setAutomation] = React.useState({}); // { trackId: { paramKey: [points] } }
+  const [autoParams, setAutoParams] = React.useState({}); // { trackId: paramKey }
+  const [autoRead,   setAutoRead]   = React.useState({}); // { trackId: bool }
+  const [autoWrite,  setAutoWrite]  = React.useState({}); // { trackId: bool }
+  const [autoCollapsed, setAutoCollapsed] = React.useState({}); // { trackId: bool }
+  // ────────────────────────────────────────────────────────────────────────
+
 
   useEffect(() => {
     if (!audioUrl) return;
@@ -232,6 +243,27 @@ const Region = React.memo(({
   };
 
   const isInstrument = trackType === 'instrument';
+
+
+  // ── Apply automation to track audio nodes ────────────────────────────────
+  React.useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      tracks.forEach((t, i) => {
+        const tId = t.id ?? i;
+        if (!autoRead[tId]) return;
+        const tAuto  = automation[tId] ?? {};
+        const paramK = autoParams[tId] ?? 'volume';
+        const param  = AUTO_PARAMS.find(p => p.key === paramK);
+        if (!param) return;
+        const pts = (tAuto[paramK] ?? []).sort((a,b) => a.time - b.time);
+        const val = getValueAtTime(pts, currentTime, param);
+        if (t.gainNode) t.gainNode.gain.setTargetAtTime(val, 0, 0.01);
+      });
+    }, 50);
+    return () => clearInterval(interval);
+  }, [isPlaying, tracks, automation, autoRead, autoParams, currentTime]);
+  // ────────────────────────────────────────────────────────────────────────
 
   return (
     <div
