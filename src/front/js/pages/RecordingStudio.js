@@ -4348,7 +4348,6 @@ const RecordingStudio = ({ user }) => {
               <button onClick={() => setShowVocalModal(false)} style={{position:'absolute',top:8,right:12,background:'none',border:'none',color:'#fff',fontSize:'18px',cursor:'pointer',zIndex:10}}>✕</button>
             <VocalProcessor
               audioContext={audioCtxRef.current}
-              onClose={() => setViewMode("arrange")}
               isEmbedded={true}
               tracks={tracks}
               selectedTrackIndex={selectedTrackIndex}

@@ -165,11 +165,6 @@ const SOUND_LIBRARY = {
   "Bass & 808 Pack": ["808 Slide", "Bass Zap", "Brass 808", "Buzzy Bass", "Dutty 808", "Envelope Bass", "Erosion 808", "Filter Driven Bass", "Nostril 808", "Panned Robot Reese", "Punchy 808", "Rekt 808", "Reverse Bass", "Screech Bass", "Slug Bass", "Tom 808"],
   "Vintage Drum Breaks": ["Drum Break 100", "Drum Break 78", "Drum Break 79", "Drum Break 85", "Drum Break 86", "Drum Break 87", "Drum Break 88", "Drum Break 89", "Drum Break 93", "Drum Break 94", "Drum Break 95", "Drum Break 96", "Drum Break 97", "Drum Break 98", "Drum Break 99", "Drum Break ?"],
   'Trap Kit': ["Kick", "Kick 2", "Kick Alt", "Snare", "Snare 2", "Snare Alt", "Hi Hat", "Hi Hat 2", "Hi Hat 3", "Open Hat", "Open Hat 2", "Perc", "Perc 2", "Perc 3", "Perc 4", "Snare 3"],
-  'Trap Kit': [
-    '808 Deep', '808 Distorted', 'Kick Hard', 'Snare Tight',
-    'HH Closed', 'HH Open', 'HH Roll', 'Clap',
-    'Rim', 'Perc 1', 'Crash', 'Vox Chop',
-  ],
   'Boom Bap Kit': [
     'Kick Dusty', 'Snare Vinyl', 'HH Tight', 'Open Hat',
     'Shaker', 'Kick Alt', 'Snare Ghost', 'Ride',
