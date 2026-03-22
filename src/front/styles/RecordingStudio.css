@@ -1131,9 +1131,23 @@
 .daw-instrbuilder-view {
   width: 100%;
   height: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background:
     radial-gradient(circle at top, rgba(90,200,250,0.04), transparent 28%),
     linear-gradient(180deg, rgba(8,17,26,0.98), rgba(4,7,12,1));
+}
+
+.daw-piano-view > *,
+.daw-drumdesigner-view > *,
+.daw-aimix-view > *,
+.daw-synth-view > *,
+.daw-instrbuilder-view > * {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
 }
 
 /* =============================================================================

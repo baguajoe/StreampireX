@@ -3573,7 +3573,7 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {viewMode === "piano" && (
-          <div className="daw-piano-view">
+          <div className="daw-piano-view" style={{flex:1,width:'100%',height:'100%',display:'flex',flexDirection:'column'}}>
             <VirtualPiano audioContext={audioCtxRef.current} onRecordingComplete={() => { }} embedded={true} />
           </div>
         )}
