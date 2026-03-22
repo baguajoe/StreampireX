@@ -367,11 +367,12 @@ const UnifiedFXChain = ({
     root: {
       display: 'flex',
       flexDirection: 'column',
+      width: '100%',
       height: '100%',
       background: '#0d1117',
       color: '#cdd9e5',
       fontFamily: "'JetBrains Mono','Fira Code',monospace",
-      fontSize: '11px',
+      fontSize: '13px',
       overflow: 'hidden',
     },
     header: {
