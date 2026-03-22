@@ -43,7 +43,7 @@ const STREAMING_TARGETS = {
 // ─────────────────────────────────────────────────────────────────────────────
 // KnobCell — rotary knob + live value readout + label
 // ─────────────────────────────────────────────────────────────────────────────
-const KnobCell = ({ label, value, min, max, step, fmt, color, onChange, size = 52 }) => (
+const KnobCell = ({ label, value, min, max, step, fmt, color, onChange, size = 68 }) => (
   <div
     style={{
       display: 'flex',
