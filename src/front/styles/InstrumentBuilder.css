@@ -1,123 +1,212 @@
-/* InstrumentBuilder.css */
+/* InstrumentBuilder.css — Full rewrite */
 .ib-root {
-  display: flex; flex-direction: column;
-  background: #0d1117; color: #ddeeff;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #0d1117;
+  color: #ddeeff;
   font-family: 'JetBrains Mono', 'Courier New', monospace;
-  border: 1px solid #1e2d3d; border-radius: 8px; overflow: hidden;
-  min-width: 0; max-width: 100%; width: 100%;
-  box-shadow: 0 0 30px rgba(0,0,0,0.4);
+  overflow: hidden;
 }
+
 .ib-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px; background: #0a0e14; border-bottom: 1px solid #1e2d3d;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #0a0e14;
+  border-bottom: 1px solid #1e2d3d;
+  flex-shrink: 0;
+  gap: 10px;
 }
+
 .ib-title {
-  font-size: 0.7rem; font-weight: 700; color: #00ffc8;
-  letter-spacing: 3px; text-transform: uppercase;
-  text-shadow: 0 0 10px rgba(0,255,200,0.4);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #00ffc8;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
+
 .ib-name-input {
-  background: transparent; border: none; border-bottom: 1px solid #2a3a4a;
-  color: #aaccee; font-size: 0.7rem; font-family: 'JetBrains Mono', monospace;
-  padding: 2px 6px; outline: none; width: 160px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #2a3a4a;
+  color: #aaccee;
+  font-size: 0.82rem;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 4px 8px;
+  outline: none;
+  flex: 1;
+  max-width: 200px;
 }
 .ib-name-input:focus { border-bottom-color: #00ffc8; }
 
 .ib-presets {
-  display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 14px;
-  background: #0a0e14; border-bottom: 1px solid #1a2535;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 20px;
+  background: #0a0e14;
+  border-bottom: 1px solid #1a2535;
+  flex-shrink: 0;
 }
+
 .ib-preset-btn {
-  padding: 4px 10px; background: #111827; border: 1px solid #1e2d3d;
-  color: #7a9ab8; border-radius: 4px; font-size: 0.6rem; cursor: pointer;
-  font-family: 'JetBrains Mono', monospace; transition: all 0.12s;
+  padding: 5px 12px;
+  background: #111827;
+  border: 1px solid #1e2d3d;
+  color: #7a9ab8;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.12s;
 }
-.ib-preset-btn:hover { border-color: #00ffc8; color: #00ffc8; background: #00ffc811; }
+.ib-preset-btn:hover { border-color: #00ffc8; color: #00ffc8; }
 
 .ib-body {
-  display: flex; flex: 1; overflow: hidden; min-height: 300px;
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 
-/* LAYER PANEL */
 .ib-layers {
-  width: 300px; min-width: 260px; border-right: 1px solid #1e2d3d;
-  overflow-y: auto; padding: 10px;
-  scrollbar-width: thin; scrollbar-color: #1e2d3d transparent;
+  width: 280px;
+  min-width: 240px;
+  border-right: 1px solid #1e2d3d;
+  overflow-y: auto;
+  padding: 16px;
+  flex-shrink: 0;
 }
+
 .ib-layers-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #1a2535;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #1a2535;
 }
+
 .ib-section-label {
-  font-size: 0.55rem; font-weight: 700; color: #5a7088;
-  text-transform: uppercase; letter-spacing: 2px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #5a7088;
+  text-transform: uppercase;
+  letter-spacing: 2px;
 }
+
 .ib-add-btn {
-  padding: 2px 6px; background: transparent;
-  border: 1px solid #1e2d3d; border-radius: 3px;
-  font-size: 0.55rem; cursor: pointer; font-family: 'JetBrains Mono', monospace;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid #1e2d3d;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  color: #7a9ab8;
   transition: all 0.1s;
 }
-.ib-add-btn:hover { opacity: 1; background: #0d1520; }
+.ib-add-btn:hover { background: #0d1520; color: #00ffc8; border-color: #00ffc8; }
 
 .ib-layer {
-  background: #111827; border: 1px solid #1e2d3d; border-radius: 5px;
-  padding: 8px; margin-bottom: 6px; cursor: pointer; transition: border-color 0.1s;
+  background: #111827;
+  border: 1px solid #1e2d3d;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.1s;
 }
 .ib-layer:hover { border-color: #2a3a4a; }
-.ib-layer-selected { background: #0d1a26; }
-.ib-layer-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-.ib-layer-name { font-size: 0.6rem; font-weight: 600; }
-.ib-layer-file { font-size: 0.5rem; color: #4a6080; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ib-layer-mini-knobs { display: flex; gap: 8px; }
+.ib-layer-selected { background: #0d1a26; border-color: #00ffc833; }
+
+.ib-layer-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ib-layer-name { font-size: 0.72rem; font-weight: 600; }
+.ib-layer-file { font-size: 0.6rem; color: #4a6080; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ib-layer-mini-knobs { display: flex; gap: 10px; }
 
 .ib-mini-btn {
-  padding: 1px 5px; background: transparent; border: 1px solid #2a3a4a;
-  color: #4a6080; border-radius: 3px; font-size: 0.55rem; cursor: pointer;
-  font-family: 'JetBrains Mono', monospace; transition: all 0.1s;
+  padding: 2px 6px;
+  background: transparent;
+  border: 1px solid #2a3a4a;
+  color: #4a6080;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.1s;
 }
 .ib-mini-active-teal { background: #00ffc822; border-color: #00ffc8; color: #00ffc8; }
 .ib-mini-active-red { background: #ff444422; border-color: #ff4444; color: #ff4444; }
 .ib-mini-del:hover { border-color: #ff4444; color: #ff4444; }
 
-/* DETAIL PANEL */
 .ib-detail {
-  flex: 1; padding: 12px; overflow-y: auto;
-  scrollbar-width: thin; scrollbar-color: #1e2d3d transparent;
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
 }
-.ib-knob-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+
+.ib-knob-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
 
 .ib-pill {
-  padding: 3px 8px; background: transparent; border: 1px solid #1e2d3d;
-  color: #4a6080; border-radius: 3px; font-size: 0.58rem; cursor: pointer;
-  font-family: 'JetBrains Mono', monospace; text-transform: uppercase; transition: all 0.1s;
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid #1e2d3d;
+  color: #4a6080;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  transition: all 0.1s;
 }
 .ib-pill:hover { border-color: #3a5570; color: #8aabcc; }
 .ib-pill-active { background: #00ffc822; border-color: #00ffc8; color: #00ffc8; }
 
 .ib-fx-block {
-  background: #111827; border: 1px solid #1e2d3d; border-radius: 5px;
-  padding: 8px; min-width: 100px;
+  background: #111827;
+  border: 1px solid #1e2d3d;
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 120px;
 }
 
 .ib-upload-btn {
-  display: inline-block; padding: 5px 12px;
-  background: transparent; border: 1px solid #5ac8fa55; color: #5ac8fa;
-  border-radius: 4px; font-size: 0.6rem; cursor: pointer;
-  font-family: 'JetBrains Mono', monospace; transition: all 0.12s;
+  display: inline-block;
+  padding: 7px 16px;
+  background: transparent;
+  border: 1px solid #5ac8fa55;
+  color: #5ac8fa;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.12s;
 }
 .ib-upload-btn:hover { background: #5ac8fa11; border-color: #5ac8fa; }
 
-/* KEYBOARD */
 .ib-keyboard-row {
-  background: #0a0e14; border-top: 1px solid #1a2535; padding: 8px 14px;
+  background: #0a0e14;
+  border-top: 1px solid #1a2535;
+  padding: 10px 20px;
+  flex-shrink: 0;
 }
 
-/* BUTTONS */
 .ib-btn {
-  padding: 4px 9px; background: transparent; border: 1px solid #2a3a4a;
-  color: #7a9ab8; border-radius: 4px; font-size: 0.6rem; cursor: pointer;
-  font-family: 'JetBrains Mono', monospace; transition: all 0.12s;
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid #2a3a4a;
+  color: #7a9ab8;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.12s;
 }
 .ib-btn:hover { border-color: #4a6a8a; color: #aaccee; }
 .ib-btn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -128,8 +217,30 @@
 .ib-btn-close { border-color: #3a2a2a; color: #aa6666; }
 .ib-btn-close:hover { border-color: #ff4444; color: #ff4444; background: #ff000011; }
 
-/* MODAL */
-.ib-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-.ib-modal { background: #111827; border: 1px solid #00ffc844; border-radius: 8px; padding: 20px; min-width: 260px; box-shadow: 0 0 30px rgba(0,255,200,0.1); }
-.ib-input { width: 100%; background: #0d1117; border: 1px solid #2a3a4a; color: #ddeeff; border-radius: 4px; padding: 7px 10px; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; outline: none; box-sizing: border-box; }
+.ib-modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+}
+.ib-modal {
+  background: #111827;
+  border: 1px solid #00ffc844;
+  border-radius: 10px;
+  padding: 24px;
+  min-width: 280px;
+  box-shadow: 0 0 30px rgba(0,255,200,0.1);
+}
+.ib-input {
+  width: 100%;
+  background: #0d1117;
+  border: 1px solid #2a3a4a;
+  color: #ddeeff;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-family: 'JetBrains Mono', monospace;
+  outline: none;
+  box-sizing: border-box;
+}
 .ib-input:focus { border-color: #00ffc8; box-shadow: 0 0 6px rgba(0,255,200,0.2); }
