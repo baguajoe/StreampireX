@@ -1740,3 +1740,21 @@
   box-shadow: 0 20px 60px rgba(0,0,0,0.8);
   padding: 8px;
 }
+
+
+/* ── Master channel / channel strips — equal height ──────────────────────── */
+.rs-master-channel,
+.daw-master-channel {
+  min-height: 420px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+.rs-channel-strip,
+.daw-channel-strip {
+  min-height: 420px;
+}
+.rs-mixer-row,
+.daw-mixer-row {
+  align-items: stretch;
+}

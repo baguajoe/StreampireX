@@ -1034,6 +1034,10 @@ const RecordingStudio = ({ user }) => {
       const ab = await r.arrayBuffer();
       const buf = await ctx.decodeAudioData(ab);
       updateTrack(ti, { audioBuffer: buf, audio_url: url });
+        detectBPM(buf).then(det => {
+          if (det && Math.abs(det - bpm) > 5)
+            window.confirm(`Detected BPM: ${det} — set project to ${det}?`) && setBpm(det);
+        });
       return buf;
     } catch (e) {
       console.error(e);
@@ -1664,7 +1668,159 @@ const RecordingStudio = ({ user }) => {
     setCurrentTime(0);
   };
 
-  const rewind = () => {
+
+  // ── Mix Down / Bounce to WAV ─────────────────────────────────────────
+  const mixDownProject = async () => {
+    const hasTracks = tracks.some(t => t.audioBuffer);
+    if (!hasTracks) { setStatus("⚠ No audio to bounce"); return; }
+    setMixingDown && setMixingDown(true);
+    setStatus("⏳ Bouncing to WAV...");
+    try {
+      const sr     = 44100;
+      const maxDur = Math.max(...tracks.map(t => t.audioBuffer?.duration ?? 0), 0.5);
+      const offCtx = new OfflineAudioContext(2, Math.ceil(sr * (maxDur + 1)), sr);
+      const master = offCtx.createGain();
+      master.gain.value = masterVolume ?? 1;
+      master.connect(offCtx.destination);
+
+      tracks.forEach(t => {
+        if (!t.audioBuffer || t.muted) return;
+        const anySolo = tracks.some(x => x.solo);
+        if (anySolo && !t.solo) return;
+        const src = offCtx.createBufferSource(); src.buffer = t.audioBuffer;
+        const g   = offCtx.createGain(); g.gain.value = t.volume ?? 0.8;
+        const pan = offCtx.createStereoPanner(); pan.pan.value = t.pan ?? 0;
+        let last  = src;
+        const fx  = t.effects ?? {};
+        if (fx.eq?.enabled) {
+          const lo=offCtx.createBiquadFilter();lo.type='lowshelf';lo.frequency.value=fx.eq.lowFreq??200;lo.gain.value=fx.eq.lowShelf??0;
+          const mi=offCtx.createBiquadFilter();mi.type='peaking';mi.frequency.value=fx.eq.midFreq??1000;mi.Q.value=fx.eq.midQ??1;mi.gain.value=fx.eq.midPeak??0;
+          const hi=offCtx.createBiquadFilter();hi.type='highshelf';hi.frequency.value=fx.eq.highFreq??8000;hi.gain.value=fx.eq.highShelf??0;
+          last.connect(lo);lo.connect(mi);mi.connect(hi);last=hi;
+        }
+        if (fx.compressor?.enabled) {
+          const c=offCtx.createDynamicsCompressor();
+          c.threshold.value=fx.compressor.threshold??-24;c.ratio.value=fx.compressor.ratio??4;
+          c.attack.value=(fx.compressor.attack??10)/1000;c.release.value=(fx.compressor.release??100)/1000;
+          last.connect(c);last=c;
+        }
+        if (fx.reverb?.enabled&&(fx.reverb.mix??0)>0) {
+          const decLen=Math.floor(sr*(fx.reverb.decay??1.5));
+          const ir=offCtx.createBuffer(2,decLen,sr);
+          for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<decLen;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/decLen,1.8);}
+          const conv=offCtx.createConvolver();conv.buffer=ir;
+          const wet=offCtx.createGain();wet.gain.value=fx.reverb.mix??0.3;
+          const dry=offCtx.createGain();dry.gain.value=1-(fx.reverb.mix??0.3);
+          const mx=offCtx.createGain();
+          last.connect(dry);dry.connect(mx);last.connect(conv);conv.connect(wet);wet.connect(mx);last=mx;
+        }
+        if (fx.delay?.enabled&&(fx.delay.mix??0)>0) {
+          const dly=offCtx.createDelay(2);dly.delayTime.value=(fx.delay.time??250)/1000;
+          const fb=offCtx.createGain();fb.gain.value=(fx.delay.feedback??30)/100;
+          const wet=offCtx.createGain();wet.gain.value=(fx.delay.mix??25)/100;
+          const dry=offCtx.createGain();dry.gain.value=1-(fx.delay.mix??25)/100;
+          const mx=offCtx.createGain();
+          last.connect(dly);dly.connect(fb);fb.connect(dly);dly.connect(wet);wet.connect(mx);last.connect(dry);dry.connect(mx);last=mx;
+        }
+        if (fx.limiter?.enabled) {
+          const lim=offCtx.createDynamicsCompressor();
+          lim.threshold.value=fx.limiter.threshold??-1;lim.knee.value=0;lim.ratio.value=20;
+          lim.attack.value=0.001;lim.release.value=(fx.limiter.release??50)/1000;
+          last.connect(lim);last=lim;
+        }
+        last.connect(g);g.connect(pan);pan.connect(master);
+        src.start(t.startTime??0);
+      });
+
+      const buf=await offCtx.startRendering();
+      const nc=buf.numberOfChannels,len=buf.length*nc*2;
+      const ab=new ArrayBuffer(44+len);const view=new DataView(ab);
+      const ws=(o,s)=>{for(let i=0;i<s.length;i++)view.setUint8(o+i,s.charCodeAt(i));};
+      ws(0,'RIFF');view.setUint32(4,36+len,true);ws(8,'WAVE');
+      ws(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);
+      view.setUint16(22,nc,true);view.setUint32(24,sr,true);
+      view.setUint32(28,sr*nc*2,true);view.setUint16(32,nc*2,true);
+      view.setUint16(34,16,true);ws(36,'data');view.setUint32(40,len,true);
+      let off=44;
+      for(let i=0;i<buf.length;i++)for(let ch=0;ch<nc;ch++){
+        const s=Math.max(-1,Math.min(1,buf.getChannelData(ch)[i]));
+        view.setInt16(off,s<0?s*0x8000:s*0x7FFF,true);off+=2;
+      }
+      const blob=new Blob([ab],{type:'audio/wav'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download=`${(projectName??'project').replace(/\s+/g,'_')}_mix.wav`;
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),8000);
+      setStatus(`✓ Bounced: ${a.download}`);
+    } catch(e){setStatus(`✗ Bounce failed: ${e.message}`);}
+    setMixingDown && setMixingDown(false);
+  };
+  // ─────────────────────────────────────────────────────────────────────
+
+  // ── Smart BPM Detection ───────────────────────────────────────────────
+  const detectBPM = async (audioBuffer) => {
+    try {
+      const data=audioBuffer.getChannelData(0),sr=audioBuffer.sampleRate;
+      const win=Math.floor(sr*0.01),energy=[];
+      for(let i=0;i<data.length-win;i+=win){let e=0;for(let j=0;j<win;j++)e+=data[i+j]*data[i+j];energy.push(e/win);}
+      const avg=energy.reduce((a,b)=>a+b,0)/energy.length,thresh=avg*1.6;
+      const beats=[];let last=0,minGap=Math.floor(sr*0.01*0.25/win);
+      for(let i=1;i<energy.length;i++)if(energy[i]>thresh&&energy[i]>energy[i-1]&&(i-last)>minGap){beats.push(i*win/sr);last=i;}
+      if(beats.length<4)return null;
+      const ints=[];for(let i=1;i<Math.min(beats.length,32);i++)ints.push(beats[i]-beats[i-1]);
+      const avgInt=ints.reduce((a,b)=>a+b,0)/ints.length,raw=Math.round(60/avgInt);
+      if(raw>=60&&raw<=200)return raw;if(raw>=30&&raw<60)return raw*2;if(raw>200)return Math.round(raw/2);
+      return null;
+    }catch(_){return null;}
+  };
+  // ─────────────────────────────────────────────────────────────────────
+
+  // ── Freeze / Unfreeze Track ───────────────────────────────────────────
+  const freezeTrack = async (ti) => {
+    const t=tracks[ti];
+    if(!t?.audioBuffer){setStatus(`⚠ Track ${ti+1} has no audio to freeze`);return;}
+    if(t.frozen){setStatus(`Track ${ti+1} already frozen`);return;}
+    setStatus(`⏳ Freezing Track ${ti+1}...`);
+    try{
+      const sr=44100,offCtx=new OfflineAudioContext(2,Math.ceil(sr*(t.audioBuffer.duration+0.5)),sr);
+      const src=offCtx.createBufferSource();src.buffer=t.audioBuffer;
+      const g=offCtx.createGain();g.gain.value=t.volume??0.8;
+      const pan=offCtx.createStereoPanner();pan.pan.value=t.pan??0;
+      let last=src;const fx=t.effects??{};
+      if(fx.eq?.enabled){
+        const lo=offCtx.createBiquadFilter();lo.type='lowshelf';lo.frequency.value=fx.eq.lowFreq??200;lo.gain.value=fx.eq.lowShelf??0;
+        const mi=offCtx.createBiquadFilter();mi.type='peaking';mi.frequency.value=fx.eq.midFreq??1000;mi.Q.value=1.5;mi.gain.value=fx.eq.midPeak??0;
+        const hi=offCtx.createBiquadFilter();hi.type='highshelf';hi.frequency.value=fx.eq.highFreq??8000;hi.gain.value=fx.eq.highShelf??0;
+        last.connect(lo);lo.connect(mi);mi.connect(hi);last=hi;
+      }
+      if(fx.compressor?.enabled){
+        const c=offCtx.createDynamicsCompressor();
+        c.threshold.value=fx.compressor.threshold??-24;c.ratio.value=fx.compressor.ratio??4;
+        c.attack.value=(fx.compressor.attack??10)/1000;c.release.value=(fx.compressor.release??100)/1000;
+        last.connect(c);last=c;
+      }
+      last.connect(g);g.connect(pan);pan.connect(offCtx.destination);
+      src.start(0);
+      const rendered=await offCtx.startRendering();
+      updateTrack(ti,{audioBuffer:rendered,frozenBuffer:t.audioBuffer,
+        frozenEffects:JSON.parse(JSON.stringify(fx)),frozen:true,
+        name:(t.name??`Track ${ti+1}`)+'  ❄'});
+      setStatus(`✓ Track ${ti+1} frozen — FX baked in`);
+    }catch(e){setStatus(`✗ Freeze failed: ${e.message}`);}
+  };
+
+  const unfreezeTrack=(ti)=>{
+    const t=tracks[ti];
+    if(!t?.frozen||!t?.frozenBuffer){setStatus(`Track ${ti+1} is not frozen`);return;}
+    updateTrack(ti,{audioBuffer:t.frozenBuffer,frozenBuffer:null,
+      effects:t.frozenEffects??t.effects,frozen:false,
+      name:(t.name??'').replace('  ❄','')});
+    setStatus(`✓ Track ${ti+1} unfrozen`);
+  };
+  // ─────────────────────────────────────────────────────────────────────
+
+    const rewind = () => {
     if (isPlaying) stopPlayback();
     playOffsetRef.current = 0;
     setCurrentTime(0);
@@ -2495,6 +2651,61 @@ const RecordingStudio = ({ user }) => {
       case "track:clear":
         clearTrack(sel);
         break;
+      case "track:duplicate": {
+        if (!tracks[sel]) break;
+      case "track:color": {
+        const pal=["#34c759","#ff9500","#007aff","#af52de","#ff3b30","#5ac8fa","#ff2d55","#ffcc00","#ff6b35","#00ffc8"];
+        const next=pal[(pal.indexOf(tracks[sel]?.color??pal[0])+1)%pal.length];
+        updateTrack(sel,{color:next});setStatus(`Track ${sel+1} color → ${next}`); break;
+      case "track:rename": {
+        const n=window.prompt("Rename track:",tracks[sel]?.name??`Track ${sel+1}`);
+        if(n?.trim())updateTrack(sel,{name:n.trim()});break;
+      case "transport:metronome":
+        metronomeOn?stopMetronome?.():startMetronome?.(audioCtxRef?.current);
+        setMetronomeOn(m=>!m);setStatus(`Metronome ${metronomeOn?"OFF":"ON"}`); break;
+      case "transport:countIn":
+        setCountIn?.(c=>!c);setStatus(`Count-in ${countIn?"OFF":"ON"}`); break;
+      case "transport:setBpm": {
+        const b=window.prompt("Set BPM:",String(bpm??120));
+        if(b&&!isNaN(parseInt(b)))setBpm(Math.max(20,Math.min(300,parseInt(b)))); break;
+      case "transport:timeSignature": {
+        const ts=window.prompt("Time signature (e.g. 4/4):",`${(timeSignature??[4,4])[0]}/${(timeSignature??[4,4])[1]}`);
+        if(ts){const[top,bot]=ts.split("/").map(Number);if(top>0&&bot>0)setTimeSignature?.([top,bot]);} break;
+      case "transport:goToEnd": {
+        const mx=Math.max(...tracks.map(t=>t.audioBuffer?.duration??0),0);
+        if(playOffsetRef)playOffsetRef.current=mx;setCurrentTime?.(mx); break;
+      case "midi:hardware":
+        setMidiEnabled?.(m=>!m);setStatus(midiEnabled?"MIDI OFF":"MIDI controller enabled"); break;
+      case "midi:humanize": {
+        const h=(pianoRollNotes??[]).map(n=>({...n,
+          startBeat:+(n.startBeat+(Math.random()-.5)*.04).toFixed(4),
+          velocity:+Math.max(.05,Math.min(1,(n.velocity??.8)+(Math.random()-.5)*.15)).toFixed(3)}));
+        setPianoRollNotes?.(h);setStatus(`✓ Humanized ${h.length} notes`); break;
+      case "midi:quantize": {
+        const g=0.25;
+        setPianoRollNotes?.(p=>p.map(n=>({...n,startBeat:Math.round(n.startBeat/g)*g})));
+        setStatus("✓ Quantized to 1/16"); break;
+      case "midi:transpose": {
+        const s=window.prompt("Semitones (+/-)","0");
+        if(s!==null&&!isNaN(parseInt(s))){
+          const n=parseInt(s);
+          setPianoRollNotes?.(p=>p.map(note=>({...note,note:Math.max(0,Math.min(127,(note.note??60)+n))})));
+          setStatus(`✓ Transposed ${n>0?"+":""}${n} semitones`);
+        } break;
+      case "midi:velocity": {
+        const pct=window.prompt("Scale velocity %","100");
+        if(pct&&!isNaN(parseFloat(pct))){
+          const sc=parseFloat(pct)/100;
+          setPianoRollNotes?.(p=>p.map(n=>({...n,velocity:+Math.max(.05,Math.min(1,(n.velocity??.8)*sc)).toFixed(3)})));
+          setStatus(`✓ Velocity ×${pct}%`);
+        } break;
+      case "midi:clearAll":
+        if(window.confirm("Clear all piano roll notes?"))setPianoRollNotes?.([]);break;
+      case "file:projectSettings": {
+        const nm=window.prompt("Project name:",projectName??"Untitled");
+        if(nm?.trim())setProjectName?.(nm.trim());
+        const b=window.prompt("BPM:",String(bpm??120));
+        if(b&&!isNaN(parseInt(b)))setBpm?.(Math.max(20,Math.min(300,parseInt(b)))); break;
       default:
         setStatus(`ℹ Unhandled action: ${action}`);
         break;
