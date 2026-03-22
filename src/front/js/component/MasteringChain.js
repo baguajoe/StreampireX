@@ -1,31 +1,12 @@
-import { Knob } from './Knob';
 // =============================================================================
 // MasteringChain.js — Full Professional Mastering Suite
 // =============================================================================
 // Location: src/front/js/component/MasteringChain.js
-//
-// All mastering tools in one view, in signal-flow order:
-//   1. High-Pass Filter (rumble cut)
-//   2. Parametric EQ (surgical tone shaping)
-//   3. Mid/Side (stereo width control, M/S EQ)
-//   4. Harmonic Exciter (adds air & presence)
-//   5. Stereo Widener (Haas effect / correlation)
-//   6. True Peak Limiter (inter-sample peak protection)
-//   7. LUFS Loudness Meter (Spotify/Apple/YouTube targets)
-//   8. Spectral Analyzer (frequency visualization)
-//   9. Goniometer (phase/stereo correlation)
-//
-// All parameters use rotary Knob components (drag up/down, double-click reset).
-//
-// Props:
-//   audioContext  — shared Web Audio context
-//   inputNode     — node to tap (masterGainRef.current)
-//   outputNode    — destination (audioContext.destination)
-//   onClose       — handler
-//   isEmbedded    — boolean
 // =============================================================================
 
 import React, { useState, useEffect, useRef } from 'react';
+import { Knob } from './Knob';
+import '../../styles/MasteringChain.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -41,19 +22,10 @@ const STREAMING_TARGETS = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// KnobCell — rotary knob + live value readout + label
+// KnobCell — rotary knob + live value + label, full-width flex child
 // ─────────────────────────────────────────────────────────────────────────────
 const KnobCell = ({ label, value, min, max, step, fmt, color, onChange, size = 68 }) => (
-  <div
-    style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: '1px',
-      width: size + 20,
-      flexShrink: 0,
-    }}
-  >
+  <div className="mc-knob-cell">
     <Knob
       value={value}
       min={min}
@@ -64,110 +36,35 @@ const KnobCell = ({ label, value, min, max, step, fmt, color, onChange, size = 6
       size={size}
       onChange={onChange}
     />
-    <span
-      style={{
-        color,
-        fontSize: '12px',
-        fontWeight: 700,
-        fontFamily: "'JetBrains Mono', monospace",
-        letterSpacing: '0.02em',
-      }}
-    >
+    <span className="mc-knob-value" style={{ color }}>
       {fmt(value)}
     </span>
-    <span
-      style={{
-        color: '#6e7681',
-        fontSize: '8px',
-        textTransform: 'uppercase',
-        letterSpacing: '0.08em',
-        textAlign: 'center',
-        lineHeight: 1.2,
-      }}
-    >
-      {label}
-    </span>
+    <span className="mc-knob-label">{label}</span>
   </div>
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ToolSlot — collapsible section wrapper for each processor
+// ToolSlot — collapsible section wrapper
 // ─────────────────────────────────────────────────────────────────────────────
 const ToolSlot = ({ label, icon, color, enabled, onToggle, expanded, onExpand, children }) => (
   <div
-    style={{
-      marginBottom: '6px',
-      border: `1px solid ${enabled ? `${color}44` : '#1c2128'}`,
-      borderRadius: '8px',
-      background: enabled ? `${color}05` : '#0a0e14',
-      overflow: 'hidden',
-    }}
+    className={`mc-slot ${enabled ? 'enabled' : ''}`}
+    style={{ '--slot-color': color }}
   >
-    <div
-      onClick={onExpand}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '8px 12px',
-        cursor: 'pointer',
-      }}
-    >
+    <div className="mc-slot-header" onClick={onExpand}>
       <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle();
-        }}
-        style={{
-          width: '16px',
-          height: '16px',
-          borderRadius: '50%',
-          flexShrink: 0,
-          background: enabled ? color : '#21262d',
-          border: `1px solid ${enabled ? color : '#30363d'}`,
-          cursor: 'pointer',
-          padding: 0,
-          boxShadow: enabled ? `0 0 8px ${color}88` : 'none',
-        }}
+        className={`mc-bypass-btn ${enabled ? 'on' : ''}`}
+        onClick={e => { e.stopPropagation(); onToggle(); }}
+        title={enabled ? 'Click to bypass' : 'Click to enable'}
       />
-      <span style={{ fontSize: '13px' }}>{icon}</span>
-      <span
-        style={{
-          color: enabled ? '#e6edf3' : '#484f58',
-          fontWeight: enabled ? 700 : 400,
-          flex: 1,
-          fontSize: '13px',
-          letterSpacing: '0.05em',
-        }}
-      >
-        {label}
-      </span>
-      {!enabled && (
-        <span style={{ color: '#2d333b', fontSize: '11px' }}>BYPASSED</span>
-      )}
-      <span
-        style={{
-          color: '#484f58',
-          fontSize: '12px',
-          transform: expanded ? 'rotate(180deg)' : 'none',
-          transition: 'transform 0.15s',
-        }}
-      >
-        ▾
-      </span>
+      <span className="mc-slot-icon">{icon}</span>
+      <span className="mc-slot-label">{label}</span>
+      {!enabled && <span className="mc-bypassed-tag">BYPASSED</span>}
+      <span className={`mc-slot-chevron ${expanded ? 'open' : ''}`}>▾</span>
     </div>
 
     {expanded && (
-      <div
-        style={{
-          padding: '12px 14px 16px',
-          borderTop: `1px solid ${color}22`,
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '6px 8px',
-          alignItems: 'flex-start',
-        }}
-      >
+      <div className="mc-slot-body">
         {children}
       </div>
     )}
@@ -180,47 +77,30 @@ const ToolSlot = ({ label, icon, color, enabled, onToggle, expanded, onExpand, c
 const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedded }) => {
 
   // ── Tool states ──────────────────────────────────────────────────────────
-  const [hpf, setHpf] = useState({
-    enabled: true,
-    freq: 30,
-    slope: 2,
-  });
+  const [hpf, setHpf] = useState({ enabled: true, freq: 30, slope: 2 });
 
   const [eq, setEq] = useState({
     enabled: true,
-    lowShelf: 0,
-    lowFreq: 80,
-    midPeak: 0,
-    midFreq: 2500,
-    midQ: 1.0,
-    highShelf: 0,
-    highFreq: 10000,
+    lowShelf: 0, lowFreq: 80,
+    midPeak: 0,  midFreq: 2500, midQ: 1.0,
+    highShelf: 0, highFreq: 10000,
   });
 
   const [ms, setMs] = useState({
     enabled: false,
-    midGain: 0,
-    sideGain: 0,
-    sideWidth: 1.0,
+    midGain: 0, sideGain: 0, sideWidth: 1.0,
   });
 
   const [exciter, setExciter] = useState({
     enabled: false,
-    amount: 20,
-    freq: 6000,
-    blend: 0.3,
+    amount: 20, freq: 6000, blend: 0.3,
   });
 
-  const [widener, setWidener] = useState({
-    enabled: false,
-    width: 1.0,
-  });
+  const [widener, setWidener] = useState({ enabled: false, width: 1.0 });
 
   const [limiter, setLimiter] = useState({
     enabled: true,
-    ceiling: -0.3,
-    release: 50,
-    drive: 0,
+    ceiling: -0.3, release: 50, drive: 0,
   });
 
   // ── Meter states ─────────────────────────────────────────────────────────
@@ -234,17 +114,13 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
   const [target,       setTarget]       = useState('Spotify');
 
   const [expanded, setExpanded] = useState({
-    hpf: true,
-    eq: true,
-    ms: false,
-    exciter: false,
-    widener: false,
-    limiter: true,
+    hpf: true, eq: true, ms: false,
+    exciter: false, widener: false, limiter: true,
   });
 
-  const [activeTab, setActiveTab] = useState('chain'); // chain | meters | spectrum | gonio
+  const [activeTab, setActiveTab] = useState('chain');
 
-  // ── Audio nodes ──────────────────────────────────────────────────────────
+  // ── Refs ─────────────────────────────────────────────────────────────────
   const nodesRef     = useRef({});
   const analyserLRef = useRef(null);
   const analyserRRef = useRef(null);
@@ -258,11 +134,9 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
   // ── Build audio graph ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!audioContext || !inputNode || !outputNode) return;
-
     const ctx = audioContext;
     const n   = {};
 
-    // HPF — two cascaded filters for 24dB/oct Butterworth
     n.hpf1 = ctx.createBiquadFilter();
     n.hpf1.type = 'highpass';
     n.hpf1.frequency.value = hpf.freq;
@@ -273,7 +147,6 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
     n.hpf2.frequency.value = hpf.freq;
     n.hpf2.Q.value = 0.707;
 
-    // EQ — low shelf + peaking mid + high shelf
     n.eqLowShelf = ctx.createBiquadFilter();
     n.eqLowShelf.type = 'lowshelf';
     n.eqLowShelf.frequency.value = eq.lowFreq;
@@ -290,15 +163,14 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
     n.eqHighShelf.frequency.value = eq.highFreq;
     n.eqHighShelf.gain.value = eq.highShelf;
 
-    // Harmonic exciter — highpass → waveshaper → gain blend
-    n.exciterLP = ctx.createBiquadFilter();
+    n.exciterLP    = ctx.createBiquadFilter();
     n.exciterLP.type = 'highpass';
     n.exciterLP.frequency.value = exciter.freq;
 
     n.exciterShape = ctx.createWaveShaper();
     n.exciterGain  = ctx.createGain();
     n.exciterGain.gain.value = (exciter.amount / 100) * 0.5;
-    n.exciterMix = ctx.createGain();
+    n.exciterMix   = ctx.createGain();
     n.exciterMix.gain.value = 1;
 
     const excCurve = new Float32Array(256);
@@ -308,7 +180,6 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
     }
     n.exciterShape.curve = excCurve;
 
-    // Stereo widener — splitter → per-channel gain → merger
     n.splitter   = ctx.createChannelSplitter(2);
     n.merger     = ctx.createChannelMerger(2);
     n.widthGainL = ctx.createGain();
@@ -316,7 +187,6 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
     n.widthGainR = ctx.createGain();
     n.widthGainR.gain.value = widener.width;
 
-    // True peak limiter — drive gain → dynamics compressor
     n.limiterDrive = ctx.createGain();
     n.limiterDrive.gain.value = Math.pow(10, limiter.drive / 20);
 
@@ -327,7 +197,6 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
     n.limiterComp.attack.value    = 0.001;
     n.limiterComp.release.value   = limiter.release / 1000;
 
-    // Analysers
     n.analyserL = ctx.createAnalyser();
     n.analyserL.fftSize = 256;
     n.analyserL.smoothingTimeConstant = 0.3;
@@ -344,7 +213,6 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
     analyserRRef.current = n.analyserR;
     analyserFFT.current  = n.analyserFFT;
 
-    // Wire the graph
     try {
       inputNode.connect(n.hpf1);
       n.hpf1.connect(n.hpf2);
@@ -355,7 +223,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
       n.exciterLP.connect(n.exciterShape);
       n.exciterShape.connect(n.exciterGain);
       n.exciterGain.connect(n.exciterMix);
-      n.eqHighShelf.connect(n.exciterMix);   // dry blend
+      n.eqHighShelf.connect(n.exciterMix);
       n.exciterMix.connect(n.splitter);
       n.splitter.connect(n.widthGainL, 0);
       n.splitter.connect(n.widthGainR, 1);
@@ -365,7 +233,6 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
       n.limiterDrive.connect(n.limiterComp);
       n.limiterComp.connect(n.analyserFFT);
       n.limiterComp.connect(outputNode);
-      // metering tap after limiter
       n.limiterComp.connect(n.splitter);
       n.splitter.connect(n.analyserL, 0);
       n.splitter.connect(n.analyserR, 1);
@@ -374,27 +241,20 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
     }
 
     nodesRef.current = n;
-
-    return () => {
-      Object.values(n).forEach((node) => {
-        try { node.disconnect(); } catch (_) {}
-      });
-    };
+    return () => { Object.values(n).forEach(node => { try { node.disconnect(); } catch (_) {} }); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioContext, inputNode, outputNode]);
 
-  // ── Sync params → audio nodes ─────────────────────────────────────────────
+  // ── Sync params → nodes ───────────────────────────────────────────────────
   useEffect(() => {
-    const n = nodesRef.current;
-    if (!n.hpf1) return;
+    const n = nodesRef.current; if (!n.hpf1) return;
     const t = audioContext?.currentTime ?? 0;
     n.hpf1?.frequency?.setTargetAtTime(hpf.freq, t, 0.02);
     n.hpf2?.frequency?.setTargetAtTime(hpf.freq, t, 0.02);
   }, [hpf, audioContext]);
 
   useEffect(() => {
-    const n = nodesRef.current;
-    if (!n.eqLowShelf) return;
+    const n = nodesRef.current; if (!n.eqLowShelf) return;
     const t = audioContext?.currentTime ?? 0;
     n.eqLowShelf?.gain?.setTargetAtTime(eq.lowShelf,   t, 0.02);
     n.eqLowShelf?.frequency?.setTargetAtTime(eq.lowFreq,   t, 0.02);
@@ -406,23 +266,20 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
   }, [eq, audioContext]);
 
   useEffect(() => {
-    const n = nodesRef.current;
-    if (!n.exciterGain) return;
+    const n = nodesRef.current; if (!n.exciterGain) return;
     n.exciterGain.gain.value = (exciter.enabled ? exciter.amount / 100 : 0) * exciter.blend;
     n.exciterLP?.frequency?.setTargetAtTime(exciter.freq, audioContext?.currentTime ?? 0, 0.02);
   }, [exciter, audioContext]);
 
   useEffect(() => {
-    const n = nodesRef.current;
-    if (!n.widthGainL) return;
+    const n = nodesRef.current; if (!n.widthGainL) return;
     const w = widener.enabled ? widener.width : 1.0;
     n.widthGainL.gain.value = w;
     n.widthGainR.gain.value = w;
   }, [widener]);
 
   useEffect(() => {
-    const n = nodesRef.current;
-    if (!n.limiterComp || !n.limiterDrive) return;
+    const n = nodesRef.current; if (!n.limiterComp || !n.limiterDrive) return;
     const t = audioContext?.currentTime ?? 0;
     n.limiterComp.threshold.setTargetAtTime(limiter.ceiling,              t, 0.01);
     n.limiterComp.release.setTargetAtTime(limiter.release / 1000,         t, 0.01);
@@ -433,7 +290,6 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
   useEffect(() => {
     const tick = () => {
       animRef.current = requestAnimationFrame(tick);
-
       const aL = analyserLRef.current;
       const aR = analyserRRef.current;
       const aF = analyserFFT.current;
@@ -452,29 +308,24 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
         peakR  = Math.max(peakR, Math.abs(bufR[i]));
       }
 
-      const rms      = (Math.sqrt(sumL / bufL.length) + Math.sqrt(sumR / bufR.length)) / 2;
+      const rms       = (Math.sqrt(sumL / bufL.length) + Math.sqrt(sumR / bufR.length)) / 2;
       const momentary = rms > 0.000001 ? 20 * Math.log10(rms) - 0.7 : -100;
 
-      // Short-term LUFS (3 s window ≈ 60 frames at ~20fps)
       lufsShortBuf.current.push(momentary);
       if (lufsShortBuf.current.length > 60) lufsShortBuf.current.shift();
       const shortSum  = lufsShortBuf.current.reduce((a, b) => a + Math.pow(10, b / 10), 0);
       const shortLUFS = lufsShortBuf.current.length
-        ? 10 * Math.log10(shortSum / lufsShortBuf.current.length)
-        : -100;
+        ? 10 * Math.log10(shortSum / lufsShortBuf.current.length) : -100;
 
-      // Integrated LUFS (30 s history)
       lufsHistory.current.push(momentary);
       if (lufsHistory.current.length > 600) lufsHistory.current.shift();
       const histSum    = lufsHistory.current.reduce((a, b) => a + Math.pow(10, b / 10), 0);
       const integrated = lufsHistory.current.length
-        ? 10 * Math.log10(histSum / lufsHistory.current.length)
-        : -100;
+        ? 10 * Math.log10(histSum / lufsHistory.current.length) : -100;
 
       setLufs(isFinite(integrated) ? integrated : -100);
       setLufsShort(isFinite(shortLUFS) ? shortLUFS : -100);
 
-      // True peak
       const tp = 20 * Math.log10(Math.max(peakL, peakR, 0.000001));
       if (tp > peakHold.current) {
         peakHold.current = tp;
@@ -484,19 +335,13 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
       setTruePeakVal(tp);
       setClipping(tp > -0.1);
 
-      // Stereo correlation
       let corrSum = 0;
-      for (let i = 0; i < Math.min(bufL.length, bufR.length); i++) {
-        corrSum += bufL[i] * bufR[i];
-      }
+      for (let i = 0; i < Math.min(bufL.length, bufR.length); i++) corrSum += bufL[i] * bufR[i];
       const normL = Math.sqrt(sumL / bufL.length);
       const normR = Math.sqrt(sumR / bufR.length);
-      const corr  = (normL * normR > 0)
-        ? corrSum / (bufL.length * normL * normR)
-        : 1;
+      const corr  = normL * normR > 0 ? corrSum / (bufL.length * normL * normR) : 1;
       setCorrelation(Math.max(-1, Math.min(1, corr)));
 
-      // Spectrum
       if (aF) {
         const freq = new Uint8Array(aF.frequencyBinCount);
         aF.getByteFrequencyData(freq);
@@ -508,23 +353,15 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
         setSpectrumData(out);
       }
 
-      // Goniometer
       const step = Math.max(1, Math.floor(bufL.length / 60));
-      const gonioPoints = [];
-      for (let i = 0; i < bufL.length; i += step) {
-        gonioPoints.push({
-          x: (bufL[i] - bufR[i]) * 80,
-          y: (bufL[i] + bufR[i]) * 80,
-        });
-      }
-      setGonioData(gonioPoints);
+      const pts  = [];
+      for (let i = 0; i < bufL.length; i += step)
+        pts.push({ x: (bufL[i] - bufR[i]) * 80, y: (bufL[i] + bufR[i]) * 80 });
+      setGonioData(pts);
     };
 
     animRef.current = requestAnimationFrame(tick);
-    return () => {
-      cancelAnimationFrame(animRef.current);
-      clearTimeout(peakTimer.current);
-    };
+    return () => { cancelAnimationFrame(animRef.current); clearTimeout(peakTimer.current); };
   }, []);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -536,487 +373,226 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
     return '#4a9eff';
   };
 
-  const toggleExpand = (id) => setExpanded((p) => ({ ...p, [id]: !p[id] }));
-
+  const toggleExpand = (id) => setExpanded(p => ({ ...p, [id]: !p[id] }));
   const tgt = STREAMING_TARGETS[target];
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        width: '100%',
-        height: '100%',
-        background: '#0d1117',
-        color: '#cdd9e5',
-        fontFamily: "'JetBrains Mono','Fira Code',monospace",
-        fontSize: '13px',
-        overflow: 'hidden',
-      }}
-    >
-      {/* ═══ HEADER ═══ */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          padding: '8px 14px',
-          borderBottom: '1px solid #1c2128',
-          background: 'linear-gradient(90deg,#161b22,#0d1117)',
-          flexShrink: 0,
-        }}
-      >
-        <span
-          style={{
-            color: '#e6edf3',
-            fontWeight: 800,
-            fontSize: '14px',
-            letterSpacing: '0.15em',
-          }}
-        >
-          MASTERING CHAIN
-        </span>
-        <div style={{ flex: 1 }} />
+    <div className="mc-root">
 
-        <span style={{ color: '#484f58', fontSize: '11px' }}>TARGET</span>
+      {/* ═══ HEADER ═══════════════════════════════════════════════════════ */}
+      <div className="mc-header">
+        <span className="mc-header-title">MASTERING CHAIN</span>
+        <div className="mc-header-spacer" />
+
+        <span className="mc-target-label">TARGET</span>
         <select
+          className="mc-target-select"
           value={target}
-          onChange={(e) => setTarget(e.target.value)}
-          style={{
-            background: '#161b22',
-            border: '1px solid #30363d',
-            color: '#ffd60a',
-            borderRadius: '5px',
-            padding: '3px 8px',
-            fontFamily: 'inherit',
-            fontSize: '11px',
-            fontWeight: 800,
-          }}
+          onChange={e => setTarget(e.target.value)}
         >
-          {Object.keys(STREAMING_TARGETS).map((k) => (
-            <option key={k} value={k}>
-              {k} ({STREAMING_TARGETS[k].label})
-            </option>
+          {Object.keys(STREAMING_TARGETS).map(k => (
+            <option key={k} value={k}>{k} ({STREAMING_TARGETS[k].label})</option>
           ))}
         </select>
 
-        {['chain', 'meters', 'spectrum', 'gonio'].map((tab) => (
+        {['chain', 'meters', 'spectrum', 'gonio'].map(tab => (
           <button
             key={tab}
+            className={`mc-tab-btn ${activeTab === tab ? 'active' : ''}`}
             onClick={() => setActiveTab(tab)}
-            style={{
-              background: activeTab === tab ? '#21262d' : 'none',
-              border: `1px solid ${activeTab === tab ? '#30363d' : 'transparent'}`,
-              color: activeTab === tab ? '#e6edf3' : '#484f58',
-              borderRadius: '5px',
-              padding: '3px 9px',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              fontSize: '11px',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-            }}
           >
             {tab}
           </button>
         ))}
 
         {onClose && (
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: '1px solid #30363d',
-              color: '#6e7681',
-              borderRadius: '4px',
-              padding: '3px 9px',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            ✕
-          </button>
+          <button className="mc-close-btn" onClick={onClose}>✕</button>
         )}
       </div>
 
-      {/* ═══ LUFS BAR (always visible) ═══ */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
-          padding: '7px 14px',
-          borderBottom: '1px solid #1c2128',
-          background: '#0a0e14',
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ color: '#484f58', fontSize: '11px' }}>INTEGRATED</span>
-          <span style={{ color: lufsColor(lufs), fontWeight: 800, fontSize: '20px', minWidth: '60px' }}>
+      {/* ═══ LUFS BAR ═════════════════════════════════════════════════════ */}
+      <div className="mc-lufs-bar">
+        {/* Integrated */}
+        <div className="mc-lufs-group">
+          <span className="mc-lufs-stat-label">INTEGRATED</span>
+          <span className="mc-lufs-value" style={{ color: lufsColor(lufs) }}>
             {lufs > -99 ? lufs.toFixed(1) : '—'}
           </span>
-          <span style={{ color: '#484f58', fontSize: '11px' }}>LUFS</span>
+          <span className="mc-lufs-unit">LUFS</span>
         </div>
 
-        <div style={{ width: '1px', height: '20px', background: '#21262d' }} />
+        <div className="mc-lufs-divider" />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ color: '#484f58', fontSize: '11px' }}>SHORT</span>
-          <span style={{ color: lufsColor(lufsShort), fontWeight: 700, fontSize: '14px', minWidth: '48px' }}>
+        {/* Short-term */}
+        <div className="mc-lufs-group">
+          <span className="mc-lufs-stat-label">SHORT</span>
+          <span className="mc-lufs-short-value" style={{ color: lufsColor(lufsShort) }}>
             {lufsShort > -99 ? lufsShort.toFixed(1) : '—'}
           </span>
-          <span style={{ color: '#484f58', fontSize: '11px' }}>LUFS</span>
+          <span className="mc-lufs-unit">LUFS</span>
         </div>
 
-        <div style={{ width: '1px', height: '20px', background: '#21262d' }} />
+        <div className="mc-lufs-divider" />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ color: '#484f58', fontSize: '11px' }}>PEAK</span>
-          <span
-            style={{
-              color: clipping ? '#ff2d55' : '#cdd9e5',
-              fontWeight: 700,
-              fontSize: '14px',
-              minWidth: '48px',
-            }}
-          >
+        {/* True peak */}
+        <div className="mc-lufs-group">
+          <span className="mc-lufs-stat-label">PEAK</span>
+          <span className="mc-peak-value" style={{ color: clipping ? '#ff2d55' : '#cdd9e5' }}>
             {truePeakVal > -99 ? truePeakVal.toFixed(1) : '—'} dBTP
           </span>
-          {clipping && (
-            <span
-              style={{
-                color: '#ff2d55',
-                fontSize: '11px',
-                fontWeight: 800,
-                animation: 'blink 0.5s infinite',
-              }}
-            >
-              CLIP
-            </span>
-          )}
+          {clipping && <span className="mc-clip-badge">CLIP</span>}
         </div>
 
-        <div style={{ flex: 1 }} />
+        <div className="mc-lufs-spacer" />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ color: '#484f58', fontSize: '11px' }}>TARGET {tgt?.lufs} LUFS</span>
-          <div
-            style={{
-              position: 'relative',
-              width: '180px',
-              height: '8px',
-              background: '#21262d',
-              borderRadius: '4px',
-              overflow: 'hidden',
-            }}
-          >
+        {/* Target bar */}
+        <div className="mc-target-group">
+          <span className="mc-lufs-stat-label">TARGET {tgt?.lufs} LUFS</span>
+          <div className="mc-target-bar-wrap">
             <div
+              className="mc-target-bar-fill"
               style={{
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                bottom: 0,
                 width: `${Math.max(0, Math.min(100, ((lufs + 30) / 30) * 100))}%`,
                 background: lufsColor(lufs),
-                borderRadius: '4px',
-                transition: 'width 0.15s, background 0.15s',
               }}
             />
             <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                bottom: 0,
-                left: `${((tgt.lufs + 30) / 30) * 100}%`,
-                width: '1px',
-                background: '#fff',
-              }}
+              className="mc-target-bar-marker"
+              style={{ left: `${((tgt.lufs + 30) / 30) * 100}%` }}
             />
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <span style={{ color: '#484f58', fontSize: '11px' }}>CORR</span>
-          <div
-            style={{
-              position: 'relative',
-              width: '60px',
-              height: '8px',
-              background: '#21262d',
-              borderRadius: '4px',
-            }}
-          >
+        <div className="mc-lufs-divider" />
+
+        {/* Correlation */}
+        <div className="mc-corr-group">
+          <span className="mc-lufs-stat-label">CORR</span>
+          <div className="mc-corr-bar-wrap">
+            <div className="mc-corr-bar-center" />
             <div
+              className="mc-corr-bar-needle"
               style={{
-                position: 'absolute',
                 left: `${((correlation + 1) / 2) * 100}%`,
-                top: '-2px',
-                bottom: '-2px',
-                width: '3px',
                 background: correlation > 0 ? '#00ffc8' : '#ff6b6b',
-                borderRadius: '2px',
-                transform: 'translateX(-50%)',
-                transition: 'left 0.1s',
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                left: '50%',
-                top: 0,
-                bottom: 0,
-                width: '1px',
-                background: '#30363d',
               }}
             />
           </div>
           <span
-            style={{
-              color: correlation > 0 ? '#00ffc8' : '#ff6b6b',
-              fontSize: '11px',
-              fontWeight: 700,
-              minWidth: '28px',
-            }}
+            className="mc-corr-value"
+            style={{ color: correlation > 0 ? '#00ffc8' : '#ff6b6b' }}
           >
             {correlation.toFixed(2)}
           </span>
         </div>
       </div>
 
-      {/* ═══ MAIN AREA ═══ */}
-      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      {/* ═══ MAIN AREA ════════════════════════════════════════════════════ */}
+      <div className="mc-main">
 
         {/* ── CHAIN TAB ── */}
         {activeTab === 'chain' && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
+          <div className="mc-chain-scroll">
 
             {/* HIGH-PASS FILTER */}
             <ToolSlot
-              label="High-Pass Filter"
-              icon="⌇"
-              color="#4a9eff"
+              label="High-Pass Filter" icon="⌇" color="#4a9eff"
               enabled={hpf.enabled}
-              onToggle={() => setHpf((p) => ({ ...p, enabled: !p.enabled }))}
+              onToggle={() => setHpf(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.hpf}
               onExpand={() => toggleExpand('hpf')}
             >
-              <KnobCell
-                label="Frequency"
-                value={hpf.freq}
-                min={20}
-                max={300}
-                step={1}
-                color="#4a9eff"
-                fmt={(v) => `${v}Hz`}
-                onChange={(v) => setHpf((p) => ({ ...p, freq: v }))}
-              />
-              <KnobCell
-                label="Slope"
-                value={hpf.slope}
-                min={1}
-                max={4}
-                step={1}
-                color="#4a9eff"
-                fmt={(v) => `${v * 12}dB/oct`}
-                onChange={(v) => setHpf((p) => ({ ...p, slope: v }))}
-              />
+              <KnobCell label="Frequency" value={hpf.freq} min={20} max={300} step={1}
+                color="#4a9eff" fmt={v => `${v}Hz`}
+                onChange={v => setHpf(p => ({ ...p, freq: v }))} />
+              <KnobCell label="Slope" value={hpf.slope} min={1} max={4} step={1}
+                color="#4a9eff" fmt={v => `${v * 12}dB/oct`}
+                onChange={v => setHpf(p => ({ ...p, slope: v }))} />
             </ToolSlot>
 
             {/* MASTERING EQ */}
             <ToolSlot
-              label="Mastering EQ"
-              icon="〰"
-              color="#00ffc8"
+              label="Mastering EQ" icon="〰" color="#00ffc8"
               enabled={eq.enabled}
-              onToggle={() => setEq((p) => ({ ...p, enabled: !p.enabled }))}
+              onToggle={() => setEq(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.eq}
               onExpand={() => toggleExpand('eq')}
             >
-              <KnobCell
-                label="Low Shelf"
-                value={eq.lowShelf}
-                min={-6}
-                max={6}
-                step={0.1}
-                color="#00ffc8"
-                fmt={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`}
-                onChange={(v) => setEq((p) => ({ ...p, lowShelf: v }))}
-              />
-              <KnobCell
-                label="Low Freq"
-                value={eq.lowFreq}
-                min={40}
-                max={500}
-                step={5}
-                color="#00ffc8"
-                fmt={(v) => `${v}Hz`}
-                onChange={(v) => setEq((p) => ({ ...p, lowFreq: v }))}
-              />
-              <KnobCell
-                label="Mid Peak"
-                value={eq.midPeak}
-                min={-6}
-                max={6}
-                step={0.1}
-                color="#00ffc8"
-                fmt={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`}
-                onChange={(v) => setEq((p) => ({ ...p, midPeak: v }))}
-              />
-              <KnobCell
-                label="Mid Freq"
-                value={eq.midFreq}
-                min={200}
-                max={8000}
-                step={50}
-                color="#00ffc8"
-                fmt={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}kHz` : `${v}Hz`}
-                onChange={(v) => setEq((p) => ({ ...p, midFreq: v }))}
-              />
-              <KnobCell
-                label="Mid Q"
-                value={eq.midQ}
-                min={0.3}
-                max={4}
-                step={0.1}
-                color="#00ffc8"
-                fmt={(v) => v.toFixed(1)}
-                onChange={(v) => setEq((p) => ({ ...p, midQ: v }))}
-              />
-              <KnobCell
-                label="High Shelf"
-                value={eq.highShelf}
-                min={-6}
-                max={6}
-                step={0.1}
-                color="#00ffc8"
-                fmt={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`}
-                onChange={(v) => setEq((p) => ({ ...p, highShelf: v }))}
-              />
-              <KnobCell
-                label="High Freq"
-                value={eq.highFreq}
-                min={4000}
-                max={20000}
-                step={100}
-                color="#00ffc8"
-                fmt={(v) => `${(v / 1000).toFixed(0)}kHz`}
-                onChange={(v) => setEq((p) => ({ ...p, highFreq: v }))}
-              />
+              <KnobCell label="Low Shelf" value={eq.lowShelf} min={-6} max={6} step={0.1}
+                color="#00ffc8" fmt={v => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`}
+                onChange={v => setEq(p => ({ ...p, lowShelf: v }))} />
+              <KnobCell label="Low Freq" value={eq.lowFreq} min={40} max={500} step={5}
+                color="#00ffc8" fmt={v => `${v}Hz`}
+                onChange={v => setEq(p => ({ ...p, lowFreq: v }))} />
+              <KnobCell label="Mid Peak" value={eq.midPeak} min={-6} max={6} step={0.1}
+                color="#00ffc8" fmt={v => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`}
+                onChange={v => setEq(p => ({ ...p, midPeak: v }))} />
+              <KnobCell label="Mid Freq" value={eq.midFreq} min={200} max={8000} step={50}
+                color="#00ffc8" fmt={v => v >= 1000 ? `${(v/1000).toFixed(1)}kHz` : `${v}Hz`}
+                onChange={v => setEq(p => ({ ...p, midFreq: v }))} />
+              <KnobCell label="Mid Q" value={eq.midQ} min={0.3} max={4} step={0.1}
+                color="#00ffc8" fmt={v => v.toFixed(1)}
+                onChange={v => setEq(p => ({ ...p, midQ: v }))} />
+              <KnobCell label="High Shelf" value={eq.highShelf} min={-6} max={6} step={0.1}
+                color="#00ffc8" fmt={v => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`}
+                onChange={v => setEq(p => ({ ...p, highShelf: v }))} />
+              <KnobCell label="High Freq" value={eq.highFreq} min={4000} max={20000} step={100}
+                color="#00ffc8" fmt={v => `${(v/1000).toFixed(0)}kHz`}
+                onChange={v => setEq(p => ({ ...p, highFreq: v }))} />
             </ToolSlot>
 
             {/* MID / SIDE */}
             <ToolSlot
-              label="Mid / Side"
-              icon="◎"
-              color="#bf5af2"
+              label="Mid / Side" icon="◎" color="#bf5af2"
               enabled={ms.enabled}
-              onToggle={() => setMs((p) => ({ ...p, enabled: !p.enabled }))}
+              onToggle={() => setMs(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.ms}
               onExpand={() => toggleExpand('ms')}
             >
-              <KnobCell
-                label="Mid Gain"
-                value={ms.midGain}
-                min={-12}
-                max={12}
-                step={0.5}
-                color="#bf5af2"
-                fmt={(v) => `${v > 0 ? '+' : ''}${v}dB`}
-                onChange={(v) => setMs((p) => ({ ...p, midGain: v }))}
-              />
-              <KnobCell
-                label="Side Gain"
-                value={ms.sideGain}
-                min={-12}
-                max={12}
-                step={0.5}
-                color="#bf5af2"
-                fmt={(v) => `${v > 0 ? '+' : ''}${v}dB`}
-                onChange={(v) => setMs((p) => ({ ...p, sideGain: v }))}
-              />
-              <KnobCell
-                label="Width"
-                value={ms.sideWidth}
-                min={0}
-                max={2}
-                step={0.01}
-                color="#bf5af2"
-                fmt={(v) => `${Math.round(v * 100)}%`}
-                onChange={(v) => setMs((p) => ({ ...p, sideWidth: v }))}
-              />
+              <KnobCell label="Mid Gain" value={ms.midGain} min={-12} max={12} step={0.5}
+                color="#bf5af2" fmt={v => `${v > 0 ? '+' : ''}${v}dB`}
+                onChange={v => setMs(p => ({ ...p, midGain: v }))} />
+              <KnobCell label="Side Gain" value={ms.sideGain} min={-12} max={12} step={0.5}
+                color="#bf5af2" fmt={v => `${v > 0 ? '+' : ''}${v}dB`}
+                onChange={v => setMs(p => ({ ...p, sideGain: v }))} />
+              <KnobCell label="Width" value={ms.sideWidth} min={0} max={2} step={0.01}
+                color="#bf5af2" fmt={v => `${Math.round(v * 100)}%`}
+                onChange={v => setMs(p => ({ ...p, sideWidth: v }))} />
             </ToolSlot>
 
             {/* HARMONIC EXCITER */}
             <ToolSlot
-              label="Harmonic Exciter"
-              icon="✦"
-              color="#ffd60a"
+              label="Harmonic Exciter" icon="✦" color="#ffd60a"
               enabled={exciter.enabled}
-              onToggle={() => setExciter((p) => ({ ...p, enabled: !p.enabled }))}
+              onToggle={() => setExciter(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.exciter}
               onExpand={() => toggleExpand('exciter')}
             >
-              <KnobCell
-                label="Amount"
-                value={exciter.amount}
-                min={0}
-                max={100}
-                step={1}
-                color="#ffd60a"
-                fmt={(v) => `${v}%`}
-                onChange={(v) => setExciter((p) => ({ ...p, amount: v }))}
-              />
-              <KnobCell
-                label="Freq"
-                value={exciter.freq}
-                min={2000}
-                max={16000}
-                step={100}
-                color="#ffd60a"
-                fmt={(v) => `${(v / 1000).toFixed(1)}kHz`}
-                onChange={(v) => setExciter((p) => ({ ...p, freq: v }))}
-              />
-              <KnobCell
-                label="Blend"
-                value={exciter.blend}
-                min={0}
-                max={1}
-                step={0.01}
-                color="#ffd60a"
-                fmt={(v) => `${Math.round(v * 100)}%`}
-                onChange={(v) => setExciter((p) => ({ ...p, blend: v }))}
-              />
+              <KnobCell label="Amount" value={exciter.amount} min={0} max={100} step={1}
+                color="#ffd60a" fmt={v => `${v}%`}
+                onChange={v => setExciter(p => ({ ...p, amount: v }))} />
+              <KnobCell label="Freq" value={exciter.freq} min={2000} max={16000} step={100}
+                color="#ffd60a" fmt={v => `${(v/1000).toFixed(1)}kHz`}
+                onChange={v => setExciter(p => ({ ...p, freq: v }))} />
+              <KnobCell label="Blend" value={exciter.blend} min={0} max={1} step={0.01}
+                color="#ffd60a" fmt={v => `${Math.round(v * 100)}%`}
+                onChange={v => setExciter(p => ({ ...p, blend: v }))} />
             </ToolSlot>
 
             {/* STEREO WIDENER */}
             <ToolSlot
-              label="Stereo Widener"
-              icon="⟺"
-              color="#30d158"
+              label="Stereo Widener" icon="⟺" color="#30d158"
               enabled={widener.enabled}
-              onToggle={() => setWidener((p) => ({ ...p, enabled: !p.enabled }))}
+              onToggle={() => setWidener(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.widener}
               onExpand={() => toggleExpand('widener')}
             >
-              <KnobCell
-                label="Width"
-                value={widener.width}
-                min={0}
-                max={2}
-                step={0.01}
+              <KnobCell label="Width" value={widener.width} min={0} max={2} step={0.01}
                 color="#30d158"
-                fmt={(v) =>
-                  v === 1
-                    ? 'Normal'
-                    : v < 1
-                    ? `${Math.round(v * 100)}% ↙`
-                    : `${Math.round(v * 100)}% ↗`
-                }
-                onChange={(v) => setWidener((p) => ({ ...p, width: v }))}
-              />
-              <div style={{ display: 'flex', gap: '5px', alignSelf: 'flex-end', paddingBottom: '22px' }}>
+                fmt={v => v === 1 ? 'Normal' : v < 1 ? `${Math.round(v*100)}% ↙` : `${Math.round(v*100)}% ↗`}
+                onChange={v => setWidener(p => ({ ...p, width: v }))} />
+              <div className="mc-width-presets">
                 {[
                   { w: 0,   lbl: 'MONO'   },
                   { w: 0.5, lbl: 'NARROW' },
@@ -1026,18 +602,8 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 ].map(({ w, lbl }) => (
                   <button
                     key={w}
-                    onClick={() => setWidener((p) => ({ ...p, width: w }))}
-                    style={{
-                      background: widener.width === w ? '#30d15822' : 'none',
-                      border: `1px solid ${widener.width === w ? '#30d158' : '#21262d'}`,
-                      color: widener.width === w ? '#30d158' : '#484f58',
-                      borderRadius: '4px',
-                      padding: '3px 7px',
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      fontSize: '8px',
-                      fontWeight: 800,
-                    }}
+                    className={`mc-width-btn ${widener.width === w ? 'active' : ''}`}
+                    onClick={() => setWidener(p => ({ ...p, width: w }))}
                   >
                     {lbl}
                   </button>
@@ -1047,150 +613,76 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
 
             {/* TRUE PEAK LIMITER */}
             <ToolSlot
-              label="True Peak Limiter"
-              icon="⊟"
-              color="#ff6b6b"
+              label="True Peak Limiter" icon="⊟" color="#ff6b6b"
               enabled={limiter.enabled}
-              onToggle={() => setLimiter((p) => ({ ...p, enabled: !p.enabled }))}
+              onToggle={() => setLimiter(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.limiter}
               onExpand={() => toggleExpand('limiter')}
             >
-              <div style={{ display: 'flex', gap: '4px', marginBottom: '6px', flexWrap: 'wrap', width: '100%' }}>
+              <div className="mc-preset-row">
                 {Object.entries(STREAMING_TARGETS).map(([k, v]) => (
                   <button
                     key={k}
-                    onClick={() => {
-                      setTarget(k);
-                      setLimiter((p) => ({ ...p, ceiling: v.tp }));
-                    }}
-                    style={{
-                      background: 'none',
-                      border: `1px solid ${target === k ? '#ff6b6b' : '#21262d'}`,
-                      color: target === k ? '#ff6b6b' : '#484f58',
-                      borderRadius: '4px',
-                      padding: '2px 6px',
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      fontSize: '8px',
-                      fontWeight: 700,
-                    }}
+                    className={`mc-preset-btn ${target === k ? 'active' : ''}`}
+                    style={{ '--slot-color': '#ff6b6b' }}
+                    onClick={() => { setTarget(k); setLimiter(p => ({ ...p, ceiling: v.tp })); }}
                   >
                     {k.split(' ')[0]}
                   </button>
                 ))}
               </div>
-              <KnobCell
-                label="Ceiling"
-                value={limiter.ceiling}
-                min={-6}
-                max={0}
-                step={0.1}
-                color="#ff6b6b"
-                fmt={(v) => `${v.toFixed(1)}dBTP`}
-                onChange={(v) => setLimiter((p) => ({ ...p, ceiling: v }))}
-              />
-              <KnobCell
-                label="Release"
-                value={limiter.release}
-                min={1}
-                max={500}
-                step={1}
-                color="#ff6b6b"
-                fmt={(v) => `${v}ms`}
-                onChange={(v) => setLimiter((p) => ({ ...p, release: v }))}
-              />
-              <KnobCell
-                label="Drive"
-                value={limiter.drive}
-                min={0}
-                max={12}
-                step={0.1}
-                color="#ff6b6b"
-                fmt={(v) => `${v.toFixed(1)}dB`}
-                onChange={(v) => setLimiter((p) => ({ ...p, drive: v }))}
-              />
+              <KnobCell label="Ceiling" value={limiter.ceiling} min={-6} max={0} step={0.1}
+                color="#ff6b6b" fmt={v => `${v.toFixed(1)}dBTP`}
+                onChange={v => setLimiter(p => ({ ...p, ceiling: v }))} />
+              <KnobCell label="Release" value={limiter.release} min={1} max={500} step={1}
+                color="#ff6b6b" fmt={v => `${v}ms`}
+                onChange={v => setLimiter(p => ({ ...p, release: v }))} />
+              <KnobCell label="Drive" value={limiter.drive} min={0} max={12} step={0.1}
+                color="#ff6b6b" fmt={v => `${v.toFixed(1)}dB`}
+                onChange={v => setLimiter(p => ({ ...p, drive: v }))} />
             </ToolSlot>
           </div>
         )}
 
         {/* ── METERS TAB ── */}
         {activeTab === 'meters' && (
-          <div style={{ flex: 1, display: 'flex', gap: '10px', padding: '12px', overflow: 'hidden' }}>
-            <div
-              style={{
-                flex: 2,
-                background: '#0a0e14',
-                border: '1px solid #1c2128',
-                borderRadius: '8px',
-                padding: '10px',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <div style={{ color: '#484f58', fontSize: '11px', letterSpacing: '0.12em', marginBottom: '8px' }}>
-                INTEGRATED LUFS — HISTORY
+          <div className="mc-meters-tab">
+            <div className="mc-lufs-history-panel">
+              <div className="mc-panel-label">INTEGRATED LUFS — HISTORY</div>
+              <div className="mc-history-bars">
+                {lufsHistory.current.slice(-120).map((v, i) => (
+                  <div
+                    key={i}
+                    className="mc-history-bar"
+                    style={{
+                      height: `${Math.max(2, Math.min(100, ((v + 40) / 40) * 100))}%`,
+                      background: lufsColor(v),
+                      opacity: 0.7 + 0.3 * (i / 120),
+                    }}
+                  />
+                ))}
               </div>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: '1px' }}>
-                {lufsHistory.current.slice(-120).map((v, i) => {
-                  const h = Math.max(2, Math.min(100, ((v + 40) / 40) * 100));
-                  return (
-                    <div
-                      key={i}
-                      style={{
-                        flex: 1,
-                        height: `${h}%`,
-                        background: lufsColor(v),
-                        borderRadius: '1px 1px 0 0',
-                        opacity: 0.7 + 0.3 * (i / 120),
-                      }}
-                    />
-                  );
-                })}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-                <span style={{ color: '#2d333b', fontSize: '8px' }}>-40 LUFS</span>
-                <span style={{ color: '#ffd60a', fontSize: '11px', fontWeight: 800 }}>
-                  Target: {tgt.lufs} LUFS
-                </span>
-                <span style={{ color: '#2d333b', fontSize: '8px' }}>0 LUFS</span>
+              <div className="mc-history-footer">
+                <span className="mc-history-footer-label">-40 LUFS</span>
+                <span className="mc-history-target-label">Target: {tgt.lufs} LUFS</span>
+                <span className="mc-history-footer-label">0 LUFS</span>
               </div>
             </div>
 
-            <div
-              style={{
-                flex: 1,
-                background: '#0a0e14',
-                border: '1px solid #1c2128',
-                borderRadius: '8px',
-                padding: '10px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-              }}
-            >
-              <div style={{ color: '#484f58', fontSize: '11px', letterSpacing: '0.12em', marginBottom: '4px' }}>
-                PLATFORM CHECK
-              </div>
+            <div className="mc-platform-panel">
+              <div className="mc-panel-label">PLATFORM CHECK</div>
               {Object.entries(STREAMING_TARGETS).map(([k, v]) => {
                 const diff = lufs - v.lufs;
                 const ok   = Math.abs(diff) < 1.5;
                 const loud = diff > 1.5;
                 return (
-                  <div key={k} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: ok ? '#00ffc8' : loud ? '#ff6b6b' : '#ffd60a', fontSize: '12px' }}>
+                  <div key={k} className="mc-platform-row">
+                    <span className="mc-platform-status" style={{ color: ok ? '#00ffc8' : loud ? '#ff6b6b' : '#ffd60a' }}>
                       {ok ? '✓' : loud ? '↓' : '↑'}
                     </span>
-                    <span style={{ flex: 1, color: '#6e7681', fontSize: '11px' }}>{k}</span>
-                    <span style={{ color: '#484f58', fontSize: '8px' }}>{v.lufs} LUFS</span>
-                    <span
-                      style={{
-                        color: ok ? '#00ffc8' : '#ff6b6b',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        minWidth: '48px',
-                        textAlign: 'right',
-                      }}
-                    >
+                    <span className="mc-platform-name">{k}</span>
+                    <span className="mc-platform-target">{v.lufs} LUFS</span>
+                    <span className="mc-platform-diff" style={{ color: ok ? '#00ffc8' : '#ff6b6b' }}>
                       {diff > 0 ? '+' : ''}{diff.toFixed(1)} dB
                     </span>
                   </div>
@@ -1202,48 +694,27 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
 
         {/* ── SPECTRUM TAB ── */}
         {activeTab === 'spectrum' && (
-          <div style={{ flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div
-              style={{
-                flex: 1,
-                background: '#0a0e14',
-                border: '1px solid #1c2128',
-                borderRadius: '8px',
-                padding: '10px',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <div style={{ color: '#484f58', fontSize: '11px', letterSpacing: '0.12em', marginBottom: '8px' }}>
-                SPECTRAL ANALYZER
-              </div>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: '2px' }}>
+          <div className="mc-spectrum-tab">
+            <div className="mc-spectrum-panel">
+              <div className="mc-panel-label">SPECTRAL ANALYZER</div>
+              <div className="mc-spectrum-bars">
                 {spectrumData.map((v, i) => {
                   const hue = 180 - i * 2;
                   return (
                     <div
                       key={i}
+                      className="mc-spectrum-bar"
                       style={{
-                        flex: 1,
                         height: `${Math.max(2, v * 100)}%`,
-                        background: `hsl(${hue},90%,55%)`,
-                        borderRadius: '2px 2px 0 0',
+                        background: `hsl(${hue}, 90%, 55%)`,
                         boxShadow: v > 0.8 ? `0 0 6px hsl(${hue},90%,55%)` : 'none',
                       }}
                     />
                   );
                 })}
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginTop: '4px',
-                  color: '#2d333b',
-                  fontSize: '8px',
-                }}
-              >
-                {['20Hz', '100Hz', '500Hz', '1kHz', '5kHz', '10kHz', '20kHz'].map((f) => (
+              <div className="mc-spectrum-freq-labels">
+                {['20Hz','100Hz','500Hz','1kHz','5kHz','10kHz','20kHz'].map(f => (
                   <span key={f}>{f}</span>
                 ))}
               </div>
@@ -1253,80 +724,49 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
 
         {/* ── GONIO TAB ── */}
         {activeTab === 'gonio' && (
-          <div style={{ flex: 1, padding: '12px', display: 'flex', gap: '12px', overflow: 'hidden' }}>
-            <div
-              style={{
-                flex: 1,
-                background: '#0a0e14',
-                border: '1px solid #1c2128',
-                borderRadius: '8px',
-                padding: '10px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <div style={{ color: '#484f58', fontSize: '11px', letterSpacing: '0.12em', marginBottom: '8px' }}>
-                GONIOMETER (STEREO PHASE)
-              </div>
-              <div
-                style={{
-                  position: 'relative',
-                  width: '200px',
-                  height: '200px',
-                  borderRadius: '50%',
-                  background: '#0d1117',
-                  border: '1px solid #21262d',
-                  overflow: 'hidden',
-                }}
-              >
-                <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '1px', background: '#21262d' }} />
-                <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '1px', background: '#21262d' }} />
-                <div style={{ position: 'absolute', top: '50%', left: '50%', width: '141px', height: '1px', background: '#1c2128', transformOrigin: '0 0', transform: 'rotate(45deg)' }} />
-                <div style={{ position: 'absolute', top: '50%', left: '50%', width: '141px', height: '1px', background: '#1c2128', transformOrigin: '0 0', transform: 'rotate(-45deg)' }} />
+          <div className="mc-gonio-tab">
+            <div className="mc-gonio-panel">
+              <div className="mc-panel-label">GONIOMETER (STEREO PHASE)</div>
+              <div className="mc-gonio-scope">
+                <div className="mc-gonio-axis-h" />
+                <div className="mc-gonio-axis-v" />
+                <div className="mc-gonio-diag-r" />
+                <div className="mc-gonio-diag-l" />
 
                 {gonioData.slice(-120).map((pt, i) => (
                   <div
                     key={i}
+                    className="mc-gonio-point"
                     style={{
-                      position: 'absolute',
                       left: `${50 + pt.x * 0.6}%`,
-                      top: `${50 - pt.y * 0.6}%`,
-                      width: '2px',
-                      height: '2px',
-                      borderRadius: '50%',
+                      top:  `${50 - pt.y * 0.6}%`,
                       background: `rgba(0,255,200,${0.3 + 0.7 * (i / 120)})`,
-                      transform: 'translate(-50%,-50%)',
                     }}
                   />
                 ))}
 
-                <span style={{ position: 'absolute', top: '4px',    left: '50%',  transform: 'translateX(-50%)', color: '#2d333b', fontSize: '8px' }}>M</span>
-                <span style={{ position: 'absolute', bottom: '4px', left: '50%',  transform: 'translateX(-50%)', color: '#2d333b', fontSize: '8px' }}>M-</span>
-                <span style={{ position: 'absolute', left: '4px',   top: '50%',   transform: 'translateY(-50%)', color: '#2d333b', fontSize: '8px' }}>L</span>
-                <span style={{ position: 'absolute', right: '4px',  top: '50%',   transform: 'translateY(-50%)', color: '#2d333b', fontSize: '8px' }}>R</span>
+                <span className="mc-gonio-label-top">M</span>
+                <span className="mc-gonio-label-bottom">M-</span>
+                <span className="mc-gonio-label-left">L</span>
+                <span className="mc-gonio-label-right">R</span>
               </div>
 
-              <div style={{ marginTop: '10px', color: '#6e7681', fontSize: '11px', textAlign: 'center' }}>
+              <div className="mc-gonio-corr">
                 Correlation:{' '}
-                <span
-                  style={{
-                    color: correlation > 0.5 ? '#00ffc8' : correlation > 0 ? '#ffd60a' : '#ff6b6b',
-                    fontWeight: 800,
-                  }}
-                >
+                <span style={{
+                  color: correlation > 0.5 ? '#00ffc8' : correlation > 0 ? '#ffd60a' : '#ff6b6b',
+                  fontWeight: 800,
+                }}>
                   {correlation.toFixed(3)}
                 </span>
                 {correlation < 0 && (
-                  <span style={{ color: '#ff6b6b', marginLeft: '8px' }}>⚠ PHASE ISSUES</span>
+                  <span className="mc-gonio-phase-warn">⚠ PHASE ISSUES</span>
                 )}
               </div>
             </div>
           </div>
         )}
       </div>
-
-      <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
     </div>
   );
 };

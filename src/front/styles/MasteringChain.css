@@ -1,0 +1,698 @@
+/* =============================================================================
+   MasteringChain.css
+   Location: src/front/styles/MasteringChain.css
+   ============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
+
+/* ── ROOT ─────────────────────────────────────────────────────────────────── */
+.mc-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #0d1117;
+  color: #cdd9e5;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+/* ── HEADER ───────────────────────────────────────────────────────────────── */
+.mc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #1c2128;
+  background: linear-gradient(90deg, #161b22 0%, #0d1117 100%);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.mc-header-title {
+  color: #e6edf3;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.15em;
+}
+
+.mc-header-spacer { flex: 1; }
+
+.mc-target-label {
+  color: #484f58;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.mc-target-select {
+  background: #161b22;
+  border: 1px solid #30363d;
+  color: #ffd60a;
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.12s;
+  flex-shrink: 0;
+}
+.mc-target-select:focus { border-color: #ffd60a44; }
+
+.mc-tab-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: #484f58;
+  border-radius: 5px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.mc-tab-btn:hover { color: #6e7681; border-color: #1c2128; }
+.mc-tab-btn.active {
+  background: #21262d;
+  border-color: #30363d;
+  color: #e6edf3;
+}
+
+.mc-close-btn {
+  background: none;
+  border: 1px solid #30363d;
+  color: #6e7681;
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.mc-close-btn:hover { border-color: #ff3b5c; color: #ff3b5c; background: #ff3b5c12; }
+
+/* ── LUFS BAR ─────────────────────────────────────────────────────────────── */
+.mc-lufs-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 9px 16px;
+  border-bottom: 2px solid #1c2128;
+  background: #080c12;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.mc-lufs-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.mc-lufs-stat-label {
+  color: #484f58;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.mc-lufs-value {
+  font-weight: 800;
+  font-size: 22px;
+  min-width: 64px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-lufs-short-value {
+  font-weight: 700;
+  font-size: 15px;
+  min-width: 50px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-lufs-unit {
+  color: #484f58;
+  font-size: 11px;
+}
+
+.mc-lufs-divider {
+  width: 1px;
+  height: 22px;
+  background: #21262d;
+  flex-shrink: 0;
+}
+
+.mc-lufs-spacer { flex: 1; }
+
+.mc-peak-value {
+  font-weight: 700;
+  font-size: 15px;
+  min-width: 72px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-clip-badge {
+  color: #ff2d55;
+  font-size: 11px;
+  font-weight: 800;
+  animation: mc-blink 0.5s infinite;
+  letter-spacing: 0.08em;
+}
+
+/* Target progress bar */
+.mc-target-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mc-target-bar-wrap {
+  position: relative;
+  width: 200px;
+  height: 8px;
+  background: #21262d;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mc-target-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+  transition: width 0.15s, background 0.15s;
+}
+
+.mc-target-bar-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255,255,255,0.6);
+}
+
+/* Correlation meter */
+.mc-corr-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.mc-corr-bar-wrap {
+  position: relative;
+  width: 60px;
+  height: 8px;
+  background: #21262d;
+  border-radius: 4px;
+}
+
+.mc-corr-bar-center {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #30363d;
+}
+
+.mc-corr-bar-needle {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 3px;
+  border-radius: 2px;
+  transform: translateX(-50%);
+  transition: left 0.1s;
+}
+
+.mc-corr-value {
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 34px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── MAIN AREA ────────────────────────────────────────────────────────────── */
+.mc-main {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── CHAIN TAB ────────────────────────────────────────────────────────────── */
+.mc-chain-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  scrollbar-width: thin;
+  scrollbar-color: #1c2128 transparent;
+}
+.mc-chain-scroll::-webkit-scrollbar { width: 4px; }
+.mc-chain-scroll::-webkit-scrollbar-thumb { background: #1c2128; border-radius: 2px; }
+
+/* ── TOOL SLOT ────────────────────────────────────────────────────────────── */
+.mc-slot {
+  margin-bottom: 8px;
+  border: 1.5px solid #1c2128;
+  border-radius: 8px;
+  background: #0a0e14;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+.mc-slot.enabled {
+  border-color: color-mix(in srgb, var(--slot-color) 40%, transparent);
+  background: color-mix(in srgb, var(--slot-color) 5%, #0a0e14);
+}
+.mc-slot:not(.enabled) { opacity: 0.8; }
+
+.mc-slot-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s;
+}
+.mc-slot-header:hover { background: rgba(255,255,255,0.02); }
+
+/* bypass LED */
+.mc-bypass-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #21262d;
+  border: 1.5px solid #30363d;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.12s;
+}
+.mc-bypass-btn.on {
+  background: var(--slot-color);
+  border-color: var(--slot-color);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--slot-color) 60%, transparent),
+              0 0 16px color-mix(in srgb, var(--slot-color) 25%, transparent);
+}
+.mc-bypass-btn:hover { transform: scale(1.1); opacity: 0.85; }
+
+.mc-slot-icon { font-size: 14px; flex-shrink: 0; }
+
+.mc-slot-label {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 400;
+  color: #484f58;
+  letter-spacing: 0.04em;
+  transition: color 0.12s;
+}
+.mc-slot.enabled .mc-slot-label {
+  color: #e6edf3;
+  font-weight: 700;
+}
+
+.mc-bypassed-tag {
+  color: #2d333b;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+.mc-slot-chevron {
+  color: #484f58;
+  font-size: 13px;
+  transition: transform 0.15s;
+  user-select: none;
+  flex-shrink: 0;
+}
+.mc-slot-chevron.open { transform: rotate(180deg); }
+
+/* ── SLOT BODY ────────────────────────────────────────────────────────────── */
+.mc-slot-body {
+  padding: 14px 18px 18px;
+  border-top: 1px solid color-mix(in srgb, var(--slot-color) 20%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: flex-end;
+  /* KEY FIX: distribute knobs evenly across full width */
+  justify-content: flex-start;
+}
+
+/* Preset buttons row inside a slot body */
+.mc-preset-row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.mc-preset-btn {
+  background: none;
+  border: 1px solid #21262d;
+  color: #484f58;
+  border-radius: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  transition: all 0.12s;
+}
+.mc-preset-btn:hover { border-color: #30363d; color: #6e7681; }
+.mc-preset-btn.active {
+  border-color: var(--slot-color);
+  color: var(--slot-color);
+  background: color-mix(in srgb, var(--slot-color) 12%, transparent);
+}
+
+/* Width preset buttons */
+.mc-width-presets {
+  display: flex;
+  gap: 5px;
+  align-self: flex-end;
+  padding-bottom: 26px;
+  flex-wrap: wrap;
+}
+
+.mc-width-btn {
+  background: none;
+  border: 1px solid #21262d;
+  color: #484f58;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  transition: all 0.12s;
+}
+.mc-width-btn:hover { border-color: #30363d; color: #6e7681; }
+.mc-width-btn.active {
+  border-color: #30d158;
+  color: #30d158;
+  background: #30d15818;
+}
+
+/* ── KNOB CELL ────────────────────────────────────────────────────────────── */
+.mc-knob-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 80px;
+  max-width: 120px;
+}
+
+.mc-knob-value {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.02em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-knob-label {
+  color: #6e7681;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* ── METERS TAB ───────────────────────────────────────────────────────────── */
+.mc-meters-tab {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  overflow: hidden;
+}
+
+.mc-lufs-history-panel {
+  flex: 2;
+  background: #0a0e14;
+  border: 1px solid #1c2128;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mc-panel-label {
+  color: #484f58;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.mc-history-bars {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.mc-history-bar {
+  flex: 1;
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+  transition: height 0.05s;
+}
+
+.mc-history-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.mc-history-footer-label {
+  color: #2d333b;
+  font-size: 9px;
+}
+
+.mc-history-target-label {
+  color: #ffd60a;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.mc-platform-panel {
+  flex: 1;
+  background: #0a0e14;
+  border: 1px solid #1c2128;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.mc-platform-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mc-platform-status {
+  font-size: 13px;
+  flex-shrink: 0;
+  width: 16px;
+}
+
+.mc-platform-name {
+  flex: 1;
+  color: #6e7681;
+  font-size: 11px;
+}
+
+.mc-platform-target {
+  color: #484f58;
+  font-size: 9px;
+  flex-shrink: 0;
+}
+
+.mc-platform-diff {
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 52px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* ── SPECTRUM TAB ─────────────────────────────────────────────────────────── */
+.mc-spectrum-tab {
+  flex: 1;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.mc-spectrum-panel {
+  flex: 1;
+  background: #0a0e14;
+  border: 1px solid #1c2128;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mc-spectrum-bars {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.mc-spectrum-bar {
+  flex: 1;
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+}
+
+.mc-spectrum-freq-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  flex-shrink: 0;
+  color: #2d333b;
+  font-size: 9px;
+}
+
+/* ── GONIO TAB ────────────────────────────────────────────────────────────── */
+.mc-gonio-tab {
+  flex: 1;
+  padding: 14px;
+  display: flex;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.mc-gonio-panel {
+  flex: 1;
+  background: #0a0e14;
+  border: 1px solid #1c2128;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.mc-gonio-scope {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.mc-gonio-axis-h {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #21262d;
+}
+
+.mc-gonio-axis-v {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #21262d;
+}
+
+.mc-gonio-diag-r {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 155px;
+  height: 1px;
+  background: #1c2128;
+  transform-origin: 0 0;
+  transform: rotate(45deg);
+}
+
+.mc-gonio-diag-l {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 155px;
+  height: 1px;
+  background: #1c2128;
+  transform-origin: 0 0;
+  transform: rotate(-45deg);
+}
+
+.mc-gonio-point {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.mc-gonio-label-top    { position: absolute; top: 5px;    left: 50%;  transform: translateX(-50%); color: #2d333b; font-size: 9px; }
+.mc-gonio-label-bottom { position: absolute; bottom: 5px; left: 50%;  transform: translateX(-50%); color: #2d333b; font-size: 9px; }
+.mc-gonio-label-left   { position: absolute; left: 5px;   top: 50%;   transform: translateY(-50%); color: #2d333b; font-size: 9px; }
+.mc-gonio-label-right  { position: absolute; right: 5px;  top: 50%;   transform: translateY(-50%); color: #2d333b; font-size: 9px; }
+
+.mc-gonio-corr {
+  margin-top: 12px;
+  color: #6e7681;
+  font-size: 12px;
+  text-align: center;
+  line-height: 1.8;
+}
+
+.mc-gonio-phase-warn {
+  color: #ff6b6b;
+  margin-left: 8px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+/* ── ANIMATIONS ───────────────────────────────────────────────────────────── */
+@keyframes mc-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ── RESPONSIVE ───────────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .mc-slot-body  { gap: 6px 10px; padding: 10px 12px 14px; }
+  .mc-knob-cell  { min-width: 64px; }
+  .mc-lufs-bar   { gap: 10px; }
+  .mc-target-bar-wrap { width: 120px; }
+}
