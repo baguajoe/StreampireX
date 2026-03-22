@@ -231,6 +231,11 @@
 .daw-project-name,
 .daw-input-select,
 .daw-track-name-input,
+.daw-track-type-select option {
+  background: #0d1117;
+  color: #e6edf3;
+}
+
 .daw-track-type-select,
 .daw-ch-name-input {
   appearance: none;
