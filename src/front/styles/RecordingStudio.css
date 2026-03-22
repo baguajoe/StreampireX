@@ -571,8 +571,9 @@
 }
 
 .daw-channel {
-  width: 208px;
-  min-width: 208px;
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
   height: 100%;
   display: grid;
   grid-template-rows:
@@ -1649,4 +1650,33 @@
   width: 42px;
   height: 18px;
   background: linear-gradient(180deg, #e0e0e0 0%, #aaa 40%, #666 60%, #aaa 100%);
+}
+
+/* ── Uniform channel widths ── */
+.daw-master {
+  width: 160px !important;
+  min-width: 160px !important;
+  max-width: 160px !important;
+}
+
+.daw-console-scroll {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.daw-ch-fader-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.daw-ch-fader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
