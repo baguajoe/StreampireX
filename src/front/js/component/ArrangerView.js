@@ -1145,6 +1145,32 @@ const ArrangerView = ({
             </div>
           </div>
         </div>
+
+              {/* ── Automation Lane (below each track) ── */}
+              {typeof automation !== 'undefined' && (
+                <AutomationLane
+                  trackIndex={i}
+                  trackColor={track.trackType === 'instrument' ? '#af52de' : (track.color ?? '#00ffc8')}
+                  trackName={track.name ?? `Track ${i + 1}`}
+                  duration={Math.max(30, (tracks.reduce((mx, t) => Math.max(mx, ...(t.regions || []).map(r => (r.startBeat || 0) + (r.duration || 0))), 0) * (60 / (bpm || 120))) || 30)}
+                  zoom={zoom ?? 1}
+                  currentTime={(playheadBeat ?? 0) * (60 / (bpm || 120))}
+                  isPlaying={isPlaying}
+                  readMode={!!autoRead?.[track.id ?? i]}
+                  writeMode={!!autoWrite?.[track.id ?? i]}
+                  points={(automation?.[track.id ?? i]?.[autoParams?.[track.id ?? i] ?? 'volume']) ?? []}
+                  paramKey={autoParams?.[track.id ?? i] ?? 'volume'}
+                  onChange={pts => setAutomation(prev => ({
+                    ...prev,
+                    [track.id ?? i]: { ...(prev?.[track.id ?? i] ?? {}), [autoParams?.[track.id ?? i] ?? 'volume']: pts },
+                  }))}
+                  onParamChange={pk => setAutoParams(prev => ({ ...prev, [track.id ?? i]: pk }))}
+                  onReadToggle={() => setAutoRead(prev => ({ ...prev, [track.id ?? i]: !prev?.[track.id ?? i] }))}
+                  onWriteToggle={() => setAutoWrite(prev => ({ ...prev, [track.id ?? i]: !prev?.[track.id ?? i] }))}
+                  collapsed={!!autoCollapsed?.[track.id ?? i]}
+                  onCollapse={() => setAutoCollapsed(prev => ({ ...prev, [track.id ?? i]: !prev?.[track.id ?? i] }))}
+                />
+              )}
       </div>
 
       {contextMenu && <ContextMenu x={contextMenu.x} y={contextMenu.y} items={contextMenu.items} onClose={() => setContextMenu(null)} />}
