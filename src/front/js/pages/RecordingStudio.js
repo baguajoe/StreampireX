@@ -660,6 +660,8 @@ const RecordingStudio = ({ user }) => {
   const [openFxKey, setOpenFxKey] = useState(null); // which effect popup is open
   const [micSimStream, setMicSimStream] = useState(null);
   const [showMicBuilder, setShowMicBuilder] = useState(false);
+  const [showVocalModal, setShowVocalModal] = useState(false);
+  const [showMicSimModal, setShowMicSimModal] = useState(false);
   const [customMicProfiles, setCustomMicProfiles] = useState([]);
   const [meterLevels, setMeterLevels] = useState([]);
   const [masterMeterLevels, setMasterMeterLevels] = useState({ left: 0, right: 0, peak: 0 }); // NEW
@@ -2404,7 +2406,7 @@ const RecordingStudio = ({ user }) => {
         setViewMode("beatmaker");
         break;
       case "view:micsim":
-        setViewMode("micsim");
+        setShowMicSimModal(true);
         break;
       case "view:aimix":
         setViewMode("aimix");
@@ -2419,7 +2421,7 @@ const RecordingStudio = ({ user }) => {
         setViewMode("beatmaker");
         break;
       case "view:vocal":
-        setViewMode("vocal");
+        setShowVocalModal(true);
         break;
       case "view:takelanes":
         setViewMode("takelanes");
@@ -2803,7 +2805,7 @@ const RecordingStudio = ({ user }) => {
           </button>
           <button
             className={`daw-view-tab ${viewMode === "vocal" ? "active" : ""}`}
-            onClick={() => setViewMode("vocal")}
+            onClick={() => setShowVocalModal(true)}
             title="Vocal Processor"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -3662,8 +3664,10 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
-        {viewMode === "micsim" && (
-          <div className="daw-micsim-view">
+        {showMicSimModal && (
+          <div className="daw-modal-overlay" onClick={() => setShowMicSimModal(false)}>
+            <div className="daw-plugin-modal" onClick={e => e.stopPropagation()}>
+              <button onClick={() => setShowMicSimModal(false)} style={{position:'absolute',top:8,right:12,background:'none',border:'none',color:'#fff',fontSize:'18px',cursor:'pointer',zIndex:10}}>✕</button>
             <MicSimulator
               audioContext={audioCtxRef.current}
               liveStream={micSimStream}
@@ -3752,8 +3756,10 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
-        {viewMode === "vocal" && (
-          <div className="daw-vocal-view">
+        {showVocalModal && (
+          <div className="daw-modal-overlay" onClick={() => setShowVocalModal(false)}>
+            <div className="daw-plugin-modal" onClick={e => e.stopPropagation()}>
+              <button onClick={() => setShowVocalModal(false)} style={{position:'absolute',top:8,right:12,background:'none',border:'none',color:'#fff',fontSize:'18px',cursor:'pointer',zIndex:10}}>✕</button>
             <VocalProcessor
               audioContext={audioCtxRef.current}
               onClose={() => setViewMode("arrange")}
@@ -3762,6 +3768,7 @@ const RecordingStudio = ({ user }) => {
               selectedTrackIndex={selectedTrackIndex}
               bpm={bpm}
               onApplyToConsole={handleApplyVocalFx}
+              onClose={() => setShowVocalModal(false)}
               onSendToTrack={(buf, name) => {
                 const ai = tracks.findIndex(t => t.armed);
                 const idx = ai !== -1 ? ai : selectedTrackIndex;
@@ -4189,13 +4196,13 @@ const RecordingStudio = ({ user }) => {
                       onClick={() => {
                         if (fx.key === "__vocal_processor") {
                           setInsertPickerState(null);
-                          setViewMode("vocal");
+                          setShowVocalModal(true);
                           setStatus("Vocal Processor — dial FX, then Apply to Console");
                           return;
                         }
                         if (fx.key === "__mic_simulator") {
                           setInsertPickerState(null);
-                          setViewMode("micsim");
+                          setShowMicSimModal(true);
                           setStatus("Mic Simulator — choose a mic model, then apply profile");
                           return;
                         }
