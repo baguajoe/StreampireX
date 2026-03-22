@@ -3199,7 +3199,7 @@ const RecordingStudio = ({ user }) => {
 
       {/* ═══════════════════ MAIN VIEW AREA ═══════════════════ */}
       <div className="daw-main">
-        {viewMode === "arrange" && (
+        {!splitScreen && viewMode === "arrange" && (
           <div style={{ position: "relative" }}>
           <ArrangerView
             tracks={tracks}
@@ -3235,7 +3235,133 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {/* ──────── CONSOLE VIEW — Cubase-style with CubaseMeter + Master Pan Knob ──────── */}
-        {viewMode === "console" && (
+                {/* ══ SPLIT SCREEN: Arrange top + Mixer bottom simultaneously ══════════ */}
+        {splitScreen && (
+          <div
+            ref={splitContainerRef}
+            className="rs-split-screen"
+            style={{ '--rs-split-top-h': `${splitTopH}%` }}
+          >
+            {/* ── Top pane: Arrange ── */}
+            <div className="rs-split-top" style={{ height: `${splitTopH}%` }}>
+              <span className="rs-split-pane-label">ARRANGE</span>
+              {viewMode !== "arrange" && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  height: '100%', color: '#484f58', fontFamily: 'JetBrains Mono,monospace',
+                  fontSize: 12, gap: 10,
+                }}>
+                  <span>Switch to Arrange view to see timeline here</span>
+                  <button
+                    onClick={() => setViewMode('arrange')}
+                    style={{
+                      background: '#00ffc818', border: '1px solid #00ffc844', color: '#00ffc8',
+                      borderRadius: 5, padding: '4px 12px', cursor: 'pointer',
+                      fontFamily: 'inherit', fontSize: 11, fontWeight: 800,
+                    }}
+                  >
+                    Go to Arrange
+                  </button>
+                </div>
+              )}
+              {viewMode === "arrange" && tracks && (
+                <ArrangerView
+                  tracks={tracks}
+                  bpm={bpm}
+                  currentTime={currentTime}
+                  isPlaying={isPlaying}
+                  selectedTrack={selectedTrack}
+                  onSelectTrack={setSelectedTrack}
+                  onUpdateRegion={updateRegion}
+                  onDeleteRegion={deleteRegion}
+                  onSplitRegion={splitRegion}
+                  zoom={zoom}
+                  onZoomChange={setZoom}
+                  snapEnabled={snapEnabled}
+                  onBrowseSounds={handleBrowseSounds}
+                  onOpenPianoRoll={onOpenPianoRoll}
+                  onTimelineDoubleClick={handleTimelineDoubleClick}
+                  MidiRegionPreview={MidiRegionPreview}
+                />
+              )}
+              <div className="rs-split-handle" onMouseDown={handleSplitMouseDown} title="Drag to resize" />
+            </div>
+
+            {/* ── Bottom pane: Mixer/Console ── */}
+            <div className="rs-split-bottom" style={{ height: `${100 - splitTopH}%` }}>
+              <span className="rs-split-pane-label">MIXER</span>
+              <div className="daw-console" style={{ height: '100%', overflow: 'auto' }}>
+                <div className="daw-console-scroll">
+                  {tracks.map((t, i) => {
+                    const meter = meterLevels?.[i] || { left: 0, right: 0, peak: 0 };
+                    return (
+                      <div
+                        key={t.id ?? i}
+                        className={`daw-channel${i === selectedTrack ? ' selected' : ''}`}
+                        onClick={() => setSelectedTrack(i)}
+                      >
+                        <div className="daw-ch-name">
+                          <span style={{ fontSize: 11, fontWeight: 700, color: t.color || '#cdd9e5', letterSpacing: '0.04em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {t.name || `Track ${i + 1}`}
+                          </span>
+                        </div>
+                        <div className="daw-ch-controls">
+                          <button
+                            className={`daw-ch-btn mute${t.muted ? ' active' : ''}`}
+                            onClick={e => { e.stopPropagation(); updateTrack(i, { muted: !t.muted }); }}
+                            title="Mute"
+                          >M</button>
+                          <button
+                            className={`daw-ch-btn solo${t.solo ? ' active' : ''}`}
+                            onClick={e => { e.stopPropagation(); updateTrack(i, { solo: !t.solo }); }}
+                            title="Solo"
+                          >S</button>
+                        </div>
+                        <div className="daw-ch-fader-area">
+                          <input
+                            type="range" min={0} max={1} step={0.01}
+                            value={t.volume ?? 0.8}
+                            className="daw-ch-fader"
+                            orient="vertical"
+                            onChange={e => updateTrack(i, { volume: parseFloat(e.target.value) })}
+                          />
+                        </div>
+                        <div className="daw-ch-meter">
+                          <div className="daw-ch-meter-bar" style={{ height: `${Math.round((meter.left || 0) * 100)}%`, background: meter.peak > 0.9 ? '#ff3b30' : '#00ffc8' }} />
+                        </div>
+                        <div style={{ fontSize: 10, textAlign: 'center', color: '#6e7681', padding: '2px 0' }}>
+                          {Math.round((t.volume ?? 0.8) * 100)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {/* Master channel */}
+                  <div className="daw-channel master-channel daw-master">
+                    <div className="daw-ch-name">
+                      <span style={{ fontSize: 11, fontWeight: 800, color: '#ff8a3d', letterSpacing: '0.08em' }}>MASTER</span>
+                    </div>
+                    <div className="daw-ch-fader-area">
+                      <input
+                        type="range" min={0} max={1} step={0.01}
+                        value={masterVolume ?? 1}
+                        className="daw-ch-fader"
+                        orient="vertical"
+                        onChange={e => setMasterVolume(parseFloat(e.target.value))}
+                      />
+                    </div>
+                    <div style={{ fontSize: 10, textAlign: 'center', color: '#ff8a3d', padding: '2px 0', fontWeight: 700 }}>
+                      {Math.round((masterVolume ?? 1) * 100)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+
+
+        {!splitScreen && viewMode === "console" && (
           <div className="daw-console">
             <div className="daw-console-scroll">
               {tracks.map((t, i) => {
