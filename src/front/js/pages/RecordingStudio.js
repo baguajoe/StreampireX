@@ -3599,7 +3599,6 @@ const RecordingStudio = ({ user }) => {
               onClose={() => setShowMicSimModal(false)}
               isEmbedded={true}
             />
-            </div>
           </div>
         )}
 
