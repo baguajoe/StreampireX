@@ -3698,7 +3698,7 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {viewMode === "aimix" && (
-          <div className="daw-aimix-view">
+          <div className="daw-aimix-view" style={{display:'flex',flexDirection:'column',width:'100%',height:'100%',overflow:'auto'}}>
             <AIMixAssistant
               tracks={tracks}
               bpm={bpm}
@@ -3710,27 +3710,6 @@ const RecordingStudio = ({ user }) => {
               onClose={() => setViewMode("arrange")}
               isEmbedded={true}
             />
-            <div style={{padding:'12px 16px',borderTop:'1px solid #30363d',display:'flex',alignItems:'center',gap:12}}>
-              <button onClick={() => setShowMicBuilder(true)} style={{background:'rgba(0,255,200,0.1)',color:'#00ffc8',border:'1px solid rgba(0,255,200,0.3)',borderRadius:8,padding:'8px 16px',cursor:'pointer',fontSize:'0.85rem',fontWeight:600}}>
-                🔧 Build Custom Mic
-              </button>
-              {customMicProfiles.length > 0 && (
-                <span style={{fontSize:'0.78rem',color:'#8b949e'}}>{customMicProfiles.length} custom profile{customMicProfiles.length > 1 ? 's' : ''} saved</span>
-              )}
-            </div>
-            {showMicBuilder && (
-              <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                <div style={{width:'90%',maxWidth:900,maxHeight:'90vh',overflow:'auto',background:'#161b22',borderRadius:12,border:'1px solid #30363d',boxShadow:'0 24px 64px rgba(0,0,0,0.6)'}}>
-                  <CustomMicBuilder
-                    onSave={(profileId, profile) => {
-                      setCustomMicProfiles(prev => [...prev.filter(p => p.id !== profileId), {id: profileId, ...profile}]);
-                      setShowMicBuilder(false);
-                    }}
-                    onClose={() => setShowMicBuilder(false)}
-                  />
-                </div>
-              </div>
-            )}
           </div>
         )}
 
