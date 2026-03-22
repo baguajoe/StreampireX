@@ -3644,8 +3644,7 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {showMicSimModal && (
-          <div className="daw-modal-overlay" onClick={() => setShowMicSimModal(false)}>
-            <div className="daw-plugin-modal" onClick={e => e.stopPropagation()}>
+          <div className="daw-plugin-modal" style={{position:'fixed',top:60,right:20,zIndex:900,width:'min(900px,60vw)',maxHeight:'80vh',overflowY:'auto'}}>
               <button onClick={() => setShowMicSimModal(false)} style={{position:'absolute',top:8,right:12,background:'none',border:'none',color:'#fff',fontSize:'18px',cursor:'pointer',zIndex:10}}>✕</button>
             <MicSimulator
               audioContext={audioCtxRef.current}
@@ -3737,8 +3736,7 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {showVocalModal && (
-          <div className="daw-modal-overlay" onClick={() => setShowVocalModal(false)}>
-            <div className="daw-plugin-modal" onClick={e => e.stopPropagation()}>
+          <div className="daw-plugin-modal" style={{position:'fixed',top:60,right:20,zIndex:900,width:'min(900px,60vw)',maxHeight:'80vh',overflowY:'auto'}}>
               <button onClick={() => setShowVocalModal(false)} style={{position:'absolute',top:8,right:12,background:'none',border:'none',color:'#fff',fontSize:'18px',cursor:'pointer',zIndex:10}}>✕</button>
             <VocalProcessor
               audioContext={audioCtxRef.current}
@@ -3763,7 +3761,6 @@ const RecordingStudio = ({ user }) => {
                 if (ai !== -1) uploadTrack(blob, ai);
               }}
             />
-            </div>
           </div>
         )}
         {/* ──────── PLUGIN RACK VIEW ──────── */}
