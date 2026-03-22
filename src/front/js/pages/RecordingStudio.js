@@ -2804,7 +2804,7 @@ const RecordingStudio = ({ user }) => {
             Key Finder
           </button>
           <button
-            className={`daw-view-tab ${viewMode === "vocal" ? "active" : ""}`}
+            className={`daw-view-tab ${showVocalModal ? "active" : ""}`}
             onClick={() => setShowVocalModal(true)}
             title="Vocal Processor"
           >
