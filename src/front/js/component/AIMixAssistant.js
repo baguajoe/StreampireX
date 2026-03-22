@@ -380,18 +380,25 @@ const AIMixAssistant = ({
       </div>
 
       {/* Analysis Mode Toggle */}
-      {projectId && (
-        <div className="ai-mix-section ai-mix-mode">
-          <button
-            className={`ai-mix-mode-btn ${!useServer ? 'active' : ''}`}
-            onClick={() => setUseServer(false)}
-          >⚡ Instant (Browser)</button>
-          <button
-            className={`ai-mix-mode-btn ${useServer ? 'active' : ''}`}
-            onClick={() => setUseServer(true)}
-          >🧠 Deep (Server)</button>
-        </div>
-      )}
+      <div className="ai-mix-section ai-mix-mode">
+        <button
+          className={`ai-mix-mode-btn ${!useServer ? 'active' : ''}`}
+          onClick={() => setUseServer(false)}
+          title="Analyze in browser — instant, no upload needed"
+        >⚡ Instant (Browser)</button>
+        <button
+          className={`ai-mix-mode-btn ${useServer ? 'active' : ''}`}
+          onClick={() => setUseServer(projectId ? true : false)}
+          title={projectId ? "Deep AI analysis via server" : "Save project first to use server analysis"}
+          style={{opacity: projectId ? 1 : 0.5}}
+        >🧠 Deep (Server){!projectId && ' — save project first'}</button>
+      </div>
+
+      {/* How it works info */}
+      <div style={{padding:'0 24px 16px',fontSize:'0.78rem',color:'#555',lineHeight:1.5}}>
+        AI Mix analyzes all tracks together — volume balance, frequency conflicts, panning — 
+        then gives one-click fixes that update your Console faders automatically.
+      </div>
 
       {/* Analyze Button */}
       <div className="ai-mix-section">
