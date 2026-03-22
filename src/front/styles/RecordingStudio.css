@@ -750,8 +750,10 @@
 }
 
 .daw-ch-fader input[type="range"] {
-  -webkit-appearance: slider-vertical;
-  appearance: slider-vertical;
+  -webkit-appearance: none;
+  appearance: none;
+  writing-mode: vertical-lr;
+  direction: rtl;
   writing-mode: bt-lr;
   width: 30px;
   height: 208px;
@@ -1585,4 +1587,66 @@
   .daw-lcd {
     min-width: auto !important;
   }
+}
+
+/* ── Professional Console Fader Styles ── */
+.daw-ch-fader input[type="range"]::-webkit-slider-runnable-track {
+  width: 6px;
+  background: linear-gradient(to bottom, #1a1a2e, #16213e);
+  border: 1px solid #333;
+  border-radius: 3px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+}
+
+.daw-ch-fader input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 32px;
+  height: 14px;
+  background: linear-gradient(180deg, #c8c8c8 0%, #888 40%, #555 60%, #888 100%);
+  border: 1px solid #222;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.3);
+  cursor: grab;
+  position: relative;
+}
+
+.daw-ch-fader input[type="range"]::-webkit-slider-thumb::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: #333;
+  transform: translateY(-50%);
+}
+
+.daw-ch-fader input[type="range"]::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  background: linear-gradient(180deg, #d8d8d8 0%, #999 40%, #666 60%, #999 100%);
+}
+
+.daw-ch-fader input[type="range"]::-moz-range-track {
+  width: 6px;
+  background: linear-gradient(to bottom, #1a1a2e, #16213e);
+  border: 1px solid #333;
+  border-radius: 3px;
+}
+
+.daw-ch-fader input[type="range"]::-moz-range-thumb {
+  width: 32px;
+  height: 14px;
+  background: linear-gradient(180deg, #c8c8c8 0%, #888 40%, #555 60%, #888 100%);
+  border: 1px solid #222;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  cursor: grab;
+}
+
+/* Master fader — wider and taller */
+.daw-master .daw-ch-fader input[type="range"]::-webkit-slider-thumb {
+  width: 42px;
+  height: 18px;
+  background: linear-gradient(180deg, #e0e0e0 0%, #aaa 40%, #666 60%, #aaa 100%);
 }
