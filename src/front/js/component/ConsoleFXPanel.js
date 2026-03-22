@@ -816,6 +816,45 @@ const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey })
             Channel strip / analog rack
           </div>
         </div>
+        
+        {/* ── A/B Compare buttons ── */}
+        <button
+          onClick={storeA}
+          title="Store current settings as Snapshot A"
+          style={{
+            background: snapshotARef.current ? '#00ffc822' : 'transparent',
+            border: `1px solid ${snapshotARef.current ? '#00ffc8' : '#30363d'}`,
+            color: snapshotARef.current ? '#00ffc8' : '#6e7681',
+            borderRadius: '4px',
+            padding: '3px 9px',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: '10px',
+            fontWeight: 800,
+            letterSpacing: '0.08em',
+          }}
+        >
+          STORE A
+        </button>
+        <button
+          onClick={toggleAB}
+          title={compareMode ? 'Hearing A — click to return to B' : 'Compare A vs B'}
+          style={{
+            background: compareMode ? '#ffd60a22' : 'transparent',
+            border: `1px solid ${compareMode ? '#ffd60a' : '#30363d'}`,
+            color: compareMode ? '#ffd60a' : '#6e7681',
+            borderRadius: '4px',
+            padding: '3px 9px',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: '10px',
+            fontWeight: 800,
+            letterSpacing: '0.08em',
+          }}
+        >
+          {compareMode ? '← A' : 'A/B'}
+        </button>
+
         <button
           className="daw-fx-close"
           onClick={onClose}

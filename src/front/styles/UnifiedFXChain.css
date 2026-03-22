@@ -1,0 +1,419 @@
+/* =============================================================================
+   UnifiedFXChain.css
+   Location: src/front/styles/UnifiedFXChain.css
+   ============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
+
+/* ── ROOT ─────────────────────────────────────────────────────────────────── */
+.ufx-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #0d1117;
+  color: #cdd9e5;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+/* ── HEADER ───────────────────────────────────────────────────────────────── */
+.ufx-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #1c2128;
+  background: linear-gradient(90deg, #161b22 0%, #0d1117 100%);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.ufx-track-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ufx-header-title {
+  color: #e6edf3;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.ufx-header-subtitle {
+  color: #484f58;
+  font-size: 12px;
+  flex: 1;
+}
+
+.ufx-adv-label {
+  color: #2d333b;
+  font-size: 11px;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+/* Advanced buttons */
+.ufx-adv-btn {
+  background: none;
+  border-radius: 4px;
+  padding: 3px 9px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  border: 1px solid;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.ufx-adv-btn--multiband { border-color: #4a9eff44; color: #4a9eff; }
+.ufx-adv-btn--multiband:hover { border-color: #4a9eff; background: #4a9eff18; }
+.ufx-adv-btn--stutter   { border-color: #ff2d5544; color: #ff2d55; }
+.ufx-adv-btn--stutter:hover   { border-color: #ff2d55; background: #ff2d5518; }
+.ufx-adv-btn--mastering { border-color: #ffd60a44; color: #ffd60a; }
+.ufx-adv-btn--mastering:hover { border-color: #ffd60a; background: #ffd60a18; }
+
+.ufx-close-btn {
+  background: none;
+  border: 1px solid #30363d;
+  color: #6e7681;
+  border-radius: 4px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  transition: all 0.12s;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.ufx-close-btn:hover { border-color: #ff3b5c; color: #ff3b5c; background: #ff3b5c12; }
+
+/* ── SIGNAL FLOW BAR ──────────────────────────────────────────────────────── */
+.ufx-flow-bar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 14px;
+  border-bottom: 2px solid #1c2128;
+  background: #080c12;
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ufx-flow-bar::-webkit-scrollbar { display: none; }
+
+.ufx-flow-label {
+  color: #2d333b;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  margin-right: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.ufx-flow-node {
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: default;
+  background: #161b22;
+  color: #2d333b;
+  border: 1px solid #1c2128;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.12s;
+  letter-spacing: 0.04em;
+}
+.ufx-flow-node--edge {
+  background: #21262d;
+  color: #6e7681;
+  border-color: #30363d;
+}
+.ufx-flow-node--active {
+  background: color-mix(in srgb, var(--node-color, #00ffc8) 18%, transparent);
+  color: var(--node-color, #00ffc8);
+  border-color: color-mix(in srgb, var(--node-color, #00ffc8) 45%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--node-color, #00ffc8) 20%, transparent);
+}
+
+.ufx-flow-node-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--node-color, #00ffc8);
+  box-shadow: 0 0 5px var(--node-color, #00ffc8);
+  flex-shrink: 0;
+}
+
+.ufx-flow-arrow {
+  color: #21262d;
+  font-size: 12px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* ── TABS ─────────────────────────────────────────────────────────────────── */
+.ufx-tab-bar {
+  display: flex;
+  border-bottom: 1px solid #1c2128;
+  background: #0a0e14;
+  flex-shrink: 0;
+}
+
+.ufx-tab {
+  flex: 1;
+  padding: 10px 0;
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: #484f58;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  transition: all 0.12s;
+}
+.ufx-tab:hover { color: #6e7681; }
+.ufx-tab--active { background: #0d1117; }
+.ufx-tab--active.ufx-tab--native  { color: #00ffc8; border-bottom-color: #00ffc8; }
+.ufx-tab--active.ufx-tab--plugins { color: #bf5af2; border-bottom-color: #bf5af2; }
+
+/* ── SCROLL BODY ──────────────────────────────────────────────────────────── */
+.ufx-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #1c2128 transparent;
+}
+.ufx-scroll::-webkit-scrollbar { width: 4px; }
+.ufx-scroll::-webkit-scrollbar-thumb { background: #1c2128; border-radius: 2px; }
+
+/* ── NATIVE EFFECTS TAB ───────────────────────────────────────────────────── */
+.ufx-cat-pad { padding: 10px 12px; }
+
+.ufx-category { margin-bottom: 16px; }
+
+.ufx-cat-label {
+  color: #2d333b;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  padding: 0 4px 6px;
+  border-bottom: 1px solid #1c2128;
+  margin-bottom: 7px;
+}
+
+/* ── EFFECT SLOT CARD ────────────────────────────────────────────────────── */
+.ufx-slot-card {
+  margin-bottom: 5px;
+  border: 1px solid #1c2128;
+  border-radius: 7px;
+  background: #0a0e14;
+  overflow: hidden;
+  transition: border-color 0.12s, background 0.12s;
+}
+.ufx-slot-card--enabled {
+  border-color: color-mix(in srgb, var(--slot-color) 40%, transparent);
+  background: color-mix(in srgb, var(--slot-color) 6%, #0a0e14);
+}
+.ufx-slot-card:not(.ufx-slot-card--enabled) { opacity: 0.75; }
+
+/* ── SLOT HEADER ─────────────────────────────────────────────────────────── */
+.ufx-slot-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s;
+}
+.ufx-slot-header:hover { background: rgba(255,255,255,0.02); }
+
+/* ── BYPASS DOT ──────────────────────────────────────────────────────────── */
+.ufx-bypass-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #21262d;
+  border: 1.5px solid #30363d;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.12s;
+}
+.ufx-bypass-dot--on {
+  background: var(--slot-color);
+  border-color: var(--slot-color);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--slot-color) 60%, transparent),
+              0 0 16px color-mix(in srgb, var(--slot-color) 30%, transparent);
+}
+.ufx-bypass-dot:hover { opacity: 0.8; transform: scale(1.1); }
+
+.ufx-slot-icon  { font-size: 14px; flex-shrink: 0; }
+
+.ufx-slot-label {
+  flex: 1;
+  color: #484f58;
+  font-weight: 400;
+  font-size: 12px;
+  transition: color 0.12s;
+}
+.ufx-slot-label--on {
+  color: #e6edf3;
+  font-weight: 700;
+}
+
+.ufx-bypassed-tag {
+  color: #2d333b;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.ufx-chevron {
+  color: #484f58;
+  font-size: 13px;
+  transition: transform 0.15s;
+  user-select: none;
+  flex-shrink: 0;
+}
+.ufx-chevron--open { transform: rotate(180deg); }
+
+/* ── SLOT BODY ───────────────────────────────────────────────────────────── */
+.ufx-slot-body {
+  padding: 6px 12px 12px;
+  border-top: 1px solid #1c2128;
+}
+
+.ufx-eq-graph-wrap { margin: 6px 0 12px; }
+
+/* ── PARAM ROW (select) ──────────────────────────────────────────────────── */
+.ufx-param-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ufx-param-label {
+  color: #6e7681;
+  font-size: 11px;
+  min-width: 70px;
+  flex-shrink: 0;
+}
+
+.ufx-select {
+  background: #161b22;
+  border: 1px solid #30363d;
+  color: #cdd9e5;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 11px;
+  flex: 1;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.12s;
+}
+.ufx-select:focus { border-color: #4a9eff; }
+
+/* ── KNOBS ───────────────────────────────────────────────────────────────── */
+.ufx-knobs-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 18px;
+  padding: 10px 4px 4px;
+  align-items: flex-end;
+}
+
+.ufx-knob-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.ufx-knob-svg {
+  cursor: ns-resize;
+  user-select: none;
+  display: block;
+  transition: transform 0.1s;
+}
+.ufx-knob-svg:active { transform: scale(0.96); }
+
+.ufx-knob-value {
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  min-width: 44px;
+  line-height: 1;
+}
+
+.ufx-knob-label {
+  color: #6e7681;
+  font-size: 8px;
+  text-align: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ── PLUGINS TAB ─────────────────────────────────────────────────────────── */
+.ufx-plugins-tab { min-height: 420px; }
+
+.ufx-plugin-note {
+  padding: 10px 14px 8px;
+  color: #3d444d;
+  font-size: 11px;
+  line-height: 1.7;
+  border-bottom: 1px solid #1c2128;
+}
+.ufx-plugin-note strong { color: #6e7681; }
+
+/* ── RESPONSIVE ──────────────────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .ufx-knobs-row { gap: 10px 12px; }
+  .ufx-header    { padding: 8px 10px; }
+  .ufx-flow-bar  { padding: 6px 10px; }
+  .ufx-adv-label { display: none; }
+}
+/* ── A/B Compare buttons ─────────────────────────────────────────────────── */
+.ufx-ab-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 4px 11px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #30363d;
+  background: transparent;
+  color: #6e7681;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.ufx-ab-btn:hover { border-color: #484f58; color: #cdd9e5; }
+.ufx-ab-btn.stored {
+  border-color: #00ffc844;
+  color: #00ffc8;
+  background: #00ffc811;
+}
+.ufx-ab-btn.active {
+  border-color: #ffd60a;
+  color: #ffd60a;
+  background: #ffd60a18;
+  box-shadow: 0 0 8px #ffd60a33;
+}
