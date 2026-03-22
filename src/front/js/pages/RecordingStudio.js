@@ -3603,22 +3603,6 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
-        {showMicBuilder && (
-              <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                <div style={{width:'90%',maxWidth:900,maxHeight:'90vh',overflow:'auto',background:'#161b22',borderRadius:12,border:'1px solid #30363d',boxShadow:'0 24px 64px rgba(0,0,0,0.6)'}}>
-                  <CustomMicBuilder
-                    onSave={(profileId, profile) => {
-                      setCustomMicProfiles(prev => [...prev.filter(p => p.id !== profileId), {id: profileId, ...profile}]);
-                      setShowMicBuilder(false);
-                    }}
-                    onClose={() => setShowMicBuilder(false)}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {viewMode === "keyfinder" && (
           <div className="daw-keyfinder-view">
             <KeyFinder
