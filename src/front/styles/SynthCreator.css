@@ -1,69 +1,60 @@
-/* =============================================================================
-   SynthCreator.css — StreamPireX Synth Creator
-   Theme: dark navy + teal (#00ffc8) + orange (#FF6600) accents
-   Font: JetBrains Mono for all technical labels
-   ============================================================================= */
-
+/* SynthCreator.css — Full rewrite */
 .sc-root {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  height: 100%;
   background: #0d1117;
   color: #ddeeff;
   font-family: 'JetBrains Mono', 'Courier New', monospace;
-  border: 1px solid #1e2d3d;
-  border-radius: 8px;
   overflow: hidden;
-  min-width: 0;
-  max-width: 100%;
-  width: 100%;
-  height: 100%;
-  box-shadow: 0 0 40px rgba(0, 255, 200, 0.05);
 }
 
-/* ── HEADER ── */
 .sc-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: 12px 20px;
   background: #0a0e14;
   border-bottom: 1px solid #1e2d3d;
-  min-height: 44px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .sc-title {
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: #00ffc8;
   letter-spacing: 3px;
   text-transform: uppercase;
-  text-shadow: 0 0 10px rgba(0, 255, 200, 0.4);
+  text-shadow: 0 0 10px rgba(0,255,200,0.4);
 }
 
 .sc-subtitle {
-  font-size: 0.55rem;
+  font-size: 0.6rem;
   color: #3a5570;
   letter-spacing: 2px;
   text-transform: uppercase;
   margin-left: 4px;
 }
 
-/* ── TABS ── */
 .sc-tabs {
   display: flex;
   background: #0a0e14;
   border-bottom: 1px solid #1a2535;
-  padding: 0 8px;
+  padding: 0 12px;
   gap: 2px;
+  flex-shrink: 0;
 }
 
 .sc-tab {
-  padding: 7px 14px;
+  padding: 10px 20px;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
   color: #4a6080;
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -72,66 +63,48 @@
   transition: all 0.15s;
   white-space: nowrap;
 }
-
-.sc-tab:hover {
-  color: #8aabcc;
-  background: #0d1520;
-}
-
+.sc-tab:hover { color: #8aabcc; background: #0d1520; }
 .sc-tab.active {
   color: #00ffc8;
   border-bottom-color: #00ffc8;
   background: #0d1520;
-  text-shadow: 0 0 8px rgba(0, 255, 200, 0.4);
 }
 
-/* ── MAIN PANEL ── */
 .sc-panel {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 20px;
   scrollbar-width: thin;
   scrollbar-color: #1e2d3d transparent;
 }
+.sc-panel::-webkit-scrollbar { width: 5px; }
+.sc-panel::-webkit-scrollbar-thumb { background: #1e2d3d; border-radius: 3px; }
 
-.sc-panel::-webkit-scrollbar { width: 4px; }
-.sc-panel::-webkit-scrollbar-track { background: transparent; }
-.sc-panel::-webkit-scrollbar-thumb { background: #1e2d3d; border-radius: 2px; }
-
-/* ── SECTIONS ── */
 .sc-section {
   background: #111827;
   border: 1px solid #1e2d3d;
-  border-radius: 6px;
-  padding: 10px 12px;
-  margin-bottom: 10px;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
 }
 
 .sc-osc-row {
   background: #111827;
   border: 1px solid #1e2d3d;
-  border-radius: 6px;
-  padding: 10px 12px;
-  margin-bottom: 8px;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 10px;
   transition: border-color 0.15s;
 }
+.sc-osc-row.active { border-color: #00ffc833; background: #0d1a26; }
+.sc-osc-row.inactive { opacity: 0.5; }
 
-.sc-osc-row.active {
-  border-color: #00ffc833;
-  background: #0d1a26;
-}
-
-.sc-osc-row.inactive {
-  opacity: 0.5;
-}
-
-/* ── KNOB ROW ── */
 .sc-knob-row {
   display: flex;
   align-items: flex-end;
-  gap: 12px;
+  gap: 20px;
   flex-wrap: wrap;
-  padding-top: 4px;
+  padding-top: 8px;
 }
 
 .sc-knob {
@@ -140,194 +113,115 @@
   align-items: center;
 }
 
-/* ── LABEL ── */
 .sc-label {
-  font-size: 0.55rem;
+  font-size: 0.6rem;
   color: #4a6080;
   text-transform: uppercase;
   letter-spacing: 1px;
   font-family: 'JetBrains Mono', monospace;
+  margin-top: 4px;
 }
 
-/* ── PILL BUTTONS (waveform/filter type selectors) ── */
 .sc-pill {
-  padding: 3px 8px;
+  padding: 5px 12px;
   background: transparent;
   border: 1px solid #1e2d3d;
   color: #4a6080;
-  border-radius: 3px;
-  font-size: 0.6rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
   text-transform: uppercase;
   transition: all 0.12s;
 }
-
-.sc-pill:hover {
-  border-color: #3a5570;
-  color: #8aabcc;
-}
-
+.sc-pill:hover { border-color: #3a5570; color: #8aabcc; }
 .sc-pill.active {
   background: #00ffc822;
   border-color: #00ffc8;
   color: #00ffc8;
-  box-shadow: 0 0 6px rgba(0, 255, 200, 0.25);
+  box-shadow: 0 0 6px rgba(0,255,200,0.25);
 }
 
-/* ── GENERAL BUTTONS ── */
 .sc-btn {
-  padding: 4px 10px;
+  padding: 6px 14px;
   background: transparent;
   border: 1px solid #2a3a4a;
   color: #7a9ab8;
-  border-radius: 4px;
-  font-size: 0.6rem;
+  border-radius: 6px;
+  font-size: 0.65rem;
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
   transition: all 0.12s;
   white-space: nowrap;
 }
+.sc-btn:hover { border-color: #4a6a8a; color: #aaccee; background: #0d1520; }
+.sc-btn-teal { border-color: #00ffc866; color: #00ffc8; }
+.sc-btn-teal:hover { background: #00ffc811; border-color: #00ffc8; }
+.sc-btn-orange { border-color: #FF660066; color: #FF6600; }
+.sc-btn-orange:hover { background: #FF660011; border-color: #FF6600; }
+.sc-btn-close { border-color: #3a2a2a; color: #aa6666; }
+.sc-btn-close:hover { border-color: #ff4444; color: #ff4444; background: #ff000011; }
+.sc-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.sc-btn:hover {
-  border-color: #4a6a8a;
-  color: #aaccee;
-  background: #0d1520;
-}
-
-.sc-btn-teal {
-  border-color: #00ffc866;
-  color: #00ffc8;
-}
-
-.sc-btn-teal:hover {
-  background: #00ffc811;
-  border-color: #00ffc8;
-  box-shadow: 0 0 8px rgba(0, 255, 200, 0.2);
-}
-
-.sc-btn-orange {
-  border-color: #FF660066;
-  color: #FF6600;
-}
-
-.sc-btn-orange:hover {
-  background: #FF660011;
-  border-color: #FF6600;
-  box-shadow: 0 0 8px rgba(255, 102, 0, 0.2);
-}
-
-.sc-btn-close {
-  border-color: #3a2a2a;
-  color: #aa6666;
-}
-
-.sc-btn-close:hover {
-  border-color: #ff4444;
-  color: #ff4444;
-  background: #ff000011;
-}
-
-.sc-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* ── PRESETS PANEL ── */
 .sc-presets-panel {
   background: #0a0e14;
   border-bottom: 1px solid #1e2d3d;
-  padding: 10px 14px;
-  max-height: 160px;
+  padding: 12px 20px;
+  max-height: 180px;
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #1e2d3d transparent;
 }
-
 .sc-presets-section-label {
-  font-size: 0.55rem;
+  font-size: 0.6rem;
   color: #3a5570;
   text-transform: uppercase;
   letter-spacing: 2px;
-  margin-bottom: 6px;
-  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 8px;
 }
-
-.sc-presets-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
+.sc-presets-grid { display: flex; flex-wrap: wrap; gap: 6px; }
 .sc-preset-btn {
-  padding: 4px 10px;
+  padding: 5px 12px;
   background: #111827;
   border: 1px solid #1e2d3d;
   color: #7a9ab8;
-  border-radius: 4px;
-  font-size: 0.6rem;
+  border-radius: 5px;
+  font-size: 0.65rem;
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
   transition: all 0.12s;
 }
+.sc-preset-btn:hover { border-color: #00ffc8; color: #00ffc8; background: #00ffc811; }
 
-.sc-preset-btn:hover {
-  border-color: #00ffc8;
-  color: #00ffc8;
-  background: #00ffc811;
-}
-
-.sc-preset-user {
-  border-color: #FF660033;
-  color: #FF6600;
-}
-
-.sc-preset-user:hover {
-  border-color: #FF6600;
-  background: #FF660011;
-}
-
-/* ── KEYBOARD SECTION ── */
 .sc-keyboard-section {
   background: #0a0e14;
   border-top: 1px solid #1a2535;
-  padding: 10px 14px;
+  padding: 12px 20px;
+  flex-shrink: 0;
 }
 
-/* ── MODAL ── */
 .sc-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
   z-index: 9999;
 }
-
 .sc-modal {
   background: #111827;
   border: 1px solid #00ffc844;
-  border-radius: 8px;
-  padding: 20px;
-  min-width: 280px;
-  box-shadow: 0 0 30px rgba(0, 255, 200, 0.1);
+  border-radius: 10px;
+  padding: 24px;
+  min-width: 300px;
+  box-shadow: 0 0 30px rgba(0,255,200,0.1);
 }
-
 .sc-input {
   width: 100%;
   background: #0d1117;
   border: 1px solid #2a3a4a;
   color: #ddeeff;
-  border-radius: 4px;
-  padding: 8px 10px;
-  font-size: 0.75rem;
+  border-radius: 5px;
+  padding: 10px 12px;
+  font-size: 0.82rem;
   font-family: 'JetBrains Mono', monospace;
   outline: none;
   box-sizing: border-box;
 }
-
-.sc-input:focus {
-  border-color: #00ffc8;
-  box-shadow: 0 0 6px rgba(0, 255, 200, 0.2);
-}
+.sc-input:focus { border-color: #00ffc8; box-shadow: 0 0 6px rgba(0,255,200,0.2); }
