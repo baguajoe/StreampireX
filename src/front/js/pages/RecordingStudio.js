@@ -669,7 +669,15 @@ const RecordingStudio = ({ user }) => {
   const [inputLevel, setInputLevel] = useState(0);
   const [status, setStatus] = useState("Ready");
   const [saving, setSaving] = useState(false);
-  const [mixingDown, setMixingDown] = useState(false);
+
+  // ── Audio / Latency Settings ─────────────────────────────────────────────
+  const [showAudioSettings, setShowAudioSettings] = React.useState(false);
+  const [audioBufferSize,   setAudioBufferSize]   = React.useState(256);
+  const [audioSampleRate,   setAudioSampleRate]   = React.useState(44100);
+  const [audioLookahead,    setAudioLookahead]    = React.useState(25);
+  // ─────────────────────────────────────────────────────────────────────────
+
+    const [mixingDown, setMixingDown] = useState(false);
   const [activeEffectsTrack, setActiveEffectsTrack] = useState(null);
   const [insertPickerState, setInsertPickerState] = useState(null);
   const [openFxKey, setOpenFxKey] = useState(null); // which effect popup is open
@@ -1879,6 +1887,27 @@ const RecordingStudio = ({ user }) => {
   }, [flexPitchTrack, updateTrack]);
   // ────────────────────────────────────────────────────────────────────────────
 
+  
+  // ── Recreate AudioContext with new latency settings ──────────────────────
+  const recreateAudioContext = React.useCallback(async (bufferSize, sampleRate) => {
+    // Close existing context
+    if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+      await audioCtxRef.current.close();
+    }
+    // Create new context with updated settings
+    const hint = bufferSize <= 128 ? 'interactive' : bufferSize <= 512 ? 'balanced' : 'playback';
+    audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)({
+      latencyHint: hint,
+      sampleRate:  sampleRate,
+    });
+    setAudioBufferSize(bufferSize);
+    setAudioSampleRate(sampleRate);
+    const ms = Math.round((audioCtxRef.current.baseLatency + (audioCtxRef.current.outputLatency || 0)) * 1000);
+    setLatencyMs(ms);
+    setStatus(`✓ Audio engine restarted — ${sampleRate}Hz, ~${ms}ms latency`);
+  }, []);
+  // ─────────────────────────────────────────────────────────────────────────
+
     const rewind = () => {
     if (isPlaying) stopPlayback();
     playOffsetRef.current = 0;
@@ -2760,6 +2789,7 @@ const RecordingStudio = ({ user }) => {
         } break;
       case "midi:clearAll":
         if(window.confirm("Clear all piano roll notes?"))setPianoRollNotes?.([]);break;
+      case "audio:settings": setShowAudioSettings(true); break;
       case "file:projectSettings": {
         const nm=window.prompt("Project name:",projectName??"Untitled");
         if(nm?.trim())setProjectName?.(nm.trim());
@@ -3266,6 +3296,100 @@ const RecordingStudio = ({ user }) => {
         {/* ──────── CONSOLE VIEW — Cubase-style with CubaseMeter + Master Pan Knob ──────── */}
         
         {/* ══ FLEX PITCH EDITOR OVERLAY ══════════════════════════════════════ */}
+
+        {/* ══ AUDIO SETTINGS MODAL ═════════════════════════════════════════ */}
+        {showAudioSettings && (
+          <div style={{
+            position:'fixed',inset:0,zIndex:300,background:'rgba(4,8,15,0.92)',
+            display:'flex',alignItems:'center',justifyContent:'center',
+          }} onClick={() => setShowAudioSettings(false)}>
+            <div style={{
+              background:'#0d1520',border:'1px solid #1c2128',borderRadius:12,
+              padding:28,minWidth:380,fontFamily:'JetBrains Mono,monospace',
+            }} onClick={e => e.stopPropagation()}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+                <span style={{color:'#e6edf3',fontWeight:800,fontSize:14,letterSpacing:'0.1em'}}>AUDIO SETTINGS</span>
+                <button onClick={() => setShowAudioSettings(false)} style={{background:'none',border:'none',color:'#6e7681',cursor:'pointer',fontSize:16}}>✕</button>
+              </div>
+
+              {/* Buffer Size */}
+              <div style={{marginBottom:16}}>
+                <label style={{color:'#6e7681',fontSize:11,display:'block',marginBottom:6}}>BUFFER SIZE</label>
+                <div style={{display:'flex',gap:6}}>
+                  {[64,128,256,512,1024,2048].map(size => (
+                    <button key={size}
+                      onClick={() => recreateAudioContext(size, audioSampleRate)}
+                      style={{
+                        background: audioBufferSize === size ? '#00ffc818' : '#161b22',
+                        border: `1px solid ${audioBufferSize === size ? '#00ffc8' : '#21262d'}`,
+                        color: audioBufferSize === size ? '#00ffc8' : '#6e7681',
+                        borderRadius:5,padding:'4px 8px',cursor:'pointer',
+                        fontFamily:'inherit',fontSize:10,fontWeight:700,
+                      }}
+                    >{size}</button>
+                  ))}
+                </div>
+                <div style={{color:'#484f58',fontSize:10,marginTop:4}}>
+                  {audioBufferSize <= 128 ? '⚡ Low latency (may crackle)' :
+                   audioBufferSize <= 512 ? '✓ Balanced' : '🔇 High stability (higher latency)'}
+                </div>
+              </div>
+
+              {/* Sample Rate */}
+              <div style={{marginBottom:16}}>
+                <label style={{color:'#6e7681',fontSize:11,display:'block',marginBottom:6}}>SAMPLE RATE</label>
+                <div style={{display:'flex',gap:6}}>
+                  {[44100,48000,96000].map(sr => (
+                    <button key={sr}
+                      onClick={() => recreateAudioContext(audioBufferSize, sr)}
+                      style={{
+                        background: audioSampleRate === sr ? '#4a9eff18' : '#161b22',
+                        border: `1px solid ${audioSampleRate === sr ? '#4a9eff' : '#21262d'}`,
+                        color: audioSampleRate === sr ? '#4a9eff' : '#6e7681',
+                        borderRadius:5,padding:'4px 8px',cursor:'pointer',
+                        fontFamily:'inherit',fontSize:10,fontWeight:700,
+                      }}
+                    >{sr >= 1000 ? `${sr/1000}kHz` : `${sr}Hz`}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Latency display */}
+              <div style={{marginBottom:16,padding:'10px 14px',background:'#080c12',borderRadius:8,border:'1px solid #1c2128'}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                  <span style={{color:'#6e7681',fontSize:11}}>Measured Latency</span>
+                  <span style={{color:'#00ffc8',fontWeight:700,fontSize:12}}>{latencyMs}ms</span>
+                </div>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                  <span style={{color:'#6e7681',fontSize:11}}>Sample Rate</span>
+                  <span style={{color:'#cdd9e5',fontSize:11}}>{audioSampleRate}Hz</span>
+                </div>
+                <div style={{display:'flex',justifyContent:'space-between'}}>
+                  <span style={{color:'#6e7681',fontSize:11}}>Scheduler Lookahead</span>
+                  <span style={{color:'#cdd9e5',fontSize:11}}>{audioLookahead}ms</span>
+                </div>
+              </div>
+
+              {/* Latency compensation */}
+              <div style={{marginBottom:16}}>
+                <label style={{color:'#6e7681',fontSize:11,display:'block',marginBottom:6}}>
+                  LATENCY COMPENSATION: {latencyCompMs}ms
+                </label>
+                <input type="range" min={0} max={100} step={1}
+                  value={latencyCompMs}
+                  onChange={e => setLatencyCompMs(Number(e.target.value))}
+                  style={{width:'100%',accentColor:'#00ffc8'}}
+                />
+              </div>
+
+              <div style={{color:'#484f58',fontSize:10,textAlign:'center'}}>
+                Changes take effect immediately. May cause brief audio interruption.
+              </div>
+            </div>
+          </div>
+        )}
+        {/* ════════════════════════════════════════════════════════════════ */}
+
         {showFlexPitch && (
           <div style={{
             position: 'absolute', inset: 0, zIndex: 200,

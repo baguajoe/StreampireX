@@ -47,7 +47,7 @@ const PianoRoll = ({
 }) => {
   // State
   const [notes, setNotes] = useState(externalNotes || []);
-  const [tool, setTool] = useState('draw'); // draw, erase, select, slice
+  const [tool, setTool] = useState('draw'); // draw, erase, select, slice, legato
   const [snapIdx, setSnapIdx] = useState(2); // default 1/4
   const [zoom, setZoom] = useState(1);
   const [scrollX, setScrollX] = useState(0);
@@ -59,6 +59,7 @@ const PianoRoll = ({
   const [dragState, setDragState] = useState(null);
   const [hoverNote, setHoverNote] = useState(null);
   const [showVelocity, setShowVelocity] = useState(true);
+  const [colorByVelocity, setColorByVelocity] = useState(true);
   const [ghostNote, setGhostNote] = useState(null);
   const [playheadBeat, setPlayheadBeat] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -151,7 +152,52 @@ const PianoRoll = ({
   }, [notes, selectedNotes, onNotesChange]);
 
   // ── Step Input ──
-  const handleStepInputNote = useCallback((midiNote, velocity = 100) => {
+
+  // ── Legato — stretch each note to fill the gap to the next note ──────────
+  const applyLegato = useCallback(() => {
+    const sorted = [...notes].sort((a, b) => a.beat - b.beat || a.midi - b.midi);
+    const targets = selectedNotes.size > 0
+      ? sorted.filter(n => selectedNotes.has(n.id))
+      : sorted;
+    const others  = sorted.filter(n => !targets.find(t => t.id === n.id));
+
+    const legatoNotes = targets.map((note, i) => {
+      const nextSamePitch = targets
+        .slice(i + 1)
+        .find(n => n.midi === note.midi);
+      if (nextSamePitch) {
+        const gap = nextSamePitch.beat - note.beat;
+        return { ...note, duration: Math.max(note.duration, gap - 0.01) };
+      }
+      return note;
+    });
+
+    const next = [...others, ...legatoNotes].sort((a,b) => a.beat - b.beat);
+    pushUndo(notes);
+    setNotes(next);
+    onNotesChange?.(next);
+  }, [notes, selectedNotes, pushUndo, onNotesChange]);
+
+  // ── Note length quantize ─────────────────────────────────────────────────
+  const quantizeNoteLength = useCallback(() => {
+    const snapDur = SNAP_VALUES[snapIdx];
+    const targets = selectedNotes.size > 0
+      ? notes.filter(n => selectedNotes.has(n.id))
+      : notes;
+    const others  = notes.filter(n => !targets.find(t => t.id === n.id));
+    const quantized = targets.map(n => ({
+      ...n,
+      duration: Math.max(snapDur, Math.round(n.duration / snapDur) * snapDur),
+    }));
+    const next = [...others, ...quantized].sort((a,b) => a.beat - b.beat);
+    pushUndo(notes);
+    setNotes(next);
+    onNotesChange?.(next);
+  }, [notes, selectedNotes, snapIdx, pushUndo, onNotesChange]);
+  // ─────────────────────────────────────────────────────────────────────────
+
+
+    const handleStepInputNote = useCallback((midiNote, velocity = 100) => {
     if (!stepInputMode) return;
     const id = `step_${Date.now()}_${midiNote}`;
     const newNote = {

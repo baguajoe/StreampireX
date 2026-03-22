@@ -197,6 +197,36 @@ async function applyCorrections(audioCtx, srcBuffer, notes) {
 // ─────────────────────────────────────────────────────────────────────────────
 // FlexPitchEditor Component
 // ─────────────────────────────────────────────────────────────────────────────
+
+// ── Scale definitions ───────────────────────────────────────────────────────
+const SCALES = {
+  major:      [0,2,4,5,7,9,11],
+  minor:      [0,2,3,5,7,8,10],
+  dorian:     [0,2,3,5,7,9,10],
+  mixolydian: [0,2,4,5,7,9,10],
+  pentatonic: [0,2,4,7,9],
+  blues:      [0,3,5,6,7,10],
+  chromatic:  [0,1,2,3,4,5,6,7,8,9,10,11],
+};
+
+const NOTE_ROOTS = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+function snapMidiToScale(midi, key, scaleType) {
+  const rootIdx  = NOTE_ROOTS.indexOf(key);
+  const scale    = SCALES[scaleType] || SCALES.major;
+  const octave   = Math.floor(midi / 12);
+  const pitchClass = midi % 12;
+  const relative = (pitchClass - rootIdx + 12) % 12;
+  // Find closest scale degree
+  let closest = scale[0], minDist = 12;
+  scale.forEach(deg => {
+    const dist = Math.min(Math.abs(deg - relative), 12 - Math.abs(deg - relative));
+    if (dist < minDist) { minDist = dist; closest = deg; }
+  });
+  return octave * 12 + ((rootIdx + closest) % 12);
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 const FlexPitchEditor = ({
   audioBuffer,      // AudioBuffer to edit
   audioContext,     // Web Audio context
@@ -211,6 +241,12 @@ const FlexPitchEditor = ({
   const [exporting, setExporting]   = useState(false);
   const [zoom, setZoom]             = useState(1);
   const [snapToSemi, setSnapToSemi] = useState(true);
+  const [formantShift,   setFormantShift]   = useState(0);    // -12 to +12 semitones
+  const [vibratoReduce,  setVibratoReduce]  = useState(0);    // 0-100% reduction
+  const [snapToScale,    setSnapToScale]    = useState(false);
+  const [scaleKey,       setScaleKey]       = useState('C');
+  const [scaleType,      setScaleType]      = useState('major');
+  const [showCents,      setShowCents]      = useState(true);
   const [selectedNote, setSelectedNote] = useState(null);
   const [status, setStatus]         = useState('Click ANALYZE to detect notes');
   const dragRef = useRef({ active: false, noteId: null, type: null, startY: 0, startShift: 0 });
@@ -422,9 +458,14 @@ const FlexPitchEditor = ({
       // Vertical drag = pitch shift
       const dy       = d.startY - e.clientY;
       const semDelta = dy / NOTE_H;
-      const newShift = snapToSemi
-        ? Math.round(d.startShift + semDelta)
-        : d.startShift + semDelta;
+      const rawShift  = d.startShift + semDelta;
+      const rawMidi   = d.noteId !== null
+        ? (notes.find(n => n.id === d.noteId)?.origMidi ?? 60) + rawShift
+        : 60;
+      const snappedMidi = snapToScale
+        ? snapMidiToScale(Math.round(rawMidi), scaleKey, scaleType)
+        : snapToSemi ? Math.round(rawMidi) : rawMidi;
+      const newShift = snappedMidi - (notes.find(n => n.id === d.noteId)?.origMidi ?? 60);
       setNotes(prev => prev.map(n =>
         n.id === d.noteId
           ? { ...n, semShift: clamp(newShift, -24, 24) }
@@ -539,6 +580,48 @@ const FlexPitchEditor = ({
           >
             {exporting ? 'Applying...' : 'APPLY'}
           </button>
+
+          {/* Scale snap */}
+          <label className="fpe-snap-toggle">
+            <input type="checkbox" checked={snapToScale}
+              onChange={e => setSnapToScale(e.target.checked)} />
+            Scale snap
+          </label>
+          {snapToScale && (<>
+            <select className="fpe-select"
+              value={scaleKey} onChange={e => setScaleKey(e.target.value)}>
+              {['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].map(k =>
+                <option key={k} value={k}>{k}</option>)}
+            </select>
+            <select className="fpe-select"
+              value={scaleType} onChange={e => setScaleType(e.target.value)}>
+              {Object.keys(SCALES).map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </>)}
+
+          {/* Formant shift */}
+          <label style={{color:'#6e7681',fontSize:11,display:'flex',alignItems:'center',gap:4}}>
+            Formant
+            <input type="range" min={-12} max={12} step={0.5}
+              value={formantShift}
+              onChange={e => setFormantShift(parseFloat(e.target.value))}
+              style={{width:60,accentColor:'#bf5af2'}}
+            />
+            <span style={{color:'#bf5af2',fontWeight:700,minWidth:24}}>
+              {formantShift > 0 ? '+' : ''}{formantShift}
+            </span>
+          </label>
+
+          {/* Vibrato reduce */}
+          <label style={{color:'#6e7681',fontSize:11,display:'flex',alignItems:'center',gap:4}}>
+            Vibrato −
+            <input type="range" min={0} max={100} step={1}
+              value={vibratoReduce}
+              onChange={e => setVibratoReduce(parseInt(e.target.value))}
+              style={{width:60,accentColor:'#ffd60a'}}
+            />
+            <span style={{color:'#ffd60a',fontWeight:700,minWidth:28}}>{vibratoReduce}%</span>
+          </label>
 
           {onClose && (
             <button className="fpe-close-btn" onClick={onClose}>✕</button>

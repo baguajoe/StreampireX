@@ -277,7 +277,24 @@ const SamplerBeatMaker = ({
   // ==== TRANSPORT ====
   const [isPlaying, setIsPlaying] = useState(false);
   const [bpm, setBpm] = useState(140);
-  const [swing, setSwing] = useState(0);
+
+  // ── Advanced sequencer features ─────────────────────────────────────────
+  const [stepProbability, setStepProbability] = useState(
+    () => Array(16).fill(null).map(() => Array(64).fill(100))
+  ); // [pad][step] = 0-100%
+  const [ratchet, setRatchet] = useState(
+    () => Array(16).fill(null).map(() => Array(64).fill(1))
+  ); // [pad][step] = 1-4 (how many times to trigger)
+  const [euclideanMode, setEuclideanMode] = useState(false);
+  const [euclideanHits, setEuclideanHits] = useState(4);
+  const [euclideanSteps, setEuclideanSteps] = useState(16);
+  const [euclideanPad, setEuclideanPad] = useState(0);
+  const [patternChain, setPatternChain] = useState([]); // array of pattern indices
+  const [chainPlaying, setChainPlaying] = useState(false);
+  const [chainStep, setChainStep] = useState(0);
+  // ─────────────────────────────────────────────────────────────────────────
+
+    const [swing, setSwing] = useState(0);
   const [metOn, setMetOn] = useState(false);
   const [masterVol, setMasterVol] = useState(0.8);
   const [looping, setLooping] = useState(true);
@@ -762,7 +779,44 @@ const SamplerBeatMaker = ({
   }, [initCtx]);
 
   // Phase 1: Fade in (destructive, writes curve into buffer)
-  const fadeInSample = useCallback((pi, durSec = 0.05) => {
+
+  // ── Euclidean rhythm generator (Bjorklund algorithm) ────────────────────
+  const generateEuclidean = useCallback((hits, steps, pad) => {
+    // Bjorklund/Euclidean algorithm
+    if (hits <= 0 || steps <= 0) return;
+    const pattern = Array(steps).fill(false);
+    if (hits >= steps) { pattern.fill(true); }
+    else {
+      let bucket = 0;
+      for (let i = 0; i < steps; i++) {
+        bucket += hits;
+        if (bucket >= steps) { bucket -= steps; pattern[i] = true; }
+      }
+    }
+    setSteps(prev => {
+      const u = prev.map(r => [...r]);
+      for (let s = 0; s < Math.min(steps, u[pad].length); s++) {
+        u[pad][s] = pattern[s];
+      }
+      return u;
+    });
+    setStatus(`Euclidean ${hits}/${steps} applied to pad ${pad + 1}`);
+  }, []);
+
+  // ── Apply step probability during playback ───────────────────────────────
+  const shouldTriggerStep = useCallback((pad, step) => {
+    const prob = stepProbability[pad]?.[step] ?? 100;
+    return Math.random() * 100 < prob;
+  }, [stepProbability]);
+
+  // ── Get ratchet count for a step ─────────────────────────────────────────
+  const getRatchet = useCallback((pad, step) => {
+    return ratchet[pad]?.[step] ?? 1;
+  }, [ratchet]);
+  // ─────────────────────────────────────────────────────────────────────────
+
+
+    const fadeInSample = useCallback((pi, durSec = 0.05) => {
     const pad = padsRef.current[pi]; if (!pad?.buffer) return;
     const c = initCtx(); const buf = pad.buffer;
     const newBuf = c.createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate);
