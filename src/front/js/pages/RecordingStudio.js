@@ -4289,9 +4289,9 @@ const RecordingStudio = ({ user }) => {
           }}
           onCancel={() => { setShowSaveAsModal(false); setSaveAsData(null); }}
         />
-      <CollabChatPanel collab={collab} />
+        <CollabChatPanel collab={collab} />
       </div>
-    </div >
+    </div>
   );
 };
 
