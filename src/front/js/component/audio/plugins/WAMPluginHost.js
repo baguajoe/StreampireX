@@ -57,6 +57,11 @@ export const getInstalledWAMPlugins = () => {
   } catch { return []; }
 };
 
+// Async version for code that expects a Promise
+export const getInstalledWAMPluginsAsync = async () => {
+  return getInstalledWAMPlugins();
+};
+
 export const saveInstalledWAMPlugins = (plugins) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(plugins));
 };

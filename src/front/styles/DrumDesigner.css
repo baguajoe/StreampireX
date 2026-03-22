@@ -1,136 +1,326 @@
-/* DrumDesigner.css — Full rewrite */
+/* =============================================================================
+   DrumDesigner.css — Hardware Drum Machine Aesthetic
+   Location: src/front/styles/DrumDesigner.css
+   ============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;700;900&display=swap');
+
+/* ── Root ── */
 .dd-root {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%;
-  background: #0d1117;
-  color: #ddeeff;
-  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  min-height: 400px;
+  background: #04080f;
+  color: #8aaac8;
+  font-family: 'Share Tech Mono', monospace;
+  border: 1px solid #111e30;
+  border-radius: 8px;
   overflow: hidden;
+  position: relative;
 }
+.dd-root::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 3px,
+    rgba(0,0,0,0.05) 3px, rgba(0,0,0,0.05) 4px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+.dd-root > * { position: relative; z-index: 1; }
 
+/* ── HEADER ── */
 .dd-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
-  background: #0a0e14;
-  border-bottom: 1px solid #1e2d3d;
+  padding: 10px 16px;
+  background: linear-gradient(180deg, #080e18 0%, #060b14 100%);
+  border-bottom: 1px solid #111e30;
+  gap: 10px;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  box-shadow: 0 1px 0 rgba(255,170,0,0.06);
 }
+
+.dd-brand { display: flex; align-items: center; gap: 8px; }
+.dd-brand-icon { font-size: 1.1rem; }
 
 .dd-title {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #00ffc8;
-  letter-spacing: 3px;
+  font-family: 'Orbitron', monospace;
+  font-weight: 900;
+  font-size: 0.88rem;
+  letter-spacing: 0.18em;
+  color: #c8d8f0;
   text-transform: uppercase;
 }
+.dd-title-accent {
+  color: #ffaa00;
+  text-shadow: 0 0 12px #ffaa0099;
+}
 
-.dd-type-selector {
+.dd-header-right {
   display: flex;
-  background: #0a0e14;
-  border-bottom: 1px solid #1a2535;
-  padding: 8px 16px;
-  gap: 8px;
+  align-items: center;
+  gap: 7px;
   flex-wrap: wrap;
+}
+
+.dd-status {
+  font-size: 0.6rem;
+  color: #ffaa00;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 8px #ffaa0066;
+}
+
+/* ── BUTTONS ── */
+.dd-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 11px;
+  border-radius: 3px;
+  cursor: pointer;
+  border: 1px solid #1a2d45;
+  background: transparent;
+  color: #4a7090;
+  transition: all 0.12s;
+  white-space: nowrap;
   flex-shrink: 0;
 }
+.dd-btn:hover:not(:disabled) { border-color: #2a4060; color: #6a90b0; }
+.dd-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.dd-btn-play  { border-color: #00e5ff33; color: #00e5ff77; }
+.dd-btn-play:hover:not(:disabled) { border-color: #00e5ff; color: #00e5ff; background: #00e5ff0e; box-shadow: 0 0 10px #00e5ff33; }
+
+.dd-btn-export { border-color: #ffaa0033; color: #ffaa0077; }
+.dd-btn-export:hover:not(:disabled) { border-color: #ffaa00; color: #ffaa00; background: #ffaa000e; box-shadow: 0 0 8px #ffaa0044; }
+
+.dd-btn-pad { border-color: #a78bfa33; color: #a78bfa77; }
+.dd-btn-pad:hover:not(:disabled) { border-color: #a78bfa; color: #a78bfa; background: #a78bfa0e; }
+
+.dd-btn-close { border-color: #ff3b5c22; color: #ff3b5c55; }
+.dd-btn-close:hover { border-color: #ff3b5c; color: #ff3b5c; }
+
+.dd-btn-reset { border-color: #1a2d45; color: #2a4060; }
+.dd-btn-reset:hover { border-color: #253f60; color: #4a6080; }
+
+/* ── DRUM TYPE TABS ── */
+.dd-type-selector {
+  display: flex;
+  background: #060b14;
+  border-bottom: 1px solid #0d1826;
+  overflow-x: auto;
+  flex-shrink: 0;
+  scrollbar-width: none;
+}
+.dd-type-selector::-webkit-scrollbar { display: none; }
 
 .dd-type-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px 20px;
+  gap: 4px;
+  padding: 10px 16px;
   background: transparent;
-  border: 1px solid #1e2d3d;
-  border-radius: 8px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
   cursor: pointer;
-  transition: all 0.12s;
-  gap: 6px;
-  min-width: 80px;
-  flex: 1;
+  transition: all 0.15s;
+  flex-shrink: 0;
 }
-.dd-type-btn:hover { border-color: #3a5570; background: #0d1520; }
-.dd-type-btn.active {
-  border-color: #00ffc8;
-  background: #0d1a26;
-  box-shadow: 0 0 12px rgba(0,255,200,0.15);
-}
-.dd-type-icon { font-size: 2rem; }
-.dd-type-label {
-  font-size: 0.65rem;
-  color: #7a9ab8;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  font-family: 'JetBrains Mono', monospace;
-}
-.dd-type-btn.active .dd-type-label { color: #00ffc8; }
+.dd-type-btn:hover .dd-type-label { color: #6a8aaa; }
+.dd-type-btn:hover .dd-type-icon  { transform: scale(1.12) translateY(-1px); }
 
+.dd-type-btn.active {
+  border-bottom-color: var(--drum-color, #ffaa00);
+}
+.dd-type-btn.active .dd-type-icon {
+  filter: drop-shadow(0 0 6px var(--drum-color, #ffaa00));
+  transform: scale(1.1);
+}
+.dd-type-btn.active .dd-type-label {
+  color: var(--drum-color, #ffaa00);
+  text-shadow: 0 0 8px var(--drum-color, #ffaa00);
+}
+
+.dd-type-icon {
+  font-size: 1.15rem;
+  transition: all 0.15s;
+  display: block;
+}
+.dd-type-label {
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+  font-size: 0.4rem;
+  letter-spacing: 0.14em;
+  color: #2a4060;
+  text-transform: uppercase;
+  transition: color 0.15s;
+}
+
+/* ── PARAMS CONTAINER ── */
 .dd-params-container {
+  padding: 14px 16px;
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: #1a2d45 transparent;
 }
+.dd-params-container::-webkit-scrollbar { width: 4px; }
+.dd-params-container::-webkit-scrollbar-thumb { background: #1a2d45; border-radius: 2px; }
 
 .dd-params-title {
-  font-size: 0.7rem;
+  font-family: 'Orbitron', monospace;
   font-weight: 700;
-  color: #5a7088;
+  font-size: 0.52rem;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  margin-bottom: 8px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #1a2535;
+  border-bottom: 1px solid #0d1826;
 }
 
+/* ── PARAMS GRID ── */
 .dd-params-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  align-items: flex-start;
-  width: 100%;
+  gap: 18px 14px;
+  align-items: flex-end;
 }
 
-.dd-toggles {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px;
-  width: 100%;
+/* ── KNOB ── */
+.dd-knob-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+  flex-shrink: 0;
+}
+.dd-knob-svg {
+  cursor: ns-resize;
+  display: block;
+  transition: transform 0.1s;
+}
+.dd-knob-svg:active { transform: scale(0.95); }
+
+.dd-knob-label {
+  font-family: 'Orbitron', monospace;
+  font-weight: 600;
+  font-size: 0.4rem;
+  letter-spacing: 0.14em;
+  color: #2a4a6a;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1;
+}
+.dd-knob-value {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.55rem;
+  text-align: center;
+  line-height: 1;
+  min-width: 34px;
 }
 
+/* ── SECTION (layers panel) ── */
+.dd-section {
+  background: #080e18;
+  border: 1px solid #0d1826;
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dd-section-title {
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+  font-size: 0.42rem;
+  letter-spacing: 0.18em;
+  color: #2a4060;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+/* ── TOGGLE ── */
+.dd-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px 4px 7px;
+  background: transparent;
+  border: 1px solid #1a2d45;
+  border-radius: 3px;
+  color: #2a4060;
+  cursor: pointer;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.dd-toggle:hover {
+  border-color: var(--toggle-color, #00e5ff);
+  color: var(--toggle-color, #00e5ff);
+}
+.dd-toggle.active {
+  border-color: var(--toggle-color, #00e5ff);
+  color: var(--toggle-color, #00e5ff);
+  background: color-mix(in srgb, var(--toggle-color, #00e5ff) 8%, transparent);
+}
+
+.dd-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #1a2d45;
+  border: 1px solid #253f60;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.dd-toggle.active .dd-led {
+  background: var(--toggle-color, #00e5ff);
+  border-color: var(--toggle-color, #00e5ff);
+  box-shadow: 0 0 6px var(--toggle-color, #00e5ff), 0 0 12px var(--toggle-color, #00e5ff);
+}
+
+/* ── TOGGLE ROWS ── */
 .dd-toggle-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: #111827;
-  border: 1px solid #1e2d3d;
-  border-radius: 8px;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 7px 8px;
+  background: #060c18;
+  border: 1px solid #0a1624;
+  border-radius: 4px;
 }
 
-.dd-btn {
-  padding: 6px 14px;
-  background: transparent;
-  border: 1px solid #2a3a4a;
-  color: #7a9ab8;
-  border-radius: 6px;
-  font-size: 0.7rem;
-  cursor: pointer;
-  font-family: 'JetBrains Mono', monospace;
-  transition: all 0.12s;
+/* ── FOOTER ── */
+.dd-footer {
+  padding: 8px 14px;
+  border-top: 1px solid #0d1826;
+  background: #060b14;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
-.dd-btn:hover { border-color: #4a6a8a; color: #aaccee; }
-.dd-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.dd-btn-play { border-color: #00ffc866; color: #00ffc8; }
-.dd-btn-play:hover { background: #00ffc811; border-color: #00ffc8; }
-.dd-btn-export { border-color: #FF660066; color: #FF6600; }
-.dd-btn-export:hover { background: #FF660011; border-color: #FF6600; }
-.dd-btn-pad { border-color: #a78bfa66; color: #a78bfa; }
-.dd-btn-pad:hover { background: #a78bfa11; border-color: #a78bfa; }
-.dd-btn-close { border-color: #3a2a2a; color: #aa6666; }
-.dd-btn-close:hover { border-color: #ff4444; color: #ff4444; background: #ff000011; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 500px) {
+  .dd-params-grid { gap: 14px 10px; }
+  .dd-type-btn    { padding: 8px 10px; }
+  .dd-header      { flex-direction: column; align-items: flex-start; }
+}
