@@ -3736,6 +3736,7 @@ const RecordingStudio = ({ user }) => {
           <div className="daw-aimix-view" style={{display:'flex',flexDirection:'column',width:'100%',height:'100%',overflow:'auto'}}>
             <AIMixAssistant
               tracks={tracks}
+              projectId={projectId}
               bpm={bpm}
               timeSignature={timeSignature}
               onApplyVolume={handleAIApplyVolume}

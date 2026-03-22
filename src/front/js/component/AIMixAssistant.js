@@ -350,6 +350,18 @@ const AIMixAssistant = ({
         <button className="ai-mix-close" onClick={onClose}>✕</button>
       </div>
 
+      {/* Empty state — no audio tracks */}
+      {tracks.filter(t => t.audioBuffer).length === 0 && (
+        <div style={{margin:'20px 24px',padding:'20px',background:'rgba(0,255,200,0.04)',border:'1px solid rgba(0,255,200,0.15)',borderRadius:10,textAlign:'center'}}>
+          <div style={{fontSize:'2rem',marginBottom:10}}>🎵</div>
+          <div style={{color:'#00ffc8',fontWeight:700,fontSize:'0.95rem',marginBottom:6}}>No audio tracks to analyze</div>
+          <div style={{color:'#888',fontSize:'0.8rem',lineHeight:1.5}}>
+            Record or import audio into tracks first, then click Analyze Mix.<br/>
+            Go to <strong style={{color:'#e0e0e0'}}>Arrange</strong> → arm a track → record, or drag an audio file onto a track.
+          </div>
+        </div>
+      )}
+
       {/* Genre Selection */}
       <div className="ai-mix-section">
         <label className="ai-mix-label">Genre Profile</label>
