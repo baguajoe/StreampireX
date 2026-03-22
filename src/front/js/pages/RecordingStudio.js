@@ -3835,9 +3835,11 @@ const RecordingStudio = ({ user }) => {
             </div>
             {analogSubview==='ampsim'&&(
               <div style={{padding:24}}>
-                <h3 style={{color:'#e6edf3',fontWeight:800,fontSize:16,margin:'0 0 6px'}}>🎸 Guitar & Bass Amp Simulator</h3>
-                <p style={{color:'#8b949e',fontSize:12,margin:'0 0 20px'}}>6 amp models · Cabinet sim · Pedal chain · Web Audio processing</p>
+                <h3 style={{color:'#e6edf3',fontWeight:800,fontSize:20,margin:'0 0 6px'}}>🎸 Guitar & Bass Amp Simulator</h3>
+                <p style={{color:'#8b949e',fontSize:14,margin:'0 0 20px'}}>6 amp models · Cabinet sim · Pedal chain · Web Audio processing</p>
+                <div style={{transform:'scale(1.25)',transformOrigin:'top left',width:'80%'}}>
                 <AmpSimPlugin audioContext={null} inputNode={null} outputNode={null}/>
+                </div>
               </div>
             )}
             {analogSubview==='tape'&&(
