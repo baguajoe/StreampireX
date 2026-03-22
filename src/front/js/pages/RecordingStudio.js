@@ -3792,7 +3792,7 @@ const RecordingStudio = ({ user }) => {
 
         {/* ──────── MULTIBAND EFFECTS VIEW ──────── */}
         {viewMode === 'multiband' && (
-          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: '#06090f' }}>
             <MultibandEffects
               audioContext={audioCtxRef.current}
               inputNode={
@@ -3808,7 +3808,7 @@ const RecordingStudio = ({ user }) => {
         )}
         {/* ──────── FX CHAIN VIEW ──────── */}
         {viewMode === 'fx' && (
-          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: '#06090f' }}>
             <UnifiedFXChain
               track={tracks[selectedTrackIndex]}
               trackIndex={selectedTrackIndex}
@@ -3913,7 +3913,7 @@ const RecordingStudio = ({ user }) => {
           <SpeakerSimulator />
         )}
         {viewMode === 'mastering' && (
-          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: '#06090f' }}>
             <MasteringChain
               audioContext={audioCtxRef.current}
               inputNode={masterGainRef.current}
