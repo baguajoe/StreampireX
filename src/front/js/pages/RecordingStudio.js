@@ -3823,6 +3823,7 @@ const RecordingStudio = ({ user }) => {
         {/* ──────── MASTERING VIEW ──────── */}
         {viewMode === 'analog' && (
           <div style={{flex:1,minHeight:0,overflowY:'auto',background:'#06060f'}}>
+            <div style={{transform:'scale(1.2)',transformOrigin:'top left',width:'83.33%',minHeight:'100%'}}>
             <div style={{display:'flex',background:'#0d1117',borderBottom:'1px solid #21262d',padding:'0 12px'}}>
               {[['ampsim','🎸 Amp Sim'],['tape','📼 Tape & Harmonic'],['pedals','🎛️ Pedal Chain'],['console','🎚️ Console']].map(([id,label])=>(
                 <button key={id} onClick={()=>setAnalogSubview(id)} style={{
@@ -3905,6 +3906,7 @@ const RecordingStudio = ({ user }) => {
                 <p style={{fontSize:11,marginTop:8}}>Per-channel EQ · Compression · VU meters · Routing · Inserts</p>
               </div>
             )}
+            </div>
           </div>
         )}
         {viewMode === 'speakersim' && (
