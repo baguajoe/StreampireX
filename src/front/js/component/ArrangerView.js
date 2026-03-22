@@ -243,6 +243,8 @@ const Region = React.memo(({
   };
 
   const isInstrument = trackType === 'instrument';
+  const fadeIn  = region.fadeIn  ?? 0;
+  const fadeOut = region.fadeOut ?? 0;
 
 
   // ── Apply automation to track audio nodes ────────────────────────────────
@@ -261,7 +263,11 @@ const Region = React.memo(({
         if (t.gainNode) t.gainNode.gain.setTargetAtTime(val, 0, 0.01);
       });
     }, 50);
-    return () => clearInterval(interval);
+    // Render crossfade overlays
+  const fadeInWidth  = Math.min(fadeIn  * zoom * 4, width / 2);
+  const fadeOutWidth = Math.min(fadeOut * zoom * 4, width / 2);
+
+  return () => clearInterval(interval);
   }, [isPlaying, tracks, automation, autoRead, autoParams, currentTime]);
   // ────────────────────────────────────────────────────────────────────────
 
@@ -955,8 +961,39 @@ const ArrangerView = ({
         { icon: '✂️', label: 'Split at Playhead', shortcut: 'S', action: () => splitRegion(region.id, playheadBeat), disabled: playheadBeat <= region.startBeat || playheadBeat >= region.startBeat + region.duration },
         { icon: '📋', label: 'Duplicate', shortcut: 'Ctrl+D', action: () => duplicateRegion(region.id) },
         { divider: true },
-        { icon: '🔇', label: 'Mute Region', action: () => {} },
+        { icon: '🔇', label: 'Mute Region', action: () => {
+          setTracks(tracks.map(t => ({
+            ...t,
+            regions: (t.regions||[]).map(r => r.id === region.id ? {...r, muted:!r.muted} : r)
+          })));
+        }},
         { icon: '🎨', label: 'Change Color', action: () => {} },
+        { icon: '◀▶', label: 'Trim Start', action: () => {
+          const trimBeats = 0.5;
+          setTracks(tracks.map(t => ({
+            ...t,
+            regions: (t.regions||[]).map(r => r.id === region.id
+              ? {...r, startBeat: r.startBeat + trimBeats, duration: Math.max(0.5, r.duration - trimBeats), trimStart: (r.trimStart||0) + trimBeats}
+              : r)
+          })));
+        }},
+        { icon: '▶◀', label: 'Trim End', action: () => {
+          const trimBeats = 0.5;
+          setTracks(tracks.map(t => ({
+            ...t,
+            regions: (t.regions||[]).map(r => r.id === region.id
+              ? {...r, duration: Math.max(0.5, r.duration - trimBeats)}
+              : r)
+          })));
+        }},
+        { icon: '〜', label: 'Add Crossfade', action: () => {
+          setTracks(tracks.map(t => ({
+            ...t,
+            regions: (t.regions||[]).map(r => r.id === region.id
+              ? {...r, fadeIn: (r.fadeIn||0) > 0 ? 0 : 0.5, fadeOut: (r.fadeOut||0) > 0 ? 0 : 0.5}
+              : r)
+          })));
+        }},
         { divider: true },
         { icon: '🗑️', label: 'Delete', shortcut: 'Del', danger: true, action: () => deleteRegion(region.id) },
       ],

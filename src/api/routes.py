@@ -24418,3 +24418,142 @@ def spx_vector_asset_file(filename):
     static_folder = current_app.static_folder or os.path.join(current_app.root_path, "static")
     upload_dir = os.path.join(static_folder, "uploads", "spx_vector")
     return send_from_directory(upload_dir, filename)
+
+
+# =============================================================================
+# Studio Sample Library Routes
+# =============================================================================
+
+@api.route('/api/studio/samples', methods=['GET'])
+@jwt_required()
+def get_samples():
+    """Browse royalty-free samples by category/subcategory with search."""
+    category    = request.args.get('category', 'drums')
+    subcategory = request.args.get('subcategory')
+    search      = request.args.get('search', '').lower()
+    bpm_filter  = request.args.get('bpm')
+    key_filter  = request.args.get('key')
+
+    # Built-in sample catalog — expand with real R2 URLs
+    SAMPLES = {
+        'drums': [
+            {'id':'d_kick_808',     'name':'Kick 808',        'url':'/samples/drums/kick_808.wav',      'category':'drums','subcategory':'Kicks',   'bpm':None,'key':None,'duration':0.8,'tags':['808','kick','sub']},
+            {'id':'d_kick_deep',    'name':'Kick Deep',       'url':'/samples/drums/kick_deep.wav',     'category':'drums','subcategory':'Kicks',   'bpm':None,'key':None,'duration':1.2,'tags':['kick','deep']},
+            {'id':'d_kick_punchy',  'name':'Kick Punchy',     'url':'/samples/drums/kick_punchy.wav',   'category':'drums','subcategory':'Kicks',   'bpm':None,'key':None,'duration':0.6,'tags':['kick','punch']},
+            {'id':'d_snare_trap',   'name':'Snare Trap',      'url':'/samples/drums/snare_trap.wav',    'category':'drums','subcategory':'Snares',  'bpm':None,'key':None,'duration':0.3,'tags':['snare','trap']},
+            {'id':'d_snare_vinyl',  'name':'Snare Vinyl',     'url':'/samples/drums/snare_vinyl.wav',   'category':'drums','subcategory':'Snares',  'bpm':None,'key':None,'duration':0.4,'tags':['snare','vinyl','lo-fi']},
+            {'id':'d_hh_closed',    'name':'HH Closed',       'url':'/samples/drums/hh_closed.wav',     'category':'drums','subcategory':'Hi-Hats','bpm':None,'key':None,'duration':0.1,'tags':['hihat','closed']},
+            {'id':'d_hh_open',      'name':'HH Open',         'url':'/samples/drums/hh_open.wav',       'category':'drums','subcategory':'Hi-Hats','bpm':None,'key':None,'duration':0.5,'tags':['hihat','open']},
+            {'id':'d_hh_roll',      'name':'HH Roll',         'url':'/samples/drums/hh_roll.wav',       'category':'drums','subcategory':'Hi-Hats','bpm':140,'key':None,'duration':1.0,'tags':['hihat','roll','trap']},
+            {'id':'d_clap',         'name':'Clap',            'url':'/samples/drums/clap.wav',          'category':'drums','subcategory':'Snares',  'bpm':None,'key':None,'duration':0.2,'tags':['clap']},
+            {'id':'d_perc_shaker',  'name':'Shaker',          'url':'/samples/drums/shaker.wav',        'category':'drums','subcategory':'Percs',  'bpm':None,'key':None,'duration':0.3,'tags':['shaker','perc']},
+            {'id':'d_perc_rim',     'name':'Rim Shot',        'url':'/samples/drums/rim.wav',           'category':'drums','subcategory':'Percs',  'bpm':None,'key':None,'duration':0.1,'tags':['rim','perc']},
+            {'id':'d_808_slide',    'name':'808 Slide',       'url':'/samples/bass/808_slide.wav',      'category':'drums','subcategory':'808s',   'bpm':None,'key':'C', 'duration':2.0,'tags':['808','slide','bass']},
+        ],
+        'bass': [
+            {'id':'b_sub_c',   'name':'Sub Bass C',  'url':'/samples/bass/sub_c.wav',   'category':'bass','bpm':None,'key':'C', 'duration':1.0,'tags':['sub','bass']},
+            {'id':'b_sub_f',   'name':'Sub Bass F',  'url':'/samples/bass/sub_f.wav',   'category':'bass','bpm':None,'key':'F', 'duration':1.0,'tags':['sub','bass']},
+            {'id':'b_808_c',   'name':'808 C',       'url':'/samples/bass/808_c.wav',   'category':'bass','bpm':None,'key':'C', 'duration':2.0,'tags':['808','bass']},
+            {'id':'b_808_g',   'name':'808 G',       'url':'/samples/bass/808_g.wav',   'category':'bass','bpm':None,'key':'G', 'duration':2.0,'tags':['808','bass']},
+        ],
+        'keys': [
+            {'id':'k_piano_c4', 'name':'Piano C4',    'url':'/samples/keys/piano_c4.wav',   'category':'keys','subcategory':'Piano', 'bpm':None,'key':'C','duration':3.0,'tags':['piano']},
+            {'id':'k_ep_am',    'name':'EP Chord Am', 'url':'/samples/keys/ep_am.wav',      'category':'keys','subcategory':'Electric Piano','bpm':90,'key':'Am','duration':2.0,'tags':['ep','chord','lo-fi']},
+            {'id':'k_pad_am',   'name':'Pad Am',      'url':'/samples/keys/pad_am.wav',     'category':'keys','subcategory':'Pads',  'bpm':80,'key':'Am','duration':4.0,'tags':['pad','ambient']},
+        ],
+        'fx': [
+            {'id':'fx_riser',   'name':'Riser 4 Bar', 'url':'/samples/fx/riser_4bar.wav',  'category':'fx','bpm':120,'key':None,'duration':8.0,'tags':['riser','transition']},
+            {'id':'fx_impact',  'name':'Impact Hit',  'url':'/samples/fx/impact.wav',      'category':'fx','bpm':None,'key':None,'duration':1.5,'tags':['impact','fx']},
+            {'id':'fx_sweep',   'name':'White Noise Sweep','url':'/samples/fx/sweep.wav',  'category':'fx','bpm':None,'key':None,'duration':4.0,'tags':['sweep','noise']},
+        ],
+        'vocals': [
+            {'id':'v_chop1',   'name':'Vocal Chop 1', 'url':'/samples/vocals/chop1.wav',  'category':'vocals','subcategory':'Chops','bpm':90,'key':None,'duration':0.5,'tags':['vocal','chop']},
+            {'id':'v_adlib1',  'name':'Ad Lib Yeah',  'url':'/samples/vocals/adlib_yeah.wav','category':'vocals','subcategory':'Ad Libs','bpm':None,'key':None,'duration':0.4,'tags':['adlib','vocal']},
+        ],
+        'synth': [
+            {'id':'s_lead_c',  'name':'Synth Lead C', 'url':'/samples/synth/lead_c.wav',  'category':'synth','subcategory':'Leads','bpm':None,'key':'C','duration':2.0,'tags':['synth','lead']},
+            {'id':'s_arp_am',  'name':'Arp Am',       'url':'/samples/synth/arp_am.wav',  'category':'synth','subcategory':'Arps', 'bpm':120,'key':'Am','duration':4.0,'tags':['arp','synth']},
+            {'id':'s_pluck',   'name':'Pluck',        'url':'/samples/synth/pluck.wav',   'category':'synth','subcategory':'Plucks','bpm':None,'key':'C','duration':1.0,'tags':['pluck','synth']},
+        ],
+        'loops': [
+            {'id':'l_drum_90',  'name':'Drum Loop 90bpm', 'url':'/samples/loops/drum_90.wav',  'category':'loops','subcategory':'Drum Loops','bpm':90,'key':None,'duration':4.0,'tags':['loop','drums']},
+            {'id':'l_drum_140', 'name':'Drum Loop 140bpm','url':'/samples/loops/drum_140.wav', 'category':'loops','subcategory':'Drum Loops','bpm':140,'key':None,'duration':2.0,'tags':['loop','trap']},
+            {'id':'l_mel_am',   'name':'Melody Loop Am', 'url':'/samples/loops/melody_am.wav','category':'loops','subcategory':'Melodic Loops','bpm':80,'key':'Am','duration':8.0,'tags':['loop','melody','lo-fi']},
+        ],
+    }
+
+    samples = SAMPLES.get(category, [])
+
+    # Apply filters
+    if subcategory:
+        samples = [s for s in samples if s.get('subcategory') == subcategory]
+    if search:
+        samples = [s for s in samples if search in s['name'].lower() or any(search in t for t in s.get('tags',[]))]
+    if bpm_filter:
+        try:
+            bpm_val = int(bpm_filter)
+            samples = [s for s in samples if s.get('bpm') is None or abs((s.get('bpm') or 0) - bpm_val) <= 10]
+        except: pass
+    if key_filter:
+        samples = [s for s in samples if s.get('key') is None or s.get('key') == key_filter]
+
+    return jsonify({'success': True, 'samples': samples, 'total': len(samples)})
+
+
+@api.route('/api/studio/samples/user', methods=['GET'])
+@jwt_required()
+def get_user_samples():
+    """Get samples uploaded by the current user."""
+    from models import UserSample
+    user_id = get_jwt_identity()
+    samples = UserSample.query.filter_by(user_id=user_id).order_by(UserSample.created_at.desc()).all()
+    return jsonify({
+        'success': True,
+        'samples': [s.serialize() for s in samples]
+    })
+
+
+@api.route('/api/studio/samples/user', methods=['POST'])
+@jwt_required()
+def upload_user_sample():
+    """Upload a user sample to R2."""
+    from models import UserSample, db
+    from utils.r2_utils import upload_to_r2
+    user_id = get_jwt_identity()
+
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['file']
+    name = request.form.get('name', file.filename.rsplit('.', 1)[0])
+    category = request.form.get('category', 'user')
+
+    try:
+        url, key = upload_to_r2(file, folder=f'samples/user/{user_id}')
+        sample = UserSample(
+            user_id=user_id,
+            name=name,
+            url=url,
+            r2_key=key,
+            category=category,
+            subcategory='Uploaded',
+        )
+        db.session.add(sample)
+        db.session.commit()
+        return jsonify({'success': True, 'sample': sample.serialize()})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@api.route('/api/studio/samples/user/<int:sample_id>', methods=['DELETE'])
+@jwt_required()
+def delete_user_sample(sample_id):
+    """Delete a user sample."""
+    from models import UserSample, db
+    user_id = get_jwt_identity()
+    sample = UserSample.query.filter_by(id=sample_id, user_id=user_id).first()
+    if not sample:
+        return jsonify({'error': 'Not found'}), 404
+    db.session.delete(sample)
+    db.session.commit()
+    return jsonify({'success': True})

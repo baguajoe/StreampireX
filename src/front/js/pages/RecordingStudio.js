@@ -24,6 +24,7 @@ import { sendToMotion } from "../utils/motionHelpers";
 
 import ArrangerView from "../component/ArrangerView";
 import SampleLibrary from "../component/SampleLibrary";
+import { AUTO_PARAMS, getValueAtTime } from "../component/AutomationLane";
 import PluginRackUI from "../component/PluginRackUI";
 import { MIDIMappingPanel, OnboardingFlow, ChordTrack, CompTakeManager, transposeByChord } from "../component/DAWFeatures2";
 import "../../styles/SampleLibrary.css";
@@ -939,6 +940,86 @@ const RecordingStudio = ({ user }) => {
     if (isPlaying && cycleEnabled) startLoopCheck();
     else if (loopCheckRef.current) { cancelAnimationFrame(loopCheckRef.current); loopCheckRef.current = null; }
   }, [isPlaying, cycleEnabled, startLoopCheck]);
+
+  // ── Automation Playback RAF ─────────────────────────────────────────────
+  // Runs every animation frame while playing, reads automation curves
+  // and applies values to the actual audio nodes in trackNodesRef
+  const applyAutomation = React.useCallback(() => {
+    if (!audioCtxRef.current || !isPlaying) { autoRafRef.current = null; return; }
+
+    const now = audioCtxRef.current.currentTime;
+    // currentTime in seconds relative to project start
+    const projectTime = playOffsetRef.current / bpm * 60 +
+      (now - playStartRef.current);
+
+    tracks.forEach((t, i) => {
+      const tId  = t.id ?? i;
+      if (!autoRead[tId]) return;
+
+      const tAuto  = automation[tId] ?? {};
+      const paramK = autoParams[tId] ?? 'volume';
+      const param  = AUTO_PARAMS.find(p => p.key === paramK);
+      if (!param) return;
+
+      const pts = (tAuto[paramK] ?? []).sort((a, b) => a.time - b.time);
+      if (pts.length === 0) return;
+
+      const val  = getValueAtTime(pts, projectTime, param);
+      const nodes = trackNodesRef.current.get(tId);
+      if (!nodes) return;
+
+      // Apply to correct audio node based on param
+      switch (paramK) {
+        case 'volume':
+          nodes.fader?.gain.setTargetAtTime(val, now, 0.02);
+          break;
+        case 'pan':
+          nodes.panNode?.pan.setTargetAtTime(Math.max(-1, Math.min(1, val)), now, 0.02);
+          break;
+        case 'mute':
+          nodes.preGain?.gain.setTargetAtTime(val > 0.5 ? 0 : 1, now, 0.01);
+          break;
+        case 'filterCut':
+          // Apply to any filter node on the track (future: wire to FX chain)
+          break;
+        default:
+          break;
+      }
+    });
+
+    autoRafRef.current = requestAnimationFrame(applyAutomation);
+  }, [isPlaying, tracks, automation, autoRead, autoParams, bpm]);
+
+  // Start/stop automation RAF with playback
+  React.useEffect(() => {
+    if (isPlaying) {
+      if (autoRafRef.current) cancelAnimationFrame(autoRafRef.current);
+      autoRafRef.current = requestAnimationFrame(applyAutomation);
+    } else {
+      if (autoRafRef.current) { cancelAnimationFrame(autoRafRef.current); autoRafRef.current = null; }
+    }
+    return () => { if (autoRafRef.current) cancelAnimationFrame(autoRafRef.current); };
+  }, [isPlaying, applyAutomation]);
+
+  // Helpers for AutomationLane callbacks
+  const handleAutomationChange = React.useCallback((trackId, paramKey, points) => {
+    setAutomation(prev => ({
+      ...prev,
+      [trackId]: { ...(prev[trackId] ?? {}), [paramKey]: points },
+    }));
+  }, []);
+
+  const handleAutoReadToggle = React.useCallback((trackId) => {
+    setAutoRead(prev => ({ ...prev, [trackId]: !prev[trackId] }));
+  }, []);
+
+  const handleAutoWriteToggle = React.useCallback((trackId) => {
+    setAutoWrite(prev => ({ ...prev, [trackId]: !prev[trackId] }));
+  }, []);
+
+  const handleAutoParamChange = React.useCallback((trackId, paramKey) => {
+    setAutoParams(prev => ({ ...prev, [trackId]: paramKey }));
+  }, []);
 
   // ── MIDI Controller Setup ───────────────────────────────────────────────
   React.useEffect(() => {
@@ -2077,6 +2158,18 @@ const RecordingStudio = ({ user }) => {
   // ────────────────────────────────────────────────────────────────────────────
 
   
+  // ── Cloud Auto-Save every 60 seconds ───────────────────────────────────
+  React.useEffect(() => {
+    if (!projectId) return; // only auto-save existing projects
+    const interval = setInterval(() => {
+      if (!saving) {
+        saveProject();
+        setStatus('✓ Auto-saved');
+      }
+    }, 60000); // 60 seconds
+    return () => clearInterval(interval);
+  }, [projectId, saving]);
+
   // ── Recreate AudioContext with new latency settings ──────────────────────
   const recreateAudioContext = React.useCallback(async (bufferSize, sampleRate) => {
     // Close existing context
@@ -2369,6 +2462,10 @@ const RecordingStudio = ({ user }) => {
           piano_roll_notes: pianoRollNotes,
           piano_roll_key: pianoRollKey,
           piano_roll_scale: pianoRollScale,
+          automation,
+          cycle_start: cycleStart,
+          cycle_end: cycleEnd,
+          cycle_enabled: cycleEnabled,
         }),
       });
 
@@ -2410,6 +2507,10 @@ const RecordingStudio = ({ user }) => {
         if (p.piano_roll_notes) setPianoRollNotes(p.piano_roll_notes);
         if (p.piano_roll_key) setPianoRollKey(p.piano_roll_key);
         if (p.piano_roll_scale) setPianoRollScale(p.piano_roll_scale);
+        if (p.automation) setAutomation(p.automation);
+        if (p.cycle_start != null) setCycleStart(p.cycle_start);
+        if (p.cycle_end   != null) setCycleEnd(p.cycle_end);
+        if (p.cycle_enabled != null) setCycleEnabled(p.cycle_enabled);
 
         const trackCount = Math.min(Math.max(p.tracks?.length || 1, 1), maxTracks);
         const loaded = Array.from({ length: trackCount }, (_, i) => ({
