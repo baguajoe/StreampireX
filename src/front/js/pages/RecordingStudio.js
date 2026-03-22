@@ -3596,10 +3596,14 @@ const RecordingStudio = ({ user }) => {
                 }
               }}
               onApplyMicProfile={handleApplyMicProfile}
-              onClose={() => setViewMode("arrange")}
+              onClose={() => setShowMicSimModal(false)}
               isEmbedded={true}
             />
-            <div style={{padding:'12px 16px',borderTop:'1px solid #30363d',display:'flex',alignItems:'center',gap:12}}>
+            </div>
+          </div>
+        )}
+
+        {false && <div style={{padding:'12px 16px',borderTop:'1px solid #30363d',display:'flex',alignItems:'center',gap:12}}>
               <button onClick={() => setShowMicBuilder(true)} style={{background:'rgba(0,255,200,0.1)',color:'#00ffc8',border:'1px solid rgba(0,255,200,0.3)',borderRadius:8,padding:'8px 16px',cursor:'pointer',fontSize:'0.85rem',fontWeight:600}}>
                 🔧 Build Custom Mic
               </button>
@@ -3716,6 +3720,7 @@ const RecordingStudio = ({ user }) => {
                 </div>
               </div>
             )}
+            </div>
           </div>
         )}
 
