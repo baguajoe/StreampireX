@@ -3602,6 +3602,34 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
+        {viewMode === "vocal" && (
+          <div className="daw-vocal-view" style={{display:'flex',flexDirection:'column',width:'100%',height:'100%',overflow:'auto'}}>
+            <VocalProcessor
+              audioContext={audioCtxRef.current}
+              liveStream={micSimStream}
+              onRecordingComplete={(blob) => {
+                const ai = tracks.findIndex((t) => t.armed);
+                if (ai === -1) { setStatus("⚠ Arm a track first"); return; }
+                const ctx = getCtx();
+                const audioUrl = URL.createObjectURL(blob);
+                blob.arrayBuffer()
+                  .then((ab) => ctx.decodeAudioData(ab))
+                  .then((buf) => {
+                    updateTrack(ai, { audioBuffer: buf, audio_url: audioUrl });
+                    createRegionFromRecording(ai, buf, audioUrl);
+                    uploadTrack(blob, ai);
+                    setStatus(`✓ Vocal recorded → Track ${ai + 1}`);
+                    setViewMode("arrange");
+                  })
+                  .catch((e) => setStatus(`✗ ${e.message}`));
+              }}
+              onApplyMicProfile={handleApplyMicProfile}
+              onClose={() => setViewMode("arrange")}
+              isEmbedded={true}
+            />
+          </div>
+        )}
+
         {viewMode === "keyfinder" && (
           <div className="daw-keyfinder-view">
             <KeyFinder
