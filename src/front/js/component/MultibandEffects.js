@@ -330,11 +330,12 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
       style={{
         display: 'flex',
         flexDirection: 'column',
+        width: '100%',
         height: '100%',
         background: '#0b0f14',
         color: '#e6edf3',
         fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-        fontSize: '11px',
+        fontSize: '13px',
         overflow: 'hidden',
         position: 'relative',
       }}
