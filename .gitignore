@@ -43,3 +43,9 @@ homepage-screenshot.png
 debug-initial-state.png
 *.bak*
 *_printful
+
+# Patch script backups
+*.bak
+*.bak_*
+*.backup
+src/front/js/pages/@baguajoe*
