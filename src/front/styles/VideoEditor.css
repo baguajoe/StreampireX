@@ -1873,3 +1873,193 @@ html, body, #app, #root{
   }
 }
 
+
+/* ============================================
+   FIX PANEL DOCKING (Premiere layout)
+   ============================================ */
+
+.editor-main-layout{
+display:grid !important;
+
+grid-template-columns:
+260px
+minmax(0,1fr)
+320px;
+
+grid-template-rows:
+minmax(320px,1fr)
+260px;
+
+grid-template-areas:
+
+"left monitors right"
+"left timeline timeline";
+
+gap:12px;
+
+height:calc(100vh - 150px);
+padding:12px;
+
+overflow:hidden;
+}
+
+/* left side tools */
+
+.editor-left-panel{
+grid-area:left;
+
+display:flex;
+flex-direction:column;
+
+min-width:0;
+min-height:0;
+
+overflow:hidden;
+}
+
+/* center monitors */
+
+.preview-area-container,
+.editor-center-panel,
+.center-monitor-area{
+
+grid-area:monitors;
+
+display:grid;
+
+grid-template-columns:1fr 1fr;
+
+gap:12px;
+
+min-width:0;
+min-height:0;
+}
+
+/* program + source monitors */
+
+.source-monitor-panel,
+.program-monitor-panel,
+.preview-panel{
+
+display:flex;
+flex-direction:column;
+
+min-height:280px;
+
+background:#0b0f14;
+
+border-radius:12px;
+
+border:1px solid #1f2630;
+
+overflow:hidden;
+}
+
+/* right inspector */
+
+.editor-right-panel,
+.inspector-panel{
+
+grid-area:right;
+
+overflow:auto;
+
+min-width:0;
+
+border-radius:12px;
+
+background:#0b0f14;
+
+border:1px solid #1f2630;
+
+padding:10px;
+}
+
+/* timeline dock */
+
+.timeline-container,
+.timeline-shell,
+.bottom-timeline-panel{
+
+grid-area:timeline;
+
+display:flex;
+flex-direction:column;
+
+overflow:hidden;
+
+border-radius:12px;
+
+background:#0b0f14;
+
+border:1px solid #1f2630;
+}
+
+/* timeline grid look */
+
+.timeline-track-area{
+
+flex:1;
+
+background:
+
+repeating-linear-gradient(
+to right,
+rgba(255,255,255,.03) 0px,
+rgba(255,255,255,.03) 1px,
+transparent 1px,
+transparent 80px
+),
+
+#080c11;
+}
+
+/* ensure panels fill */
+
+.source-monitor-screen,
+.program-monitor-screen,
+.preview-screen{
+
+flex:1;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+}
+
+/* remove floating elements */
+
+.zoom-controls,
+.floating-panel{
+
+position:static !important;
+}
+
+/* responsive fallback */
+
+@media (max-width: 1200px){
+
+.editor-main-layout{
+
+grid-template-columns:
+220px
+minmax(0,1fr);
+
+grid-template-areas:
+
+"left monitors"
+"timeline timeline";
+
+}
+
+.editor-right-panel{
+
+display:none;
+
+}
+
+}
+
