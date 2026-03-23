@@ -49,3 +49,13 @@ debug-initial-state.png
 *.bak_*
 *.backup
 src/front/js/pages/@baguajoe*
+
+# temp / backups
+backups/
+instance/
+*.bak
+fix_*.py
+install_*.py
+audit_*.py
+sync_*.py
+*.log

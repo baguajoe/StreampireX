@@ -1,3 +1,4 @@
+# plugin marketplace routes live in src/api/plugin_marketplace_routes.py
 # src/api/routes.py - Final corrected imports
 import eventlet
 eventlet.monkey_patch()

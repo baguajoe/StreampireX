@@ -5,7 +5,13 @@ from .models import db
 from .academy_models import Lesson
 from .advanced_ai_models import VideoCreditTransaction, AITaskJob, LessonTimeline
 from .ai_video_credits_routes import deduct_user_credits
-from .ai_background_tasks import process_avatar_clip_job, process_hybrid_compose_job
+try:
+    from .ai_background_tasks import process_avatar_clip_job, process_hybrid_compose_job
+except Exception as e:
+    process_avatar_clip_job = None
+    process_hybrid_compose_job = None
+    print(f'⚠ Advanced AI background tasks unavailable: {e}')
+
 
 advanced_ai_bp = Blueprint("advanced_ai", __name__, url_prefix="/api/advanced-ai")
 

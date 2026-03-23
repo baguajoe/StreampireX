@@ -1,0 +1,176 @@
+/* =============================================================================
+   AutomationLane.css
+   Location: src/front/styles/AutomationLane.css
+   ============================================================================= */
+
+.al-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: #080c12;
+  border-top: 1px solid #1c2128;
+  border-bottom: 1px solid #1c2128;
+  user-select: none;
+}
+
+/* ── HEADER ── */
+.al-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #0a0e14;
+  border-bottom: 1px solid #1c2128;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.al-collapse-btn,
+.al-expand-btn {
+  background: none;
+  border: none;
+  color: #484f58;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.12s;
+}
+.al-collapse-btn:hover,
+.al-expand-btn:hover { color: #cdd9e5; }
+
+.al-param-select {
+  background: #161b22;
+  border: 1px solid #21262d;
+  color: var(--track-color, #00ffc8);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+}
+
+/* Draw mode buttons */
+.al-mode-group {
+  display: flex;
+  border: 1px solid #1c2128;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.al-mode-btn {
+  background: #0d1117;
+  border: none;
+  color: #484f58;
+  padding: 3px 7px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+  transition: all 0.1s;
+  border-right: 1px solid #1c2128;
+}
+.al-mode-btn:last-child { border-right: none; }
+.al-mode-btn:hover { background: #161b22; color: #cdd9e5; }
+.al-mode-btn.active {
+  background: color-mix(in srgb, var(--track-color, #00ffc8) 15%, transparent);
+  color: var(--track-color, #00ffc8);
+}
+
+/* R/W buttons */
+.al-rw-btn {
+  background: none;
+  border: 1px solid #21262d;
+  color: #484f58;
+  border-radius: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.al-rw-btn:hover { border-color: #30363d; color: #6e7681; }
+.al-rw-btn.active {
+  border-color: #00ffc8;
+  color: #00ffc8;
+  background: #00ffc818;
+}
+.al-rw-btn.write.active {
+  border-color: #ff3b5c;
+  color: #ff3b5c;
+  background: #ff3b5c18;
+  animation: al-write-pulse 1s infinite;
+}
+
+@keyframes al-write-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+.al-clear-btn {
+  background: none;
+  border: 1px solid #21262d;
+  color: #484f58;
+  border-radius: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.al-clear-btn:hover:not(:disabled) { border-color: #ff3b5c; color: #ff3b5c; }
+.al-clear-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.al-value-display {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  margin-left: auto;
+  min-width: 48px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── CANVAS ── */
+.al-canvas-wrap {
+  width: 100%;
+  overflow: hidden;
+}
+
+.al-canvas {
+  display: block;
+  width: 100%;
+  cursor: crosshair;
+}
+
+/* ── COLLAPSED STATE ── */
+.al-collapsed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  background: #080c12;
+  border-top: 1px solid #1c2128;
+  height: 22px;
+}
+
+.al-collapsed-label {
+  color: #484f58;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  flex: 1;
+}
+
+.al-collapsed-mini {
+  color: var(--track-color, #00ffc8);
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+}

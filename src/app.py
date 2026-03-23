@@ -561,6 +561,8 @@ from api.printful_unified_routes import printful_unified_bp
 from api.reference_mastering_routes import reference_mastering_bp
 from api.suno_gap_routes import suno_gap_bp
 from api.rss_routes import rss_bp
+from api.plugin_marketplace_routes import plugin_marketplace_bp
+from api.payout_routes import payout_bp
 # from api.routes.render_routes import render_api  # disabled: routes/ folder conflicts with routes.py
 
 
@@ -610,3 +612,5 @@ if __name__ == '__main__':
         use_reloader=False  # Disable reloader to prevent issues
     )
 # app.register_blueprint(render_api, url_prefix="/api")  # disabled
+app.register_blueprint(plugin_marketplace_bp)
+app.register_blueprint(payout_bp)

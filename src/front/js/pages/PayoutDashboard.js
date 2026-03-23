@@ -40,8 +40,9 @@ export const PayoutDashboard = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [balRes, histRes] = await Promise.all([
+      const [balRes, statusRes, histRes] = await Promise.all([
         fetch(`${BACKEND_URL}/api/payouts/balance`, { headers: getHeaders() }),
+			fetch(`${BACKEND_URL}/api/payouts/status`, { headers: getHeaders() }),
         fetch(`${BACKEND_URL}/api/payouts/history`, { headers: getHeaders() }),
       ]);
       if (balRes.ok) setData(await balRes.json());
