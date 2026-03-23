@@ -160,6 +160,57 @@ const ColorGradingPanel = ({ onGrade }) => {
   const [tint,       setTint]        = React.useState(0);
   const [activePreset, setActivePreset] = React.useState(null);
 
+  const LUT_PRESETS = [
+    // Film Stocks
+    { name: 'Kodak 2383',      cat: 'film',      sat: 90,  con: 112, temp: 8,   tint: 3  },
+    { name: 'Kodak 5218',      cat: 'film',      sat: 85,  con: 108, temp: 12,  tint: 2  },
+    { name: 'Kodak 5219',      cat: 'film',      sat: 88,  con: 110, temp: 6,   tint: 1  },
+    { name: 'Kodak Portra 400',cat: 'film',      sat: 82,  con: 100, temp: 15,  tint: 5  },
+    { name: 'Fuji 3513',       cat: 'film',      sat: 95,  con: 105, temp: -5,  tint: 2  },
+    { name: 'Fuji 3514',       cat: 'film',      sat: 92,  con: 107, temp: -8,  tint: 3  },
+    { name: 'Fuji Velvia',     cat: 'film',      sat: 140, con: 115, temp: 0,   tint: 0  },
+    { name: 'Ilford HP5 B&W',  cat: 'film',      sat: 0,   con: 118, temp: 0,   tint: 0  },
+    { name: 'Agfa Vista',      cat: 'film',      sat: 110, con: 108, temp: -3,  tint: -2 },
+    // Cinematic
+    { name: 'Teal & Orange',   cat: 'cinema',    sat: 110, con: 108, temp: -5,  tint: 0  },
+    { name: 'Bleach Bypass',   cat: 'cinema',    sat: 55,  con: 130, temp: 0,   tint: 0  },
+    { name: 'Day for Night',   cat: 'cinema',    sat: 70,  con: 95,  temp: -30, tint: -5 },
+    { name: 'Anamorphic Blue', cat: 'cinema',    sat: 95,  con: 105, temp: -15, tint: -8 },
+    { name: 'Blockbuster',     cat: 'cinema',    sat: 120, con: 115, temp: 5,   tint: 2  },
+    { name: 'Horror Dark',     cat: 'cinema',    sat: 60,  con: 125, temp: -10, tint: 5  },
+    { name: 'Sci-Fi Teal',     cat: 'cinema',    sat: 100, con: 110, temp: -20, tint: -10},
+    { name: 'Western Sepia',   cat: 'cinema',    sat: 40,  con: 105, temp: 25,  tint: 10 },
+    { name: 'Neon Noir',       cat: 'cinema',    sat: 130, con: 120, temp: -15, tint: 5  },
+    { name: 'Apocalyptic',     cat: 'cinema',    sat: 65,  con: 118, temp: 10,  tint: 8  },
+    { name: 'Kubrick Cold',    cat: 'cinema',    sat: 80,  con: 110, temp: -20, tint: -5 },
+    // Social/Platform
+    { name: 'Instagram Warm',  cat: 'social',    sat: 108, con: 105, temp: 18,  tint: 5  },
+    { name: 'Instagram Cool',  cat: 'social',    sat: 95,  con: 105, temp: -12, tint: -3 },
+    { name: 'TikTok Vivid',    cat: 'social',    sat: 135, con: 112, temp: 5,   tint: 0  },
+    { name: 'YouTube Clean',   cat: 'social',    sat: 105, con: 105, temp: 3,   tint: 1  },
+    { name: 'Podcast Neutral', cat: 'social',    sat: 95,  con: 102, temp: 2,   tint: 0  },
+    { name: 'Fashion Matte',   cat: 'social',    sat: 80,  con: 88,  temp: 0,   tint: 5  },
+    { name: 'Music Video',     cat: 'social',    sat: 125, con: 115, temp: -8,  tint: -5 },
+    // Vintage
+    { name: '70s Fade',        cat: 'vintage',   sat: 75,  con: 90,  temp: 20,  tint: 8  },
+    { name: '80s VHS',         cat: 'vintage',   sat: 110, con: 95,  temp: 10,  tint: -5 },
+    { name: '90s Camcorder',   cat: 'vintage',   sat: 105, con: 92,  temp: 8,   tint: -3 },
+    { name: 'Super 8',         cat: 'vintage',   sat: 85,  con: 105, temp: 25,  tint: 10 },
+    { name: 'Daguerreotype',   cat: 'vintage',   sat: 0,   con: 100, temp: 10,  tint: 5  },
+    { name: 'Expired Film',    cat: 'vintage',   sat: 70,  con: 85,  temp: 18,  tint: 12 },
+    // Nature
+    { name: 'Golden Hour',     cat: 'nature',    sat: 115, con: 105, temp: 30,  tint: 10 },
+    { name: 'Blue Hour',       cat: 'nature',    sat: 90,  con: 108, temp: -25, tint: -5 },
+    { name: 'Forest Green',    cat: 'nature',    sat: 120, con: 108, temp: -8,  tint: -5 },
+    { name: 'Desert Warm',     cat: 'nature',    sat: 100, con: 110, temp: 22,  tint: 5  },
+    { name: 'Arctic Cold',     cat: 'nature',    sat: 80,  con: 105, temp: -35, tint: -10},
+    // Technical
+    { name: 'Rec.709',         cat: 'technical', sat: 100, con: 100, temp: 0,   tint: 0  },
+    { name: 'LOG to Rec709',   cat: 'technical', sat: 100, con: 115, temp: 0,   tint: 0  },
+    { name: 'SLOG2 Correct',   cat: 'technical', sat: 100, con: 118, temp: 0,   tint: 0  },
+    { name: 'DLOG Correct',    cat: 'technical', sat: 100, con: 120, temp: 0,   tint: 0  },
+  ];
+
   const PRESETS = [
     { name: 'Cinematic', sat: 85,  con: 110, temp: -10, tint: 0 },
     { name: 'Vivid',     sat: 130, con: 105, temp: 5,   tint: 0 },
@@ -288,8 +339,10 @@ import {
   ASPECT_RATIOS, EXPORT_PRESETS,
 } from '../component/VideoEditorEffectsPlus';
 
-import { BackgroundRemovalPanel, MotionTrackingPanel, AudioDuckingPanel, 
-         TemplateLibraryPanel, SceneDetectionPanel } from './VideoEditorAdvancedFeatures';
+import { BackgroundRemovalPanel, MotionTrackingPanel, AudioDuckingPanel,
+         TemplateLibraryPanel, SceneDetectionPanel,
+         createBGRemovalSettings, createAudioDuckingSettings,
+         createSceneDetectionSettings } from './VideoEditorAdvancedFeatures';
 
 
 
@@ -1560,10 +1613,35 @@ const ExportModal = ({ project, tracks, onClose, onExportComplete, frameRate = 2
               <div className="export-setting">
                 <label>Resolution</label>
                 <select value={resolution} onChange={(e) => setResolution(e.target.value)}>
-                  <option value="4k">4K Ultra HD (3840x2160)</option>
+                  <optgroup label="YouTube">
+                <option value="youtube_4k">YouTube 4K (3840x2160 / 60fps)</option>
+                <option value="youtube_1080">YouTube 1080p (1920x1080 / 30fps)</option>
+                <option value="youtube_720">YouTube 720p (1280x720 / 30fps)</option>
+              </optgroup>
+              <optgroup label="Social Media">
+                <option value="instagram_reel">Instagram Reel (1080x1920)</option>
+                <option value="instagram_post">Instagram Post (1080x1080)</option>
+                <option value="tiktok">TikTok (1080x1920 / 30fps)</option>
+                <option value="twitter">Twitter/X (1280x720)</option>
+                <option value="facebook">Facebook (1280x720)</option>
+              </optgroup>
+              <optgroup label="Broadcast">
+                <option value="4k">4K Ultra HD (3840x2160)</option>
                   <option value="1080p">Full HD (1920x1080)</option>
                   <option value="720p">HD (1280x720)</option>
-                  <option value="480p">SD (854x480)</option>
+                  <option value="1080p">Full HD (1920x1080)</option>
+                <option value="720p">HD (1280x720)</option>
+                <option value="480p">SD (854x480)</option>
+              </optgroup>
+              <optgroup label="Film/ProRes">
+                <option value="cinema_4k">Cinema 4K DCI (4096x2160)</option>
+                <option value="cinema_2k">Cinema 2K DCI (2048x1080)</option>
+                <option value="prores">ProRes 422 (1920x1080)</option>
+              </optgroup>
+              <optgroup label="Podcast">
+                <option value="audio_only">Audio Only (AAC/MP3)</option>
+                <option value="podcast_video">Podcast Video (1920x1080 static bg)</option>
+              </optgroup>
                 </select>
               </div>
 
@@ -2261,6 +2339,31 @@ TIMELINE
   const [showCompositingPanel, setShowCompositingPanel] = useState(false);
   const [showColorGrading, setShowColorGrading] = useState(false);
   const [showAudioMixing, setShowAudioMixing] = useState(false);
+  const [showScopes, setShowScopes] = useState(false);
+  const [showMulticam, setShowMulticam] = useState(false);
+  const [showChromaKey, setShowChromaKey] = useState(false);
+  const [showSpeedRamp, setShowSpeedRamp] = useState(false);
+  const [showCaptions, setShowCaptions] = useState(false);
+  const [showTitles, setShowTitles] = useState(false);
+  const [showOverlays, setShowOverlays] = useState(false);
+  const [showSceneDetection, setShowSceneDetection] = useState(false);
+  const [showAdjustmentLayer, setShowAdjustmentLayer] = useState(false);
+  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+  const [showBackgroundRemoval, setShowBackgroundRemoval] = useState(false);
+  const [showAudioDucking, setShowAudioDucking] = useState(false);
+  const [showMotionTracking, setShowMotionTracking] = useState(false);
+  const [chromaKeySettings, setChromaKeySettings] = useState(createChromaKeySettings('green'));
+  const [speedRampPoints, setSpeedRampPoints] = useState([]);
+  const [multicamSession, setMulticamSession] = useState(null);
+  const [captions, setCaptions] = useState([]);
+  const [textOverlays, setTextOverlays] = useState([]);
+  const [watermark, setWatermark] = useState(null);
+  const [pipLayers, setPipLayers] = useState([]);
+  const [sceneList, setSceneList] = useState([]);
+  const [isAnalyzingScenes, setIsAnalyzingScenes] = useState(false);
+  const [sceneProgress, setSceneProgress] = useState(0);
+  const [adjustmentLayers, setAdjustmentLayers] = useState([]);
+  const scopesCanvasRef = useRef(null);
   const [showKeyframes, setShowKeyframes] = useState(false);
   const [draggedTransition, setDraggedTransition] = useState(null);
   const [draggedEffect, setDraggedEffect] = useState(null);
@@ -4031,7 +4134,23 @@ TIMELINE
         { label: 'Source Monitor', checked: showSourceMonitor, action: () => setShowSourceMonitor(!showSourceMonitor) },
         { type: 'separator' },
         { label: 'Color Grading', checked: showColorGrading, action: () => setShowColorGrading(!showColorGrading) },
-        { label: 'Audio Mixer', checked: showAudioMixing, action: () => setShowAudioMixing(!showAudioMixing) }
+        { label: 'Audio Mixer', checked: showAudioMixing, action: () => setShowAudioMixing(!showAudioMixing) },
+        { type: 'separator' },
+        { label: 'Video Scopes', checked: showScopes, action: () => setShowScopes(!showScopes) },
+        { label: 'Multicam Editor', checked: showMulticam, action: () => setShowMulticam(!showMulticam) },
+        { label: 'Chroma Key', checked: showChromaKey, action: () => setShowChromaKey(!showChromaKey) },
+        { label: 'Speed Ramp', checked: showSpeedRamp, action: () => setShowSpeedRamp(!showSpeedRamp) },
+        { label: 'Adjustment Layer', checked: showAdjustmentLayer, action: () => setShowAdjustmentLayer(!showAdjustmentLayer) },
+        { type: 'separator' },
+        { label: 'Captions / Subtitles', checked: showCaptions, action: () => setShowCaptions(!showCaptions) },
+        { label: 'Text & Titles', checked: showTitles, action: () => setShowTitles(!showTitles) },
+        { label: 'Overlays & PIP', checked: showOverlays, action: () => setShowOverlays(!showOverlays) },
+        { type: 'separator' },
+        { label: 'Scene Detection', checked: showSceneDetection, action: () => setShowSceneDetection(!showSceneDetection) },
+        { label: 'Background Removal', checked: showBackgroundRemoval, action: () => setShowBackgroundRemoval(!showBackgroundRemoval) },
+        { label: 'Motion Tracking', checked: showMotionTracking, action: () => setShowMotionTracking(!showMotionTracking) },
+        { label: 'Audio Ducking', checked: showAudioDucking, action: () => setShowAudioDucking(!showAudioDucking) },
+        { label: 'Template Library', checked: showTemplateLibrary, action: () => setShowTemplateLibrary(!showTemplateLibrary) }
       ]
     },
     help: {
@@ -4315,6 +4434,30 @@ TIMELINE
 
         {/* Right Section - Color, Audio, Save, Export */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <button
+            onClick={() => setShowScopes(!showScopes)}
+            title="Video Scopes"
+            style={{ display:'flex',alignItems:'center',gap:'3px',padding:'5px 8px',
+              background: showScopes ? 'rgba(0,255,200,0.15)' : '#2a2a2a',
+              border: `1px solid ${showScopes ? '#00ffc8' : '#404040'}`,
+              borderRadius:'4px',color: showScopes ? '#00ffc8' : '#a0a0a0',fontSize:'9px',fontWeight:500,cursor:'pointer'}}
+          ><Activity size={11}/>Scopes</button>
+          <button
+            onClick={() => setShowMulticam(!showMulticam)}
+            title="Multicam Editor"
+            style={{ display:'flex',alignItems:'center',gap:'3px',padding:'5px 8px',
+              background: showMulticam ? 'rgba(0,255,200,0.15)' : '#2a2a2a',
+              border: `1px solid ${showMulticam ? '#00ffc8' : '#404040'}`,
+              borderRadius:'4px',color: showMulticam ? '#00ffc8' : '#a0a0a0',fontSize:'9px',fontWeight:500,cursor:'pointer'}}
+          ><Tv size={11}/>Multicam</button>
+          <button
+            onClick={() => setShowChromaKey(!showChromaKey)}
+            title="Chroma Key"
+            style={{ display:'flex',alignItems:'center',gap:'3px',padding:'5px 8px',
+              background: showChromaKey ? 'rgba(0,255,100,0.15)' : '#2a2a2a',
+              border: `1px solid ${showChromaKey ? '#00ff64' : '#404040'}`,
+              borderRadius:'4px',color: showChromaKey ? '#00ff64' : '#a0a0a0',fontSize:'9px',fontWeight:500,cursor:'pointer'}}
+          ><Aperture size={11}/>Chroma</button>
           <button
             onClick={() => setShowColorGrading(!showColorGrading)}
             title="Color Grading"
@@ -7537,44 +7680,71 @@ TIMELINE
         )
       }
 
-      {/* Color Grading Workspace */}
-      {
-        showColorGrading && (
-          <div className="color-workspace">
-            <div className="color-workspace-header">
-              <h4>Color Grading Workspace</h4>
-              <button onClick={() => setShowColorGrading(false)} className="close-panel-btn">
-                <X size={14} />
-              </button>
+      {/* Color Grading Workspace — Full Lumetri-style */}
+      {showColorGrading && (
+        <div className="color-workspace-pro">
+          <div className="color-workspace-header">
+            <span>🎨 Lumetri Color</span>
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <span style={{fontSize:10,color:'#4e6a82'}}>{selectedClip ? selectedClip.title : 'No clip selected'}</span>
+              <button onClick={() => setShowColorGrading(false)} className="close-panel-btn"><X size={14}/></button>
             </div>
-            <div className="color-tools">
-              <div className="color-wheels">
-                <div className="color-wheel-section">
-                  <h5>Shadows</h5>
-                  <div className="color-wheel shadows-wheel"></div>
-                  <div className="wheel-controls">
-                    <input type="range" min="-100" max="100" defaultValue="0" />
+          </div>
+          <div className="color-workspace-body">
+            <div className="lut-section">
+              <div className="lut-header">LUT Presets</div>
+              {['film','cinema','social','vintage','nature','technical'].map(cat => (
+                <div key={cat} style={{marginBottom:10}}>
+                  <div style={{fontSize:9,fontWeight:700,color:'#4e6a82',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>{cat}</div>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                    {LUT_PRESETS.filter(p => p.cat === cat).map(lut => (
+                      <button key={lut.name}
+                        onClick={() => { if(selectedClip) applyEffect(selectedClip.id, 'lut_preset', 50); }}
+                        style={{padding:'3px 8px',borderRadius:4,border:'1px solid #21262d',background:'#0d1117',color:'#8b949e',fontSize:10,cursor:'pointer',whiteSpace:'nowrap'}}
+                        title={"Sat:"+lut.sat+" Con:"+lut.con+" Temp:"+lut.temp}>
+                        {lut.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <div className="color-wheel-section">
-                  <h5>Midtones</h5>
-                  <div className="color-wheel midtones-wheel"></div>
-                  <div className="wheel-controls">
-                    <input type="range" min="-100" max="100" defaultValue="0" />
+              ))}
+            </div>
+            <ColorGradingPanel onGrade={(grade) => { if(selectedClip) applyEffect(selectedClip.id,'colorGrade',50); }} />
+            <div className="curves-section">
+              <div className="lut-header">Curves</div>
+              <div style={{background:'#06060f',borderRadius:8,padding:8,height:130,position:'relative'}}>
+                <svg width="100%" height="100%" viewBox="0 0 200 110" style={{display:'block'}}>
+                  <line x1="0" y1="110" x2="200" y2="0" stroke="#21262d" strokeWidth="1" strokeDasharray="4"/>
+                  <polyline points="0,110 40,85 100,55 160,25 200,0" stroke="#00ffc8" strokeWidth="2" fill="none"/>
+                  <polyline points="0,110 40,85 100,55 160,25 200,0" stroke="#ff6b6b" strokeWidth="1" fill="none" opacity="0.4"/>
+                  <polyline points="0,110 40,85 100,55 160,25 200,0" stroke="#4a9eff" strokeWidth="1" fill="none" opacity="0.4"/>
+                </svg>
+                <div style={{position:'absolute',bottom:4,right:4,fontSize:9,color:'#4e6a82'}}>RGB Curves</div>
+              </div>
+            </div>
+            <div className="hsl-section">
+              <div className="lut-header">HSL / Secondaries</div>
+              {[['Hue','#ff6b6b',-180,180,0],['Saturation','#00ffc8',0,200,100],['Luminance','#ffd60a',-100,100,0],['Temperature','#ff9500',-50,50,0],['Tint','#30d158',-50,50,0]].map(([lbl,col,mn,mx,def])=>(
+                <div key={lbl} style={{marginBottom:10}}>
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#4e6a82',marginBottom:3}}>
+                    <span>{lbl}</span><span style={{color:col,fontFamily:'monospace'}}>{def}</span>
                   </div>
+                  <input type="range" min={mn} max={mx} defaultValue={def} style={{width:'100%',accentColor:col}}/>
                 </div>
-                <div className="color-wheel-section">
-                  <h5>Highlights</h5>
-                  <div className="color-wheel highlights-wheel"></div>
-                  <div className="wheel-controls">
-                    <input type="range" min="-100" max="100" defaultValue="0" />
-                  </div>
-                </div>
+              ))}
+              <div className="lut-header" style={{marginTop:12}}>Vignette</div>
+              <div style={{marginBottom:8}}>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#4e6a82',marginBottom:3}}><span>Amount</span><span>0</span></div>
+                <input type="range" min="-100" max="0" defaultValue="0" style={{width:'100%',accentColor:'#8b949e'}}/>
+              </div>
+              <div style={{marginBottom:8}}>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#4e6a82',marginBottom:3}}><span>Feather</span><span>50</span></div>
+                <input type="range" min="0" max="100" defaultValue="50" style={{width:'100%',accentColor:'#8b949e'}}/>
               </div>
             </div>
           </div>
-        )
-      }
+        </div>
+      )}
 
       {/* Audio Mixing Workspace */}
       {
@@ -7587,41 +7757,59 @@ TIMELINE
               </button>
             </div>
 
-            <div className="mixing-console">
+            <div className="mixing-console-pro">
+              <div className="mixer-channel-pro master-channel">
+                <div className="channel-name" style={{color:'#00ffc8'}}>MASTER</div>
+                <div className="eq-strip">
+                  {['HF','MF','LF'].map(b=>(
+                    <div key={b} className="eq-knob-wrap"><div className="eq-knob" style={{background:'conic-gradient(#00ffc8 180deg,#21262d 180deg)'}}></div><span>{b}</span></div>
+                  ))}
+                </div>
+                <div style={{width:'100%',marginTop:4}}>
+                  <div style={{fontSize:9,color:'#4e6a82',marginBottom:2}}>REVERB</div>
+                  <input type="range" min="0" max="100" defaultValue="0" style={{width:'100%',accentColor:'#bf5af2'}}/>
+                  <div style={{fontSize:9,color:'#4e6a82',margin:'6px 0 2px'}}>DELAY</div>
+                  <input type="range" min="0" max="100" defaultValue="0" style={{width:'100%',accentColor:'#bf5af2'}}/>
+                </div>
+                <div className="vu-meter-pro">
+                  {Array.from({length:20},(_,i)=>(
+                    <div key={i} className="vu-segment" style={{background:i<14?'rgba(0,255,200,0.7)':i<18?'rgba(255,193,7,0.7)':'rgba(248,81,73,0.8)',width:`${45+i*2.5}%`}}/>
+                  ))}
+                </div>
+                <div className="fader-strip-pro">
+                  <input type="range" min="-60" max="12" defaultValue="0" style={{writingMode:'vertical-lr',direction:'rtl',width:32,height:100,accentColor:'#00ffc8'}}/>
+                  <span className="fader-db">0dB</span>
+                </div>
+                <div style={{display:'flex',gap:4,justifyContent:'center',marginTop:4}}>
+                  <button style={{padding:'3px 7px',background:'rgba(248,81,73,0.15)',border:'1px solid #f85149',borderRadius:4,color:'#f85149',fontSize:9,cursor:'pointer'}}>M</button>
+                  <button style={{padding:'3px 7px',background:'rgba(0,255,200,0.1)',border:'1px solid rgba(0,255,200,0.3)',borderRadius:4,color:'#00ffc8',fontSize:9,cursor:'pointer'}}>S</button>
+                </div>
+              </div>
               {tracks.filter(t => t.type === 'audio' || t.clips.some(c => c.type === 'audio')).map(track => (
-                <div key={track.id} className="mixer-channel">
-                  <div className="channel-header">
-                    <span>{track.name}</span>
+                <div key={track.id} className="mixer-channel-pro" style={{borderLeft:`2px solid ${track.color||'#21262d'}`}}>
+                  <div className="channel-name" style={{color:track.color||'#e6edf3'}}>{track.name}</div>
+                  <div className="eq-strip">
+                    {['HF','MF','LF'].map(b=>(
+                      <div key={b} className="eq-knob-wrap"><div className="eq-knob" style={{background:`conic-gradient(${track.color||'#00ffc8'} 180deg,#21262d 180deg)`}}></div><span>{b}</span></div>
+                    ))}
                   </div>
-                  <div className="channel-controls">
-                    <div className="eq-controls">
-                      <div className="eq-band">
-                        <label>High</label>
-                        <input type="range" min="-24" max="24" defaultValue="0" className="eq-slider" />
-                      </div>
-                      <div className="eq-band">
-                        <label>Mid</label>
-                        <input type="range" min="-24" max="24" defaultValue="0" className="eq-slider" />
-                      </div>
-                      <div className="eq-band">
-                        <label>Low</label>
-                        <input type="range" min="-24" max="24" defaultValue="0" className="eq-slider" />
-                      </div>
-                    </div>
-                    <div className="channel-fader">
-                      <input
-                        type="range"
-                        min="-60"
-                        max="12"
-                        defaultValue="0"
-                        className="volume-fader"
-                        orient="vertical"
-                      />
-                      <div className="fader-label">0dB</div>
-                    </div>
-                    <div className="level-meter">
-                      <div className="meter-bar"></div>
-                    </div>
+                  <div style={{width:'100%',marginTop:4}}>
+                    <div style={{fontSize:9,color:'#4e6a82',marginBottom:2}}>PAN</div>
+                    <input type="range" min="-100" max="100" defaultValue="0" style={{width:'100%',accentColor:track.color||'#00ffc8'}}/>
+                  </div>
+                  <div className="vu-meter-pro">
+                    {Array.from({length:20},(_,i)=>(
+                      <div key={i} className="vu-segment" style={{background:i<14?`${track.color||'#00ffc8'}bb`:i<18?'rgba(255,193,7,0.7)':'rgba(248,81,73,0.8)',width:`${Math.max(8,Math.floor(Math.random()*55)+15)}%`}}/>
+                    ))}
+                  </div>
+                  <div className="fader-strip-pro">
+                    <input type="range" min="-60" max="12" defaultValue="0" style={{writingMode:'vertical-lr',direction:'rtl',width:32,height:100,accentColor:track.color||'#00ffc8'}}/>
+                    <span className="fader-db">0dB</span>
+                  </div>
+                  <div style={{display:'flex',gap:4,justifyContent:'center',marginTop:4}}>
+                    <button style={{padding:'3px 7px',background:'rgba(248,81,73,0.15)',border:'1px solid #f85149',borderRadius:4,color:'#f85149',fontSize:9,cursor:'pointer'}}>M</button>
+                    <button style={{padding:'3px 7px',background:'rgba(0,255,200,0.1)',border:'1px solid rgba(0,255,200,0.3)',borderRadius:4,color:'#00ffc8',fontSize:9,cursor:'pointer'}}>S</button>
+                    <button style={{padding:'3px 7px',background:'rgba(255,107,107,0.1)',border:'1px solid #ff6b6b',borderRadius:4,color:'#ff6b6b',fontSize:9,cursor:'pointer'}}>R</button>
                   </div>
                 </div>
               ))}
@@ -7629,6 +7817,257 @@ TIMELINE
           </div>
         )
       }
+
+      {/* ── Video Scopes ─────────────────────────────────────────── */}
+      {showScopes && (
+        <div className="scopes-panel-pro">
+          <div className="scopes-header">
+            <span>📊 Video Scopes</span>
+            <div style={{display:'flex',gap:6,alignItems:'center'}}>
+              {['Waveform','Vectorscope','Histogram','Parade'].map(s=>(
+                <button key={s} style={{padding:'3px 8px',background:'rgba(0,255,200,0.08)',border:'1px solid rgba(0,255,200,0.2)',borderRadius:4,color:'#00ffc8',fontSize:10,cursor:'pointer'}}>{s}</button>
+              ))}
+              <button onClick={()=>setShowScopes(false)} className="close-panel-btn"><X size={14}/></button>
+            </div>
+          </div>
+          <div className="scopes-body">
+            <div className="scope-canvas-wrap">
+              <div style={{fontSize:10,color:'#4e6a82',marginBottom:4}}>WAVEFORM (Luma)</div>
+              <canvas ref={scopesCanvasRef} width={320} height={100} style={{width:'100%',background:'#06060f',borderRadius:6,border:'1px solid #21262d'}}/>
+            </div>
+            <div style={{display:'flex',gap:12}}>
+              <div className="scope-canvas-wrap" style={{flex:1}}>
+                <div style={{fontSize:10,color:'#4e6a82',marginBottom:4}}>VECTORSCOPE</div>
+                <canvas width={100} height={100} style={{borderRadius:'50%',background:'#06060f',border:'1px solid #21262d',display:'block'}}/>
+              </div>
+              <div className="scope-canvas-wrap" style={{flex:2}}>
+                <div style={{fontSize:10,color:'#4e6a82',marginBottom:4}}>HISTOGRAM (RGB)</div>
+                <canvas width={200} height={80} style={{width:'100%',background:'#06060f',borderRadius:6,border:'1px solid #21262d'}}/>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Multicam Editor ───────────────────────────────────────── */}
+      {showMulticam && (
+        <div className="panel-pro">
+          <div className="panel-pro-header">
+            <span>🎥 Multicam Editor</span>
+            <button onClick={()=>setShowMulticam(false)} className="close-panel-btn"><X size={14}/></button>
+          </div>
+          <div style={{padding:16}}>
+            <MulticamEditor clips={tracks.flatMap(t=>t.clips)} currentTime={currentTime} onAngleSwitch={(id,t)=>console.log('Cut angle',id,'at',t)}/>
+          </div>
+        </div>
+      )}
+
+      {/* ── Chroma Key ────────────────────────────────────────────── */}
+      {showChromaKey && (
+        <div className="panel-pro">
+          <div className="panel-pro-header">
+            <span>🟢 Chroma Key</span>
+            <button onClick={()=>setShowChromaKey(false)} className="close-panel-btn"><X size={14}/></button>
+          </div>
+          <div style={{padding:16}}>
+            {selectedClip
+              ? <ChromaKeyPanel settings={chromaKeySettings} onChange={setChromaKeySettings} onPickColor={(c)=>setChromaKeySettings(s=>({...s,color:c}))}/>
+              : <div style={{color:'#4e6a82',fontSize:12,textAlign:'center',padding:20}}>Select a video clip first</div>}
+          </div>
+        </div>
+      )}
+
+      {/* ── Speed Ramp ────────────────────────────────────────────── */}
+      {showSpeedRamp && (
+        <div className="panel-pro">
+          <div className="panel-pro-header">
+            <span>⚡ Speed Ramp</span>
+            <button onClick={()=>setShowSpeedRamp(false)} className="close-panel-btn"><X size={14}/></button>
+          </div>
+          <div style={{padding:16}}>
+            {selectedClip
+              ? <SpeedRampPanel points={speedRampPoints} onChange={setSpeedRampPoints} presetId={null}/>
+              : <div style={{color:'#4e6a82',fontSize:12,textAlign:'center',padding:20}}>Select a clip first</div>}
+          </div>
+        </div>
+      )}
+
+      {/* ── Adjustment Layer ──────────────────────────────────────── */}
+      {showAdjustmentLayer && (
+        <div className="panel-pro">
+          <div className="panel-pro-header">
+            <span>🔧 Adjustment Layer</span>
+            <button onClick={()=>setShowAdjustmentLayer(false)} className="close-panel-btn"><X size={14}/></button>
+          </div>
+          <div style={{padding:16}}>
+            <AdjustmentLayerPanel layer={adjustmentLayers[0]||createAdjustmentLayer({})} onChange={(l)=>setAdjustmentLayers([l])}/>
+          </div>
+        </div>
+      )}
+
+      {/* ── Captions / Subtitles ──────────────────────────────────── */}
+      {showCaptions && (
+        <div className="panel-pro">
+          <div className="panel-pro-header">
+            <span>💬 Captions & Subtitles</span>
+            <button onClick={()=>setShowCaptions(false)} className="close-panel-btn"><X size={14}/></button>
+          </div>
+          <div style={{padding:16}}>
+            <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Caption Style</div>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>
+              {CAPTION_STYLES.map(s=>(
+                <button key={s.id} style={{padding:'4px 10px',borderRadius:6,border:'1px solid #21262d',background:'#0d1117',color:'#8b949e',fontSize:11,cursor:'pointer'}}>{s.name||s.id}</button>
+              ))}
+            </div>
+            <textarea style={{width:'100%',background:'#0d1117',border:'1px solid #21262d',borderRadius:6,color:'#e6edf3',padding:8,fontSize:12,resize:'vertical',minHeight:60,boxSizing:'border-box'}} placeholder="Type caption text..."/>
+            <div style={{display:'flex',gap:8,marginTop:8,marginBottom:12}}>
+              <input type="number" placeholder="Start (s)" style={{flex:1,background:'#0d1117',border:'1px solid #21262d',borderRadius:4,color:'#e6edf3',padding:'4px 8px',fontSize:11}}/>
+              <input type="number" placeholder="End (s)" style={{flex:1,background:'#0d1117',border:'1px solid #21262d',borderRadius:4,color:'#e6edf3',padding:'4px 8px',fontSize:11}}/>
+              <button onClick={()=>setCaptions(prev=>[...prev,createCaptionSegment({words:[],startTime:currentTime})])}
+                style={{padding:'4px 12px',background:'rgba(0,255,200,0.1)',border:'1px solid rgba(0,255,200,0.3)',borderRadius:4,color:'#00ffc8',fontSize:11,cursor:'pointer'}}>Add</button>
+            </div>
+            <button style={{width:'100%',padding:'9px',background:'rgba(191,90,242,0.1)',border:'1px solid rgba(191,90,242,0.3)',borderRadius:6,color:'#bf5af2',fontSize:12,fontWeight:700,cursor:'pointer'}}>
+              🤖 AI Auto-Caption (Whisper)
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Text & Titles ─────────────────────────────────────────── */}
+      {showTitles && (
+        <div className="panel-pro">
+          <div className="panel-pro-header">
+            <span>T Text & Titles</span>
+            <button onClick={()=>setShowTitles(false)} className="close-panel-btn"><X size={14}/></button>
+          </div>
+          <div style={{padding:16}}>
+            <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Text Presets</div>
+            <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:12}}>
+              {TEXT_PRESETS.map((p,i)=>(
+                <button key={i} onClick={()=>setTextOverlays(prev=>[...prev,createTextOverlay({text:p.text||'Title Text',style:p})])}
+                  style={{padding:'8px 12px',background:'#0d1117',border:'1px solid #21262d',borderRadius:6,color:'#e6edf3',fontSize:11,cursor:'pointer',textAlign:'left'}}>
+                  {p.name||'Preset '+(i+1)}
+                </button>
+              ))}
+            </div>
+            <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Lower Thirds</div>
+            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+              {LOWER_THIRD_TEMPLATES.map((t,i)=>(
+                <button key={i} style={{padding:'8px 12px',background:'#0d1117',border:'1px solid #21262d',borderRadius:6,color:'#8b949e',fontSize:11,cursor:'pointer',textAlign:'left'}}>
+                  {t.name||'Lower Third '+(i+1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Overlays & PIP ────────────────────────────────────────── */}
+      {showOverlays && (
+        <div className="panel-pro">
+          <div className="panel-pro-header">
+            <span>🖼 Overlays & PIP</span>
+            <button onClick={()=>setShowOverlays(false)} className="close-panel-btn"><X size={14}/></button>
+          </div>
+          <div style={{padding:16}}>
+            <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Picture-in-Picture</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:12}}>
+              {Object.keys(PIP_POSITIONS).map(key=>(
+                <button key={key} onClick={()=>setPipLayers(prev=>[...prev,createPIP({position:key})])}
+                  style={{padding:'6px',background:'#0d1117',border:'1px solid #21262d',borderRadius:6,color:'#8b949e',fontSize:10,cursor:'pointer',textTransform:'capitalize'}}>
+                  {key.replace(/-/g,' ')}
+                </button>
+              ))}
+            </div>
+            <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Watermark</div>
+            <button onClick={()=>setWatermark(createWatermark({text:'StreamPireX'}))}
+              style={{width:'100%',padding:'8px',background:'rgba(0,255,200,0.08)',border:'1px solid rgba(0,255,200,0.2)',borderRadius:6,color:'#00ffc8',fontSize:11,cursor:'pointer',marginBottom:12}}>
+              + Add Watermark
+            </button>
+            <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Social Templates</div>
+            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+              {SOCIAL_TEMPLATES.slice(0,6).map((t,i)=>(
+                <button key={i} style={{padding:'6px 10px',background:'#0d1117',border:'1px solid #21262d',borderRadius:6,color:'#8b949e',fontSize:10,cursor:'pointer',textAlign:'left',display:'flex',justifyContent:'space-between'}}>
+                  <span>{t.name}</span><span style={{color:'#4e6a82'}}>{t.width}x{t.height}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Scene Detection ───────────────────────────────────────── */}
+      {showSceneDetection && (
+        <div className="panel-pro">
+          <div className="panel-pro-header">
+            <span>🎬 Scene Detection</span>
+            <button onClick={()=>setShowSceneDetection(false)} className="close-panel-btn"><X size={14}/></button>
+          </div>
+          <div style={{padding:16}}>
+            <SceneDetectionPanel
+              clipId={selectedClip?.id} scenes={sceneList}
+              isAnalyzing={isAnalyzingScenes} progress={sceneProgress}
+              settings={createSceneDetectionSettings()}
+              onAnalyze={async()=>{setIsAnalyzingScenes(true);setSceneProgress(0);await new Promise(r=>setTimeout(r,1500));setSceneList([{time:0,label:'Scene 1'},{time:5,label:'Scene 2'},{time:12,label:'Scene 3'},{time:20,label:'Scene 4'}]);setIsAnalyzingScenes(false);setSceneProgress(100);}}
+              onSplitAtScenes={()=>console.log('Split at scenes')}
+              onJumpToScene={s=>setCurrentTime(s.time)}
+              onSettingsChange={()=>{}}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Background Removal ────────────────────────────────────── */}
+      {showBackgroundRemoval && (
+        <div className="panel-pro">
+          <div className="panel-pro-header">
+            <span>✂️ Background Removal</span>
+            <button onClick={()=>setShowBackgroundRemoval(false)} className="close-panel-btn"><X size={14}/></button>
+          </div>
+          <div style={{padding:16}}>
+            <BackgroundRemovalPanel settings={createBGRemovalSettings()} onChange={()=>{}}/>
+          </div>
+        </div>
+      )}
+
+      {/* ── Audio Ducking ─────────────────────────────────────────── */}
+      {showAudioDucking && (
+        <div className="panel-pro">
+          <div className="panel-pro-header">
+            <span>🎙 Audio Ducking</span>
+            <button onClick={()=>setShowAudioDucking(false)} className="close-panel-btn"><X size={14}/></button>
+          </div>
+          <div style={{padding:16}}>
+            <AudioDuckingPanel settings={createAudioDuckingSettings()} tracks={tracks} onAnalyze={()=>{}} onChange={()=>{}}/>
+          </div>
+        </div>
+      )}
+
+      {/* ── Motion Tracking ───────────────────────────────────────── */}
+      {showMotionTracking && (
+        <div className="panel-pro">
+          <div className="panel-pro-header">
+            <span>🎯 Motion Tracking</span>
+            <button onClick={()=>setShowMotionTracking(false)} className="close-panel-btn"><X size={14}/></button>
+          </div>
+          <div style={{padding:16}}>
+            <MotionTrackingPanel tracks={[]} currentTime={currentTime} onCreateTrack={()=>{}} onDeleteTrack={()=>{}} onAddAttachment={()=>{}}/>
+          </div>
+        </div>
+      )}
+
+      {/* ── Template Library ──────────────────────────────────────── */}
+      {showTemplateLibrary && (
+        <div className="panel-pro">
+          <div className="panel-pro-header">
+            <span>📚 Template Library</span>
+            <button onClick={()=>setShowTemplateLibrary(false)} className="close-panel-btn"><X size={14}/></button>
+          </div>
+          <div style={{padding:16}}>
+            <TemplateLibraryPanel onSelectTemplate={t=>console.log('Template:',t.name)}/>
+          </div>
+        </div>
+      )}
 
       {/* Export Modal (NEW) */}
       {
