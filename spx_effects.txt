@@ -1,0 +1,906 @@
+11:// ColorGradingPanel — Lift/Gamma/Gain wheels
+13:const ColorWheel = ({ label, value, onChange, size = 120 }) => {
+17:  React.useEffect(() => {
+23:    // Draw color wheel
+28:      gradient.addColorStop(0, `hsla(${angle}, 0%, 50%, 1)`);
+29:      gradient.addColorStop(1, `hsla(${angle}, 100%, 50%, 1)`);
+70:      <div style={{ fontSize: 10, fontWeight: 700, color: '#4e6a82', textTransform: 'uppercase', letterSpacing: 1 }}>
+78:        style={{ width: size, accentColor: '#00ffc8' }}
+90:    clips?.filter(c => c.type === 'video').slice(0, 4).map((c, i) => ({
+110:          <h4 style={{ color: '#e6edf3', fontWeight: 800, margin: '0 0 4px', fontSize: 14 }}>🎥 Multicam Editor</h4>
+111:          <p style={{ color: '#8b949e', fontSize: 12, margin: 0 }}>Switch between camera angles in real time</p>
+114:          style={{ padding: '6px 14px', background: recording ? 'rgba(248,81,73,0.15)' : 'rgba(0,255,200,0.08)', border: `1px solid ${recording ? '#f85149' : 'rgba(0,255,200,0.3)'}`, borderRadius: 7, color: recording ? '#f85149' : '#00ffc8', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+120:        <div style={{ color: '#4e6a82', fontSize: 12, textAlign: 'center', padding: 20 }}>
+130:                style={{ position: 'relative', aspectRatio: '16/9', background: '#06060f', borderRadius: 8, border: `2px solid ${angle.active ? '#00ffc8' : '#21262d'}`, cursor: 'pointer', overflow: 'hidden', transition: 'border-color 0.15s' }}>
+131:                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4e6a82', fontSize: 24 }}>🎥</div>
+132:                <div style={{ position: 'absolute', bottom: 6, left: 8, fontSize: 10, fontWeight: 800, color: angle.active ? '#00ffc8' : '#8b949e', background: 'rgba(0,0,0,0.7)', padding: '2px 8px', borderRadius: 4 }}>
+136:                <div style={{ position: 'absolute', top: 6, right: 8 }}>
+140:                    style={{ width: 50, background: 'rgba(0,0,0,0.7)', border: '1px solid #21262d', borderRadius: 4, color: '#8b949e', fontSize: 9, padding: '2px 4px', textAlign: 'center' }}
+150:              <div style={{ fontSize: 10, fontWeight: 700, color: '#4e6a82', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Recorded Switches</div>
+153:                  <div key={i} style={{ padding: '3px 8px', background: 'rgba(0,255,200,0.08)', border: '1px solid rgba(0,255,200,0.2)', borderRadius: 4, fontSize: 10, color: '#00ffc8' }}>
+159:                style={{ marginTop: 8, padding: '4px 10px', background: 'transparent', border: '1px solid #21262d', borderRadius: 5, color: '#4e6a82', fontSize: 10, cursor: 'pointer' }}>
+170:const ColorGradingPanel = ({ onGrade }) => {
+180:  const LUT_PRESETS = [
+242:  const applyGrade = React.useCallback(() => {
+243:    onGrade?.({ lift, gamma, gain, saturation, contrast, temperature, tint });
+244:  }, [lift, gamma, gain, saturation, contrast, temperature, tint, onGrade]);
+249:        <h4 style={{ color: '#e6edf3', fontWeight: 800, margin: 0, fontSize: 14 }}>🎨 Color Grading</h4>
+250:        <button onClick={applyGrade} style={{ padding: '5px 14px', background: 'rgba(0,255,200,0.1)', border: '1px solid rgba(0,255,200,0.3)', borderRadius: 6, color: '#00ffc8', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Apply</button>
+255:        <div style={{ fontSize: 10, fontWeight: 700, color: '#4e6a82', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Presets</div>
+260:              style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid', borderColor: activePreset === p.name ? '#00ffc8' : '#21262d', background: activePreset === p.name ? 'rgba(0,255,200,0.1)' : 'transparent', color: activePreset === p.name ? '#00ffc8' : '#8b949e', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+267:      {/* Color Wheels */}
+269:        <ColorWheel label="Lift (Shadows)"   value={lift}  onChange={setLift}  size={110} />
+270:        <ColorWheel label="Gamma (Mids)"     value={gamma} onChange={setGamma} size={110} />
+271:        <ColorWheel label="Gain (Highlights)" value={gain}  onChange={setGain}  size={110} />
+281:        ].map(([lbl, val, setter, min, max, color]) => (
+284:              <span>{lbl}</span><span style={{ color }}>{val}</span>
+295:        style={{ padding: '6px 14px', background: 'transparent', border: '1px solid #21262d', borderRadius: 6, color: '#4e6a82', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, cursor: 'pointer', alignSelf: 'flex-start' }}>
+311:  Filter,
+409:import React, { useState, useEffect, useRef } from 'react';
+430:} from '../component/VideoEditorEffectsPlus';
+586: * Preview a single effect on a video
+588: * @param {string} effectId - Effect identifier
+589: * @param {number} intensity - Effect intensity (0-100)
+592:const previewVideoEffect = async (publicId, effectId, intensity = 50) => {
+594:    const response = await fetch(`${backendURL}/api/video-editor/effect-preview`, {
+599:        effect_id: effectId,
+612:    console.error('Error previewing effect:', error);
+618: * Apply a single video effect on a video
+620:const applyVideoEffect = async (payload) => {
+622:    const response = await fetch(`${backendURL}/api/video-editor/apply-effect`, {
+630:      throw new Error(error.error || 'Apply effect failed');
+635:    console.error('Error applying video effect:', error);
+705: * @param {Object} options - Font size, color, position
+717:        color: options.color || 'white',
+816: * Get available effects list
+817: * @returns {Promise<Object>} - Effects organized by category
+819:const getAvailableEffectsFromAPI = async () => {
+821:    const response = await fetch(`${backendURL}/api/video-editor/effects`, {
+826:      throw new Error('Failed to get effects');
+830:    return data.effects;
+832:    console.error('Error fetching effects:', error);
+838: * Get available export resolutions
+839: * @returns {Promise<Array>} - Array of resolution options
+841:const getAvailableResolutions = async () => {
+843:    const response = await fetch(`${backendURL}/api/video-editor/resolutions`, {
+848:      throw new Error('Failed to get resolutions');
+852:    return data.resolutions;
+854:    console.error('Error fetching resolutions:', error);
+872:    effects: clip.effects?.filter(e => e.enabled !== false).map(e => ({
+901:    transitions: track.transitions || []
+909:      resolution: settings.resolution || '1080p',
+933:// AUDIO EFFECTS API FUNCTIONS (EXISTING)
+936:const applyAudioEffect = async (clipId, effectId, intensity) => {
+940:    const response = await fetch(`${backendURL}/api/audio/apply-effect`, {
+948:        effect_id: effectId,
+960:    console.error('Error applying audio effect:', error);
+965:const previewAudioEffect = async (clipId, effectId, intensity, startTime = 0, duration = 5) => {
+969:    const response = await fetch(`${backendURL}/api/audio/preview-effect`, {
+977:        effect_id: effectId,
+987:    console.error('Error previewing audio effect:', error);
+992:const applyBatchEffects = async (clipId, effectsChain) => {
+996:    const response = await fetch(`${backendURL}/api/audio/batch-effects`, {
+1004:        effects_chain: effectsChain
+1011:    console.error('Error applying batch effects:', error);
+1170:                  {file.cloudinary_public_id && <span style={{ color: '#00ffc8', marginLeft: '5px' }}>☁️</span>}
+1285:          <Monitor size={16} style={{ color: '#00ffc8' }} />
+1286:          <span style={{ fontSize: '13px', fontWeight: 600, color: '#e0e0e0' }}>Source Monitor</span>
+1287:          <span style={{ fontSize: '11px', color: '#888' }}>- {selectedMedia?.name}</span>
+1292:          color: '#888',
+1323:            <AudioWaveform size={64} style={{ color: '#ff6b6b', marginBottom: '16px' }} />
+1324:            <p style={{ color: '#888', marginBottom: '16px' }}>{selectedMedia.name}</p>
+1354:              position: 'absolute',
+1362:              position: 'absolute',
+1371:              position: 'absolute',
+1380:              position: 'absolute',
+1402:                position: 'absolute',
+1421:                color: '#000',
+1436:              color: '#00ffc8',
+1459:        <span>In: <span style={{ color: '#4a9eff' }}>{formatTime(inPoint)}</span></span>
+1460:        <span>Duration: <span style={{ color: '#00ffc8' }}>{formatTime(clipDuration)}</span></span>
+1461:        <span>Out: <span style={{ color: '#ff6b6b' }}>{formatTime(outPoint)}</span></span>
+1538:  color: '#e0e0e0',
+1547:  const [resolution, setResolution] = useState('1080p');
+1563:        resolution,
+1622:                <label>Resolution</label>
+1623:                <select value={resolution} onChange={(e) => setResolution(e.target.value)}>
+1755:    resolution: { width: 1920, height: 1080 }
+1766:      color: '#4a9eff',
+1769:      transitions: []
+1778:      color: '#ff6b6b',
+1781:      transitions: []
+1790:      color: '#00d4aa',
+1793:      transitions: []
+1827:          width: project.resolution.width,
+1828:          height: project.resolution.height,
+1882:          width: project.resolution.width,
+1883:          height: project.resolution.height
+1896:            width: project.resolution.width,
+1897:            height: project.resolution.height,
+1916:          settings: { frameRate, width: project.resolution.width, height: project.resolution.height },
+1948:    } else if (selectedTransition) {
+1949:      clipboard.cut(selectedTransition, 'transition');
+1950:      // Delete transition
+1953:        transitions: (track.transitions || []).filter(t => t.id !== selectedTransition.id)
+1955:      setSelectedTransition(null);
+1963:    } else if (selectedTransition) {
+1964:      clipboard.copy(selectedTransition, 'transition');
+1965:      alert('📋 Copied transition');
+1996:    } else if (type === 'transition') {
+1997:      // TODO: Handle transition paste
+1998:      console.log('Transition paste not yet implemented');
+2006:    } else if (selectedTransition) {
+2009:        transitions: (track.transitions || []).filter(t => t.id !== selectedTransition.id)
+2011:      setSelectedTransition(null);
+2024:    setSelectedTransition(null);
+2043:                  ...track.clips.filter(c => c.id !== clipAtPlayhead.id),
+2068:                    ...track.clips.filter(c => c.id !== selectedClip.id),
+2157:      const trackCount = tracks.filter(t => t.type === type).length + 1;
+2165:        color: type === 'video' ? '#4a9eff' : '#00d4aa',
+2168:        transitions: []
+2176:    const emptyTracks = tracks.filter(t => t.clips.length === 0);
+2183:    const videoTracks = tracks.filter(t => t.type === 'video');
+2184:    const audioTracks = tracks.filter(t => t.type === 'audio');
+2186:    setTracks(prev => prev.filter(t => {
+2188:      if (t.type === 'video' && videoTracks.filter(vt => vt.clips.length > 0 || vt.id === t.id).length <= 1) return true;
+2189:      if (t.type === 'audio' && audioTracks.filter(at => at.clips.length > 0 || at.id === t.id).length <= 1) return true;
+2196:  const handleApplyDefaultTransition = () => {
+2211:      alert('No adjacent clips found. Place clips next to each other to add transitions.');
+2215:    // Add transition to first pair found
+2217:    addTransitionBetweenClips(trackId, clip1, clip2, selectedTransitionType);
+2310:  Ctrl+D    Apply Default Transition
+2327:  const [selectedTransition, setSelectedTransition] = useState(null);
+2328:  const [selectedTransitionType, setSelectedTransitionType] = useState('crossDissolve'); // Default transition to add
+2342:  const [activeEffects, setActiveEffects] = useState({});
+2343:  const [showEffectsPanel, setShowEffectsPanel] = useState(true);
+2352:  const [showColorGrading, setShowColorGrading] = useState(false);
+2446:      [[rHist,'rgba(248,81,73,0.7)'],[gHist,'rgba(63,185,80,0.7)'],[bHist,'rgba(74,158,255,0.7)']].forEach(([hist,color])=>{
+2447:        hctx.strokeStyle = color;
+2461:  React.useEffect(() => {
+2473:  React.useEffect(() => {
+2484:  React.useEffect(() => {
+2508:  const [draggedTransition, setDraggedTransition] = useState(null);
+2509:  const [draggedEffect, setDraggedEffect] = useState(null);
+2529:  const [showVideoEffects, setShowVideoEffects] = useState(true);
+2530:  const [showFadeEffects, setShowFadeEffects] = useState(true);
+2531:  const [showAudioEffects, setShowAudioEffects] = useState(true);
+2532:  const [showTransitions, setShowTransitions] = useState(true);
+2534:  const [showColorCorrection, setShowColorCorrection] = useState(true);
+2536:  const [showDistortion, setShowDistortion] = useState(true);
+2584:    onApplyTransition: handleApplyDefaultTransition,
+2595:  useEffect(() => {
+2614:    { id: 'eyedropper', icon: Aperture, name: 'Color Picker' }
+2620:    'color-dodge', 'color-burn', 'darken', 'lighten', 'difference', 'exclusion',
+2621:    'hue', 'saturation', 'color', 'luminosity', 'linear-burn', 'linear-dodge',
+2625:  // Comprehensive Effects Library
+2626:  const videoEffects = [
+2630:    { id: 'denoise', name: 'Denoise', icon: Filter, category: 'enhancement', description: 'Reduce low-light and sensor noise' },
+2635:    // Fade Effects (NEW)
+2640:    { id: 'crossDissolve', name: 'Cross Dissolve', icon: Layers, category: 'fade', description: 'Dissolve effect at start and end' },
+2642:    // Basic Color Correction
+2643:    { id: 'brightness', name: 'Brightness', icon: Sun, category: 'color', description: 'Adjust overall brightness' },
+2644:    { id: 'contrast', name: 'Contrast', icon: Contrast, category: 'color', description: 'Enhance contrast ratio' },
+2645:    { id: 'saturation', name: 'Saturation', icon: Droplets, category: 'color', description: 'Color intensity control' },
+2646:    { id: 'hue', name: 'Hue Shift', icon: Rainbow, category: 'color', description: 'Shift color spectrum' },
+2647:    { id: 'gamma', name: 'Gamma Correction', icon: Gauge, category: 'color', description: 'Midtone adjustment' },
+2648:    { id: 'exposure', name: 'Exposure', icon: Camera, category: 'color', description: 'Simulate camera exposure' },
+2650:    // Advanced Color Grading
+2651:    { id: 'colorBalance', name: 'Color Balance', icon: Palette, category: 'colorGrading', description: 'Adjust shadows/highlights' },
+2652:    { id: 'curves', name: 'Color Curves', icon: TrendingUp, category: 'colorGrading', description: 'Precise tone control' },
+2653:    { id: 'levels', name: 'Levels', icon: BarChart, category: 'colorGrading', description: 'Input/output levels' },
+2654:    { id: 'colorWheel', name: 'Color Wheels', icon: Circle, category: 'colorGrading', description: 'Three-way color correction' },
+2655:    { id: 'lut', name: 'LUT Correction', icon: Layers, category: 'colorGrading', description: 'Apply color lookup tables' },
+2656:    { id: 'vectorscope', name: 'Vectorscope', icon: Target, category: 'colorGrading', description: 'Color analysis tool' },
+2658:    // Blur & Sharpening
+2659:    { id: 'blur', name: 'Gaussian Blur', icon: Circle, category: 'blur', description: 'Standard blur effect' },
+2660:    { id: 'motionBlur', name: 'Motion Blur', icon: Move, category: 'blur', description: 'Directional motion blur' },
+2661:    { id: 'radialBlur', name: 'Radial Blur', icon: RadioIcon, category: 'blur', description: 'Circular blur effect' },
+2662:    { id: 'surfaceBlur', name: 'Surface Blur', icon: Waves, category: 'blur', description: 'Edge-preserving blur' },
+2666:    // Distortion Effects
+2667:    { id: 'lens', name: 'Lens Distortion', icon: Focus, category: 'distortion', description: 'Simulate lens effects' },
+2668:    { id: 'fisheye', name: 'Fisheye', icon: Circle, category: 'distortion', description: 'Wide-angle lens effect' },
+2669:    { id: 'ripple', name: 'Ripple', icon: Waves, category: 'distortion', description: 'Water ripple effect' },
+2670:    { id: 'twirl', name: 'Twirl', icon: RotateCw, category: 'distortion', description: 'Spiral distortion' },
+2671:    { id: 'pinch', name: 'Pinch', icon: Minimize2, category: 'distortion', description: 'Pinch/bulge effect' },
+2672:    { id: 'perspective', name: 'Perspective', icon: Diamond, category: 'distortion', description: 'Corner pin adjustment' },
+2674:    // Stylize Effects
+2675:    { id: 'posterize', name: 'Posterize', icon: Layers, category: 'stylize', description: 'Reduce color levels' },
+2676:    { id: 'solarize', name: 'Solarize', icon: Sun, category: 'stylize', description: 'Tone reversal effect' },
+2677:    { id: 'emboss', name: 'Emboss', icon: Triangle, category: 'stylize', description: '3D relief effect' },
+2679:    { id: 'glowEdges', name: 'Glowing Edges', icon: Lightbulb, category: 'stylize', description: 'Luminous edge effect' },
+2680:    { id: 'oilPaint', name: 'Oil Paint', icon: Paintbrush, category: 'stylize', description: 'Artistic paint effect' },
+2684:    { id: 'colorKey', name: 'Color Key', icon: Target, category: 'keying', description: 'Color-based keying' },
+2685:    { id: 'differenceKey', name: 'Difference Key', icon: Filter, category: 'keying', description: 'Background subtraction' },
+2691:    { id: 'removeNoise', name: 'Noise Reduction', icon: Filter, category: 'noise', description: 'Clean up grainy footage' },
+2693:    { id: 'median', name: 'Median Filter', icon: Gauge, category: 'noise', description: 'Noise smoothing' },
+2695:    // Time Effects
+2698:    { id: 'echo', name: 'Echo', icon: Copy, category: 'time', description: 'Temporal echo effect' },
+2699:    { id: 'strobe', name: 'Strobe Light', icon: Bolt, category: 'time', description: 'Flashing strobe effect' },
+2701:    // Lighting Effects
+2703:    { id: 'innerShadow', name: 'Inner Shadow', icon: Circle, category: 'lighting', description: 'Inset shadow effect' },
+2704:    { id: 'glow', name: 'Outer Glow', icon: Sun, category: 'lighting', description: 'Luminous glow effect' },
+2705:    { id: 'innerGlow', name: 'Inner Glow', icon: Lightbulb, category: 'lighting', description: 'Internal glow effect' },
+2709:    // Generate Effects
+2710:    { id: 'gradientRamp', name: 'Gradient Ramp', icon: TrendingUp, category: 'generate', description: 'Color gradient overlay' },
+2716:  const audioEffects = [
+2724:    // EQ & Filtering
+2727:    { id: 'highPass', name: 'High Pass Filter', icon: ChevronUp, category: 'eq', description: 'Remove low frequencies' },
+2728:    { id: 'lowPass', name: 'Low Pass Filter', icon: ChevronDown, category: 'eq', description: 'Remove high frequencies' },
+2729:    { id: 'bandPass', name: 'Band Pass Filter', icon: Filter, category: 'eq', description: 'Isolate frequency range' },
+2730:    { id: 'notch', name: 'Notch Filter', icon: Target, category: 'eq', description: 'Remove specific frequency' },
+2734:    { id: 'flanger', name: 'Flanger', icon: Waves, category: 'modulation', description: 'Sweeping comb filter' },
+2735:    { id: 'phaser', name: 'Phaser', icon: Circle, category: 'modulation', description: 'Phase shifting effect' },
+2742:    { id: 'delay', name: 'Delay', icon: SkipForward, category: 'time', description: 'Echo effect' },
+2747:    // Distortion
+2748:    { id: 'overdrive', name: 'Overdrive', icon: Zap, category: 'distortion', description: 'Soft saturation' },
+2749:    { id: 'distortion', name: 'Distortion', icon: Bolt, category: 'distortion', description: 'Hard clipping' },
+2750:    { id: 'bitCrusher', name: 'Bit Crusher', icon: Binary, category: 'distortion', description: 'Digital degradation' },
+2751:    { id: 'waveshaper', name: 'Waveshaper', icon: TrendingUp, category: 'distortion', description: 'Custom distortion curve' },
+2752:    { id: 'saturation', name: 'Tape Saturation', icon: Disc, category: 'distortion', description: 'Analog warmth' },
+2755:    { id: 'noiseReduction', name: 'Noise Reduction', icon: Filter, category: 'restoration', description: 'Remove unwanted noise' },
+2764:    { id: 'haasEffect', name: 'Haas Effect', icon: ArrowLeftRight, category: 'spatial', description: 'Stereo placement' },
+2775:  const effects = [...videoEffects, ...audioEffects];
+2777:  // Enhanced Transitions
+2778:  const transitions = [
+2779:    // Basic Transitions
+2783:    { id: 'dip', name: 'Dip to Color', icon: Palette, duration: 1, category: 'basic' },
+2785:    // Wipe Transitions
+2793:    // Slide Transitions
+2800:    // 3D Transitions
+2808:    // Blur Transitions
+2809:    { id: 'motionBlurTransition', name: 'Motion Blur', icon: Move, duration: 1, category: 'blur' },
+2810:    { id: 'radialBlurTransition', name: 'Radial Blur', icon: RadioIcon, duration: 1.2, category: 'blur' },
+2811:    { id: 'zoomBlur', name: 'Zoom Blur', icon: ZoomIn, duration: 1, category: 'blur' },
+2813:    // Distort Transitions
+2814:    { id: 'ripple', name: 'Ripple', icon: Waves, duration: 1.5, category: 'distort' },
+2815:    { id: 'wave', name: 'Wave Warp', icon: Waves, duration: 1.8, category: 'distort' },
+2816:    { id: 'turbulence', name: 'Turbulent Displace', icon: Wind, duration: 2, category: 'distort' },
+2818:    // Light Transitions
+2828:  useEffect(() => {
+2858:  useEffect(() => {
+3076:  // Effect application function
+3077:  const applyEffect = async (clipId, effectId, value) => {
+3085:    if (clip.type === 'audio' || audioEffects.some(e => e.id === effectId)) {
+3087:        setActiveEffects(prev => ({
+3091:            [`${effectId}_loading`]: true
+3095:        const result = await applyAudioEffect(clipId, effectId, value);
+3106:                    effects: [
+3107:                      ...c.effects.filter(e => e.id !== effectId),
+3108:                      { id: effectId, value: parseFloat(value), enabled: true }
+3116:          console.log(`✅ Applied ${effectId} to audio clip ${clipId} with intensity ${value}%`);
+3118:          throw new Error(result.error || 'Effect application failed');
+3121:        setActiveEffects(prev => ({
+3125:            [effectId]: value,
+3126:            [`${effectId}_loading`]: false
+3131:        console.error('Audio effect application error:', error);
+3133:        setActiveEffects(prev => ({
+3137:            [`${effectId}_loading`]: false
+3141:        alert(`Failed to apply ${effectId}: ${error.message}`);
+3145:      // Video effect
+3146:      console.log(`🎬 Applying video effect "${effectId}" to clip ${clipId}`);
+3148:      const backendVideoEffects = ['low_light_restore', 'shadow_recovery', 'denoise', 'detail_boost', 'cinematic_relight'];
+3150:      setActiveEffects(prev => ({
+3154:          [effectId]: value,
+3155:          [`${effectId}_loading`]: true
+3160:        if (backendVideoEffects.includes(effectId)) {
+3162:            effect_id: effectId,
+3172:          const result = await applyVideoEffect(payload);
+3190:              const currentEffects = c.effects || [];
+3191:              const newEffects = [
+3192:                ...currentEffects.filter(e => e.id !== effectId),
+3193:                { id: effectId, value: parseFloat(value), enabled: true }
+3195:              console.log(`🎬 Clip "${c.title}" effects updated:`, newEffects);
+3198:                effects: newEffects
+3207:      // Update selected clip to show effect immediately
+3210:          const currentEffects = prev.effects || [];
+3213:            effects: [
+3214:              ...currentEffects.filter(e => e.id !== effectId),
+3215:              { id: effectId, value: parseFloat(value), enabled: true }
+3222:      console.log(`✅ Applied ${effectId} to video clip ${clipId} with intensity ${value}%`);
+3224:        console.error('Video effect application error:', error);
+3225:        alert(`Failed to apply ${effectId}: ${error.message}`);
+3227:        setActiveEffects(prev => ({
+3231:            [`${effectId}_loading`]: false
+3238:  // Enhanced Effect Preview Function
+3239:  const previewEffect = async (clipId, effectId, intensity) => {
+3244:    if (clip.type === 'audio' || audioEffects.some(e => e.id === effectId)) {
+3246:        const result = await previewAudioEffect(clipId, effectId, intensity);
+3252:          setActiveEffects(prev => ({
+3256:              [`${effectId}_preview`]: result.preview_audio
+3268:          const response = await fetch(`${backendURL}/api/video-editor/effect-preview`, {
+3274:              effect_id: effectId,
+3287:          previewUrl = await previewVideoEffect(clip.cloudinary_public_id, effectId, intensity);
+3296:          setActiveEffects(prev => ({
+3300:              [`${effectId}_preview`]: previewUrl
+3305:        console.log(`Previewing ${effectId} on video clip ${clipId}`);
+3312:  // Auto-suggest effects based on audio analysis
+3313:  const suggestEffects = async (clipId) => {
+3317:      console.log('Effect suggestions only available for audio clips');
+3324:      if (analysis.suggested_effects && analysis.suggested_effects.length > 0) {
+3325:        setActiveEffects(prev => ({
+3329:            suggestions: analysis.suggested_effects
+3333:        return analysis.suggested_effects;
+3336:      console.error('Effect suggestion error:', error);
+3341:  // Apply preset effects chain
+3354:        const result = await applyBatchEffects(clipId, preset);
+3365:                    effects: preset.map(effect => ({
+3366:                      id: effect.id,
+3367:                      value: effect.intensity,
+3384:  // Toggle effect enabled/disabled
+3385:  const toggleEffect = (clipId, effectId) => {
+3393:              effects: clip.effects.map(effect =>
+3394:                effect.id === effectId
+3395:                  ? { ...effect, enabled: !effect.enabled }
+3396:                  : effect
+3405:  // Remove effect
+3406:  const removeEffect = (clipId, effectId) => {
+3407:    console.log(`🗑️ Removing effect "${effectId}" from clip ${clipId}`);
+3416:              effects: (clip.effects || []).filter(e => e.id !== effectId)
+3428:          effects: (prev.effects || []).filter(e => e.id !== effectId)
+3434:    console.log(`✅ Effect "${effectId}" removed`);
+3457:  // Effect drag and drop handlers
+3458:  const handleEffectDragStart = (e, effect) => {
+3459:    console.log('🎨 Effect drag started:', effect.name);
+3460:    setDraggedEffect(effect);
+3461:    e.dataTransfer.effectAllowed = 'copy';
+3462:    e.dataTransfer.setData('application/json', JSON.stringify({ type: 'effect', effect: effect }));
+3467:  const handleEffectDragEnd = (e) => {
+3468:    console.log('🎨 Effect drag ended');
+3470:    setDraggedEffect(null);
+3473:  const handleEffectDrop = (e, clipId) => {
+3476:    console.log('🎨 Effect drop on clip:', clipId);
+3478:    let effectToApply = draggedEffect;
+3480:    // Fallback: try to get effect from dataTransfer
+3481:    if (!effectToApply) {
+3484:        if (data.type === 'effect' && data.effect) {
+3485:          effectToApply = data.effect;
+3486:          console.log('🎨 Got effect from dataTransfer:', effectToApply.name);
+3489:        console.log('🎨 No effect data in dataTransfer');
+3493:    if (!effectToApply) {
+3494:      console.log('🎨 No effect to apply');
+3500:      console.log(`🎨 Applying ${effectToApply.name} to ${targetClip.title}`);
+3501:      applyEffect(clipId, effectToApply.id, 50);
+3503:      setShowEffectsPanel(true);
+3508:    setDraggedEffect(null);
+3511:  const handleEffectDragOver = (e) => {
+3513:    e.dataTransfer.dropEffect = 'copy';
+3519:  const handleEffectDragLeave = (e) => {
+3523:  // Transition functions
+3524:  const addTransition = (trackId, transitionType, startTime, duration = 1) => {
+3525:    const newTransition = {
+3527:      type: transitionType,
+3536:        ? { ...track, transitions: [...(track.transitions || []), newTransition] }
+3540:    console.log(`✅ Added ${transitionType} transition at ${startTime.toFixed(2)}s on track ${trackId}`);
+3543:  // Add transition between two specific clips
+3544:  const addTransitionBetweenClips = (trackId, clip1, clip2, transitionType = 'crossDissolve') => {
+3545:    // Get transition data for duration
+3546:    const transitionData = transitions.find(t => t.id === transitionType);
+3547:    const transitionDuration = transitionData?.duration || 1;
+3548:    const transitionName = transitionData?.name || 'Cross Dissolve';
+3553:    // Transition should start slightly before clip1 ends
+3554:    const transitionStart = clip1End - (transitionDuration / 2);
+3556:    const newTransition = {
+3558:      type: transitionType,
+3559:      startTime: transitionStart,
+3560:      duration: transitionDuration,
+3567:        ? { ...track, transitions: [...(track.transitions || []), newTransition] }
+3571:    console.log(`✅ Added ${transitionName} between "${clip1.title}" and "${clip2.title}"`);
+3572:    alert(`✅ Added "${transitionName}" transition between "${clip1.title}" and "${clip2.title}"!`);
+3575:  // Find adjacent clips that can have transitions
+3598:  const handleTransitionDragStart = (e, transition) => {
+3599:    setDraggedTransition(transition);
+3600:    e.dataTransfer.effectAllowed = 'copy';
+3605:    if (!draggedTransition) return;
+3612:    addTransition(trackId, draggedTransition.id, dropTime, draggedTransition.duration);
+3613:    setDraggedTransition(null);
+3618:    e.dataTransfer.dropEffect = 'copy';
+3643:  const closeEffectsPanel = () => {
+3644:    setShowEffectsPanel(false);
+3646:    setSelectedTransition(null);
+3694:  // Get effects by category
+3695:  const getEffectsByCategory = (category, effectsArray) => {
+3696:    return effectsArray.filter(effect => effect.category === category);
+3710:    const otherClips = track.clips.filter(c => c.id !== clipId);
+3792:              clips: track.clips.filter(c => c.id !== draggedClip.id)
+3894:    e.dataTransfer.effectAllowed = 'copy';
+3960:      effects: [],
+4005:        clips: track.clips.filter(clip => clip.id !== clipId)
+4050:            transitions: track.transitions
+4054:          resolution: `${project.resolution.width}x${project.resolution.height}`,
+4072:  useEffect(() => {
+4081:        setSelectedTransition(null);
+4158:  }, [selectedClip, selectedTransition, currentTime, duration, frameRate]);
+4165:  useEffect(() => {
+4176:  useEffect(() => {
+4181:        settings: { frameRate, width: project.resolution.width, height: project.resolution.height }
+4212:        { label: 'Cut', shortcut: 'Ctrl+X', action: handleCut, disabled: !selectedClip && !selectedTransition },
+4213:        { label: 'Copy', shortcut: 'Ctrl+C', action: handleCopy, disabled: !selectedClip && !selectedTransition },
+4215:        { label: 'Delete', shortcut: 'Del', action: handleDelete, disabled: !selectedClip && !selectedTransition },
+4241:        { label: 'Apply Default Transition', shortcut: 'Ctrl+D', action: handleApplyDefaultTransition },
+4276:        { label: 'Effects Panel', checked: showEffectsPanel, action: () => setShowEffectsPanel(!showEffectsPanel) },
+4281:        { label: 'Color Grading', checked: showColorGrading, action: () => setShowColorGrading(!showColorGrading) },
+4408:            <h2 style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>
+4584:              onClick={() => setShowColorGrading(!showColorGrading)}
+4585:              title="Color Grading"
+4586:              className={`header-btn ${showColorGrading ? 'active' : ''}`}
+4589:              Color
+4625:        {/* Left Panel - Tools & Effects */}
+4651:                color: '#888',
+4694:                  onClick={() => setShowEffectsPanel(!showEffectsPanel)}
+4697:                  Effects
+4702:            {/* Video Effects - Organized by Category */}
+4706:                onClick={() => setShowVideoEffects(!showVideoEffects)}
+4708:                <h4>Video Effects</h4>
+4710:                  {showVideoEffects ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+4713:              {showVideoEffects && (
+4714:                <div className="effects-organized">
+4715:                  {/* Fade Effects - Most Common */}
+4716:                  <div className="effect-category">
+4719:                      onClick={() => setShowFadeEffects(!showFadeEffects)}
+4722:                      <span>⭐ Fade Effects</span>
+4724:                        {showFadeEffects ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+4727:                    {showFadeEffects && (
+4728:                      <div className="effect-list-category">
+4729:                        {getEffectsByCategory('fade', videoEffects).map(effect => {
+4730:                          const Icon = effect.icon;
+4733:                              key={effect.id}
+4734:                              className={`effect-item ${selectedClip ? 'clickable' : ''}`}
+4736:                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+4737:                              onDragEnd={handleEffectDragEnd}
+4740:                                  console.log(`🎨 Click apply ${effect.name} to ${selectedClip.title}`);
+4741:                                  applyEffect(selectedClip.id, effect.id, 50);
+4742:                                  alert(`✅ Applied "${effect.name}" to "${selectedClip.title}"!\n\nNote: The effect is saved to the clip. It will be applied during export.`);
+4747:                              title={selectedClip ? `Click to apply ${effect.name} to "${selectedClip.title}"` : `Select a clip first`}
+4751:                              <span>{effect.name}</span>
+4752:                              {selectedClip && <div className="apply-hint" style={{ marginLeft: 'auto', fontSize: '10px', color: '#00ffc8' }}>+ Click</div>}
+4761:                  <div className="effect-category">
+4768:                    <div className="effect-list-category">
+4769:                      {getEffectsByCategory('enhancement', videoEffects).map(effect => {
+4770:                        const Icon = effect.icon;
+4773:                            key={effect.id}
+4774:                            className={`effect-item ${selectedClip ? 'clickable' : ''}`}
+4776:                            onDragStart={(e) => handleEffectDragStart(e, effect)}
+4777:                            onDragEnd={handleEffectDragEnd}
+4780:                                applyEffect(selectedClip.id, effect.id, 60);
+4785:                            title={selectedClip ? `Click to apply ${effect.name} to "${selectedClip.title}"` : `Select a clip first`}
+4789:                            <span>{effect.name}</span>
+4790:                            {selectedClip && <div className="apply-hint" style={{ marginLeft: 'auto', fontSize: '10px', color: '#ffcc00' }}>AI</div>}
+4798:{/* Color Correction */}
+4799:                  <div className="effect-category">
+4802:                      onClick={() => setShowColorCorrection(!showColorCorrection)}
+4804:                      <span>Color Correction</span>
+4806:                        {showColorCorrection ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+4809:                    {showColorCorrection && (
+4810:                      <div className="effect-list-category">
+4811:                        {getEffectsByCategory('color', videoEffects).map(effect => {
+4812:                          const Icon = effect.icon;
+4815:                              key={effect.id}
+4816:                              className={`effect-item ${selectedClip ? 'clickable' : ''}`}
+4818:                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+4819:                              onDragEnd={handleEffectDragEnd}
+4822:                                  console.log(`🎨 Click apply ${effect.name} to ${selectedClip.title}`);
+4823:                                  applyEffect(selectedClip.id, effect.id, 50);
+4828:                              title={selectedClip ? `Click to apply ${effect.name} to "${selectedClip.title}"` : `Drag to a clip or select a clip first`}
+4832:                              <span>{effect.name}</span>
+4833:                              {selectedClip && <div className="apply-hint" style={{ marginLeft: 'auto', fontSize: '10px', color: '#00ffc8' }}>+ Click</div>}
+4842:                  {/* Color Grading
+4844:                  {/* Color Grading */}
+4845:                  <div className="effect-category">
+4850:                      <span>Color Grading</span>
+4856:                      <div className="effect-list-category">
+4857:                        {getEffectsByCategory('colorGrading', videoEffects).map(effect => {
+4858:                          const Icon = effect.icon;
+4861:                              key={effect.id}
+4862:                              className="effect-item"
+4864:                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+4865:                              onDragEnd={handleEffectDragEnd}
+4866:                              title={effect.description}
+4869:                              <span>{effect.name}</span>
+4878:                  {/* Blur & Sharpen */}
+4879:                  <div className="effect-category">
+4882:                      onClick={() => setShowDistortion(!showDistortion)}
+4884:                      <span>Blur & Sharpen</span>
+4886:                        {showDistortion ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+4889:                    {showDistortion && (
+4890:                      <div className="effect-list-category">
+4891:                        {[...getEffectsByCategory('blur', videoEffects), ...getEffectsByCategory('sharpen', videoEffects)].map(effect => {
+4892:                          const Icon = effect.icon;
+4895:                              key={effect.id}
+4896:                              className="effect-item"
+4898:                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+4899:                              onDragEnd={handleEffectDragEnd}
+4900:                              title={effect.description}
+4903:                              <span>{effect.name}</span>
+4913:                  <div className="effect-category">
+4924:                      <div className="effect-list-category">
+4925:                        {getEffectsByCategory('keying', videoEffects).map(effect => {
+4926:                          const Icon = effect.icon;
+4929:                              key={effect.id}
+4930:                              className="effect-item"
+4932:                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+4933:                              onDragEnd={handleEffectDragEnd}
+4934:                              title={effect.description}
+4937:                              <span>{effect.name}</span>
+4946:                  {/* Stylize Effects */}
+4947:                  <div className="effect-category">
+4958:                      <div className="effect-list-category">
+4959:                        {getEffectsByCategory('stylize', videoEffects).map(effect => {
+4960:                          const Icon = effect.icon;
+4963:                              key={effect.id}
+4964:                              className="effect-item"
+4966:                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+4967:                              onDragEnd={handleEffectDragEnd}
+4968:                              title={effect.description}
+4971:                              <span>{effect.name}</span>
+4980:                  {/* Generate Effects */}
+4981:                  <div className="effect-category">
+4992:                      <div className="effect-list-category">
+4993:                        {getEffectsByCategory('generate', videoEffects).map(effect => {
+4994:                          const Icon = effect.icon;
+4997:                              key={effect.id}
+4998:                              className="effect-item"
+5000:                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+5001:                              onDragEnd={handleEffectDragEnd}
+5002:                              title={effect.description}
+5005:                              <span>{effect.name}</span>
+5017:            {/* Audio Effects - Organized by Category */}
+5021:                onClick={() => setShowAudioEffects(!showAudioEffects)}
+5023:                <h4>Audio Effects</h4>
+5025:                  {showAudioEffects ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+5028:              {showAudioEffects && (
+5029:                <div className="effects-organized">
+5030:                  {['dynamics', 'eq', 'modulation', 'time', 'distortion', 'restoration', 'spatial'].map(category => (
+5031:                    <div key={category} className="effect-category">
+5035:                      <div className="effect-list-category">
+5036:                        {getEffectsByCategory(category, audioEffects).map(effect => {
+5037:                          const Icon = effect.icon;
+5040:                              key={effect.id}
+5041:                              className="effect-item"
+5043:                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+5044:                              onDragEnd={handleEffectDragEnd}
+5045:                              title={effect.description}
+5048:                              <span>{effect.name}</span>
+5049:                              <div className="effect-controls">
+5052:                                  onClick={() => selectedClip && previewEffect(selectedClip.id, effect.id, 50)}
+5053:                                  title="Preview Effect"
+5060:                                  onClick={() => selectedClip && applyEffect(selectedClip.id, effect.id, 50)}
+5061:                                  title="Apply Effect"
+5078:            {/* Enhanced Transitions */}
+5082:                onClick={() => setShowTransitions(!showTransitions)}
+5084:                <h4>Transitions</h4>
+5086:                  {showTransitions ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+5089:              {showTransitions && (
+5090:                <div className="transitions-organized">
+5091:                  {['basic', 'wipe', 'slide', '3d', 'blur', 'distort', 'light'].map(category => (
+5092:                    <div key={category} className="transition-category">
+5096:                      <div className="transition-list-category">
+5097:                        {transitions.filter(t => t.category === category).map(transition => {
+5098:                          const Icon = transition.icon;
+5099:                          const isSelected = selectedTransitionType === transition.id;
+5102:                              key={transition.id}
+5103:                              className={`transition-item ${isSelected ? 'selected' : ''}`}
+5105:                              onDragStart={(e) => handleTransitionDragStart(e, transition)}
+5107:                                setSelectedTransitionType(transition.id);
+5108:                                console.log(`🎬 Selected transition: ${transition.name}`);
+5110:                              title={`Click to select "${transition.name}" - then click + between clips to add`}
+5117:                              <div className="transition-icon" style={{ color: isSelected ? '#b180d7' : undefined }}>
+5120:                              <div className="transition-info">
+5121:                                <div className="transition-name">{transition.name}</div>
+5122:                                <div className="transition-duration">{transition.duration}s</div>
+5128:                                  color: '#b180d7',
+5141:                  {/* Show currently selected transition */}
+5148:                    color: '#b180d7'
+5150:                    <strong>Selected:</strong> {transitions.find(t => t.id === selectedTransitionType)?.name || 'Cross Dissolve'}
+5151:                    <div style={{ fontSize: '10px', color: '#888', marginTop: '4px' }}>
+5152:                      Click the <span style={{ color: '#ff6b6b' }}>red +</span> between clips to add
+5220:                            <span style={{ color: '#00ffc8', marginLeft: '4px' }}>☁️</span>
+5260:                                effects: [],
+5286:                            color: '#000',
+5341:                        <div className="preview-resolution">No clip selected</div>
+5392:                            effects: [],
+5417:                        color: '#000',
+5457:                        color: programMonitorMuted ? '#fff' : '#000'
+5463:                    <span style={{ fontSize: '10px', color: '#888' }}>
+5471:                      // Check for active transition first
+5472:                      const activeTransition = tracks.flatMap(track =>
+5473:                        (track.transitions || []).map(t => ({ ...t, trackId: track.id }))
+5474:                      ).find(transition =>
+5475:                        currentTime >= transition.startTime &&
+5476:                        currentTime < (transition.startTime + transition.duration)
+5479:                      // If there's an active transition, render both clips
+5480:                      if (activeTransition) {
+5481:                        const track = tracks.find(t => t.id === activeTransition.trackId);
+5484:                        // Find the two clips involved in the transition
+5490:                          if (Math.abs(clip1End - (activeTransition.startTime + activeTransition.duration / 2)) < 1) {
+5498:                          const transitionProgress = (currentTime - activeTransition.startTime) / activeTransition.duration;
+5499:                          const fromOpacity = 1 - transitionProgress;
+5500:                          const toOpacity = transitionProgress;
+5509:                                    position: 'absolute',
+5527:                                    position: 'absolute',
+5544:                                    position: 'absolute',
+5559:                                    position: 'absolute',
+5571:                              {/* Transition Info */}
+5573:                                position: 'absolute',
+5580:                                color: '#fff',
+5583:                                🔄 Cross Dissolve: {Math.round(transitionProgress * 100)}%
+5603:                        // Debug: Log clip effects
+5604:                        if (activeClip.effects && activeClip.effects.length > 0) {
+5605:                          console.log(`🎬 Active clip "${activeClip.title}" has effects:`, activeClip.effects, `Progress: ${(clipProgress * 100).toFixed(1)}%`);
+5608:                        // Build CSS filters from effects
+5609:                        const buildCssFilters = (effects, activeClipRef, localTime) => {
+5610:                          if (!effects || effects.length === 0) {
+5658:                          const filters = effects.map(effect => {
+5659:                            const value = effect.value || 50;
+5660:                            const animatedEffectValue = getClipAnimatedValue(
+5662:                              KEYFRAME_PROPERTIES.EFFECT_INTENSITY,
+5667:                            switch (effect.id) {
+5669:                                return `brightness(${1 + (animatedEffectValue / 140)}) contrast(${1 + (animatedEffectValue / 300)}) saturate(${1 + (animatedEffectValue / 500)})`;
+5671:                                return `brightness(${1 + (animatedEffectValue / 180)}) contrast(${1 + (animatedEffectValue / 500)})`;
+5673:                                return `contrast(${1 + (animatedEffectValue / 800)}) saturate(${1 - (animatedEffectValue / 1200)})`;
+5675:                                return `contrast(${1 + (animatedEffectValue / 250)}) saturate(${1 + (animatedEffectValue / 900)})`;
+5677:                                return `brightness(${1 + (animatedEffectValue / 160)}) contrast(${1 + (animatedEffectValue / 260)}) saturate(${1 + (animatedEffectValue / 700)})`;
+5685:                                return `hue-rotate(${(animatedEffectValue / 100) * 360}deg)`;
+5686:                              case 'blur':
+5687:                                return `blur(${animatedEffectValue / 10}px)`;
+5689:                                return `grayscale(${animatedEffectValue}%)`;
+5691:                                return `sepia(${animatedEffectValue}%)`;
+5693:                                return `invert(${animatedEffectValue}%)`;
+5697:                          }).filter(f => f);
+5699:                          return filters.length ? filters.join(' ') : [
+5707:                        const getFadeOverlay = (effects, progress) => {
+5708:                          if (!effects || effects.length === 0) return null;
+5713:                          const hasCrossDissolve = effects.some(e => e.id === 'crossDissolve');
+5718:                              return { color: 'black', opacity };
+5723:                              return { color: 'black', opacity };
+5727:                          for (const effect of effects) {
+5728:                            if (effect.id === 'fadeIn') {
+5732:                                return { color: 'black', opacity };
+5735:                            if (effect.id === 'fadeOut') {
+5739:                                return { color: 'black', opacity };
+5742:                            if (effect.id === 'fadeInWhite') {
+5746:                                return { color: 'white', opacity };
+5749:                            if (effect.id === 'fadeOutWhite') {
+5753:                                return { color: 'white', opacity };
+5803:                        const cssFilters = buildCssFilters(activeClip.effects, activeClip, localPreviewTime);
+5804:                        const fadeOverlay = getFadeOverlay(activeClip.effects, clipProgress);
+5815:                                  filter: cssFilters
+5846:                                  filter: cssFilters
+5852:                                <AudioWaveform size={48} style={{ color: '#ff6b6b' }} />
+5860:                                position: 'absolute',
+5865:                                backgroundColor: fadeOverlay.color,
+5868:                                transition: 'opacity 0.05s linear'
+5874:                              position: 'absolute',
+5885:                                  <span style={{ color: '#00ffc8', marginLeft: '6px' }}>☁️</span>
+5891:                              {activeClip.effects && activeClip.effects.length > 0 && (
+5892:                                <div style={{ fontSize: '9px', color: '#00ffc8', marginTop: '4px' }}>
+5893:                                  Effects: {activeClip.effects.map(e => e.id).join(', ')}
+5905:                          <div className="preview-resolution">1920 x 1080 • 30fps</div>
+5906:                          <div style={{ fontSize: '10px', marginTop: '10px', color: '#666' }}>
+5992:                        effects: [],
+6029:                        effects: [],
+6068:                    <Folder size={14} style={{ color: '#00ffc8' }} />
+6069:                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#e0e0e0' }}>Project Media</span>
+6070:                    <span style={{ fontSize: '10px', color: '#888' }}>({mediaLibrary.length} items)</span>
+6075:                      <Filter size={12} style={{ color: '#888' }} />
+6085:                          color: '#e0e0e0',
+6098:                          color: mediaBinView === 'grid' ? '#000' : '#888',
+6113:                          color: mediaBinView === 'list' ? '#000' : '#888',
+6139:                        color: '#888',
+6162:                          color: '#000',
+6181:                        .filter(m => m.name.toLowerCase().includes(mediaSearchTerm.toLowerCase()))
+6216:                                transition: 'all 0.15s ease',
+6226:                                  <Icon size={24} style={{ color: media.type === 'video' ? '#4a9eff' : media.type === 'audio' ? '#ff6b6b' : '#00d4aa' }} />
+6230:                                  position: 'absolute',
+6234:                                  color: '#000',
+6246:                                    position: 'absolute',
+6250:                                    color: '#fff',
+6261:                                    position: 'absolute',
+6268:                                    <Loader size={20} className="spin" style={{ color: '#00ffc8' }} />
+6303:                                          effects: [],
+6327:                                      position: 'absolute',
+6333:                                      color: '#000',
+6341:                                      transition: 'opacity 0.15s ease',
+6354:                                color: '#e0e0e0',
+6361:                                  <span style={{ color: '#00ffc8', marginLeft: '4px' }}>☁️</span>
+6381:                        color: '#888',
+6391:                        .filter(m => m.name.toLowerCase().includes(mediaSearchTerm.toLowerCase()))
+6425:                                color: '#e0e0e0',
+6442:                                  <Icon size={14} style={{ color: media.type === 'video' ? '#4a9eff' : media.type === 'audio' ? '#ff6b6b' : '#00d4aa' }} />
+6447:                                {media.cloudinary_public_id && <span style={{ color: '#00ffc8', marginLeft: '4px' }}>☁️</span>}
+6450:                                color: media.type === 'video' ? '#4a9eff' : media.type === 'audio' ? '#ff6b6b' : '#00d4aa',
+6456:                              <span style={{ color: media.uploading ? '#ff9500' : '#00ffc8' }}>
+6544:                            position: 'absolute',
+6549:                            background: marker.color || '#FF6600',
+6560:                            position: 'absolute',
+6565:                            background: marker.color || '#FF6600',
+6603:                                color: '#00ffc8'
+6619:                                color: '#e0e0e0'
+6623:                                color: '#888',
+6642:                                color: '#888',
+6661:                                color: '#888',
+6679:                                color: track.muted ? '#888' : '#00ffc8',
+6697:                                color: track.visible ? '#00ffc8' : '#888',
+6715:                                color: track.locked ? '#ff6b6b' : '#888',
+6761:                              console.log('   draggedTransition:', draggedTransition);
+6764:                              if (draggedTransition) {
+6804:                                          effects: [],
+6858:                                        backgroundColor: track.color,
+6865:                                        setSelectedTransition(null);
+6868:                                      onDrop={(e) => { handleEffectDrop(e, clip.id); e.currentTarget.style.outline = 'none'; }}
+6869:                                      onDragOver={handleEffectDragOver}
+6870:                                      onDragLeave={handleEffectDragLeave}
+6885:                                          {clip.effects && clip.effects.length > 0 && (
+6886:                                            <div className="clip-effects-indicator">
+6888:                                              {clip.effects.length}
+6913:                                {/* Add Transition Buttons between adjacent clips */}
+6918:                                    // Check if there's already a transition at this position
+6919:                                    const existingTransition = (track.transitions || []).find(t =>
+6922:                                    if (existingTransition) return null;
+6924:                                    const selectedTransData = transitions.find(t => t.id === selectedTransitionType);
+6929:                                        className="add-transition-btn"
+6931:                                          position: 'absolute',
+6946:                                          transition: 'all 0.2s ease'
+6950:                                          const transData = transitions.find(t => t.id === selectedTransitionType);
+6951:                                          addTransitionBetweenClips(track.id, pair.clip1, pair.clip2, selectedTransitionType);
+6963:                                        <Plus size={14} color="#fff" />
+6969:                                {/* Render Transitions */}
+6970:                                {(track.transitions || []).map(transition => {
+6971:                                  const transitionData = transitions.find(t => t.id === transition.type);
+6972:                                  const Icon = transitionData?.icon || Layers;
+6973:                                  const leftPosition = transition.startTime * 2 * zoom;
+6974:                                  const width = transition.duration * 2 * zoom;
+6977:                                      key={transition.id}
+6978:                                      className={`timeline-transition ${selectedTransition?.id === transition.id ? 'selected' : ''}`}
+6985:                                        setSelectedTransition(transition);
+6989:                                      <div className="transition-content">
+6991:                                        <span className="transition-label">{transitionData?.name}</span>
+7010:      {/* Enhanced Effects Panel */}
+7012:        showEffectsPanel && (
+7013:          <div className="effects-panel-enhanced">
+7014:            <div className="effects-panel-header">
+7017:                  ? `Effects Stack - ${selectedClip.title}`
+7018:                  : selectedTransition
+7019:                    ? 'Transition Properties'
+7020:                    : 'Effects Panel'
+7023:              <button onClick={closeEffectsPanel} className="close-panel-btn">
+7029:              <div className="effects-panel-content-enhanced">
+7030:                {/* Effects Stack */}
+7031:                <div className="effects-stack">
+7033:                    <h5>Effects Stack ({selectedClip.effects?.length || 0})</h5>
+7038:                      <button className="stack-btn" title="Copy Effects">
+7044:                  {selectedClip.effects && selectedClip.effects.length > 0 ? (
+7045:                    <div className="applied-effects-list">
+7046:                      {selectedClip.effects.map((appliedEffect, index) => {
+7047:                        const effectData = effects.find(e => e.id === appliedEffect.id);
+7049:                          <div key={appliedEffect.id} className="applied-effect-item-enhanced">
+7050:                            <div className="effect-item-header">
+7051:                              <div className="effect-info-left">
+7053:                                  className={`effect-toggle ${appliedEffect.enabled ? 'enabled' : 'disabled'}`}
+7054:                                  onClick={() => toggleEffect(selectedClip.id, appliedEffect.id)}
+7055:                                  title={appliedEffect.enabled ? 'Disable Effect' : 'Enable Effect'}
+7057:                                  {appliedEffect.enabled ? <Eye size={12} /> : <EyeOff size={12} />}
+7059:                                <div className="effect-details">
+7060:                                  <span className="effect-name">{effectData?.name || appliedEffect.id}</span>
+7061:                                  <span className="effect-category">{effectData?.category || 'Unknown'}</span>
+7064:                              <div className="effect-controls-right">
+7065:                                <span className="effect-value">{appliedEffect.value}%</span>
+7067:                                  className="effect-remove"
+7068:                                  onClick={() => removeEffect(selectedClip.id, appliedEffect.id)}
+7069:                                  title="Remove Effect"
+7076:                            <div className="effect-parameters">
+7083:                                  value={appliedEffect.value}
+7084:                                  onChange={(e) => applyEffect(selectedClip.id, appliedEffect.id, e.target.value)}
+7085:                                  className="effect-slider-enhanced"
+7086:                                  disabled={!appliedEffect.enabled}
+7090:                              {/* Specific effect parameters */}
+7091:                              {effectData?.category === 'colorGrading' && (
+7095:                                    <input type="range" min="-100" max="100" defaultValue="0" className="effect-slider-enhanced" />
+7099:                                    <input type="range" min="-100" max="100" defaultValue="0" className="effect-slider-enhanced" />
+7103:                                    <input type="range" min="-100" max="100" defaultValue="0" className="effect-slider-enhanced" />
+7108:                              {effectData?.category === 'blur' && (
+7111:                                    <label>Blur Radius</label>
+7112:                                    <input type="range" min="0" max="50" defaultValue="5" className="effect-slider-enhanced" />
+7116:                                    <select className="effect-select">
+7125:                              {effectData?.category === 'keying' && (
+7128:                                    <label>Key Color</label>
+7129:                                    <input type="color" defaultValue="#00ff00" className="color-picker" />
+7133:                                    <input type="range" min="0" max="100" defaultValue="20" className="effect-slider-enhanced" />
+7137:                                    <input type="range" min="0" max="50" defaultValue="5" className="effect-slider-enhanced" />
+7147:                    <div className="no-effects-message">
+7149:                      <p>No effects applied</p>
+7150:                      <span>Drag effects from the left panel</span>
+7155:                {/* Quick Apply Effects */}
+7158:                  <div className="quick-effects-grid-enhanced">
+7159:                    {effects.filter(effect =>
+7160:                      selectedClip.type === 'video' ? videoEffects.includes(effect) : audioEffects.includes(effect)
+7161:                    ).slice(0, 8).map(effect => {
+7162:                      const Icon = effect.icon;
+7165:                          key={effect.id}
+7166:                          className="quick-effect-btn-enhanced"
+7167:                          onClick={() => applyEffect(selectedClip.id, effect.id, 50)}
+7168:                          title={effect.description}
+7171:                          <span>{effect.name}</span>
+7247:                              onBlur={() => {
+7287:                  <h5>Effect Presets</h5>
+7305:                          onClick={() => suggestEffects(selectedClip.id)}
+7308:                          Auto-Suggest Effects
+7334:            ) : selectedTransition ? (
+7335:              <div className="effects-panel-content-enhanced">
+7336:                <div className="transition-properties">
+7337:                  <h5>Transition Properties</h5>
+7339:                    <label>Duration: {selectedTransition.duration}s</label>
+7345:                      defaultValue={selectedTransition.duration}
+7349:                          transitions: (track.transitions || []).map(t =>
+7350:                            t.id === selectedTransition.id
+7356:                      className="effect-slider-enhanced"
+7361:                    <input type="range" min="0" max="100" defaultValue="50" className="effect-slider-enhanced" />
+7365:                    <input type="range" min="0" max="100" defaultValue="50" className="effect-slider-enhanced" />
+7369:                    <select className="effect-select">
+7382:                <h3>Select a Clip or Transition</h3>
+7383:                <p>Click on timeline elements to view and edit their effects</p>
+7387:                    <span>Video clips support visual effects</span>
+7395:                    <span>Drag effects onto clips to apply</span>
+7516:                          <option value="color-burn">Color Burn</option>
+7522:                          <option value="color-dodge">Color Dodge</option>
+7540:                        <optgroup label="Color">
+7543:                          <option value="color">Color</option>
+7556:                      <label>Motion Blur</label>
+7646:      {/* Color Grading Workspace — Full Lumetri-style */}
+7647:      {showColorGrading && (
+7648:        <div className="color-workspace-pro">
+7649:          <div className="color-workspace-header">
+7650:            <span>🎨 Lumetri Color</span>
+7652:              <span style={{fontSize:10,color:'#4e6a82'}}>{selectedClip ? selectedClip.title : 'No clip selected'}</span>
+7653:              <button onClick={() => setShowColorGrading(false)} className="close-panel-btn"><X size={14}/></button>
+7656:          <div className="color-workspace-body">
+7657:            <div className="lut-section">
+7658:              <div className="lut-header">LUT Presets</div>
+7661:                  <div style={{fontSize:9,fontWeight:700,color:'#4e6a82',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>{cat}</div>
+7663:                    {LUT_PRESETS.filter(p => p.cat === cat).map(lut => (
+7664:                      <button key={lut.name}
+7665:                        onClick={() => { if(selectedClip) applyEffect(selectedClip.id, 'lut_preset', 50); }}
+7666:                        style={{padding:'3px 8px',borderRadius:4,border:'1px solid #21262d',background:'#0d1117',color:'#8b949e',fontSize:10,cursor:'pointer',whiteSpace:'nowrap'}}
+7667:                        title={"Sat:"+lut.sat+" Con:"+lut.con+" Temp:"+lut.temp}>
+7668:                        {lut.name}
+7675:            <ColorGradingPanel onGrade={(grade) => { if(selectedClip) applyEffect(selectedClip.id,'colorGrade',50); }} />
+7677:              <div className="lut-header">Curves</div>
+7685:                <div style={{position:'absolute',bottom:4,right:4,fontSize:9,color:'#4e6a82'}}>RGB Curves</div>
+7689:              <div className="lut-header">HSL / Secondaries</div>
+7693:                    <span>{lbl}</span><span style={{color:col,fontFamily:'monospace'}}>{def}</span>
+7698:              <div className="lut-header" style={{marginTop:12}}>Vignette</div>
+7725:                <div className="channel-name" style={{color:'#00ffc8'}}>MASTER</div>
+7732:                  <div style={{fontSize:9,color:'#4e6a82',marginBottom:2}}>REVERB</div>
+7734:                  <div style={{fontSize:9,color:'#4e6a82',margin:'6px 0 2px'}}>DELAY</div>
+7743:                  <input type="range" min="-60" max="12" defaultValue="0" style={{writingMode:'vertical-lr',direction:'rtl',width:32,height:100,accentColor:'#00ffc8'}}/>
+7747:                  <button style={{padding:'3px 7px',background:'rgba(248,81,73,0.15)',border:'1px solid #f85149',borderRadius:4,color:'#f85149',fontSize:9,cursor:'pointer'}}>M</button>
+7748:                  <button style={{padding:'3px 7px',background:'rgba(0,255,200,0.1)',border:'1px solid rgba(0,255,200,0.3)',borderRadius:4,color:'#00ffc8',fontSize:9,cursor:'pointer'}}>S</button>
+7751:              {tracks.filter(t => t.type === 'audio' || t.clips.some(c => c.type === 'audio')).map(track => (
+7752:                <div key={track.id} className="mixer-channel-pro" style={{borderLeft:`2px solid ${track.color||'#21262d'}`}}>
+7753:                  <div className="channel-name" style={{color:track.color||'#e6edf3'}}>{track.name}</div>
+7756:                      <div key={b} className="eq-knob-wrap"><div className="eq-knob" style={{background:`conic-gradient(${track.color||'#00ffc8'} 180deg,#21262d 180deg)`}}></div><span>{b}</span></div>
+7760:                    <div style={{fontSize:9,color:'#4e6a82',marginBottom:2}}>PAN</div>
+7765:                      <div key={i} className="vu-segment" style={{background:i<14?`${track.color||'#00ffc8'}bb`:i<18?'rgba(255,193,7,0.7)':'rgba(248,81,73,0.8)',width:`${Math.max(8,Math.floor(Math.random()*55)+15)}%`}}/>
+7769:                    <input type="range" min="-60" max="12" defaultValue="0" style={{writingMode:'vertical-lr',direction:'rtl',width:32,height:100,accentColor:track.color||'#00ffc8'}}/>
+7773:                    <button style={{padding:'3px 7px',background:'rgba(248,81,73,0.15)',border:'1px solid #f85149',borderRadius:4,color:'#f85149',fontSize:9,cursor:'pointer'}}>M</button>
+7774:                    <button style={{padding:'3px 7px',background:'rgba(0,255,200,0.1)',border:'1px solid rgba(0,255,200,0.3)',borderRadius:4,color:'#00ffc8',fontSize:9,cursor:'pointer'}}>S</button>
+7775:                    <button style={{padding:'3px 7px',background:'rgba(255,107,107,0.1)',border:'1px solid #ff6b6b',borderRadius:4,color:'#ff6b6b',fontSize:9,cursor:'pointer'}}>R</button>
+7791:                <button key={s} style={{padding:'3px 8px',background:'rgba(0,255,200,0.08)',border:'1px solid rgba(0,255,200,0.2)',borderRadius:4,color:'#00ffc8',fontSize:10,cursor:'pointer'}}>{s}</button>
+7798:              <div style={{fontSize:10,color:'#4e6a82',marginBottom:4}}>WAVEFORM (Luma)</div>
+7803:                <div style={{fontSize:10,color:'#4e6a82',marginBottom:4}}>VECTORSCOPE</div>
+7807:                <div style={{fontSize:10,color:'#4e6a82',marginBottom:4}}>HISTOGRAM (RGB)</div>
+7847:              ? <ChromaKeyPanel settings={chromaKeySettings} onChange={setChromaKeySettings} onPickColor={(c)=>setChromaKeySettings(s=>({...s,color:c}))}/>
+7848:              : <div style={{color:'#4e6a82',fontSize:12,textAlign:'center',padding:20}}>Select a video clip first</div>}
+7863:              : <div style={{color:'#4e6a82',fontSize:12,textAlign:'center',padding:20}}>Select a clip first</div>}
+7889:            <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Caption Style</div>
+7892:                <button key={s.id} style={{padding:'4px 10px',borderRadius:6,border:'1px solid #21262d',background:'#0d1117',color:'#8b949e',fontSize:11,cursor:'pointer'}}>{s.name||s.id}</button>
+7900:                style={{padding:'4px 12px',background:'rgba(0,255,200,0.1)',border:'1px solid rgba(0,255,200,0.3)',borderRadius:4,color:'#00ffc8',fontSize:11,cursor:'pointer'}}>Add</button>
+7943:            <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Text Presets</div>
+7947:                  style={{padding:'8px 12px',background:'#0d1117',border:'1px solid #21262d',borderRadius:6,color:'#e6edf3',fontSize:11,cursor:'pointer',textAlign:'left'}}>
+7952:            <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Lower Thirds</div>
+7955:                <button key={i} style={{padding:'8px 12px',background:'#0d1117',border:'1px solid #21262d',borderRadius:6,color:'#8b949e',fontSize:11,cursor:'pointer',textAlign:'left'}}>
+7972:            <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Picture-in-Picture</div>
+7976:                  style={{padding:'6px',background:'#0d1117',border:'1px solid #21262d',borderRadius:6,color:'#8b949e',fontSize:10,cursor:'pointer',textTransform:'capitalize'}}>
+7981:            <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Watermark</div>
+7986:            <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Social Templates</div>
+7989:                <button key={i} style={{padding:'6px 10px',background:'#0d1117',border:'1px solid #21262d',borderRadius:6,color:'#8b949e',fontSize:10,cursor:'pointer',textAlign:'left',display:'flex',justifyContent:'space-between'}}>
+7990:                  <span>{t.name}</span><span style={{color:'#4e6a82'}}>{t.width}x{t.height}</span>

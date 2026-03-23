@@ -2139,3 +2139,83 @@ display:none;
   margin-top: 0;
 }
 
+
+/* ============================================
+   REAL INSPECTOR + BOTTOM DOCK
+   ============================================ */
+
+.spx-fixed-inspector{
+  position:fixed;
+  top:230px;
+  right:12px;
+  width:320px;
+  height:calc(100vh - 320px);
+  display:flex;
+  flex-direction:column;
+  background:linear-gradient(180deg,#131a23,#0d131a);
+  border:1px solid #202a36;
+  border-radius:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.28);
+  z-index:40;
+  overflow:hidden;
+}
+
+.spx-fixed-inspector-tabs{
+  padding:10px;
+  border-bottom:1px solid #202a36;
+  background:linear-gradient(180deg,#18212c,#121921);
+}
+
+.spx-fixed-inspector-body{
+  flex:1;
+  overflow:auto;
+  padding:10px;
+}
+
+.spx-fixed-bottomdock{
+  position:fixed;
+  left:304px;
+  right:344px;
+  bottom:12px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  z-index:35;
+}
+
+.spx-fixed-bottomdock .spx-bottom-tabs{
+  padding:10px 12px;
+  background:linear-gradient(180deg,#131a23,#0d131a);
+  border:1px solid #202a36;
+  border-radius:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.22);
+}
+
+/* hide duplicate legacy overlays */
+.effects-panel,
+.project-media-panel,
+.media-bin-panel{
+  display:none !important;
+}
+
+/* make center area usable again */
+.editor-main-layout{
+  margin-right:340px !important;
+  padding-bottom:170px !important;
+}
+
+@media (max-width: 1200px){
+  .spx-fixed-inspector{
+    display:none;
+  }
+
+  .spx-fixed-bottomdock{
+    left:12px;
+    right:12px;
+  }
+
+  .editor-main-layout{
+    margin-right:0 !important;
+  }
+}
+

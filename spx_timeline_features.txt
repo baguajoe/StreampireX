@@ -1,0 +1,1394 @@
+2:import VideoEditorHeader from "./videoeditor/VideoEditorHeader";
+3:import VideoEditorLeftPanel from "./videoeditor/VideoEditorLeftPanel";
+4:import VideoEditorCenterPanel from "./videoeditor/VideoEditorCenterPanel";
+5:import VideoEditorRightPanel from "./videoeditor/VideoEditorRightPanel";
+6:import VideoEditorTimeline from "./videoeditor/VideoEditorTimeline";
+7:import "../../styles/VideoEditorLayout.css";
+88:const MulticamEditor = ({ clips, onAngleSwitch, currentTime }) => {
+90:    clips?.filter(c => c.type === 'video').slice(0, 4).map((c, i) => ({
+91:      id: i, label: `Cam ${i + 1}`, clip: c, active: i === 0
+121:          Add video clips to your timeline to use multicam editing
+147:          {/* Switch timeline */}
+210:    { name: 'Music Video',     cat: 'social',    sat: 125, con: 115, temp: -8,  tint: -5 },
+316:  Layers,
+338:  Video,
+364:  AudioWaveform,
+410:import KeyframePanel from '../keyframes/ui/KeyframePanel';
+411:import KeyframeTimelineStrip from '../keyframes/ui/KeyframeTimelineStrip';
+413:  VideoStabilizer,
+426:  AdjustmentLayerPanel,
+428:  createAdjustmentLayer,
+430:} from '../component/VideoEditorEffectsPlus';
+432:import { BackgroundRemovalPanel, MotionTrackingPanel, AudioDuckingPanel,
+434:         createBGRemovalSettings, createAudioDuckingSettings,
+435:         createSceneDetectionSettings } from './VideoEditorAdvancedFeatures';
+437:// Video Editor State Management Hooks
+440:  useClipboard,
+443:  useClipOperations,
+446:} from './hooks/useVideoEditorState';
+448:import { KEYFRAME_PROPERTIES, INTERPOLATION_TYPES, DEFAULT_KEYFRAME_VALUE_BY_PROPERTY } from '../keyframes/engine/keyframeTypes';
+449:import VideoEditorInspectorTabs from "./videoeditor/VideoEditorInspectorTabs";
+450:import VideoEditorBottomTabs from "./videoeditor/VideoEditorBottomTabs";
+451:import VideoEditorUnifiedToolbar from "./videoeditor/VideoEditorUnifiedToolbar";
+452:import VideoEditorNodeToggle from "./videoeditor/VideoEditorNodeToggle";
+453:import VideoEditorCollapsiblePanel from "./videoeditor/VideoEditorCollapsiblePanel";
+459:// VIDEO EDITOR API FUNCTIONS - R2 + FFmpeg Pipeline
+472: * Upload a video/audio/image asset for use in editor
+483:    const response = await fetch(`${backendURL}/api/video-editor/upload`, {
+505: * Get all assets uploaded by user for video editor
+510:    const response = await fetch(`${backendURL}/api/video-editor/assets`, {
+528: * Apply transformations to a video clip
+529: * @param {Object} clipData - Clip data with transformations
+530: * @returns {Promise<string>} - Transformed video URL
+532:const transformVideo = async (clipData) => {
+534:    const response = await fetch(`${backendURL}/api/video-editor/transform`, {
+537:      body: JSON.stringify(clipData)
+548:    console.error('Error transforming video:', error);
+554: * Trim a video to specified timestamps
+558: * @returns {Promise<string>} - Trimmed video URL
+560:const trimVideoClip = async (publicId, startTime, endTime) => {
+562:    const response = await fetch(`${backendURL}/api/video-editor/trim`, {
+580:    console.error('Error trimming video:', error);
+586: * Preview a single effect on a video
+590: * @returns {Promise<string>} - Preview video URL
+592:const previewVideoEffect = async (publicId, effectId, intensity = 50) => {
+594:    const response = await fetch(`${backendURL}/api/video-editor/effect-preview`, {
+618: * Apply a single video effect on a video
+620:const applyVideoEffect = async (payload) => {
+622:    const response = await fetch(`${backendURL}/api/video-editor/apply-effect`, {
+635:    console.error('Error applying video effect:', error);
+641: * Concatenate multiple video clips
+642: * @param {Array} clips - Array of clip objects with public_id and optional trim
+643: * @returns {Promise<string>} - Concatenated video URL
+645:const concatenateVideos = async (clips) => {
+647:    const response = await fetch(`${backendURL}/api/video-editor/concatenate`, {
+650:      body: JSON.stringify({ clips })
+661:    console.error('Error concatenating videos:', error);
+667: * Add video/image overlay (picture-in-picture)
+668: * @param {string} basePublicId - Base video public ID
+669: * @param {string} overlayPublicId - Overlay video/image public ID
+671: * @returns {Promise<string>} - Video URL with overlay
+673:const addVideoOverlay = async (basePublicId, overlayPublicId, options = {}) => {
+675:    const response = await fetch(`${backendURL}/api/video-editor/add-overlay`, {
+702: * Add text overlay to video
+703: * @param {string} publicId - Video public ID
+706: * @returns {Promise<string>} - Video URL with text
+710:    const response = await fetch(`${backendURL}/api/video-editor/add-text`, {
+736: * Export the complete video project
+737: * @param {Object} projectData - Timeline and settings data
+742:    const response = await fetch(`${backendURL}/api/video-editor/export`, {
+761: * Generate thumbnail from video at specific timestamp
+762: * @param {string} publicId - Video public ID
+768:    const response = await fetch(`${backendURL}/api/video-editor/thumbnail`, {
+797:    const response = await fetch(`${backendURL}/api/video-editor/save-project`, {
+821:    const response = await fetch(`${backendURL}/api/video-editor/effects`, {
+843:    const response = await fetch(`${backendURL}/api/video-editor/resolutions`, {
+860: * Build clip data object for API calls
+861: * @param {Object} clip - Timeline clip object
+862: * @returns {Object} - Formatted clip data for API
+864:const buildClipData = (clip) => {
+866:    public_id: clip.r2_key || clip.cloudinary_public_id || clip.public_id || clip.id,
+867:    url: clip.r2_url || clip.file_url || clip.src || clip.url || null,
+868:    trim: clip.inPoint !== undefined && clip.outPoint !== undefined ? {
+869:      start: clip.inPoint,
+870:      end: clip.outPoint
+872:    effects: clip.effects?.filter(e => e.enabled !== false).map(e => ({
+877:    transform: clip.compositing ? {
+878:      width: clip.compositing.scale?.x ? Math.round(1920 * clip.compositing.scale.x / 100) : null,
+879:      height: clip.compositing.scale?.y ? Math.round(1080 * clip.compositing.scale.y / 100) : null,
+882:    audio: {
+883:      volume: clip.volume ?? 100,
+884:      muted: clip.muted || false
+890: * Build timeline data for export
+891: * @param {Array} tracks - Array of track objects
+895:const buildExportData = (tracks, settings = {}) => {
+896:  const formattedTracks = tracks.map(track => ({
+897:    id: track.id,
+898:    name: track.name,
+899:    type: track.type,
+900:    clips: track.clips.map(clip => buildClipData(clip)),
+901:    transitions: track.transitions || []
+905:    timeline: {
+906:      tracks: formattedTracks
+918: * Download video from URL
+919: * @param {string} url - Video URL
+922:const downloadVideo = (url, filename = 'exported-video.mp4') => {
+933:// AUDIO EFFECTS API FUNCTIONS (EXISTING)
+936:const applyAudioEffect = async (clipId, effectId, intensity) => {
+940:    const response = await fetch(`${backendURL}/api/audio/apply-effect`, {
+947:        clip_id: clipId,
+960:    console.error('Error applying audio effect:', error);
+965:const previewAudioEffect = async (clipId, effectId, intensity, startTime = 0, duration = 5) => {
+969:    const response = await fetch(`${backendURL}/api/audio/preview-effect`, {
+976:        clip_id: clipId,
+987:    console.error('Error previewing audio effect:', error);
+992:const applyBatchEffects = async (clipId, effectsChain) => {
+996:    const response = await fetch(`${backendURL}/api/audio/batch-effects`, {
+1003:        clip_id: clipId,
+1016:const analyzeAudio = async (clipId) => {
+1020:    const response = await fetch(`${backendURL}/api/audio/analyze`, {
+1027:        clip_id: clipId
+1034:    console.error('Error analyzing audio:', error);
+1039:const getAudioPresets = async () => {
+1041:    const response = await fetch(`${backendURL}/api/audio/presets`);
+1045:    console.error('Error fetching audio presets:', error);
+1071:        type: file.type.startsWith('video/') ? 'video'
+1072:          : file.type.startsWith('audio/') ? 'audio'
+1137:              accept="video/*,audio/*,image/*"
+1160:                    {file.type === 'video' && <Video size={32} />}
+1161:                    {file.type === 'audio' && <AudioWaveform size={32} />}
+1185:const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
+1191:  const videoRef = useRef(null);
+1192:  const audioRef = useRef(null);
+1195:  const getMediaElement = () => videoRef.current || audioRef.current;
+1265:  // Calculate clip duration from in/out points
+1266:  const clipDuration = Math.max(0, outPoint - inPoint);
+1310:        {selectedMedia?.type === 'video' ? (
+1311:          <video
+1312:            ref={videoRef}
+1321:        ) : selectedMedia?.type === 'audio' ? (
+1323:            <AudioWaveform size={64} style={{ color: '#ff6b6b', marginBottom: '16px' }} />
+1325:            <audio
+1326:              ref={audioRef}
+1340:      {/* Timeline Scrubber */}
+1341:      {(selectedMedia?.type === 'video' || selectedMedia?.type === 'audio') && (
+1460:        <span>Duration: <span style={{ color: '#00ffc8' }}>{formatTime(clipDuration)}</span></span>
+1466:        {/* Insert Video Only */}
+1467:        {selectedMedia?.type === 'video' && (
+1469:            onClick={() => onAddToTimeline(selectedMedia, inPoint, outPoint, 'video')}
+1471:            title="Insert Video Only (V)"
+1473:            <Video size={14} />
+1474:            Insert Video
+1478:        {/* Insert Audio Only */}
+1479:        {(selectedMedia?.type === 'video' || selectedMedia?.type === 'audio') && (
+1481:            onClick={() => onAddToTimeline(selectedMedia, inPoint, outPoint, 'audio')}
+1483:            title="Insert Audio Only (A)"
+1485:            <AudioWaveform size={14} />
+1486:            Insert Audio
+1490:        {/* Insert Both (Video + Audio) */}
+1491:        {selectedMedia?.type === 'video' && (
+1493:            onClick={() => onAddToTimeline(selectedMedia, inPoint, outPoint, 'both')}
+1495:            title="Insert Video + Audio"
+1502:        {/* For audio files, add to audio track only */}
+1503:        {selectedMedia?.type === 'audio' && (
+1505:            onClick={() => onAddToTimeline(selectedMedia, 0, selectedMedia.duration || 30, 'audio')}
+1508:            <AudioWaveform size={14} />
+1509:            Add to Audio Track
+1513:        {/* For images, just add to timeline */}
+1516:            onClick={() => onAddToTimeline(selectedMedia, 0, 5, 'video')}
+1520:            Add Image to Timeline
+1546:const ExportModal = ({ project, tracks, onClose, onExportComplete, frameRate = 24 }) => {
+1561:      // Build export data from timeline
+1562:      const exportData = buildExportData(tracks, {
+1571:      // Check if we have any clips with Cloudinary IDs
+1572:      const hasCloudinaryClips = tracks.some(track =>
+1573:        track.clips.some(clip => clip.cloudinary_public_id)
+1576:      if (!hasCloudinaryClips) {
+1577:        throw new Error('No clips with cloud storage found. Please upload media files first.');
+1606:      downloadVideo(exportUrl, `${project.title || 'video'}.${format}`);
+1614:          <h3>Export Video</h3>
+1650:                <option value="audio_only">Audio Only (AAC/MP3)</option>
+1651:                <option value="podcast_video">Podcast Video (1920x1080 static bg)</option>
+1714:              <p>Your video is ready to download.</p>
+1719:                  Download Video
+1729:                <button onClick={() => navigator.clipboard.writeText(exportUrl)}>
+1742:// MAIN VIDEO EDITOR COMPONENT
+1745:const VideoEditorComponent = () => {
+1747:  const [activeBottomTab, setActiveBottomTab] = useState("timeline");
+1752:    title: 'Professional Video Project',
+1758:  const initialTracks = [
+1761:      name: 'Video 1',
+1762:      type: 'video',
+1768:      clips: [],
+1774:      type: 'video',
+1780:      clips: [],
+1785:      name: 'Audio 1',
+1786:      type: 'audio',
+1792:      clips: [],
+1797:  // Use undo/redo for tracks
+1799:    state: tracks,
+1800:    setState: setTracks,
+1801:    undo: undoTracks,
+1802:    redo: redoTracks,
+1805:  } = useUndoRedo(initialTracks, 50);
+1807:  // Clipboard for cut/copy/paste
+1808:  const clipboard = useClipboard();
+1813:  // Markers for timeline markers
+1816:  // Clip operations for split/trim/speed/reverse
+1817:  const clipOps = useClipOperations();
+1831:        // Reset timeline
+1832:        setTracks(initialTracks);
+1858:          // Load timeline data
+1859:          if (loaded.timeline_data) {
+1860:            const timeline = typeof loaded.timeline_data === 'string'
+1861:              ? JSON.parse(loaded.timeline_data)
+1862:              : loaded.timeline_data;
+1863:            if (timeline.tracks) {
+1864:              setTracks(timeline.tracks);
+1878:      const timelineData = {
+1879:        tracks: tracks,
+1889:        await projectManager.saveProject(timelineData, project.title);
+1900:          await projectManager.saveProject(timelineData, title);
+1914:        const timelineData = {
+1915:          tracks: tracks,
+1931:      undoTracks();
+1938:      redoTracks();
+1944:    if (selectedClip) {
+1945:      clipboard.cut(selectedClip, 'clip');
+1946:      deleteClip(selectedClip.id);
+1947:      setSelectedClip(null);
+1949:      clipboard.cut(selectedTransition, 'transition');
+1951:      setTracks(prevTracks => prevTracks.map(track => ({
+1952:        ...track,
+1953:        transitions: (track.transitions || []).filter(t => t.id !== selectedTransition.id)
+1960:    if (selectedClip) {
+1961:      clipboard.copy(selectedClip, 'clip');
+1962:      alert(`📋 Copied "${selectedClip.title}"`);
+1964:      clipboard.copy(selectedTransition, 'transition');
+1970:    if (!clipboard.hasData) {
+1975:    const result = clipboard.paste(currentTime);
+1980:    if (type === 'clip') {
+1981:      // Find appropriate track
+1982:      const targetTrack = tracks.find(t =>
+1983:        t.type === (data.type === 'audio' ? 'audio' : 'video') && !t.locked
+1986:      if (targetTrack) {
+1988:        setTracks(prevTracks => prevTracks.map(track =>
+1989:          track.id === targetTrack.id
+1990:            ? { ...track, clips: [...track.clips, data] }
+1991:            : track
+1993:        setSelectedClip(data);
+2003:    if (selectedClip) {
+2004:      deleteClip(selectedClip.id);
+2005:      setSelectedClip(null);
+2007:      setTracks(prevTracks => prevTracks.map(track => ({
+2008:        ...track,
+2009:        transitions: (track.transitions || []).filter(t => t.id !== selectedTransition.id)
+2016:    const allClips = tracks.flatMap(track => track.clips);
+2017:    selection.selectAll(allClips);
+2018:    console.log(`Selected ${allClips.length} clips`);
+2023:    setSelectedClip(null);
+2027:  // --- CLIP MENU HANDLERS ---
+2028:  const handleSplitClip = () => {
+2029:    if (!selectedClip) {
+2030:      // Try to find clip at playhead
+2031:      const clipAtPlayhead = tracks
+2032:        .flatMap(track => track.clips.map(clip => ({ ...clip, trackId: track.id })))
+2033:        .find(clip => currentTime >= clip.startTime && currentTime < clip.startTime + clip.duration);
+2035:      if (clipAtPlayhead) {
+2036:        const result = clipOps.splitClip(clipAtPlayhead, currentTime);
+2038:          setTracks(prevTracks => prevTracks.map(track => {
+2039:            if (track.id === clipAtPlayhead.trackId) {
+2041:                ...track,
+2042:                clips: [
+2043:                  ...track.clips.filter(c => c.id !== clipAtPlayhead.id),
+2044:                  result.firstClip,
+2045:                  result.secondClip
+2049:            return track;
+2051:          console.log(`✂️ Split clip at ${currentTime.toFixed(2)}s`);
+2054:        alert('No clip at playhead position. Move playhead over a clip to split it.');
+2057:      // Split selected clip at playhead
+2058:      if (currentTime > selectedClip.startTime && currentTime < selectedClip.startTime + selectedClip.duration) {
+2059:        const trackWithClip = tracks.find(t => t.clips.some(c => c.id === selectedClip.id));
+2060:        if (trackWithClip) {
+2061:          const result = clipOps.splitClip(selectedClip, currentTime);
+2063:            setTracks(prevTracks => prevTracks.map(track => {
+2064:              if (track.id === trackWithClip.id) {
+2066:                  ...track,
+2067:                  clips: [
+2068:                    ...track.clips.filter(c => c.id !== selectedClip.id),
+2069:                    result.firstClip,
+2070:                    result.secondClip
+2074:              return track;
+2076:            setSelectedClip(result.firstClip);
+2077:            console.log(`✂️ Split "${selectedClip.title}" at ${currentTime.toFixed(2)}s`);
+2081:        alert('Playhead must be within the selected clip to split it.');
+2087:    if (selectedClip) {
+2088:      const trimmed = clipOps.trimClip(selectedClip, currentTime - selectedClip.startTime, null);
+2090:        setTracks(prevTracks => prevTracks.map(track => ({
+2091:          ...track,
+2092:          clips: track.clips.map(c => c.id === selectedClip.id ? { ...trimmed, startTime: currentTime } : c)
+2094:        setSelectedClip({ ...trimmed, startTime: currentTime });
+2101:    if (selectedClip) {
+2102:      const newDuration = currentTime - selectedClip.startTime;
+2104:        const trimmed = clipOps.trimClip(selectedClip, null, (selectedClip.trimStart || 0) + newDuration);
+2106:          setTracks(prevTracks => prevTracks.map(track => ({
+2107:            ...track,
+2108:            clips: track.clips.map(c => c.id === selectedClip.id ? { ...c, duration: newDuration } : c)
+2110:          setSelectedClip({ ...selectedClip, duration: newDuration });
+2118:    if (!selectedClip) {
+2119:      alert('Select a clip first');
+2122:    const speed = prompt('Enter speed multiplier (0.1 - 10):', selectedClip.speed || '1');
+2126:        const modified = clipOps.changeSpeed(selectedClip, speedVal);
+2127:        setTracks(prevTracks => prevTracks.map(track => ({
+2128:          ...track,
+2129:          clips: track.clips.map(c => c.id === selectedClip.id ? modified : c)
+2131:        setSelectedClip(modified);
+2139:  const handleReverseClip = () => {
+2140:    if (!selectedClip) {
+2141:      alert('Select a clip first');
+2144:    const reversed = clipOps.reverseClip(selectedClip);
+2145:    setTracks(prevTracks => prevTracks.map(track => ({
+2146:      ...track,
+2147:      clips: track.clips.map(c => c.id === selectedClip.id ? reversed : c)
+2149:    setSelectedClip(reversed);
+2150:    console.log(`🔄 Clip ${reversed.reversed ? 'reversed' : 'un-reversed'}`);
+2154:  const handleAddTracks = () => {
+2155:    const type = prompt('Enter track type (video or audio):', 'video');
+2156:    if (type === 'video' || type === 'audio') {
+2157:      const trackCount = tracks.filter(t => t.type === type).length + 1;
+2158:      const newTrack = {
+2160:        name: `${type === 'video' ? 'Video' : 'Audio'} ${trackCount}`,
+2165:        color: type === 'video' ? '#4a9eff' : '#00d4aa',
+2166:        zIndex: type === 'video' ? tracks.length + 1 : 0,
+2167:        clips: [],
+2170:      setTracks(prev => [...prev, newTrack]);
+2171:      console.log(`➕ Added ${type} track`);
+2175:  const handleDeleteEmptyTracks = () => {
+2176:    const emptyTracks = tracks.filter(t => t.clips.length === 0);
+2177:    if (emptyTracks.length === 0) {
+2178:      alert('No empty tracks to delete');
+2182:    // Keep at least 1 video and 1 audio track
+2183:    const videoTracks = tracks.filter(t => t.type === 'video');
+2184:    const audioTracks = tracks.filter(t => t.type === 'audio');
+2186:    setTracks(prev => prev.filter(t => {
+2187:      if (t.clips.length > 0) return true; // Keep non-empty
+2188:      if (t.type === 'video' && videoTracks.filter(vt => vt.clips.length > 0 || vt.id === t.id).length <= 1) return true;
+2189:      if (t.type === 'audio' && audioTracks.filter(at => at.clips.length > 0 || at.id === t.id).length <= 1) return true;
+2193:    console.log('🗑️ Deleted empty tracks');
+2197:    // Find adjacent clips and add cross dissolve
+2199:    tracks.forEach(track => {
+2200:      if (track.type !== 'video') return;
+2201:      const sortedClips = [...track.clips].sort((a, b) => a.startTime - b.startTime);
+2202:      for (let i = 0; i < sortedClips.length - 1; i++) {
+2203:        const clip1End = sortedClips[i].startTime + sortedClips[i].duration;
+2204:        if (Math.abs(sortedClips[i + 1].startTime - clip1End) < 0.5) {
+2205:          pairs.push({ trackId: track.id, clip1: sortedClips[i], clip2: sortedClips[i + 1] });
+2211:      alert('No adjacent clips found. Place clips next to each other to add transitions.');
+2216:    const { trackId, clip1, clip2 } = pairs[0];
+2217:    addTransitionBetweenClips(trackId, clip1, clip2, selectedTransitionType);
+2306:TIMELINE
+2307:  Ctrl+K    Split Clip at Playhead
+2326:  const [selectedClip, setSelectedClip] = useState(null);
+2333:  const [draggedClip, setDraggedClip] = useState(null);
+2341:  const [showAudioWaveforms, setShowAudioWaveforms] = useState(true);
+2344:  const [selectedKeyframeProperty, setSelectedKeyframeProperty] = useState(KEYFRAME_PROPERTIES.OPACITY);
+2345:  const [showKeyframePanel, setShowKeyframePanel] = useState(true);
+2346:  const [selectedKeyframeId, setSelectedKeyframeId] = useState(null);
+2347:  const [selectedKeyframeDraftValue, setSelectedKeyframeDraftValue] = useState('');
+2348:  const [selectedKeyframeDraftInterpolation, setSelectedKeyframeDraftInterpolation] = useState(INTERPOLATION_TYPES.LINEAR);
+2353:  const [showAudioMixing, setShowAudioMixing] = useState(false);
+2362:  const [showAdjustmentLayer, setShowAdjustmentLayer] = useState(false);
+2365:  const [showAudioDucking, setShowAudioDucking] = useState(false);
+2366:  const [showMotionTracking, setShowMotionTracking] = useState(false);
+2373:  const [pipLayers, setPipLayers] = useState([]);
+2377:  const [adjustmentLayers, setAdjustmentLayers] = useState([]);
+2380:  const scopesVideoRef = useRef(null);
+2384:  // ── Draw scopes from video frame ──────────────────────────
+2386:    const video = scopesVideoRef.current;
+2390:    if (!video || video.readyState < 2) return;
+2395:    octx.drawImage(video, 0, 0, 320, 180);
+2467:  const vuAudioCtxRef = useRef(null);
+2472:  // ── Init Web Audio context for VU meters ──────────────────
+2475:      vuAudioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+2476:    } catch(e) { console.warn('VU AudioContext unavailable:', e); }
+2479:      if (vuAudioCtxRef.current) vuAudioCtxRef.current.close();
+2485:    if (!showAudioMixing) { if (vuRafRef.current) cancelAnimationFrame(vuRafRef.current); return; }
+2488:      Object.entries(vuAnalysersRef.current).forEach(([trackId, analyser]) => {
+2493:        const bars = vuBarsRef.current[trackId];
+2506:  }, [showAudioMixing]);
+2507:  const [showKeyframes, setShowKeyframes] = useState(false);
+2510:  const [audioPresets, setAudioPresets] = useState({});
+2529:  const [showVideoEffects, setShowVideoEffects] = useState(true);
+2531:  const [showAudioEffects, setShowAudioEffects] = useState(true);
+2543:  const timelineRef = useRef(null);
+2580:    // Clips
+2581:    onSplitClip: handleSplitClip,
+2596:    if (draggedClip) {
+2604:  }, [draggedClip, dragOffset, zoom, duration, showSnapToGrid, snapGridSize]);
+2626:  const videoEffects = [
+2632:    { id: 'cinematic_relight', name: 'Cinematic Relight', icon: Sparkles, category: 'enhancement', description: 'Smart cinematic relighting for dark clips' },
+2640:    { id: 'crossDissolve', name: 'Cross Dissolve', icon: Layers, category: 'fade', description: 'Dissolve effect at start and end' },
+2655:    { id: 'lut', name: 'LUT Correction', icon: Layers, category: 'colorGrading', description: 'Apply color lookup tables' },
+2675:    { id: 'posterize', name: 'Posterize', icon: Layers, category: 'stylize', description: 'Reduce color levels' },
+2716:  const audioEffects = [
+2719:    { id: 'limiter', name: 'Limiter', icon: Maximize2, category: 'dynamics', description: 'Prevent audio clipping' },
+2741:    { id: 'reverb', name: 'Reverb', icon: AudioWaveform, category: 'time', description: 'Spatial ambience' },
+2749:    { id: 'distortion', name: 'Distortion', icon: Bolt, category: 'distortion', description: 'Hard clipping' },
+2756:    { id: 'spectralRepair', name: 'Spectral Repair', icon: Wand2, category: 'restoration', description: 'Fix audio problems' },
+2765:    { id: 'binaural', name: 'Binaural Panner', icon: Headphones, category: 'spatial', description: '3D audio positioning' },
+2770:    { id: 'levelMeter', name: 'Level Meter', icon: Activity, category: 'analysis', description: 'Audio level monitoring' },
+2775:  const effects = [...videoEffects, ...audioEffects];
+2780:    { id: 'crossDissolve', name: 'Cross Dissolve', icon: Layers, duration: 1, category: 'basic' },
+2857:  // Timeline playback - advance currentTime when playing
+2866:        // Apply speed ramp if active clip has speed points
+2867:        const activeClipNow = tracks.flatMap(t=>t.clips).find(c => currentTime >= c.startTime && currentTime < c.startTime + c.duration);
+2868:        const speedMult = (activeClipNow && speedRampPoints.length > 0)
+2869:          ? getSpeedAtPosition(speedRampPoints, (currentTime - activeClipNow.startTime) / activeClipNow.duration)
+2875:          // Stop at the end of the timeline
+2902:  // Timeline interaction
+2903:  const handleTimelineClick = (e) => {
+2904:    if (!timelineRef.current) return;
+2905:    const rect = timelineRef.current.getBoundingClientRect();
+2907:    const timelineWidth = rect.width;
+2908:    const clickTime = (x / timelineWidth) * duration;
+2913:  const keyframePropertyOptions = [
+2914:    { label: 'Opacity', value: KEYFRAME_PROPERTIES.OPACITY },
+2915:    { label: 'Position X', value: KEYFRAME_PROPERTIES.POSITION_X },
+2916:    { label: 'Position Y', value: KEYFRAME_PROPERTIES.POSITION_Y },
+2917:    { label: 'Scale X', value: KEYFRAME_PROPERTIES.SCALE_X },
+2918:    { label: 'Scale Y', value: KEYFRAME_PROPERTIES.SCALE_Y },
+2919:    { label: 'Rotation', value: KEYFRAME_PROPERTIES.ROTATION },
+2920:    { label: 'Brightness', value: KEYFRAME_PROPERTIES.BRIGHTNESS },
+2921:    { label: 'Contrast', value: KEYFRAME_PROPERTIES.CONTRAST },
+2922:    { label: 'Saturation', value: KEYFRAME_PROPERTIES.SATURATION },
+2923:    { label: 'Volume', value: KEYFRAME_PROPERTIES.VOLUME },
+2926:  const getSelectedClipCurrentAnimatedValue = () => {
+2927:    if (!selectedClip) return 0;
+2928:    const fallback = DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[selectedKeyframeProperty] ?? 0;
+2929:    return getClipAnimatedValue(selectedClip, selectedKeyframeProperty, currentTime, fallback);
+2932:  const handleAddKeyframe = (property, time, value) => {
+2933:    if (!selectedClip) return;
+2935:    const fallback = DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[property] ?? 0;
+2936:    const nextValue = value ?? getClipAnimatedValue(selectedClip, property, time, fallback);
+2938:    const createdKeyframe = createKeyframe({
+2943:    const nextClip = upsertClipKeyframe(
+2944:      selectedClip,
+2946:      createdKeyframe
+2949:    setTracks(prev =>
+2950:      prev.map(track => ({
+2951:        ...track,
+2952:        clips: track.clips.map(clip => clip.id === selectedClip.id ? nextClip : clip)
+2956:    setSelectedClip(nextClip);
+2957:    setSelectedKeyframeId(createdKeyframe.id);
+2958:    syncSelectedKeyframeEditor(createdKeyframe);
+2961:  const handleRemoveKeyframe = (property, keyframeId) => {
+2962:    if (!selectedClip) return;
+2964:    const nextClip = deleteClipKeyframe(selectedClip, property, keyframeId);
+2966:    setTracks(prev =>
+2967:      prev.map(track => ({
+2968:        ...track,
+2969:        clips: track.clips.map(clip => clip.id === selectedClip.id ? nextClip : clip)
+2973:    setSelectedClip(nextClip);
+2975:    if (selectedKeyframeId === keyframeId) {
+2976:      setSelectedKeyframeId(null);
+2981:  const getSelectedClipTimelineDuration = () => {
+2982:    if (!selectedClip) return Math.max(1, duration || 1);
+2985:      selectedClip.duration ||
+2986:      ((selectedClip.trimEnd || 0) - (selectedClip.trimStart || 0)) ||
+2993:  const getSelectedPropertyKeyframes = () => {
+2994:    if (!selectedClip) return [];
+2995:    return ensurePropertyKeyframes(selectedClip, selectedKeyframeProperty);
+2998:  const getSelectedKeyframe = () => {
+2999:    return getSelectedPropertyKeyframes().find(kf => kf.id === selectedKeyframeId) || null;
+3002:  const syncSelectedKeyframeEditor = (keyframe) => {
+3003:    if (!keyframe) {
+3004:      setSelectedKeyframeDraftValue('');
+3005:      setSelectedKeyframeDraftInterpolation(INTERPOLATION_TYPES.LINEAR);
+3008:    setSelectedKeyframeDraftValue(String(keyframe.value ?? ''));
+3009:    setSelectedKeyframeDraftInterpolation(keyframe.interpolation || INTERPOLATION_TYPES.LINEAR);
+3012:  const handleSelectKeyframe = (keyframeId) => {
+3013:    setSelectedKeyframeId(keyframeId);
+3014:    const keyframe = getSelectedPropertyKeyframes().find(kf => kf.id === keyframeId);
+3015:    syncSelectedKeyframeEditor(keyframe);
+3018:  const handleUpdateSelectedKeyframe = (patch = {}) => {
+3019:    if (!selectedClip || !selectedKeyframeId) return;
+3021:    const nextClip = patchClipKeyframe(
+3022:      selectedClip,
+3023:      selectedKeyframeProperty,
+3024:      selectedKeyframeId,
+3028:    setTracks(prev =>
+3029:      prev.map(track => ({
+3030:        ...track,
+3031:        clips: track.clips.map(clip => clip.id === selectedClip.id ? nextClip : clip)
+3035:    setSelectedClip(nextClip);
+3037:    const nextKeyframe = ensurePropertyKeyframes(nextClip, selectedKeyframeProperty).find(
+3038:      kf => kf.id === selectedKeyframeId
+3040:    syncSelectedKeyframeEditor(nextKeyframe);
+3043:  const handlePrevNextKeyframe = (direction = 1) => {
+3044:    const keyframes = getSelectedPropertyKeyframes();
+3045:    if (!keyframes.length) return;
+3047:    const sorted = [...keyframes].sort((a, b) => a.time - b.time);
+3048:    const currentIndex = sorted.findIndex(kf => kf.id === selectedKeyframeId);
+3060:      handleSelectKeyframe(target.id);
+3061:      handleSeekToKeyframe(target.time);
+3065:  const handleSeekToKeyframe = (time) => {
+3067:    if (videoRef?.current) {
+3069:        videoRef.current.currentTime = time;
+3077:  const applyEffect = async (clipId, effectId, value) => {
+3078:    const clip = tracks.flatMap(track => track.clips).find(c => c.id === clipId);
+3080:    if (!clip) {
+3081:      console.error('Clip not found');
+3085:    if (clip.type === 'audio' || audioEffects.some(e => e.id === effectId)) {
+3089:          [clipId]: {
+3090:            ...prev[clipId],
+3095:        const result = await applyAudioEffect(clipId, effectId, value);
+3098:          setTracks(prevTracks =>
+3099:            prevTracks.map(track => ({
+3100:              ...track,
+3101:              clips: track.clips.map(c =>
+3102:                c.id === clipId
+3105:                    file_url: result.processed_audio_url,
+3116:          console.log(`✅ Applied ${effectId} to audio clip ${clipId} with intensity ${value}%`);
+3123:          [clipId]: {
+3124:            ...prev[clipId],
+3131:        console.error('Audio effect application error:', error);
+3135:          [clipId]: {
+3136:            ...prev[clipId],
+3145:      // Video effect
+3146:      console.log(`🎬 Applying video effect "${effectId}" to clip ${clipId}`);
+3148:      const backendVideoEffects = ['low_light_restore', 'shadow_recovery', 'denoise', 'detail_boost', 'cinematic_relight'];
+3152:        [clipId]: {
+3153:          ...prev[clipId],
+3160:        if (backendVideoEffects.includes(effectId)) {
+3166:          if (clip.r2_key) payload.r2_key = clip.r2_key;
+3167:          else if (clip.source_url) payload.source_url = clip.source_url;
+3168:          else if (clip.mediaUrl) payload.source_url = clip.mediaUrl;
+3169:          else if (clip.url) payload.source_url = clip.url;
+3170:          else if (clip.cloudinary_public_id) payload.public_id = clip.cloudinary_public_id;
+3172:          const result = await applyVideoEffect(payload);
+3175:            setSelectedClip(prev => prev && prev.id === clipId ? {
+3185:      setTracks(prevTracks => {
+3186:        const newTracks = prevTracks.map(track => ({
+3187:          ...track,
+3188:          clips: track.clips.map(c => {
+3189:            if (c.id === clipId) {
+3195:              console.log(`🎬 Clip "${c.title}" effects updated:`, newEffects);
+3204:        return newTracks;
+3207:      // Update selected clip to show effect immediately
+3208:      setSelectedClip(prev => {
+3209:        if (prev && prev.id === clipId) {
+3222:      console.log(`✅ Applied ${effectId} to video clip ${clipId} with intensity ${value}%`);
+3224:        console.error('Video effect application error:', error);
+3229:          [clipId]: {
+3230:            ...prev[clipId],
+3239:  const previewEffect = async (clipId, effectId, intensity) => {
+3240:    const clip = tracks.flatMap(track => track.clips).find(c => c.id === clipId);
+3242:    if (!clip) return;
+3244:    if (clip.type === 'audio' || audioEffects.some(e => e.id === effectId)) {
+3246:        const result = await previewAudioEffect(clipId, effectId, intensity);
+3248:        if (result.success && result.preview_audio) {
+3249:          const audio = new Audio(result.preview_audio);
+3250:          audio.play();
+3254:            [clipId]: {
+3255:              ...prev[clipId],
+3256:              [`${effectId}_preview`]: result.preview_audio
+3267:        if (clip.r2_key || clip.source_url || clip.mediaUrl || clip.url) {
+3268:          const response = await fetch(`${backendURL}/api/video-editor/effect-preview`, {
+3272:              r2_key: clip.r2_key || '',
+3273:              source_url: clip.source_url || clip.mediaUrl || clip.url || '',
+3286:        } else if (clip.cloudinary_public_id) {
+3287:          previewUrl = await previewVideoEffect(clip.cloudinary_public_id, effectId, intensity);
+3291:          setSelectedClip({
+3292:            ...clip,
+3298:            [clipId]: {
+3299:              ...prev[clipId],
+3305:        console.log(`Previewing ${effectId} on video clip ${clipId}`);
+3307:        console.error('Video preview error:', error);
+3312:  // Auto-suggest effects based on audio analysis
+3313:  const suggestEffects = async (clipId) => {
+3314:    const clip = tracks.flatMap(track => track.clips).find(c => c.id === clipId);
+3316:    if (!clip || clip.type !== 'audio') {
+3317:      console.log('Effect suggestions only available for audio clips');
+3322:      const analysis = await analyzeAudio(clipId);
+3327:          [clipId]: {
+3328:            ...prev[clipId],
+3342:  const applyPreset = async (clipId, presetName) => {
+3343:    const clip = tracks.flatMap(track => track.clips).find(c => c.id === clipId);
+3345:    if (!clip || clip.type !== 'audio') {
+3346:      console.log('Audio presets only available for audio clips');
+3351:      const preset = audioPresets[presetName];
+3354:        const result = await applyBatchEffects(clipId, preset);
+3357:          setTracks(prevTracks =>
+3358:            prevTracks.map(track => ({
+3359:              ...track,
+3360:              clips: track.clips.map(c =>
+3361:                c.id === clipId
+3364:                    file_url: result.processed_audio_url,
+3376:          console.log(`✅ Applied ${presetName} preset to clip ${clipId}`);
+3385:  const toggleEffect = (clipId, effectId) => {
+3386:    setTracks(prevTracks =>
+3387:      prevTracks.map(track => ({
+3388:        ...track,
+3389:        clips: track.clips.map(clip =>
+3390:          clip.id === clipId
+3392:              ...clip,
+3393:              effects: clip.effects.map(effect =>
+3399:            : clip
+3406:  const removeEffect = (clipId, effectId) => {
+3407:    console.log(`🗑️ Removing effect "${effectId}" from clip ${clipId}`);
+3409:    setTracks(prevTracks =>
+3410:      prevTracks.map(track => ({
+3411:        ...track,
+3412:        clips: track.clips.map(clip =>
+3413:          clip.id === clipId
+3415:              ...clip,
+3416:              effects: (clip.effects || []).filter(e => e.id !== effectId)
+3418:            : clip
+3423:    // Also update selectedClip to keep it in sync
+3424:    setSelectedClip(prev => {
+3425:      if (prev && prev.id === clipId) {
+3438:  const updateCompositing = (clipId, property, value) => {
+3439:    setTracks(prevTracks =>
+3440:      prevTracks.map(track => ({
+3441:        ...track,
+3442:        clips: track.clips.map(clip =>
+3443:          clip.id === clipId
+3445:              ...clip,
+3447:                ...clip.compositing,
+3448:                [property]: typeof value === 'object' ? { ...clip.compositing[property], ...value } : value
+3451:            : clip
+3473:  const handleEffectDrop = (e, clipId) => {
+3476:    console.log('🎨 Effect drop on clip:', clipId);
+3498:    const targetClip = tracks.flatMap(track => track.clips).find(clip => clip.id === clipId);
+3499:    if (targetClip) {
+3500:      console.log(`🎨 Applying ${effectToApply.name} to ${targetClip.title}`);
+3501:      applyEffect(clipId, effectToApply.id, 50);
+3502:      setSelectedClip(targetClip);
+3505:      console.log('🎨 Target clip not found');
+3524:  const addTransition = (trackId, transitionType, startTime, duration = 1) => {
+3530:      fromClip: null,
+3531:      toClip: null
+3534:    setTracks(tracks.map(track =>
+3535:      track.id === trackId
+3536:        ? { ...track, transitions: [...(track.transitions || []), newTransition] }
+3537:        : track
+3540:    console.log(`✅ Added ${transitionType} transition at ${startTime.toFixed(2)}s on track ${trackId}`);
+3543:  // Add transition between two specific clips
+3544:  const addTransitionBetweenClips = (trackId, clip1, clip2, transitionType = 'crossDissolve') => {
+3550:    // Find where clip1 ends and clip2 starts
+3551:    const clip1End = clip1.startTime + clip1.duration;
+3553:    // Transition should start slightly before clip1 ends
+3554:    const transitionStart = clip1End - (transitionDuration / 2);
+3561:      fromClip: clip1.id,
+3562:      toClip: clip2.id
+3565:    setTracks(tracks.map(track =>
+3566:      track.id === trackId
+3567:        ? { ...track, transitions: [...(track.transitions || []), newTransition] }
+3568:        : track
+3571:    console.log(`✅ Added ${transitionName} between "${clip1.title}" and "${clip2.title}"`);
+3572:    alert(`✅ Added "${transitionName}" transition between "${clip1.title}" and "${clip2.title}"!`);
+3575:  // Find adjacent clips that can have transitions
+3576:  const getAdjacentClipPairs = (trackId) => {
+3577:    const track = tracks.find(t => t.id === trackId);
+3578:    if (!track || track.clips.length < 2) return [];
+3580:    // Sort clips by start time
+3581:    const sortedClips = [...track.clips].sort((a, b) => a.startTime - b.startTime);
+3584:    for (let i = 0; i < sortedClips.length - 1; i++) {
+3585:      const clip1 = sortedClips[i];
+3586:      const clip2 = sortedClips[i + 1];
+3587:      const clip1End = clip1.startTime + clip1.duration;
+3589:      // Check if clips are adjacent (within 0.5 seconds)
+3590:      if (Math.abs(clip2.startTime - clip1End) < 0.5) {
+3591:        pairs.push({ clip1, clip2, position: clip1End });
+3603:  const handleTimelineDrop = (e, trackId) => {
+3607:    const rect = timelineRef.current.getBoundingClientRect();
+3609:    const timelineWidth = rect.width;
+3610:    const dropTime = (x / timelineWidth) * duration;
+3612:    addTransition(trackId, draggedTransition.id, dropTime, draggedTransition.duration);
+3616:  const handleTimelineDragOver = (e) => {
+3621:  // Track z-index management
+3622:  const moveTrackUp = (trackId) => {
+3623:    const track = tracks.find(t => t.id === trackId);
+3624:    const maxZ = Math.max(...tracks.map(t => t.zIndex));
+3625:    if (track.zIndex < maxZ) {
+3626:      setTracks(tracks.map(t =>
+3627:        t.id === trackId ? { ...t, zIndex: t.zIndex + 1 } : t
+3632:  const moveTrackDown = (trackId) => {
+3633:    const track = tracks.find(t => t.id === trackId);
+3634:    const minZ = Math.min(...tracks.map(t => t.zIndex));
+3635:    if (track.zIndex > minZ) {
+3636:      setTracks(tracks.map(t =>
+3637:        t.id === trackId ? { ...t, zIndex: t.zIndex - 1 } : t
+3645:    setSelectedClip(null);
+3706:  const checkCollisions = (trackId, clipId, newStartTime, clipDuration) => {
+3707:    const track = tracks.find(t => t.id === trackId);
+3708:    if (!track) return newStartTime;
+3710:    const otherClips = track.clips.filter(c => c.id !== clipId);
+3713:    for (const otherClip of otherClips) {
+3714:      const otherStart = otherClip.startTime;
+3715:      const otherEnd = otherClip.startTime + otherClip.duration;
+3716:      const clipEnd = adjustedStartTime + clipDuration;
+3718:      if (adjustedStartTime < otherEnd && clipEnd > otherStart) {
+3720:          adjustedStartTime = Math.max(0, otherStart - clipDuration);
+3729:  // Track lock toggle
+3730:  const toggleTrackLock = (trackId) => {
+3731:    setTracks(tracks.map(track =>
+3732:      track.id === trackId
+3733:        ? { ...track, locked: !track.locked }
+3734:        : track
+3738:  // Clip drag handlers
+3739:  const handleClipMouseDown = (e, clip, trackId) => {
+3740:    if (tracks.find(t => t.id === trackId)?.locked) return;
+3743:    const rect = timelineRef.current.getBoundingClientRect();
+3745:    const clipStartPixel = clip.startTime * 2 * zoom;
+3747:    setDraggedClip({ ...clip, trackId, originalTrackId: trackId });
+3748:    setDragOffset(clickX - clipStartPixel);
+3749:    setSelectedClip(clip);
+3753:    if (!draggedClip || !timelineRef.current) return;
+3755:    const rect = timelineRef.current.getBoundingClientRect();
+3758:    const timelineWidth = rect.width;
+3761:    let newTime = ((mouseX - dragOffset) / timelineWidth) * duration;
+3764:    // Determine which track the mouse is over based on Y position
+3765:    // Each track is approximately 52px high (6px padding + 40px clip + 6px padding)
+3766:    const trackHeight = 52;
+3767:    const trackIndex = Math.floor(mouseY / trackHeight);
+3768:    const targetTrack = tracks[trackIndex];
+3770:    // Only move to compatible track types (video to video, audio to audio)
+3771:    let targetTrackId = draggedClip.trackId;
+3772:    if (targetTrack && !targetTrack.locked) {
+3773:      const originalTrack = tracks.find(t => t.id === draggedClip.originalTrackId);
+3774:      // Allow moving between same type tracks (video/overlay to video/overlay, audio to audio)
+3775:      if (originalTrack && targetTrack.type === originalTrack.type) {
+3776:        targetTrackId = targetTrack.id;
+3780:    // Check collisions on target track
+3781:    newTime = checkCollisions(targetTrackId, draggedClip.id, newTime, draggedClip.duration);
+3783:    // Move clip (possibly to new track)
+3784:    if (targetTrackId !== draggedClip.trackId) {
+3785:      // Moving to a different track
+3786:      setTracks(prevTracks =>
+3787:        prevTracks.map(track => {
+3788:          if (track.id === draggedClip.trackId) {
+3789:            // Remove from original track
+3791:              ...track,
+3792:              clips: track.clips.filter(c => c.id !== draggedClip.id)
+3794:          } else if (track.id === targetTrackId) {
+3795:            // Add to new track
+3797:              ...track,
+3798:              clips: [...track.clips, { ...draggedClip, startTime: Math.max(0, newTime) }]
+3801:          return track;
+3804:      // Update draggedClip's trackId
+3805:      setDraggedClip(prev => ({ ...prev, trackId: targetTrackId }));
+3807:      // Moving within same track
+3808:      setTracks(prevTracks =>
+3809:        prevTracks.map(track =>
+3810:          track.id === draggedClip.trackId
+3812:              ...track,
+3813:              clips: track.clips.map(clip =>
+3814:                clip.id === draggedClip.id
+3815:                  ? { ...clip, startTime: Math.max(0, newTime) }
+3816:                  : clip
+3819:            : track
+3826:    setDraggedClip(null);
+3836:      const fileType = file.type.startsWith('video/') ? 'video'
+3837:        : file.type.startsWith('audio/') ? 'audio'
+3906:  // Handle media drop on timeline - UPDATED WITH CLOUDINARY DATA
+3907:  const handleMediaDrop = (e, trackId) => {
+3918:    const track = tracks.find(t => t.id === trackId);
+3919:    if (!track) {
+3920:      console.log('❌ Track not found:', trackId);
+3923:    if (track.locked) {
+3924:      console.log('❌ Track is locked');
+3950:    // Create new clip WITH CLOUDINARY DATA
+3951:    const newClip = {
+3961:      keyframes: [],
+3972:    console.log('✅ Creating clip:', newClip);
+3974:    // Add clip to track
+3975:    setTracks(prevTracks => {
+3976:      const updatedTracks = prevTracks.map(t =>
+3977:        t.id === trackId
+3978:          ? { ...t, clips: [...t.clips, newClip] }
+3981:      console.log('✅ Updated tracks:', updatedTracks);
+3982:      return updatedTracks;
+3985:    // Set as selected clip to show in program monitor
+3986:    setSelectedClip(newClip);
+3988:    console.log(`✅ Added ${draggedMedia.name} to ${track.name} at ${newClip.startTime.toFixed(2)}s`);
+4000:  // Delete selected clip
+4001:  const deleteClip = (clipId) => {
+4002:    setTracks(prevTracks =>
+4003:      prevTracks.map(track => ({
+4004:        ...track,
+4005:        clips: track.clips.filter(clip => clip.id !== clipId)
+4009:    if (selectedClip?.id === clipId) {
+4010:      setSelectedClip(null);
+4013:    console.log(`🗑️ Deleted clip ${clipId}`);
+4018:    // Check if we have any clips
+4019:    const totalClips = tracks.reduce((sum, track) => sum + track.clips.length, 0);
+4021:    if (totalClips === 0) {
+4022:      alert('Please add some media to the timeline before exporting.');
+4026:    // Check if we have Cloudinary clips
+4027:    const hasCloudinaryClips = tracks.some(track =>
+4028:      track.clips.some(clip => clip.cloudinary_public_id)
+4031:    if (!hasCloudinaryClips) {
+4044:        timeline: {
+4045:          tracks: tracks.map(track => ({
+4046:            id: track.id,
+4047:            name: track.name,
+4048:            type: track.type,
+4049:            clips: track.clips,
+4050:            transitions: track.transitions
+4074:      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedClip) {
+4076:        deleteClip(selectedClip.id);
+4080:        setSelectedClip(null);
+4158:  }, [selectedClip, selectedTransition, currentTime, duration, frameRate]);
+4179:        tracks,
+4212:        { label: 'Cut', shortcut: 'Ctrl+X', action: handleCut, disabled: !selectedClip && !selectedTransition },
+4213:        { label: 'Copy', shortcut: 'Ctrl+C', action: handleCopy, disabled: !selectedClip && !selectedTransition },
+4214:        { label: 'Paste', shortcut: 'Ctrl+V', action: handlePaste, disabled: !clipboard.hasData },
+4215:        { label: 'Delete', shortcut: 'Del', action: handleDelete, disabled: !selectedClip && !selectedTransition },
+4221:    clip: {
+4222:      label: 'Clip',
+4224:        { label: 'Split Clip', shortcut: 'Ctrl+K', action: handleSplitClip },
+4225:        { label: 'Trim In Point', shortcut: 'Q', action: handleTrimIn, disabled: !selectedClip },
+4226:        { label: 'Trim Out Point', shortcut: 'W', action: handleTrimOut, disabled: !selectedClip },
+4228:        { label: 'Speed/Duration...', action: handleSpeedDuration, disabled: !selectedClip },
+4229:        { label: 'Reverse Clip', action: handleReverseClip, disabled: !selectedClip },
+4231:        { label: 'Nest Clip', action: () => alert('Nest - Coming Soon'), disabled: !selectedClip },
+4232:        { label: 'Unlink Audio/Video', action: () => alert('Unlink - Coming Soon'), disabled: !selectedClip }
+4238:        { label: 'Add Tracks...', action: handleAddTracks },
+4239:        { label: 'Delete Empty Tracks', action: handleDeleteEmptyTracks },
+4266:        { label: 'Show Audio Waveforms', checked: showAudioWaveforms, action: () => setShowAudioWaveforms(!showAudioWaveforms) },
+4267:        { label: 'Show Keyframes', checked: showKeyframes, action: () => setShowKeyframes(!showKeyframes) },
+4282:        { label: 'Audio Mixer', checked: showAudioMixing, action: () => setShowAudioMixing(!showAudioMixing) },
+4284:        { label: 'Video Scopes', checked: showScopes, action: () => setShowScopes(!showScopes) },
+4288:        { label: 'Adjustment Layer', checked: showAdjustmentLayer, action: () => setShowAdjustmentLayer(!showAdjustmentLayer) },
+4296:        { label: 'Motion Tracking', checked: showMotionTracking, action: () => setShowMotionTracking(!showMotionTracking) },
+4297:        { label: 'Audio Ducking', checked: showAudioDucking, action: () => setShowAudioDucking(!showAudioDucking) },
+4305:        { label: 'Documentation', action: () => window.open('https://docs.streampirex.com/video-editor', '_blank') },
+4307:        { label: 'About StreamPireX Editor', action: () => alert('StreamPireX Video Editor\nVersion 1.0.0\n\nProfessional video editing for creators.') }
+4334:<div className="video-editor-pro">
+4453:          <VideoEditorUnifiedToolbar
+4550:          <VideoEditorInspectorTabs
+4558:              title="Video Scopes"
+4593:              onClick={() => setShowAudioMixing(!showAudioMixing)}
+4594:              title="Audio Mixing"
+4595:              className={`header-btn ${showAudioMixing ? 'active' : ''}`}
+4598:              Audio
+4612:              title="Export Video (Ctrl+E)"
+4689:                  <Layers size={14} />
+4702:            {/* Video Effects - Organized by Category */}
+4706:                onClick={() => setShowVideoEffects(!showVideoEffects)}
+4708:                <h4>Video Effects</h4>
+4710:                  {showVideoEffects ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+4713:              {showVideoEffects && (
+4729:                        {getEffectsByCategory('fade', videoEffects).map(effect => {
+4734:                              className={`effect-item ${selectedClip ? 'clickable' : ''}`}
+4739:                                if (selectedClip) {
+4740:                                  console.log(`🎨 Click apply ${effect.name} to ${selectedClip.title}`);
+4741:                                  applyEffect(selectedClip.id, effect.id, 50);
+4742:                                  alert(`✅ Applied "${effect.name}" to "${selectedClip.title}"!\n\nNote: The effect is saved to the clip. It will be applied during export.`);
+4744:                                  alert('Please select a clip on the timeline first!');
+4747:                              title={selectedClip ? `Click to apply ${effect.name} to "${selectedClip.title}"` : `Select a clip first`}
+4748:                              style={{ cursor: selectedClip ? 'pointer' : 'grab' }}
+4752:                              {selectedClip && <div className="apply-hint" style={{ marginLeft: 'auto', fontSize: '10px', color: '#00ffc8' }}>+ Click</div>}
+4769:                      {getEffectsByCategory('enhancement', videoEffects).map(effect => {
+4774:                            className={`effect-item ${selectedClip ? 'clickable' : ''}`}
+4779:                              if (selectedClip) {
+4780:                                applyEffect(selectedClip.id, effect.id, 60);
+4782:                                alert('Please select a clip on the timeline first!');
+4785:                            title={selectedClip ? `Click to apply ${effect.name} to "${selectedClip.title}"` : `Select a clip first`}
+4786:                            style={{ cursor: selectedClip ? 'pointer' : 'grab' }}
+4790:                            {selectedClip && <div className="apply-hint" style={{ marginLeft: 'auto', fontSize: '10px', color: '#ffcc00' }}>AI</div>}
+4811:                        {getEffectsByCategory('color', videoEffects).map(effect => {
+4816:                              className={`effect-item ${selectedClip ? 'clickable' : ''}`}
+4821:                                if (selectedClip) {
+4822:                                  console.log(`🎨 Click apply ${effect.name} to ${selectedClip.title}`);
+4823:                                  applyEffect(selectedClip.id, effect.id, 50);
+4825:                                  alert('Please select a clip on the timeline first!');
+4828:                              title={selectedClip ? `Click to apply ${effect.name} to "${selectedClip.title}"` : `Drag to a clip or select a clip first`}
+4829:                              style={{ cursor: selectedClip ? 'pointer' : 'grab' }}
+4833:                              {selectedClip && <div className="apply-hint" style={{ marginLeft: 'auto', fontSize: '10px', color: '#00ffc8' }}>+ Click</div>}
+4857:                        {getEffectsByCategory('colorGrading', videoEffects).map(effect => {
+4891:                        {[...getEffectsByCategory('blur', videoEffects), ...getEffectsByCategory('sharpen', videoEffects)].map(effect => {
+4925:                        {getEffectsByCategory('keying', videoEffects).map(effect => {
+4959:                        {getEffectsByCategory('stylize', videoEffects).map(effect => {
+4993:                        {getEffectsByCategory('generate', videoEffects).map(effect => {
+5017:            {/* Audio Effects - Organized by Category */}
+5021:                onClick={() => setShowAudioEffects(!showAudioEffects)}
+5023:                <h4>Audio Effects</h4>
+5025:                  {showAudioEffects ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+5028:              {showAudioEffects && (
+5036:                        {getEffectsByCategory(category, audioEffects).map(effect => {
+5052:                                  onClick={() => selectedClip && previewEffect(selectedClip.id, effect.id, 50)}
+5054:                                  disabled={!selectedClip || selectedClip.type !== 'audio'}
+5060:                                  onClick={() => selectedClip && applyEffect(selectedClip.id, effect.id, 50)}
+5062:                                  disabled={!selectedClip}
+5110:                              title={`Click to select "${transition.name}" - then click + between clips to add`}
+5152:                      Click the <span style={{ color: '#ff6b6b' }}>red +</span> between clips to add
+5175:                accept="video/*,audio/*,image/*"
+5182:                  const Icon = media.type === 'video' ? Video : media.type === 'audio' ? AudioWaveform : Image;
+5231:                            const videoTrack = tracks.find(t => t.type === 'video');
+5232:                            const audioTrack = tracks.find(t => t.type === 'audio');
+5233:                            const targetTrack = media.type === 'audio' ? audioTrack : videoTrack;
+5235:                            if (targetTrack && !targetTrack.locked) {
+5247:                              const lastClipEnd = targetTrack.clips.reduce((max, clip) =>
+5248:                                Math.max(max, clip.startTime + clip.duration), 0
+5251:                              const newClip = {
+5254:                                startTime: lastClipEnd,
+5261:                                keyframes: [],
+5272:                              setTracks(prevTracks =>
+5273:                                prevTracks.map(t =>
+5274:                                  t.id === targetTrack.id
+5275:                                    ? { ...t, clips: [...t.clips, newClip] }
+5280:                              setSelectedClip(newClip);
+5283:                          title="Add to Timeline"
+5323:                        {sourceMonitorMedia.type === 'video' && (
+5324:                          <video src={sourceMonitorMedia.url} controls style={{ maxWidth: '100%', maxHeight: '100%' }} />
+5326:                        {sourceMonitorMedia.type === 'audio' && (
+5327:                          <div className="audio-preview">
+5328:                            <AudioWaveform size={48} />
+5330:                            <audio src={sourceMonitorMedia.url} controls />
+5341:                        <div className="preview-resolution">No clip selected</div>
+5356:                  {/* ADD TO TIMELINE BUTTON */}
+5359:                      className="add-to-timeline-btn"
+5361:                        const videoTrack = tracks.find(t => t.type === 'video');
+5362:                        const audioTrack = tracks.find(t => t.type === 'audio');
+5363:                        const targetTrack = sourceMonitorMedia.type === 'audio' ? audioTrack : videoTrack;
+5365:                        if (targetTrack && !targetTrack.locked) {
+5378:                          // Find the end of existing clips to place new one
+5379:                          const lastClipEnd = targetTrack.clips.reduce((max, clip) =>
+5380:                            Math.max(max, clip.startTime + clip.duration), 0
+5383:                          const newClip = {
+5386:                            startTime: lastClipEnd,
+5393:                            keyframes: [],
+5404:                          setTracks(prevTracks =>
+5405:                            prevTracks.map(t =>
+5406:                              t.id === targetTrack.id
+5407:                                ? { ...t, clips: [...t.clips, newClip] }
+5412:                          setSelectedClip(newClip);
+5431:                      Add to Timeline
+5446:                      title={programMonitorMuted ? 'Unmute Audio' : 'Mute Audio'}
+5472:                      const activeTransition = tracks.flatMap(track =>
+5473:                        (track.transitions || []).map(t => ({ ...t, trackId: track.id }))
+5479:                      // If there's an active transition, render both clips
+5481:                        const track = tracks.find(t => t.id === activeTransition.trackId);
+5482:                        const sortedClips = [...(track?.clips || [])].sort((a, b) => a.startTime - b.startTime);
+5484:                        // Find the two clips involved in the transition
+5485:                        let fromClip = null;
+5486:                        let toClip = null;
+5488:                        for (let i = 0; i < sortedClips.length - 1; i++) {
+5489:                          const clip1End = sortedClips[i].startTime + sortedClips[i].duration;
+5490:                          if (Math.abs(clip1End - (activeTransition.startTime + activeTransition.duration / 2)) < 1) {
+5491:                            fromClip = sortedClips[i];
+5492:                            toClip = sortedClips[i + 1];
+5497:                        if (fromClip && toClip) {
+5504:                              {/* Outgoing clip */}
+5505:                              {fromClip.type === 'video' && (
+5506:                                <video
+5507:                                  src={fromClip.previewUrl || fromClip.mediaUrl}
+5523:                              {fromClip.type === 'image' && (
+5525:                                  src={fromClip.previewUrl || fromClip.mediaUrl}
+5539:                              {/* Incoming clip */}
+5540:                              {toClip.type === 'video' && (
+5541:                                <video
+5542:                                  src={toClip.previewUrl || toClip.mediaUrl}
+5555:                              {toClip.type === 'image' && (
+5557:                                  src={toClip.previewUrl || toClip.mediaUrl}
+5590:                      // Find the clip at current playhead position
+5591:                      const activeClip = tracks
+5592:                        .flatMap(track => track.clips.map(clip => ({ ...clip, trackType: track.type })))
+5593:                        .find(clip => {
+5594:                          const clipEnd = clip.startTime + clip.duration;
+5595:                          return currentTime >= clip.startTime && currentTime < clipEnd;
+5598:                      if (activeClip && (activeClip.mediaUrl || activeClip.previewUrl)) {
+5599:                        // Calculate the time offset within the clip
+5600:                        const clipOffset = currentTime - activeClip.startTime;
+5601:                        const clipProgress = clipOffset / activeClip.duration; // 0 to 1
+5603:                        // Debug: Log clip effects
+5604:                        if (activeClip.effects && activeClip.effects.length > 0) {
+5605:                          console.log(`🎬 Active clip "${activeClip.title}" has effects:`, activeClip.effects, `Progress: ${(clipProgress * 100).toFixed(1)}%`);
+5609:                        const buildCssFilters = (effects, activeClipRef, localTime) => {
+5611:                            const animatedBrightnessOnly = getClipAnimatedValue(
+5612:                              activeClipRef,
+5613:                              KEYFRAME_PROPERTIES.BRIGHTNESS,
+5615:                              DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[KEYFRAME_PROPERTIES.BRIGHTNESS] ?? 50
+5617:                            const animatedContrastOnly = getClipAnimatedValue(
+5618:                              activeClipRef,
+5619:                              KEYFRAME_PROPERTIES.CONTRAST,
+5621:                              DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[KEYFRAME_PROPERTIES.CONTRAST] ?? 50
+5623:                            const animatedSaturationOnly = getClipAnimatedValue(
+5624:                              activeClipRef,
+5625:                              KEYFRAME_PROPERTIES.SATURATION,
+5627:                              DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[KEYFRAME_PROPERTIES.SATURATION] ?? 50
+5637:                          const animatedBrightness = getClipAnimatedValue(
+5638:                            activeClipRef,
+5639:                            KEYFRAME_PROPERTIES.BRIGHTNESS,
+5641:                            DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[KEYFRAME_PROPERTIES.BRIGHTNESS] ?? 50
+5644:                          const animatedContrast = getClipAnimatedValue(
+5645:                            activeClipRef,
+5646:                            KEYFRAME_PROPERTIES.CONTRAST,
+5648:                            DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[KEYFRAME_PROPERTIES.CONTRAST] ?? 50
+5651:                          const animatedSaturation = getClipAnimatedValue(
+5652:                            activeClipRef,
+5653:                            KEYFRAME_PROPERTIES.SATURATION,
+5655:                            DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[KEYFRAME_PROPERTIES.SATURATION] ?? 50
+5660:                            const animatedEffectValue = getClipAnimatedValue(
+5661:                              activeClipRef,
+5662:                              KEYFRAME_PROPERTIES.EFFECT_INTENSITY,
+5710:                          const fadeDuration = 0.3; // 30% of clip for fade (more visible)
+5760:                        const animatedOpacity = getClipAnimatedValue(
+5761:                          activeClip,
+5762:                          KEYFRAME_PROPERTIES.OPACITY,
+5763:                          clipProgress * (activeClip.duration || 0),
+5767:                        const animatedPositionX = getClipAnimatedValue(
+5768:                          activeClip,
+5769:                          KEYFRAME_PROPERTIES.POSITION_X,
+5770:                          clipProgress * (activeClip.duration || 0),
+5774:                        const animatedPositionY = getClipAnimatedValue(
+5775:                          activeClip,
+5776:                          KEYFRAME_PROPERTIES.POSITION_Y,
+5777:                          clipProgress * (activeClip.duration || 0),
+5781:                        const animatedScaleX = getClipAnimatedValue(
+5782:                          activeClip,
+5783:                          KEYFRAME_PROPERTIES.SCALE_X,
+5784:                          clipProgress * (activeClip.duration || 0),
+5788:                        const animatedScaleY = getClipAnimatedValue(
+5789:                          activeClip,
+5790:                          KEYFRAME_PROPERTIES.SCALE_Y,
+5791:                          clipProgress * (activeClip.duration || 0),
+5795:                        const animatedRotation = getClipAnimatedValue(
+5796:                          activeClip,
+5797:                          KEYFRAME_PROPERTIES.ROTATION,
+5798:                          clipProgress * (activeClip.duration || 0),
+5802:                        const localPreviewTime = clipProgress * (activeClip.duration || 0);
+5803:                        const cssFilters = buildCssFilters(activeClip.effects, activeClip, localPreviewTime);
+5804:                        const fadeOverlay = getFadeOverlay(activeClip.effects, clipProgress);
+5808:                            {activeClip.type === 'video' && (
+5809:                              <video
+5810:                                key={activeClip.id}
+5811:                                src={activeClip.previewUrl || activeClip.mediaUrl}
+5821:                                  scopesVideoRef.current = el;
+5823:                                    // Sync video time with timeline
+5824:                                    const targetTime = Math.min(clipOffset, el.duration || activeClip.duration);
+5838:                            {activeClip.type === 'image' && (
+5840:                                src={activeClip.previewUrl || activeClip.mediaUrl}
+5850:                            {activeClip.type === 'audio' && (
+5851:                              <div className="audio-preview" style={{ textAlign: 'center' }}>
+5852:                                <AudioWaveform size={48} style={{ color: '#ff6b6b' }} />
+5853:                                <p style={{ marginTop: '10px' }}>{activeClip.title}</p>
+5872:                            {/* Clip Info Overlay */}
+5883:                                {activeClip.title}
+5884:                                {activeClip.cloudinary_public_id && (
+5889:                                Clip: {formatTime(clipOffset)} / {formatTime(activeClip.duration)}
+5891:                              {activeClip.effects && activeClip.effects.length > 0 && (
+5893:                                  Effects: {activeClip.effects.map(e => e.id).join(', ')}
+5907:                            No clip at playhead position
+5937:          {/* Timeline Section */}
+5963:                onAddToTimeline={(media, inPoint, outPoint, insertType) => {
+5965:                  if (!insertType) insertType = media.type === 'audio' ? 'audio' : 'both';
+5966:                  const videoTrack = tracks.find(t => t.type === 'video');
+5967:                  const audioTrack = tracks.find(t => t.type === 'audio');
+5970:                  const clipDuration = Math.max(1, outPoint - inPoint);
+5972:                  // Find where to insert (at end of existing clips)
+5973:                  const getLastClipEnd = (track) => {
+5974:                    if (!track || !track.clips || track.clips.length === 0) return 0;
+5975:                    return Math.max(...track.clips.map(c => c.startTime + c.duration));
+5978:                  // Insert Video
+5979:                  if ((insertType === 'video' || insertType === 'both') && media.type !== 'audio') { // video/image only
+5980:                    if (videoTrack && !videoTrack.locked) {
+5981:                      const videoClip = {
+5984:                        startTime: getLastClipEnd(videoTrack),
+5985:                        duration: clipDuration || 30,
+5986:                        type: 'video',
+5991:                        outPoint: parseFloat(outPoint) || clipDuration,
+5993:                        keyframes: [],
+6004:                      setTracks(prevTracks =>
+6005:                        prevTracks.map(t =>
+6006:                          t.id === videoTrack.id
+6007:                            ? { ...t, clips: [...t.clips, videoClip] }
+6011:                      setSelectedClip(videoClip);
+6015:                  // Insert Audio (from video or audio file)
+6016:                  if ((insertType === 'audio' || insertType === 'both') &&
+6017:                    (media.type === 'video' || media.type === 'audio')) {
+6018:                    if (audioTrack && !audioTrack.locked) {
+6019:                      const audioClip = {
+6021:                        title: `${media.name} (Audio)`,
+6022:                        startTime: getLastClipEnd(audioTrack),
+6023:                        duration: clipDuration || 30,
+6024:                        type: 'audio',
+6028:                        outPoint: parseFloat(outPoint) || clipDuration,
+6030:                        keyframes: [],
+6036:                      setTracks(prevTracks =>
+6037:                        prevTracks.map(t =>
+6038:                          t.id === audioTrack.id
+6039:                            ? { ...t, clips: [...t.clips, audioClip] }
+6046:                  console.log(`✅ Added ${media.name} to timeline (${insertType})`);
+6183:                          const Icon = media.type === 'video' ? Video : media.type === 'audio' ? AudioWaveform : Image;
+6226:                                  <Icon size={24} style={{ color: media.type === 'video' ? '#4a9eff' : media.type === 'audio' ? '#ff6b6b' : '#00d4aa' }} />
+6233:                                  background: media.type === 'video' ? '#4a9eff' : media.type === 'audio' ? '#ff6b6b' : '#00d4aa',
+6276:                                      const videoTrack = tracks.find(t => t.type === 'video');
+6277:                                      const audioTrack = tracks.find(t => t.type === 'audio');
+6278:                                      const targetTrack = media.type === 'audio' ? audioTrack : videoTrack;
+6280:                                      if (targetTrack && !targetTrack.locked) {
+6290:                                        const lastClipEnd = targetTrack.clips.reduce((max, clip) =>
+6291:                                          Math.max(max, clip.startTime + clip.duration), 0
+6294:                                        const newClip = {
+6297:                                          startTime: lastClipEnd,
+6304:                                          keyframes: [],
+6315:                                        setTracks(prevTracks =>
+6316:                                          prevTracks.map(t =>
+6317:                                            t.id === targetTrack.id
+6318:                                              ? { ...t, clips: [...t.clips, newClip] }
+6322:                                        setSelectedClip(newClip);
+6325:                                    title="Quick Add to Timeline"
+6393:                          const Icon = media.type === 'video' ? Video : media.type === 'audio' ? AudioWaveform : Image;
+6442:                                  <Icon size={14} style={{ color: media.type === 'video' ? '#4a9eff' : media.type === 'audio' ? '#ff6b6b' : '#00d4aa' }} />
+6450:                                color: media.type === 'video' ? '#4a9eff' : media.type === 'audio' ? '#ff6b6b' : '#00d4aa',
+6468:            <div className="editor-timeline-section">
+6469:              {/* Timeline Controls */}
+6470:              <div className="timeline-controls-bar">
+6471:                <div className="timeline-zoom-controls">
+6491:                <div className="timeline-options">
+6493:                    className={`timeline-option-btn ${showSnapToGrid ? 'active' : ''}`}
+6510:                    className={`timeline-option-btn ${showAudioWaveforms ? 'active' : ''}`}
+6511:                    onClick={() => setShowAudioWaveforms(!showAudioWaveforms)}
+6513:                    <AudioWaveform size={12} />
+6517:                    className={`timeline-option-btn ${showKeyframes ? 'active' : ''}`}
+6518:                    onClick={() => setShowKeyframes(!showKeyframes)}
+6521:                    Keyframes
+6526:              {/* Timeline Main */}
+6527:              <div className="timeline-main-container">
+6529:                <div className="timeline-ruler-container">
+6530:                  <div className="track-headers-spacer" style={{ background: '#252830', width: '280px', minWidth: '280px' }} />
+6531:                  <div className="timeline-ruler-scroll">
+6533:                      className="timeline-ruler"
+6538:                      {/* Timeline Markers */}
+6542:                          className="timeline-marker"
+6580:                {/* Tracks */}
+6581:                <div className="timeline-tracks-container">
+6582:                  <div className="track-headers-column" style={{ background: '#252830' }}>
+6583:                    {tracks.sort((a, b) => b.zIndex - a.zIndex).map(track => (
+6584:                      <div key={track.id} className="track-header-container" style={{
+6592:                        <div className="track-controls-left" >
+6593:                          <div className="track-label-container" >
+6594:                            <div className="track-type-icon-container" >
+6595:                              <div className="track-type-icon" style={{
+6605:                                {track.type === 'video' ? <Video size={14} /> : <AudioWaveform size={14} />}
+6608:                                className={`track-lock-btn ${track.locked ? 'locked' : ''}`}
+6609:                                onClick={() => toggleTrackLock(track.id)}
+6610:                                title={track.locked ? 'Unlock Track' : 'Lock Track'}
+6612:                                {track.locked ? <Lock size={10} /> : <Unlock size={10} />}
+6615:                            <div className="track-info" >
+6616:                              <div className="track-name-label" style={{
+6620:                              }}>{track.name}</div>
+6621:                              <div className="track-z-index" style={{
+6625:                              }}>Layer {track.zIndex}</div>
+6628:                          <div className="track-control-buttons" >
+6630:                              className="track-layer-btn"
+6631:                              onClick={() => moveTrackUp(track.id)}
+6632:                              title="Move layer up"
+6649:                              className="track-layer-btn"
+6650:                              onClick={() => moveTrackDown(track.id)}
+6651:                              title="Move layer down"
+6668:                              className={`track-toggle-btn ${track.muted ? '' : 'active'}`}
+6669:                              onClick={() => setTracks(tracks.map(t => t.id === track.id ? { ...t, muted: !t.muted } : t))}
+6676:                                background: track.muted ? '#3a3d45' : 'rgba(0, 255, 200, 0.2)',
+6679:                                color: track.muted ? '#888' : '#00ffc8',
+6683:                              {track.muted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+6686:                              className={`track-toggle-btn ${track.visible ? 'active' : ''}`}
+6687:                              onClick={() => setTracks(tracks.map(t => t.id === track.id ? { ...t, visible: !t.visible } : t))}
+6694:                                background: track.visible ? 'rgba(0, 255, 200, 0.2)' : '#3a3d45',
+6697:                                color: track.visible ? '#00ffc8' : '#888',
+6701:                              {track.visible ? <Eye size={12} /> : <EyeOff size={12} />}
+6704:                              className={`track-toggle-btn ${track.locked ? 'active' : ''}`}
+6705:                              onClick={() => setTracks(tracks.map(t => t.id === track.id ? { ...t, locked: !t.locked } : t))}
+6712:                                background: track.locked ? 'rgba(255, 107, 107, 0.2)' : '#3a3d45',
+6715:                                color: track.locked ? '#ff6b6b' : '#888',
+6719:                              {track.locked ? <Lock size={12} /> : <Unlock size={12} />}
+6727:                  <div className="timeline-tracks-scroll">
+6729:                      className="timeline-tracks-content"
+6731:                      ref={timelineRef}
+6732:                      onClick={handleTimelineClick}
+6736:                        className="timeline-playhead"
+6740:                      {/* Track Rows */}
+6741:                      {tracks.sort((a, b) => b.zIndex - a.zIndex).map((track, index) => (
+6742:                        <div key={track.id} className="timeline-track-row" style={{
+6749:                            className="track-timeline-area"
+6760:                              console.log('🎯 Drop event on track:', track.id, track.name);
+6765:                                handleTimelineDrop(e, track.id);
+6767:                                handleMediaDrop(e, track.id);
+6779:                                        // Manually add the clip
+6795:                                        const newClip = {
+6805:                                          keyframes: [],
+6816:                                        setTracks(prevTracks =>
+6817:                                          prevTracks.map(t =>
+6818:                                            t.id === track.id
+6819:                                              ? { ...t, clips: [...t.clips, newClip] }
+6823:                                        setSelectedClip(newClip);
+6824:                                        console.log('✅ Added clip via dataTransfer backup');
+6833:                            onDragOver={handleTimelineDragOver}
+6842:                            {track.clips.length === 0 ? (
+6843:                              <div className="empty-track-message">
+6848:                                {track.clips.map(clip => {
+6849:                                  const leftPosition = clip.startTime * 2 * zoom;
+6850:                                  const width = clip.duration * 2 * zoom;
+6853:                                      key={clip.id}
+6854:                                      className={`timeline-clip ${selectedClip?.id === clip.id ? 'selected' : ''} ${track.locked ? 'locked' : ''}`}
+6858:                                        backgroundColor: track.color,
+6859:                                        opacity: clip.compositing?.opacity ? clip.compositing.opacity / 100 : 1,
+6860:                                        cursor: track.locked ? 'not-allowed' : 'grab'
+6864:                                        setSelectedClip(clip);
+6867:                                      onMouseDown={(e) => handleClipMouseDown(e, clip, track.id)}
+6868:                                      onDrop={(e) => { handleEffectDrop(e, clip.id); e.currentTarget.style.outline = 'none'; }}
+6872:                                      <div className="clip-content-timeline">
+6873:                                        <div className="clip-title-timeline">
+6874:                                          {clip.title}
+6875:                                          {clip.cloudinary_public_id && (
+6879:                                        <div className="clip-compositing-info">
+6880:                                          {clip.compositing?.blendMode && clip.compositing.blendMode !== 'normal' && (
+6882:                                              {clip.compositing.blendMode}
+6885:                                          {clip.effects && clip.effects.length > 0 && (
+6886:                                            <div className="clip-effects-indicator">
+6888:                                              {clip.effects.length}
+6892:                                        {track.type === 'audio' && showAudioWaveforms && (
+6893:                                          <div className="audio-waveform">
+6894:                                            <AudioWaveform size={12} />
+6897:                                        {showKeyframes && clip.keyframes && clip.keyframes.length > 0 && (
+6898:                                          <div className="keyframe-indicators">
+6899:                                            {clip.keyframes.map((kf, idx) => (
+6902:                                                className="keyframe-diamond"
+6903:                                                style={{ left: `${(kf.time / clip.duration) * 100}%` }}
+6913:                                {/* Add Transition Buttons between adjacent clips */}
+6915:                                  const pairs = getAdjacentClipPairs(track.id);
+6919:                                    const existingTransition = (track.transitions || []).find(t =>
+6951:                                          addTransitionBetweenClips(track.id, pair.clip1, pair.clip2, selectedTransitionType);
+6961:                                        title={`Add "${selectedTransData?.name || 'Cross Dissolve'}" between "${pair.clip1.title}" and "${pair.clip2.title}"`}
+6970:                                {(track.transitions || []).map(transition => {
+6972:                                  const Icon = transitionData?.icon || Layers;
+6978:                                      className={`timeline-transition ${selectedTransition?.id === transition.id ? 'selected' : ''}`}
+6986:                                        setSelectedClip(null);
+7016:                {selectedClip
+7017:                  ? `Effects Stack - ${selectedClip.title}`
+7028:            {selectedClip ? (
+7033:                    <h5>Effects Stack ({selectedClip.effects?.length || 0})</h5>
+7044:                  {selectedClip.effects && selectedClip.effects.length > 0 ? (
+7046:                      {selectedClip.effects.map((appliedEffect, index) => {
+7054:                                  onClick={() => toggleEffect(selectedClip.id, appliedEffect.id)}
+7068:                                  onClick={() => removeEffect(selectedClip.id, appliedEffect.id)}
+7084:                                  onChange={(e) => applyEffect(selectedClip.id, appliedEffect.id, e.target.value)}
+7160:                      selectedClip.type === 'video' ? videoEffects.includes(effect) : audioEffects.includes(effect)
+7167:                          onClick={() => applyEffect(selectedClip.id, effect.id, 50)}
+7179:                {/* Keyframe Panel */}
+7180:                {showKeyframePanel && (
+7182:                    <h5>Animation / Keyframes</h5>
+7183:                    <KeyframePanel
+7184:                      selectedClip={selectedClip}
+7185:                      propertyOptions={keyframePropertyOptions}
+7186:                      selectedProperty={selectedKeyframeProperty}
+7188:                        setSelectedKeyframeProperty(property);
+7189:                        setSelectedKeyframeId(null);
+7190:                        setSelectedKeyframeDraftValue('');
+7191:                        setSelectedKeyframeDraftInterpolation(INTERPOLATION_TYPES.LINEAR);
+7193:                      currentValue={getSelectedClipCurrentAnimatedValue()}
+7195:                      keyframes={ensurePropertyKeyframes(selectedClip, selectedKeyframeProperty)}
+7196:                      onAddKeyframe={handleAddKeyframe}
+7197:                      onRemoveKeyframe={handleRemoveKeyframe}
+7198:                      onSeekToKeyframe={handleSeekToKeyframe}
+7201:                    <KeyframeTimelineStrip
+7202:                      keyframes={ensurePropertyKeyframes(selectedClip, selectedKeyframeProperty)}
+7203:                      duration={getSelectedClipTimelineDuration()}
+7205:                      selectedKeyframeId={selectedKeyframeId}
+7206:                      onSelect={handleSelectKeyframe}
+7207:                      onSeek={handleSeekToKeyframe}
+7208:                      onRemove={(kfId) => handleRemoveKeyframe(selectedKeyframeProperty, kfId)}
+7210:                        handleAddKeyframe(
+7211:                          selectedKeyframeProperty,
+7213:                          getClipAnimatedValue(
+7214:                            selectedClip,
+7215:                            selectedKeyframeProperty,
+7217:                            DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[selectedKeyframeProperty] ?? 0
+7223:                    {/* Selected Keyframe Editor */}
+7224:                    {selectedKeyframeId && getSelectedKeyframe() && (
+7233:                          <strong>Selected Keyframe</strong>
+7235:                            <button type="button" onClick={() => handlePrevNextKeyframe(-1)}>◀ Prev</button>
+7236:                            <button type="button" onClick={() => handlePrevNextKeyframe(1)}>Next ▶</button>
+7245:                              value={selectedKeyframeDraftValue}
+7246:                              onChange={(e) => setSelectedKeyframeDraftValue(e.target.value)}
+7248:                                const parsed = parseFloat(selectedKeyframeDraftValue);
+7250:                                  handleUpdateSelectedKeyframe({ value: parsed });
+7260:                              value={selectedKeyframeDraftInterpolation}
+7263:                                setSelectedKeyframeDraftInterpolation(nextMode);
+7264:                                handleUpdateSelectedKeyframe({ interpolation: nextMode });
+7278:                          Time: {Number(getSelectedKeyframe()?.time || 0).toFixed(2)}s
+7289:                    {selectedClip && selectedClip.type === 'audio' ? (
+7291:                        {Object.keys(audioPresets).map(presetName => (
+7295:                            onClick={() => applyPreset(selectedClip.id, presetName)}
+7305:                          onClick={() => suggestEffects(selectedClip.id)}
+7347:                        setTracks(tracks.map(track => ({
+7348:                          ...track,
+7349:                          transitions: (track.transitions || []).map(t =>
+7380:                  <Layers size={48} />
+7382:                <h3>Select a Clip or Transition</h3>
+7383:                <p>Click on timeline elements to view and edit their effects</p>
+7386:                    <Video size={16} />
+7387:                    <span>Video clips support visual effects</span>
+7390:                    <AudioWaveform size={16} />
+7391:                    <span>Audio clips support audio processing</span>
+7395:                    <span>Drag effects onto clips to apply</span>
+7415:            {selectedClip && selectedClip.type === 'video' ? (
+7428:                            value={selectedClip.compositing?.position?.x || 0}
+7429:                            onChange={(e) => updateCompositing(selectedClip.id, 'position', { x: parseInt(e.target.value) })}
+7437:                            value={selectedClip.compositing?.position?.y || 0}
+7438:                            onChange={(e) => updateCompositing(selectedClip.id, 'position', { y: parseInt(e.target.value) })}
+7452:                            value={selectedClip.compositing?.scale?.x || 100}
+7453:                            onChange={(e) => updateCompositing(selectedClip.id, 'scale', { x: parseInt(e.target.value) })}
+7461:                            value={selectedClip.compositing?.scale?.y || 100}
+7462:                            onChange={(e) => updateCompositing(selectedClip.id, 'scale', { y: parseInt(e.target.value) })}
+7477:                          value={selectedClip.compositing?.rotation || 0}
+7478:                          onChange={(e) => updateCompositing(selectedClip.id, 'rotation', parseInt(e.target.value))}
+7492:                      <label>Opacity: {selectedClip.compositing?.opacity || 100}%</label>
+7497:                        value={selectedClip.compositing?.opacity || 100}
+7498:                        onChange={(e) => updateCompositing(selectedClip.id, 'opacity', parseInt(e.target.value))}
+7505:                        value={selectedClip.compositing?.blendMode || 'normal'}
+7506:                        onChange={(e) => updateCompositing(selectedClip.id, 'blendMode', e.target.value)}
+7581:                        updateCompositing(selectedClip.id, 'scale', { x: 25, y: 25 });
+7582:                        updateCompositing(selectedClip.id, 'position', { x: 600, y: -300 });
+7591:                        updateCompositing(selectedClip.id, 'scale', { x: 150, y: 150 });
+7592:                        updateCompositing(selectedClip.id, 'position', { x: 0, y: 0 });
+7601:                        updateCompositing(selectedClip.id, 'position', { x: -960, y: 0 });
+7610:                        updateCompositing(selectedClip.id, 'position', { x: 960, y: 0 });
+7620:              <div className="no-video-clip-message-enhanced">
+7621:                <div className="no-clip-icon">
+7622:                  <Video size={48} />
+7624:                <h3>Select a Video Clip</h3>
+7625:                <p>Transform and compositing controls are available for video clips only</p>
+7636:                    <Layers size={16} />
+7652:              <span style={{fontSize:10,color:'#4e6a82'}}>{selectedClip ? selectedClip.title : 'No clip selected'}</span>
+7665:                        onClick={() => { if(selectedClip) applyEffect(selectedClip.id, 'lut_preset', 50); }}
+7675:            <ColorGradingPanel onGrade={(grade) => { if(selectedClip) applyEffect(selectedClip.id,'colorGrade',50); }} />
+7712:      {/* Audio Mixing Workspace */}
+7714:        showAudioMixing && (
+7715:          <div className="audio-workspace">
+7716:            <div className="audio-workspace-header">
+7717:              <h4>Audio Mixing Console</h4>
+7718:              <button onClick={() => setShowAudioMixing(false)} className="close-panel-btn">
+7751:              {tracks.filter(t => t.type === 'audio' || t.clips.some(c => c.type === 'audio')).map(track => (
+7752:                <div key={track.id} className="mixer-channel-pro" style={{borderLeft:`2px solid ${track.color||'#21262d'}`}}>
+7753:                  <div className="channel-name" style={{color:track.color||'#e6edf3'}}>{track.name}</div>
+7756:                      <div key={b} className="eq-knob-wrap"><div className="eq-knob" style={{background:`conic-gradient(${track.color||'#00ffc8'} 180deg,#21262d 180deg)`}}></div><span>{b}</span></div>
+7765:                      <div key={i} className="vu-segment" style={{background:i<14?`${track.color||'#00ffc8'}bb`:i<18?'rgba(255,193,7,0.7)':'rgba(248,81,73,0.8)',width:`${Math.max(8,Math.floor(Math.random()*55)+15)}%`}}/>
+7769:                    <input type="range" min="-60" max="12" defaultValue="0" style={{writingMode:'vertical-lr',direction:'rtl',width:32,height:100,accentColor:track.color||'#00ffc8'}}/>
+7784:      {/* ── Video Scopes ─────────────────────────────────────────── */}
+7788:            <span>📊 Video Scopes</span>
+7824:              session={multicamSession || createMultiCamSession({ clips: tracks.flatMap(t=>t.clips), syncMethod: 'audio' })}
+7827:                setMulticamSession(prev =>(prev || createMultiCamSession({ clips: tracks.flatMap(t=>t.clips) }), time, angleIdx));
+7830:                const activeAngle = tracks.flatMap(t=>t.clips)[angleIdx];
+7831:                if (activeAngle) setSelectedClip(activeAngle);
+7846:            {selectedClip
+7848:              : <div style={{color:'#4e6a82',fontSize:12,textAlign:'center',padding:20}}>Select a video clip first</div>}
+7861:            {selectedClip
+7863:              : <div style={{color:'#4e6a82',fontSize:12,textAlign:'center',padding:20}}>Select a clip first</div>}
+7868:      {/* ── Adjustment Layer ──────────────────────────────────────── */}
+7869:      {showAdjustmentLayer && (
+7872:            <span>🔧 Adjustment Layer</span>
+7873:            <button onClick={()=>setShowAdjustmentLayer(false)} className="close-panel-btn"><X size={14}/></button>
+7876:            <AdjustmentLayerPanel layer={adjustmentLayers[0]||createAdjustmentLayer({})} onChange={(l)=>setAdjustmentLayers([l])}/>
+7904:                if (!selectedClip) { alert('Select a clip first'); return; }
+7905:                const url = selectedClip.mediaUrl || selectedClip.r2_url || selectedClip.url;
+7906:                if (!url) { alert('Clip has no media URL'); return; }
+7909:                  const res = await fetch(`${backendURL}/api/video-editor/transcribe`, {
+7912:                    body: JSON.stringify({ media_url: url, clip_id: selectedClip.id })
+7919:                    startTime: selectedClip.startTime + seg.start
+7975:                <button key={key} onClick={()=>setPipLayers(prev=>[...prev,createPIP({position:key})])}
+8007:              clipId={selectedClip?.id} scenes={sceneList}
+8032:      {/* ── Audio Ducking ─────────────────────────────────────────── */}
+8033:      {showAudioDucking && (
+8036:            <span>🎙 Audio Ducking</span>
+8037:            <button onClick={()=>setShowAudioDucking(false)} className="close-panel-btn"><X size={14}/></button>
+8040:            <AudioDuckingPanel settings={createAudioDuckingSettings()} tracks={tracks} onAnalyze={()=>{}} onChange={()=>{}}/>
+8045:      {/* ── Motion Tracking ───────────────────────────────────────── */}
+8046:      {showMotionTracking && (
+8049:            <span>🎯 Motion Tracking</span>
+8050:            <button onClick={()=>setShowMotionTracking(false)} className="close-panel-btn"><X size={14}/></button>
+8053:            <MotionTrackingPanel tracks={[]} currentTime={currentTime} onCreateTrack={()=>{}} onDeleteTrack={()=>{}} onAddAttachment={()=>{}}/>
+8076:            tracks={tracks}
+8089:export default VideoEditorComponent;

@@ -1,0 +1,25 @@
+import React from "react";
+import SPXEditorHeader from "./SPXEditorHeader";
+import SPXEditorTimeline from "./SPXEditorTimeline";
+import { useSPXEditorState } from "../hooks/useSPXEditorState";
+import SPXPanelLayout from "./SPXPanelLayout";
+import "../../../styles/SPXEditor.css";
+
+const SPXEditorComponent = () => {
+  const editor = useSPXEditorState();
+
+  return (
+    <div className="spx-editor-shell">
+      <SPXEditorHeader editor={editor} />
+
+      <div className="spx-editor-workspace">
+        <div className="spx-editor-main spx-editor-main-full">
+          <SPXPanelLayout editor={editor} />
+          <SPXEditorTimeline editor={editor} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SPXEditorComponent;

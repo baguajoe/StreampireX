@@ -5,7 +5,7 @@
 // Integrates with PluginHost for full rack restore.
 // =============================================================================
 
-import { getPluginHost } from '../PluginHost';
+import { getPluginHost } from '../PluginHost.js';
 
 /**
  * Serialize all track racks into a JSON-safe object for project save.

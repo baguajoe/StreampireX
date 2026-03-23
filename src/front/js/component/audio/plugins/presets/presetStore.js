@@ -5,7 +5,7 @@
 // CRUD operations: list, save, load, delete, rename.
 // =============================================================================
 
-import { getPluginDef } from '../registry';
+import { getPluginDef } from '../registry.js';
 
 const STORAGE_KEY = 'spx_plugin_presets';
 
