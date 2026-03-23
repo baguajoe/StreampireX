@@ -2063,3 +2063,79 @@ display:none;
 
 }
 
+
+/* ============================================
+   HOTFIX: kill legacy floating overlays
+   ============================================ */
+
+/* old floating effects / media overlays */
+.effects-panel{
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  right: auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  z-index: 1 !important;
+}
+
+.project-media-panel{
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  right: auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  z-index: 1 !important;
+}
+
+/* anything still marked floating */
+.floating-panel,
+.zoom-controls{
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  z-index: 1 !important;
+}
+
+/* make the main shell win */
+.editor-main-layout{
+  position: relative !important;
+  isolation: isolate;
+}
+
+.editor-main-layout > *{
+  min-width: 0;
+  min-height: 0;
+}
+
+/* center area should fill available space */
+.preview-area-container,
+.editor-center-panel,
+.center-monitor-area{
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* keep left rail contained */
+.editor-left-panel{
+  overflow: hidden !important;
+}
+
+/* keep bottom content from floating upward */
+.timeline-container,
+.bottom-timeline-panel,
+.timeline-shell{
+  align-self: stretch !important;
+}
+
+/* temporary: hide duplicate text-heavy legacy panel body if still rendered */
+.effects-panel h2,
+.effects-panel h3{
+  margin-top: 0;
+}
+
