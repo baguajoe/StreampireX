@@ -22,3 +22,30 @@ Commits: 0defae1 → a0845d3c (StreampireX), 3395eb7a → a0845d3c (spx-studio)
 - Goal: Desktop video editor compatible with Premiere, DaVinci, Final Cut
 - Repo: new spx-video or add to spx-studio
 - Key features: timeline, multicam, color grading, transitions, export
+
+## Session 6 — Video Editor Premiere-Pro Upgrade
+Date: 2026-03-23
+Commits: 01fbed0 → dd4fda1 (StreampireX)
+
+### Completed this session:
+- 11 patches applied, 0 skipped
+- 40+ LUT/film stock presets (Kodak, Fuji, Ilford, cinema, social, vintage, nature, technical)
+- Full Lumetri-style color workspace (LUT grid, curves, HSL secondaries, vignette)
+- Real VU meter audio mixer (per-channel EQ knobs, PAN, M/S/R buttons, master bus)
+- Video Scopes panel (Waveform, Vectorscope, Histogram, Parade canvases)
+- Multicam Editor wired to timeline clips
+- Chroma Key panel wired to selected clip
+- Speed Ramp panel wired to selected clip
+- Adjustment Layer panel
+- Captions/Subtitles panel (styles + AI auto-caption button)
+- Text & Titles panel (TEXT_PRESETS + LOWER_THIRD_TEMPLATES wired)
+- Overlays & PIP panel (all PIP_POSITIONS + watermark + SOCIAL_TEMPLATES)
+- Scene Detection panel (analyze → auto-split → jump to scene)
+- Background Removal panel
+- Audio Ducking panel
+- Motion Tracking panel
+- Template Library panel
+- Platform export presets (YouTube 4K/1080p, Instagram Reel/Post, TikTok, Twitter, Cinema 4K, ProRes, Podcast)
+- Window menu updated with all new panels
+- Toolbar: Scopes + Multicam + Chroma buttons added
+- CSS: full panel-pro, color-workspace-pro, scopes-panel-pro, mixing-console-pro styles
