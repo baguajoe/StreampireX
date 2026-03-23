@@ -329,6 +329,7 @@ import {
 import {
   applyChromaKey, createChromaKeySettings, ChromaKeyPanel, CHROMA_PRESETS,
   SPEED_RAMP_PRESETS, getSpeedAtPosition, SpeedRampPanel,
+  createMultiCamSession, addMultiCamCut, MultiCamPanel,
   createFreezeFrame,
   createAdjustmentLayer, AdjustmentLayerPanel, BLEND_MODES,
   autoReframeAnalyze, calculateReframeCrop,
@@ -2364,6 +2365,134 @@ TIMELINE
   const [sceneProgress, setSceneProgress] = useState(0);
   const [adjustmentLayers, setAdjustmentLayers] = useState([]);
   const scopesCanvasRef = useRef(null);
+  const scopesRafRef = useRef(null);
+  const scopesVideoRef = useRef(null);
+  const vectorCanvasRef = useRef(null);
+  const histCanvasRef = useRef(null);
+
+  // ── Draw scopes from video frame ──────────────────────────
+  const drawScopes = React.useCallback(() => {
+    const video = scopesVideoRef.current;
+    const waveCanvas = scopesCanvasRef.current;
+    const vecCanvas = vectorCanvasRef.current;
+    const histCanvas = histCanvasRef.current;
+    if (!video || video.readyState < 2) return;
+
+    const offscreen = document.createElement('canvas');
+    offscreen.width = 320; offscreen.height = 180;
+    const octx = offscreen.getContext('2d');
+    octx.drawImage(video, 0, 0, 320, 180);
+    const pixels = octx.getImageData(0, 0, 320, 180).data;
+
+    // ── Waveform (luma) ──
+    if (waveCanvas) {
+      const wctx = waveCanvas.getContext('2d');
+      wctx.fillStyle = '#06060f';
+      wctx.fillRect(0, 0, waveCanvas.width, waveCanvas.height);
+      wctx.strokeStyle = '#00ffc8';
+      wctx.lineWidth = 1;
+      for (let x = 0; x < 320; x++) {
+        for (let y = 0; y < 180; y++) {
+          const idx = (y * 320 + x) * 4;
+          const luma = 0.299*pixels[idx] + 0.587*pixels[idx+1] + 0.114*pixels[idx+2];
+          const wx = Math.floor((x / 320) * waveCanvas.width);
+          const wy = waveCanvas.height - Math.floor((luma / 255) * waveCanvas.height);
+          wctx.fillStyle = 'rgba(0,255,200,0.4)';
+          wctx.fillRect(wx, wy, 1, 1);
+        }
+      }
+    }
+
+    // ── Vectorscope (Cb/Cr) ──
+    if (vecCanvas) {
+      const vctx = vecCanvas.getContext('2d');
+      vctx.fillStyle = '#06060f';
+      vctx.fillRect(0, 0, vecCanvas.width, vecCanvas.height);
+      // Draw target circles
+      vctx.strokeStyle = '#21262d';
+      vctx.beginPath();
+      vctx.arc(vecCanvas.width/2, vecCanvas.height/2, vecCanvas.width*0.4, 0, Math.PI*2);
+      vctx.stroke();
+      for (let i = 0; i < pixels.length; i += 16) {
+        const r=pixels[i], g=pixels[i+1], b=pixels[i+2];
+        const cb = 128 - 0.168736*r - 0.331264*g + 0.5*b;
+        const cr = 128 + 0.5*r - 0.418688*g - 0.081312*b;
+        const vx = Math.floor((cb/255)*vecCanvas.width);
+        const vy = Math.floor((cr/255)*vecCanvas.height);
+        vctx.fillStyle = `rgba(${r},${g},${b},0.6)`;
+        vctx.fillRect(vx, vy, 2, 2);
+      }
+    }
+
+    // ── Histogram (RGB) ──
+    if (histCanvas) {
+      const hctx = histCanvas.getContext('2d');
+      hctx.fillStyle = '#06060f';
+      hctx.fillRect(0, 0, histCanvas.width, histCanvas.height);
+      const rHist=new Uint32Array(256), gHist=new Uint32Array(256), bHist=new Uint32Array(256);
+      for (let i=0;i<pixels.length;i+=4){ rHist[pixels[i]]++; gHist[pixels[i+1]]++; bHist[pixels[i+2]]++; }
+      const maxVal = Math.max(...rHist, ...gHist, ...bHist);
+      [[rHist,'rgba(248,81,73,0.7)'],[gHist,'rgba(63,185,80,0.7)'],[bHist,'rgba(74,158,255,0.7)']].forEach(([hist,color])=>{
+        hctx.strokeStyle = color;
+        hctx.beginPath();
+        for (let x=0;x<256;x++){
+          const barH = Math.floor((hist[x]/maxVal)*histCanvas.height);
+          const px = Math.floor((x/256)*histCanvas.width);
+          if (x===0) hctx.moveTo(px, histCanvas.height-barH);
+          else hctx.lineTo(px, histCanvas.height-barH);
+        }
+        hctx.stroke();
+      });
+    }
+  }, []);
+
+  // ── RAF loop for scopes ───────────────────────────────────
+  React.useEffect(() => {
+    if (!showScopes) { if (scopesRafRef.current) cancelAnimationFrame(scopesRafRef.current); return; }
+    const loop = () => { drawScopes(); scopesRafRef.current = requestAnimationFrame(loop); };
+    loop();
+    return () => { if (scopesRafRef.current) cancelAnimationFrame(scopesRafRef.current); };
+  }, [showScopes, drawScopes]);
+  const vuAudioCtxRef = useRef(null);
+  const vuAnalysersRef = useRef({});
+  const vuRafRef = useRef(null);
+  const vuBarsRef = useRef({});
+
+  // ── Init Web Audio context for VU meters ──────────────────
+  React.useEffect(() => {
+    try {
+      vuAudioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    } catch(e) { console.warn('VU AudioContext unavailable:', e); }
+    return () => {
+      if (vuRafRef.current) cancelAnimationFrame(vuRafRef.current);
+      if (vuAudioCtxRef.current) vuAudioCtxRef.current.close();
+    };
+  }, []);
+
+  // ── RAF loop: animate VU bars ─────────────────────────────
+  React.useEffect(() => {
+    if (!showAudioMixing) { if (vuRafRef.current) cancelAnimationFrame(vuRafRef.current); return; }
+    const animate = () => {
+      vuRafRef.current = requestAnimationFrame(animate);
+      Object.entries(vuAnalysersRef.current).forEach(([trackId, analyser]) => {
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(data);
+        const rms = Math.sqrt(data.reduce((s,v)=>s+v*v,0)/data.length);
+        const level = Math.min(100, (rms / 128) * 100);
+        const bars = vuBarsRef.current[trackId];
+        if (bars) {
+          bars.forEach((bar, i) => {
+            if (!bar) return;
+            const threshold = (i / bars.length) * 100;
+            bar.style.opacity = level > threshold ? '1' : '0.12';
+            bar.style.width = level > threshold ? `${40 + i * 3}%` : '8%';
+          });
+        }
+      });
+    };
+    animate();
+    return () => { if (vuRafRef.current) cancelAnimationFrame(vuRafRef.current); };
+  }, [showAudioMixing]);
   const [showKeyframes, setShowKeyframes] = useState(false);
   const [draggedTransition, setDraggedTransition] = useState(null);
   const [draggedEffect, setDraggedEffect] = useState(null);
@@ -2722,11 +2851,16 @@ TIMELINE
     const animate = (now) => {
       // Use ref to get current playing state
       if (isPlayingRef.current) {
-        const delta = (now - lastTime) / 1000; // Convert to seconds
+        const delta = (now - lastTime) / 1000;
+        // Apply speed ramp if active clip has speed points
+        const activeClipNow = tracks.flatMap(t=>t.clips).find(c => currentTime >= c.startTime && currentTime < c.startTime + c.duration);
+        const speedMult = (activeClipNow && speedRampPoints.length > 0)
+          ? getSpeedAtPosition(speedRampPoints, (currentTime - activeClipNow.startTime) / activeClipNow.duration)
+          : 1;
         lastTime = now;
 
         setCurrentTime(prev => {
-          const newTime = prev + delta;
+          const newTime = prev + delta * speedMult;
           // Stop at the end of the timeline
           if (newTime >= duration) {
             setIsPlaying(false);
@@ -4162,6 +4296,27 @@ TIMELINE
         { label: 'About StreamPireX Editor', action: () => alert('StreamPireX Video Editor\nVersion 1.0.0\n\nProfessional video editing for creators.') }
       ]
     }
+  };
+
+  // ── Panel resize helper ──────────────────────────────────
+  const usePanelResize = (defaultW = 380, defaultH = null) => {
+    const [size, setSize] = React.useState({ w: defaultW, h: defaultH });
+    const dragging = useRef(false);
+    const startPos = useRef({ x: 0, y: 0, w: defaultW, h: defaultH });
+    const onMouseDown = (e) => {
+      dragging.current = true;
+      startPos.current = { x: e.clientX, y: e.clientY, w: size.w, h: size.h || 400 };
+      const onMove = (e2) => {
+        if (!dragging.current) return;
+        const dw = startPos.current.x - e2.clientX;
+        const dh = e2.clientY - startPos.current.y;
+        setSize({ w: Math.max(280, startPos.current.w + dw), h: defaultH ? Math.max(200, startPos.current.h + dh) : null });
+      };
+      const onUp = () => { dragging.current = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    };
+    return { size, onMouseDown };
   };
 
   return (
@@ -5785,6 +5940,7 @@ TIMELINE
                                 muted={programMonitorMuted}
                                 loop={false}
                                 ref={(el) => {
+                                  scopesVideoRef.current = el;
                                   if (el) {
                                     // Sync video time with timeline
                                     const targetTime = Math.min(clipOffset, el.duration || activeClip.duration);
@@ -7838,11 +7994,11 @@ TIMELINE
             <div style={{display:'flex',gap:12}}>
               <div className="scope-canvas-wrap" style={{flex:1}}>
                 <div style={{fontSize:10,color:'#4e6a82',marginBottom:4}}>VECTORSCOPE</div>
-                <canvas width={100} height={100} style={{borderRadius:'50%',background:'#06060f',border:'1px solid #21262d',display:'block'}}/>
+                <canvas ref={vectorCanvasRef} width={100} height={100} style={{borderRadius:'50%',background:'#06060f',border:'1px solid #21262d',display:'block'}}/>
               </div>
               <div className="scope-canvas-wrap" style={{flex:2}}>
                 <div style={{fontSize:10,color:'#4e6a82',marginBottom:4}}>HISTOGRAM (RGB)</div>
-                <canvas width={200} height={80} style={{width:'100%',background:'#06060f',borderRadius:6,border:'1px solid #21262d'}}/>
+                <canvas ref={histCanvasRef} width={200} height={80} style={{width:'100%',background:'#06060f',borderRadius:6,border:'1px solid #21262d'}}/>
               </div>
             </div>
           </div>
@@ -7857,7 +8013,17 @@ TIMELINE
             <button onClick={()=>setShowMulticam(false)} className="close-panel-btn"><X size={14}/></button>
           </div>
           <div style={{padding:16}}>
-            <MulticamEditor clips={tracks.flatMap(t=>t.clips)} currentTime={currentTime} onAngleSwitch={(id,t)=>console.log('Cut angle',id,'at',t)}/>
+            <MultiCamPanel
+              session={multicamSession || createMultiCamSession({ clips: tracks.flatMap(t=>t.clips), syncMethod: 'audio' })}
+              currentTime={currentTime}
+              onCut={(time, angleIdx) => {
+                setMulticamSession(prev => addMultiCamCut(prev || createMultiCamSession({ clips: tracks.flatMap(t=>t.clips) }), time, angleIdx));
+              }}
+              onSelectAngle={(angleIdx) => {
+                const activeAngle = tracks.flatMap(t=>t.clips)[angleIdx];
+                if (activeAngle) setSelectedClip(activeAngle);
+              }}
+            />
           </div>
         </div>
       )}
@@ -7926,7 +8092,33 @@ TIMELINE
               <button onClick={()=>setCaptions(prev=>[...prev,createCaptionSegment({words:[],startTime:currentTime})])}
                 style={{padding:'4px 12px',background:'rgba(0,255,200,0.1)',border:'1px solid rgba(0,255,200,0.3)',borderRadius:4,color:'#00ffc8',fontSize:11,cursor:'pointer'}}>Add</button>
             </div>
-            <button style={{width:'100%',padding:'9px',background:'rgba(191,90,242,0.1)',border:'1px solid rgba(191,90,242,0.3)',borderRadius:6,color:'#bf5af2',fontSize:12,fontWeight:700,cursor:'pointer'}}>
+            <button
+              onClick={async () => {
+                if (!selectedClip) { alert('Select a clip first'); return; }
+                const url = selectedClip.mediaUrl || selectedClip.r2_url || selectedClip.url;
+                if (!url) { alert('Clip has no media URL'); return; }
+                try {
+                  const token = localStorage.getItem('jwt-token') || localStorage.getItem('token');
+                  const res = await fetch(`${backendURL}/api/video-editor/transcribe`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ media_url: url, clip_id: selectedClip.id })
+                  });
+                  if (!res.ok) throw new Error('Transcription failed');
+                  const data = await res.json();
+                  const newCaptions = (data.segments || []).map(seg => createCaptionSegment({
+                    words: seg.words || [{ word: seg.text, start: seg.start, end: seg.end }],
+                    style: 'default',
+                    startTime: selectedClip.startTime + seg.start
+                  }));
+                  setCaptions(prev => [...prev, ...newCaptions]);
+                  alert(`✅ Generated ${newCaptions.length} caption segments`);
+                } catch(err) {
+                  console.error('Whisper error:', err);
+                  alert('Transcription failed: ' + err.message);
+                }
+              }}
+              style={{width:'100%',padding:'9px',background:'rgba(191,90,242,0.1)',border:'1px solid rgba(191,90,242,0.3)',borderRadius:6,color:'#bf5af2',fontSize:12,fontWeight:700,cursor:'pointer'}}>
               🤖 AI Auto-Caption (Whisper)
             </button>
           </div>

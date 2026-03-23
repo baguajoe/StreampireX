@@ -1425,3 +1425,32 @@
   border-color: #00ffc8 !important;
   box-shadow: 0 0 0 2px rgba(0,255,200,0.25);
 }
+
+/* ── Resizable panel handle ──────────────────────────────── */
+.panel-resize-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+  background: transparent;
+  transition: background 0.15s;
+  z-index: 20;
+}
+.panel-resize-handle:hover,
+.panel-resize-handle:active {
+  background: rgba(0,255,200,0.25);
+}
+.panel-pro { position: relative; }
+
+/* ── VU meter live animation ─────────────────────────────── */
+.vu-segment {
+  transition: width 0.05s ease, opacity 0.05s ease !important;
+}
+
+/* ── Scope canvas crosshair ──────────────────────────────── */
+.scope-canvas-wrap canvas { cursor: crosshair; }
+
+/* ── Panel drag indicator ────────────────────────────────── */
+.panel-pro-header { cursor: move; user-select: none; }
