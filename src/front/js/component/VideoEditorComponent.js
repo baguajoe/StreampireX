@@ -282,62 +282,134 @@ const ColorGradingPanel = ({ onGrade }) => {
   );
 };
 
+import {
+  Activity,
+  Aperture,
+  Copy,
+  Crown,
+  Download,
+  Eye,
+  FastForward,
+  Film,
+  Filter,
+  Folder,
+  Grid,
+  Image,
+  Info,
+  Layers,
+  List,
+  Loader,
+  Lock,
+  Monitor,
+  Move,
+  Palette,
+  Pause,
+  Play,
+  Plus,
+  Rewind,
+  Save,
+  Settings,
+  Sparkles,
+  Square,
+  Star,
+  Sun,
+  Target,
+  Trash2,
+  Tv,
+  Unlock,
+  Upload,
+  Video,
+  Contrast,
+  MousePointer,
+  Scissors,
+  Type,
+  Sliders,
+  Radio,
+  Maximize2,
+  Minimize2,
+  RefreshCw,
+  RotateCw,
+  SkipBack,
+  SkipForward,
+  Volume2,
+  VolumeX,
+  Wand2,
+  ZoomIn,
+  ZoomOut,
+  TrendingUp,
+  EyeOff,
+  ChevronDown,
+  ChevronUp,
+  ArrowLeft,
+  ArrowRight,
+  ArrowLeftRight,
+  ArrowUpDown,
+  AudioWaveform,
+  X,
+  Check,
+  AlertCircle,
+  Clock,
+  Link,
+  Mic,
+  MicOff,
+  Music,
+  Headphones,
+  Speaker,
+  Crop,
+  Waveform,
+  Hand,
+  AreaChart,
+  BarChart,
+  Binary,
+  Bolt,
+  Brush,
+  Camera,
+  Crosshair,
+  Diamond,
+  Disc,
+  Droplets,
+  Flashlight,
+  FlipHorizontal,
+  Focus,
+  Gauge,
+  Hash,
+  Hexagon,
+  Lightbulb,
+  Moon,
+  Paintbrush,
+  PlayCircle,
+  RadioIcon,
+  Rainbow,
+  SquareIcon,
+  Triangle,
+  Volume1,
+  Waves,
+  WifiOff,
+  Wind,
+  Zap,
+  Circle
+} from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import KeyframePanel from '../keyframes/ui/KeyframePanel';
 import KeyframeTimelineStrip from '../keyframes/ui/KeyframeTimelineStrip';
-import { createKeyframe, upsertClipKeyframe, deleteClipKeyframe, patchClipKeyframe, getClipAnimatedValue, ensurePropertyKeyframes } from '../keyframes/engine/keyframeEngine';
-import { KEYFRAME_PROPERTIES, DEFAULT_KEYFRAME_VALUE_BY_PROPERTY, INTERPOLATION_TYPES } from '../keyframes/engine/keyframeTypes';
-import '../../styles/VideoEditorComponent.css';
 import {
-  Play, Pause, Square, RotateCcw, Download, Upload, Volume2, VolumeX,
-  Eye, EyeOff, Lock, Unlock, Plus, Trash2, Scissors, Copy, Move, Settings,
-  Music, Video, AudioWaveform, Save, Youtube, Instagram, Facebook, Twitter,
-  ChevronDown, ChevronUp, Layers, Zap, Filter, Folder, List, Film,
-  Palette, Tv, Info, MousePointer, Hand, Type,
-  Circle, Pen, Eraser, Crop, RotateCw, FlipHorizontal,
-  ZoomIn, ZoomOut, Grid, Minimize2, Maximize2, MoreVertical, X, Crown, Star, Bolt,
-  Sliders, Image, Wand2, Sparkles, Sun, Moon, Droplets, Contrast,
-  RefreshCw, SkipForward, SkipBack, Rewind, FastForward, Monitor, Camera,
-  RotateCcw as Rotate, Maximize, ArrowUpDown, ArrowLeftRight,
-  Disc, Radio, Gauge, Waves, Shuffle, TrendingUp, Target, Crosshair,
-  Aperture, Focus, Flashlight, Rainbow, Paintbrush, Brush, Scissors as Cut,
-  Wind, Snowflake, Flame, Lightbulb, Globe, Magnet, Binary, Hash, Code,
-  Hexagon, Triangle, Square as SquareIcon, Diamond, Octagon, Pentagon,
-  Activity, BarChart, PieChart, LineChart, AreaChart, Thermometer,
-  Wifi, WifiOff, Bluetooth, Radio as RadioIcon, Mic, MicOff, Speaker, Headphones,
-  Volume1, Volume, VolumeX as Mute, Bell, BellOff, PlayCircle, PauseCircle,
-  Loader
-} from 'lucide-react';
-
-// ── NEW: Motion Graphics & Keyframes ──
-import {
-  EASING, ANIMATABLE_PROPS, interpolateKeyframes,
-  keyframesToCSS, KeyframeEditor, TEXT_PRESETS, LOWER_THIRD_TEMPLATES,
-} from '../component/VideoEditorMotion';
-
-// ── NEW: Overlays, Captions, Stickers, Watermark, PIP ──
-import {
-  createTextOverlay, TextOverlayRenderer,
-  CAPTION_STYLES, createCaptionSegment, CaptionRenderer,
-  STICKER_LIBRARY, createStickerOverlay,
-  createWatermark, WatermarkRenderer,
-  createPIP, PIPRenderer, PIP_POSITIONS,
-  SOCIAL_TEMPLATES,
-} from '../component/VideoEditorOverlays';
-
-// ── NEW: Chroma Key, Speed Ramp, Multi-Cam, etc. ──
-import {
-  applyChromaKey, createChromaKeySettings, ChromaKeyPanel, CHROMA_PRESETS,
-  SPEED_RAMP_PRESETS, getSpeedAtPosition, SpeedRampPanel,
-  createMultiCamSession, addMultiCamCut, MultiCamPanel,
-  createFreezeFrame,
-  createAdjustmentLayer, AdjustmentLayerPanel, BLEND_MODES,
-  autoReframeAnalyze, calculateReframeCrop,
   VideoStabilizer,
-  createNoiseProfile, applyNoiseReduction,
-  createMultiCamSession, addMultiCamCut, MultiCamPanel,
-  detectBeats, snapToBeat,
-  ASPECT_RATIOS, EXPORT_PRESETS,
+  createNoiseProfile,
+  applyNoiseReduction,
+  createMultiCamSession,
+  MultiCamPanel,
+  detectBeats,
+  snapToBeat,
+  ASPECT_RATIOS,
+  EXPORT_PRESETS,
+  createChromaKeySettings,
+  applyChromaKey,
+  ChromaKeyPanel,
+  CHROMA_PRESETS,
+  AdjustmentLayerPanel,
+  SpeedRampPanel,
+  createAdjustmentLayer,
+  getSpeedAtPosition,
 } from '../component/VideoEditorEffectsPlus';
 
 import { BackgroundRemovalPanel, MotionTrackingPanel, AudioDuckingPanel,
@@ -358,6 +430,8 @@ import {
   useKeyboardShortcuts
 } from './hooks/useVideoEditorState';
 import { useTierAccess } from './hooks/useTierAccess';
+import { KEYFRAME_PROPERTIES, INTERPOLATION_TYPES, DEFAULT_KEYFRAME_VALUE_BY_PROPERTY } from '../keyframes/engine/keyframeTypes';
+
 
 // Backend URL configuration
 const backendURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
@@ -8017,7 +8091,7 @@ TIMELINE
               session={multicamSession || createMultiCamSession({ clips: tracks.flatMap(t=>t.clips), syncMethod: 'audio' })}
               currentTime={currentTime}
               onCut={(time, angleIdx) => {
-                setMulticamSession(prev => addMultiCamCut(prev || createMultiCamSession({ clips: tracks.flatMap(t=>t.clips) }), time, angleIdx));
+                setMulticamSession(prev =>(prev || createMultiCamSession({ clips: tracks.flatMap(t=>t.clips) }), time, angleIdx));
               }}
               onSelectAngle={(angleIdx) => {
                 const activeAngle = tracks.flatMap(t=>t.clips)[angleIdx];

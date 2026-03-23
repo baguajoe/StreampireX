@@ -1,0 +1,5 @@
+# start frontend/backend and verify:
+# /plugin-store
+# /sell-plugin
+# /plugins/:pluginId
+# /payout-dashboard

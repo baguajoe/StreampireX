@@ -726,3 +726,5 @@ registerProcessor('spx-limiter', SPXLimiterProcessor);
 }
 
 export default AudioEngine;
+
+export const getEngine = () => AudioEngine.getInstance();

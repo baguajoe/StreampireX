@@ -1,0 +1,14 @@
+# Run these manually after reviewing the generated files:
+
+flask db migrate -m "add plugin marketplace models"
+flask db upgrade
+
+# Optional sample data
+python3 scripts/seed_plugin_marketplace.py
+
+# Useful route checks
+grep -n "plugin_marketplace_bp" src/app.py
+grep -n "/api/plugins" src/api/plugin_marketplace_routes.py
+
+# Start app
+python3 src/app.py

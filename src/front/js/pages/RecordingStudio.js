@@ -31,6 +31,7 @@ import "../../styles/SampleLibrary.css";
 import "../../styles/PluginRackUI.css";
 import "../../styles/DAWFeatures2.css";
 import { AudioEngine } from "../component/audio/engine/AudioEngine";
+import { loadAllWorklets } from "../component/audio/engine/SPXWorklets";
 import AIMixAssistant from "../component/AIMixAssistant";
 import ChannelStripAIMix from "../component/ChannelStripAIMix";
 import SamplerBeatMaker from "../component/SamplerBeatMaker";
@@ -75,6 +76,10 @@ import ChordProgressionGenerator from "../component/ChordProgressionGenerator";
 
 // ── DAW Menu Bar ──
 import DAWMenuBar from "../component/DAWMenuBar";
+import MPEPanel from "../component/MPEController";
+import { SpatialTrackPanel } from "../component/SpatialAudioEngine";
+import FilmScoringPanel from "../component/FilmScoringPanel";
+import { SampleRateSelector } from "../component/SampleRateSelector";
 
 // ── Vocal Processor ──
 import VocalProcessor from "../component/VocalProcessor";
@@ -596,6 +601,18 @@ const midiFromNotes = ({ notes = [], bpm = 120, ppq = 480 }) => {
 };
 
 const RecordingStudio = ({ user }) => {
+  const [automation, setAutomation] = useState({});
+  const autoRafRef = useRef(null);
+  const [autoRead, setAutoRead] = useState(false);
+  const [autoParams, setAutoParams] = useState({});
+  const [autoWrite, setAutoWrite] = useState(false);
+  const [fx, setFx] = useState({});
+  const [keyboardOctave, setKeyboardOctave] = useState(4);
+  const [trackInstrument, setTrackInstrument] = useState({});
+  const [zoom, setZoom] = useState(1);
+
+
+
   // ── Tier-based track limit ──
   const userTier = (user?.subscription_tier || user?.tier || "free").toLowerCase();
   const maxTracks = TIER_TRACK_LIMITS[userTier] || DEFAULT_MAX;
@@ -681,6 +698,8 @@ const RecordingStudio = ({ user }) => {
   // ── Audio / Latency Settings ─────────────────────────────────────────────
   const [showAudioSettings, setShowAudioSettings] = React.useState(false);
   const [audioBufferSize,   setAudioBufferSize]   = React.useState(256);
+  const [sampleRate, setSampleRate] = React.useState(48000);
+  const [workletsLoaded, setWorkletsLoaded] = React.useState(false);
   const [audioSampleRate,   setAudioSampleRate]   = React.useState(44100);
   const [audioLookahead,    setAudioLookahead]    = React.useState(25);
   // ─────────────────────────────────────────────────────────────────────────
@@ -869,7 +888,8 @@ const RecordingStudio = ({ user }) => {
   //    gain → pan → splitter → L/R analysers → destination ──
   const getCtx = useCallback(() => {
     if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
-      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "interactive", sampleRate: 44100 });
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "interactive", sampleRate });
+      loadAllWorklets(audioCtxRef.current).then(r => { setWorkletsLoaded(true); console.log("[SPX] Worklets:", r.loaded); }).catch(e => console.warn("[SPX] Worklet error:", e));
 
       masterGainRef.current = audioCtxRef.current.createGain();
       masterGainRef.current.gain.value = masterVolume;
@@ -2076,7 +2096,7 @@ const RecordingStudio = ({ user }) => {
     if(t.frozen){setStatus(`Track ${ti+1} already frozen`);return;}
     setStatus(`⏳ Freezing Track ${ti+1}...`);
     try{
-      const sr=44100,offCtx=new OfflineAudioContext(2,Math.ceil(sr*(t.audioBuffer.duration+0.5)),sr);
+      const sr=audioCtxRef.current?.sampleRate||48000,offCtx=new OfflineAudioContext(2,Math.ceil(sr*(t.audioBuffer.duration+0.5)),sr);
       const src=offCtx.createBufferSource();src.buffer=t.audioBuffer;
       const g=offCtx.createGain();g.gain.value=t.volume??0.8;
       const pan=offCtx.createStereoPanner();pan.pan.value=t.pan??0;

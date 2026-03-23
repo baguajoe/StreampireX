@@ -1,0 +1,9 @@
+python3 src/app.py
+
+# optional API tests after login/JWT:
+# GET /api/payouts/status
+# POST /api/payouts/connect
+# POST /api/payouts/refresh-status
+# GET /api/payouts/balance
+# POST /api/payouts/request
+# GET /api/payouts/history
