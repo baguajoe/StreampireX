@@ -49,3 +49,18 @@ Commits: 01fbed0 → dd4fda1 (StreampireX)
 - Window menu updated with all new panels
 - Toolbar: Scopes + Multicam + Chroma buttons added
 - CSS: full panel-pro, color-workspace-pro, scopes-panel-pro, mixing-console-pro styles
+
+## Session 7 — Video Editor v2 Complete
+Date: 2026-03-23
+Commits: eee38bf → 0cce09b (StreampireX)
+
+### Completed this session:
+- Live VU meters: requestAnimationFrame + AnalyserNode + vuBarsRef per-track animation
+- Live canvas scopes: waveform (luma), vectorscope (Cb/Cr), histogram (RGB) from video frame pixels
+- scopesVideoRef wired to program monitor video element
+- vectorCanvasRef + histCanvasRef wired to scope canvases
+- MultiCamPanel fix: MulticamEditor → MultiCamPanel, createMultiCamSession + addMultiCamCut imported
+- Speed ramp: getSpeedAtPosition wired into playback RAF delta
+- Whisper auto-caption: real /api/video-editor/transcribe endpoint call
+- Resizable panels: usePanelResize hook with ew-resize drag handle
+- CSS: panel-resize-handle, VU animation transitions, scope crosshair cursor
