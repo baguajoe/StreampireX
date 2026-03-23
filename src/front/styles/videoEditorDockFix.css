@@ -1,0 +1,120 @@
+
+/* ===============================
+   SPX VIDEO EDITOR HEADER LAYOUT
+   Adobe / Ableton style strip
+   =============================== */
+
+.editor-menu-bar{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+padding:8px 14px;
+background:#111318;
+border-bottom:1px solid #1f2630;
+position:sticky;
+top:0;
+z-index:50;
+}
+
+/* LEFT / CENTER / RIGHT zones */
+
+.editor-left-zone,
+.editor-center-zone,
+.editor-right-zone{
+display:flex;
+align-items:center;
+gap:10px;
+}
+
+/* transport controls */
+
+.playback-controls{
+display:flex;
+align-items:center;
+gap:6px;
+padding:2px 8px;
+background:#0c0f14;
+border-radius:6px;
+border:1px solid #202632;
+}
+
+.transport-btn{
+background:#0f141b;
+border:1px solid #232a36;
+color:#9fb3c8;
+padding:4px 6px;
+border-radius:4px;
+cursor:pointer;
+transition:.15s;
+}
+
+.transport-btn:hover{
+background:#141b24;
+color:#00ffc8;
+border-color:#00ffc8;
+}
+
+.transport-btn-play{
+background:linear-gradient(90deg,#00ffc8,#00c8ff);
+color:#041016;
+border:none;
+}
+
+/* header buttons */
+
+.header-btn{
+display:flex;
+align-items:center;
+gap:5px;
+font-size:11px;
+padding:4px 8px;
+border-radius:5px;
+background:#0e1218;
+border:1px solid #232a36;
+color:#9fb3c8;
+cursor:pointer;
+}
+
+.header-btn:hover{
+color:#00ffc8;
+border-color:#00ffc8;
+}
+
+.header-btn-accent{
+background:linear-gradient(90deg,#00ffc8,#00c8ff);
+color:#041016;
+border:none;
+}
+
+/* inspector tabs inline */
+
+.editor-right-zone{
+margin-left:auto;
+}
+
+/* time display */
+
+.timecode-display{
+font-size:11px;
+color:#7f96ad;
+font-family:monospace;
+padding:0 6px;
+}
+
+/* dropdown */
+
+.header-select{
+background:#0e1218;
+border:1px solid #232a36;
+color:#cfe8ff;
+padding:3px 6px;
+border-radius:4px;
+font-size:11px;
+}
+
+/* prevent wrapping */
+.editor-menu-bar *{
+white-space:nowrap;
+}
+

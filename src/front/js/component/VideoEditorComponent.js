@@ -4392,334 +4392,224 @@ TIMELINE
       </div>
 
       {/* Top Toolbar Bar */}
-      <div className="editor-menu-bar" >
-        <VideoEditorUnifiedToolbar
-          activeTool={activeTool}
-          setActiveTool={setActiveTool}
-          showNodeEditor={showNodeEditor}
-          setShowNodeEditor={setShowNodeEditor}
-          onSave={typeof handleSaveProject !== "undefined" ? handleSaveProject : () => {}}
-          onExport={typeof handleExport !== "undefined" ? handleExport : () => {}}
-        />
-        {/* Left Section - Project Info */}
-        <div >
-          <h2 style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>{project.title}</h2>
-          <div >
-            {getTierIcon()}
-            {userTier}
+      <div className="editor-menu-bar">
+
+        {/* LEFT ZONE */}
+        <div className="editor-left-zone">
+          <div className="project-block">
+            <h2 style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>
+              {project.title}
+            </h2>
+            <div className="tier-badge-inline">
+              {getTierIcon()}
+              {userTier}
+            </div>
+          </div>
+
+          <div className="workspace-buttons">
+            <button
+              onClick={() => setShowMediaBin(!showMediaBin)}
+              title="Project Media"
+              className={`header-btn ${showMediaBin ? 'active' : ''}`}
+            >
+              <Folder size={11} />
+              Project
+            </button>
+
+            <button
+              onClick={() => setShowMediaBrowser(true)}
+              title="Media Browser"
+              className="header-btn"
+            >
+              <Folder size={11} />
+              Browser
+            </button>
+
+            <button
+              onClick={() => {
+                if (sourceMonitorMedia) {
+                  setShowSourceMonitor(true);
+                }
+              }}
+              title="Source Monitor"
+              className={`header-btn ${showSourceMonitor ? 'active' : ''}`}
+            >
+              <Monitor size={11} />
+              Source
+            </button>
           </div>
         </div>
 
-        {/* Workspace Buttons */}
-        <div >
-          <button
-            onClick={() => setShowMediaBin(!showMediaBin)}
-            title="Project Media"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '3px',
-              padding: '5px 8px',
-              background: showMediaBin ? 'rgba(0, 255, 200, 0.15)' : '#2a2a2a',
-              border: `1px solid ${showMediaBin ? '#00ffc8' : '#404040'}`,
-              borderRadius: '4px',
-              color: showMediaBin ? '#00ffc8' : '#a0a0a0',
-              fontSize: '9px',
-              fontWeight: 500,
-              cursor: 'pointer'
-            }}
-          >
-            <Folder size={11} />
-            Project
-          </button>
-          <button
-            onClick={() => setShowMediaBrowser(true)}
-            title="Media Browser"
-            
-          >
-            <Folder size={11} />
-            Browser
-          </button>
-          <button
-            onClick={() => {
-              if (sourceMonitorMedia) {
-                setShowSourceMonitor(true);
-              }
-            }}
-            title="Source Monitor"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '3px',
-              padding: '5px 8px',
-              background: showSourceMonitor ? 'rgba(0, 255, 200, 0.15)' : '#2a2a2a',
-              border: `1px solid ${showSourceMonitor ? '#00ffc8' : '#404040'}`,
-              borderRadius: '4px',
-              color: showSourceMonitor ? '#00ffc8' : '#a0a0a0',
-              fontSize: '9px',
-              fontWeight: 500,
-              cursor: 'pointer'
-            }}
-          >
-            <Monitor size={11} />
-            Source
-          </button>
-        </div>
+        {/* CENTER ZONE */}
+        <div className="editor-center-zone">
+          <VideoEditorUnifiedToolbar
+            activeTool={activeTool}
+            setActiveTool={setActiveTool}
+            showNodeEditor={showNodeEditor}
+            setShowNodeEditor={setShowNodeEditor}
+            onSave={handleSaveProject}
+            onExport={handleExport}
+          />
 
-        {/* Playback Controls */}
-        <div >
-          <button
-            type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); stop(); }}
-            title="Stop & Reset (Home)"
-            style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Square size={11} />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentTime(Math.max(0, currentTime - 5)); }}
-            title="Back 5s (Shift+←)"
-            style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Rewind size={11} />
-          </button>
-          {/* Frame Back Button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              const frameTime = 1 / frameRate;
-              setCurrentTime(Math.max(0, currentTime - frameTime));
-              console.log(`⏪ Frame back (${frameRate}fps)`);
-            }}
-            title={`Previous Frame (←) - ${frameRate}fps`}
-            style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <SkipBack size={11} />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); playPause(); }}
-            title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
-            style={{ width: '30px', height: '30px', border: 'none', borderRadius: '3px', background: isPlaying ? '#ff6b6b' : '#00ffc8', color: '#000', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            {isPlaying ? <Pause size={13} /> : <Play size={13} />}
-          </button>
-          {/* Frame Forward Button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              const frameTime = 1 / frameRate;
-              setCurrentTime(Math.min(duration, currentTime + frameTime));
-              console.log(`⏩ Frame forward (${frameRate}fps)`);
-            }}
-            title={`Next Frame (→) - ${frameRate}fps`}
-            style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <SkipForward size={11} />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentTime(Math.min(duration, currentTime + 5)); }}
-            title="Forward 5s (Shift+→)"
-            style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <FastForward size={11} />
-          </button>
-        </div>
+          <div className="playback-controls">
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); stop(); }}
+              title="Stop & Reset (Home)"
+              className="transport-btn"
+            >
+              <Square size={11} />
+            </button>
 
-        {/* Timecode */}
-        <div style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: '10px',
-          fontWeight: 600,
-          color: '#00ffc8',
-          background: '#1a1a1a',
-          padding: '5px 8px',
-          borderRadius: '3px',
-          border: '1px solid #333'
-        }}>
-          {formatTime(currentTime)} / {formatTime(duration)}
-        </div>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentTime(Math.max(0, currentTime - 5)); }}
+              title="Back 5s (Shift+←)"
+              className="transport-btn"
+            >
+              <Rewind size={11} />
+            </button>
 
-        {/* Frame Rate Selector */}
-        <div >
-          <select
-            value={frameRate}
-            onChange={(e) => setFrameRate(parseInt(e.target.value))}
-            title="Project Frame Rate"
-            style={{
-              background: '#1a1a1a',
-              border: '1px solid #333',
-              borderRadius: '3px',
-              color: '#00ffc8',
-              fontSize: '10px',
-              fontWeight: 600,
-              padding: '4px 6px',
-              cursor: 'pointer',
-              fontFamily: "'JetBrains Mono', monospace"
-            }}
-          >
-            <option value={24}>24 fps (Film)</option>
-            <option value={25}>25 fps (PAL)</option>
-            <option value={30}>30 fps (NTSC)</option>
-            <option value={48}>48 fps (HFR)</option>
-            <option value={60}>60 fps (Smooth)</option>
-          </select>
-        </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const frameTime = 1 / frameRate;
+                setCurrentTime(Math.max(0, currentTime - frameTime));
+              }}
+              title={`Previous Frame (←) - ${frameRate}fps`}
+              className="transport-btn"
+            >
+              <SkipBack size={11} />
+            </button>
 
-        {/* Spacer to push right section */}
-        <div  />
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); playPause(); }}
+              title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+              className="transport-btn transport-btn-play"
+            >
+              {isPlaying ? <Pause size={13} /> : <Play size={13} />}
+            </button>
 
-        <VideoEditorInspectorTabs activeTab={activeInspectorTab} setActiveTab={setActiveInspectorTab} />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const frameTime = 1 / frameRate;
+                setCurrentTime(Math.min(duration, currentTime + frameTime));
+              }}
+              title={`Next Frame (→) - ${frameRate}fps`}
+              className="transport-btn"
+            >
+              <SkipForward size={11} />
+            </button>
 
-        {activeInspectorTab === "transform" && (
-          <VideoEditorCollapsiblePanel title="Transform">
-            <div className="panel-body">
-              Position, scale, rotation, opacity, anchor point, crop, blend mode.
-            </div>
-          </VideoEditorCollapsiblePanel>
-        )}
-
-        {activeInspectorTab === "motion" && (
-          <VideoEditorCollapsiblePanel title="Motion / Keyframes">
-            <div className="panel-body">
-              Keyframe editor, easing curves, motion presets, interpolation, path animation.
-            </div>
-          </VideoEditorCollapsiblePanel>
-        )}
-
-        {activeInspectorTab === "fx" && (
-          <VideoEditorCollapsiblePanel title="Effects Stack">
-            <div className="panel-body">
-              Color effects, blur, sharpen, chroma key, effect preview, effect stack ordering.
-            </div>
-          </VideoEditorCollapsiblePanel>
-        )}
-
-        {activeInspectorTab === "captions" && (
-          <VideoEditorCollapsiblePanel title="Captions / Transcript">
-            <div className="panel-body">
-              Transcribe audio, subtitle generation, lower thirds, text presets, caption styling.
-            </div>
-          </VideoEditorCollapsiblePanel>
-        )}
-
-        {activeInspectorTab === "audio" && (
-          <VideoEditorCollapsiblePanel title="Audio Controls">
-            <div className="panel-body">
-              Volume, pan, mute/solo, ducking, meters, waveform-linked editing.
-            </div>
-          </VideoEditorCollapsiblePanel>
-        )}
-
-        {activeInspectorTab === "scopes" && (
-          <VideoEditorCollapsiblePanel title="Scopes">
-            <div className="panel-body">
-              Waveform, vectorscope, histogram, RGB parade, luma and chroma monitoring.
-            </div>
-          </VideoEditorCollapsiblePanel>
-        )}
-        {showNodeEditor && (
-          <div className="spx-node-editor-panel">
-            <div className="spx-node-editor-header">Node Editor</div>
-            <div className="spx-node-editor-body">
-              Node graph canvas / compositing pipeline / effect routing goes here.
-            </div>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentTime(Math.min(duration, currentTime + 5)); }}
+              title="Forward 5s (Shift+→)"
+              className="transport-btn"
+            >
+              <FastForward size={11} />
+            </button>
           </div>
-        )}
 
-        <VideoEditorBottomTabs
-          activeTab={activeBottomTab}
-          setActiveTab={setActiveBottomTab}
-        />
-        {/* Right Section - Color, Audio, Save, Export */}
-        <div >
-          <button
-            onClick={() => setShowScopes(!showScopes)}
-            title="Video Scopes"
-            style={{ display:'flex',alignItems:'center',gap:'3px',padding:'5px 8px',
-              background: showScopes ? 'rgba(0,255,200,0.15)' : '#2a2a2a',
-              border: `1px solid ${showScopes ? '#00ffc8' : '#404040'}`,
-              borderRadius:'4px',color: showScopes ? '#00ffc8' : '#a0a0a0',fontSize:'9px',fontWeight:500,cursor:'pointer'}}
-          ><Activity size={11}/>Scopes</button>
-          <button
-            onClick={() => setShowMulticam(!showMulticam)}
-            title="Multicam Editor"
-            style={{ display:'flex',alignItems:'center',gap:'3px',padding:'5px 8px',
-              background: showMulticam ? 'rgba(0,255,200,0.15)' : '#2a2a2a',
-              border: `1px solid ${showMulticam ? '#00ffc8' : '#404040'}`,
-              borderRadius:'4px',color: showMulticam ? '#00ffc8' : '#a0a0a0',fontSize:'9px',fontWeight:500,cursor:'pointer'}}
-          ><Tv size={11}/>Multicam</button>
-          <button
-            onClick={() => setShowChromaKey(!showChromaKey)}
-            title="Chroma Key"
-            style={{ display:'flex',alignItems:'center',gap:'3px',padding:'5px 8px',
-              background: showChromaKey ? 'rgba(0,255,100,0.15)' : '#2a2a2a',
-              border: `1px solid ${showChromaKey ? '#00ff64' : '#404040'}`,
-              borderRadius:'4px',color: showChromaKey ? '#00ff64' : '#a0a0a0',fontSize:'9px',fontWeight:500,cursor:'pointer'}}
-          ><Aperture size={11}/>Chroma</button>
-          <button
-            onClick={() => setShowColorGrading(!showColorGrading)}
-            title="Color Grading"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '3px',
-              padding: '5px 8px',
-              background: showColorGrading ? 'rgba(0, 255, 200, 0.15)' : '#2a2a2a',
-              border: `1px solid ${showColorGrading ? '#00ffc8' : '#404040'}`,
-              borderRadius: '4px',
-              color: showColorGrading ? '#00ffc8' : '#a0a0a0',
-              fontSize: '9px',
-              fontWeight: 500,
-              cursor: 'pointer'
-            }}
-          >
-            <Palette size={11} />
-            Color
-          </button>
-          <button
-            onClick={() => setShowAudioMixing(!showAudioMixing)}
-            title="Audio Mixing"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '3px',
-              padding: '5px 8px',
-              background: showAudioMixing ? 'rgba(0, 255, 200, 0.15)' : '#2a2a2a',
-              border: `1px solid ${showAudioMixing ? '#00ffc8' : '#404040'}`,
-              borderRadius: '4px',
-              color: showAudioMixing ? '#00ffc8' : '#a0a0a0',
-              fontSize: '9px',
-              fontWeight: 500,
-              cursor: 'pointer'
-            }}
-          >
-            <Volume2 size={11} />
-            Audio
-          </button>
-          <button
-            onClick={handleSaveProject}
-            title="Save Project (Ctrl+S)"
-            
-          >
-            <Save size={11} />
-            Save
-          </button>
-          <button
-            onClick={handleExport}
-            title="Export Video (Ctrl+E)"
-            
-          >
-            <Download size={11} />
-            Export
-          </button>
+          <div className="timecode-display">
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </div>
+
+          <div className="frame-rate-block">
+            <select
+              value={frameRate}
+              onChange={(e) => setFrameRate(parseInt(e.target.value))}
+              title="Project Frame Rate"
+              className="header-select"
+            >
+              <option value={24}>24 fps (Film)</option>
+              <option value={25}>25 fps (PAL)</option>
+              <option value={30}>30 fps (NTSC)</option>
+              <option value={48}>48 fps (HFR)</option>
+              <option value={60}>60 fps (Smooth)</option>
+            </select>
+          </div>
         </div>
+
+        {/* RIGHT ZONE */}
+        <div className="editor-right-zone">
+          <VideoEditorInspectorTabs
+            activeTab={activeInspectorTab}
+            setActiveTab={setActiveInspectorTab}
+          />
+
+          <div className="header-action-buttons">
+            <button
+              onClick={() => setShowScopes(!showScopes)}
+              title="Video Scopes"
+              className={`header-btn ${showScopes ? 'active' : ''}`}
+            >
+              <Activity size={11} />
+              Scopes
+            </button>
+
+            <button
+              onClick={() => setShowMulticam(!showMulticam)}
+              title="Multicam Editor"
+              className={`header-btn ${showMulticam ? 'active' : ''}`}
+            >
+              <Tv size={11} />
+              Multicam
+            </button>
+
+            <button
+              onClick={() => setShowChromaKey(!showChromaKey)}
+              title="Chroma Key"
+              className={`header-btn ${showChromaKey ? 'active' : ''}`}
+            >
+              <Aperture size={11} />
+              Chroma
+            </button>
+
+            <button
+              onClick={() => setShowColorGrading(!showColorGrading)}
+              title="Color Grading"
+              className={`header-btn ${showColorGrading ? 'active' : ''}`}
+            >
+              <Palette size={11} />
+              Color
+            </button>
+
+            <button
+              onClick={() => setShowAudioMixing(!showAudioMixing)}
+              title="Audio Mixing"
+              className={`header-btn ${showAudioMixing ? 'active' : ''}`}
+            >
+              <Volume2 size={11} />
+              Audio
+            </button>
+
+            <button
+              onClick={handleSaveProject}
+              title="Save Project (Ctrl+S)"
+              className="header-btn"
+            >
+              <Save size={11} />
+              Save
+            </button>
+
+            <button
+              onClick={handleExport}
+              title="Export Video (Ctrl+E)"
+              className="header-btn header-btn-accent"
+            >
+              <Download size={11} />
+              Export
+            </button>
+          </div>
+        </div>
+
       </div>
 
       {/* Main Editor Layout */}
