@@ -49,21 +49,30 @@ const ColorWheel = ({ label, value, onChange, size = 120 }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-      <canvas ref={canvasRef} width={size} height={size}
+      <canvas
+        ref={canvasRef}
+        width={size}
+        height={size}
         style={{ borderRadius: '50%', cursor: 'crosshair', border: '1px solid #21262d' }}
         onMouseDown={() => { dragging.current = true; }}
         onMouseMove={handleMouse}
         onMouseUp={() => { dragging.current = false; }}
         onMouseLeave={() => { dragging.current = false; }}
       />
-      <div style={{ fontSize: 10, fontWeight: 700, color: '#4e6a82', textTransform: 'uppercase', letterSpacing: 1 }}>{label}</div>
-      <input type="range" min={-100} max={100} value={Math.round((value.brightness || 0) * 100)}
+      <div style={{ fontSize: 10, fontWeight: 700, color: '#4e6a82', textTransform: 'uppercase', letterSpacing: 1 }}>
+        {label}
+      </div>
+      <input
+        type="range"
+        min={-100}
+        max={100}
+        value={Math.round((value.brightness || 0) * 100)}
         style={{ width: size, accentColor: '#00ffc8' }}
-        onChange={e => onChange({ ...value, brightness: parseInt(e.target.value) / 100 })}/>
+        onChange={e => onChange({ ...value, brightness: parseInt(e.target.value) / 100 })}
+      />
     </div>
   );
 };
-
 
 // ─────────────────────────────────────────────
 // MulticamEditor — switch between camera angles
@@ -88,7 +97,7 @@ const MulticamEditor = ({ clips, onAngleSwitch, currentTime }) => {
 
   return (
     <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: 12, padding: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div >
         <div>
           <h4 style={{ color: '#e6edf3', fontWeight: 800, margin: '0 0 4px', fontSize: 14 }}>🎥 Multicam Editor</h4>
           <p style={{ color: '#8b949e', fontSize: 12, margin: 0 }}>Switch between camera angles in real time</p>
@@ -131,7 +140,7 @@ const MulticamEditor = ({ clips, onAngleSwitch, currentTime }) => {
           {switches.length > 0 && (
             <div style={{ background: '#06060f', borderRadius: 8, padding: 12 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#4e6a82', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Recorded Switches</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div >
                 {switches.map((sw, i) => (
                   <div key={i} style={{ padding: '3px 8px', background: 'rgba(0,255,200,0.08)', border: '1px solid rgba(0,255,200,0.2)', borderRadius: 4, fontSize: 10, color: '#00ffc8' }}>
                     {sw.time.toFixed(1)}s → Cam {sw.angleId + 1}
@@ -228,7 +237,7 @@ const ColorGradingPanel = ({ onGrade }) => {
 
   return (
     <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div >
         <h4 style={{ color: '#e6edf3', fontWeight: 800, margin: 0, fontSize: 14 }}>🎨 Color Grading</h4>
         <button onClick={applyGrade} style={{ padding: '5px 14px', background: 'rgba(0,255,200,0.1)', border: '1px solid rgba(0,255,200,0.3)', borderRadius: 6, color: '#00ffc8', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Apply</button>
       </div>
@@ -236,7 +245,7 @@ const ColorGradingPanel = ({ onGrade }) => {
       {/* Presets */}
       <div>
         <div style={{ fontSize: 10, fontWeight: 700, color: '#4e6a82', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Presets</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <div >
           {PRESETS.map(p => (
             <button key={p.name}
               onClick={() => { setSaturation(p.sat); setContrast(p.con); setTemperature(p.temp); setTint(p.tint); setActivePreset(p.name); }}
@@ -248,7 +257,7 @@ const ColorGradingPanel = ({ onGrade }) => {
       </div>
 
       {/* Color Wheels */}
-      <div style={{ display: 'flex', gap: 20, justifyContent: 'center', flexWrap: 'wrap' }}>
+      <div >
         <ColorWheel label="Lift (Shadows)"   value={lift}  onChange={setLift}  size={110} />
         <ColorWheel label="Gamma (Mids)"     value={gamma} onChange={setGamma} size={110} />
         <ColorWheel label="Gain (Highlights)" value={gain}  onChange={setGain}  size={110} />
@@ -263,11 +272,11 @@ const ColorGradingPanel = ({ onGrade }) => {
           ['Tint',       tint,       setTint,       -50, 50, '#30d158'],
         ].map(([lbl, val, setter, min, max, color]) => (
           <div key={lbl}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 700, color: '#4e6a82', marginBottom: 5 }}>
+            <div >
               <span>{lbl}</span><span style={{ color }}>{val}</span>
             </div>
             <input type="range" min={min} max={max} value={val}
-              style={{ width: '100%', accentColor: color }}
+              
               onChange={e => setter(parseInt(e.target.value))}/>
           </div>
         ))}
@@ -417,8 +426,6 @@ import { BackgroundRemovalPanel, MotionTrackingPanel, AudioDuckingPanel,
          createBGRemovalSettings, createAudioDuckingSettings,
          createSceneDetectionSettings } from './VideoEditorAdvancedFeatures';
 
-
-
 // Video Editor State Management Hooks
 import {
   useUndoRedo,
@@ -431,7 +438,11 @@ import {
 } from './hooks/useVideoEditorState';
 import { useTierAccess } from './hooks/useTierAccess';
 import { KEYFRAME_PROPERTIES, INTERPOLATION_TYPES, DEFAULT_KEYFRAME_VALUE_BY_PROPERTY } from '../keyframes/engine/keyframeTypes';
-
+import VideoEditorInspectorTabs from "./videoeditor/VideoEditorInspectorTabs";
+import VideoEditorBottomTabs from "./videoeditor/VideoEditorBottomTabs";
+import VideoEditorUnifiedToolbar from "./videoeditor/VideoEditorUnifiedToolbar";
+import VideoEditorNodeToggle from "./videoeditor/VideoEditorNodeToggle";
+import VideoEditorCollapsiblePanel from "./videoeditor/VideoEditorCollapsiblePanel";
 
 // Backend URL configuration
 const backendURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
@@ -617,7 +628,6 @@ const applyVideoEffect = async (payload) => {
     throw error;
   }
 };
-
 
 /**
  * Concatenate multiple video clips
@@ -1136,7 +1146,7 @@ const MediaBrowser = ({ onFileSelect, onClose, onUploadComplete }) => {
                 {file.uploading ? (
                   <Loader size={32} className="spin" />
                 ) : file.thumbnail ? (
-                  <img src={file.thumbnail} alt={file.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={file.thumbnail} alt={file.name}  />
                 ) : (
                   <>
                     {file.type === 'video' && <Video size={32} />}
@@ -1262,16 +1272,8 @@ const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
       boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
     }}>
       {/* Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12px 16px',
-        background: '#252830',
-        borderRadius: '8px 8px 0 0',
-        borderBottom: '1px solid #3f3f46'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div >
+        <div >
           <Monitor size={16} style={{ color: '#00ffc8' }} />
           <span style={{ fontSize: '13px', fontWeight: 600, color: '#e0e0e0' }}>Source Monitor</span>
           <span style={{ fontSize: '11px', color: '#888' }}>- {selectedMedia?.name}</span>
@@ -1301,7 +1303,7 @@ const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
           <video
             ref={videoRef}
             src={selectedMedia.url}
-            style={{ width: '100%', maxHeight: '350px' }}
+            
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
             onPlay={() => setIsPlaying(true)}
@@ -1400,12 +1402,8 @@ const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
           </div>
 
           {/* Playback Controls */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div >
+            <div >
               <button onClick={goToIn} style={controlBtnStyle} title="Go to In Point">
                 <SkipBack size={14} />
               </button>
@@ -1436,7 +1434,7 @@ const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
             </div>
 
             {/* Mark In/Out Buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div >
               <button onClick={markIn} style={controlBtnStyle} title="Mark In (I)">
                 <span style={{ fontSize: '11px', fontWeight: 700 }}>I</span>
               </button>
@@ -1449,44 +1447,19 @@ const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
       )}
 
       {/* In/Out Points Info */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        padding: '12px 16px',
-        background: '#1a1a1a',
-        fontSize: '11px',
-        color: '#888'
-      }}>
+      <div >
         <span>In: <span style={{ color: '#4a9eff' }}>{formatTime(inPoint)}</span></span>
         <span>Duration: <span style={{ color: '#00ffc8' }}>{formatTime(clipDuration)}</span></span>
         <span>Out: <span style={{ color: '#ff6b6b' }}>{formatTime(outPoint)}</span></span>
       </div>
 
       {/* Action Buttons - Like Premiere Pro */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        padding: '16px',
-        borderTop: '1px solid #3f3f46',
-        justifyContent: 'center'
-      }}>
+      <div >
         {/* Insert Video Only */}
         {selectedMedia?.type === 'video' && (
           <button
             onClick={() => onAddToTimeline(selectedMedia, inPoint, outPoint, 'video')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '10px 16px',
-              background: '#4a9eff',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
+            
             title="Insert Video Only (V)"
           >
             <Video size={14} />
@@ -1498,19 +1471,7 @@ const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
         {(selectedMedia?.type === 'video' || selectedMedia?.type === 'audio') && (
           <button
             onClick={() => onAddToTimeline(selectedMedia, inPoint, outPoint, 'audio')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '10px 16px',
-              background: '#ff6b6b',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
+            
             title="Insert Audio Only (A)"
           >
             <AudioWaveform size={14} />
@@ -1522,19 +1483,7 @@ const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
         {selectedMedia?.type === 'video' && (
           <button
             onClick={() => onAddToTimeline(selectedMedia, inPoint, outPoint, 'both')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '10px 16px',
-              background: 'linear-gradient(135deg, #00ffc8, #00b894)',
-              color: '#000',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
+            
             title="Insert Video + Audio"
           >
             <Plus size={14} />
@@ -1546,19 +1495,7 @@ const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
         {selectedMedia?.type === 'audio' && (
           <button
             onClick={() => onAddToTimeline(selectedMedia, 0, selectedMedia.duration || 30, 'audio')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '10px 16px',
-              background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
+            
           >
             <AudioWaveform size={14} />
             Add to Audio Track
@@ -1569,19 +1506,7 @@ const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
         {selectedMedia?.type === 'image' && (
           <button
             onClick={() => onAddToTimeline(selectedMedia, 0, 5, 'video')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '10px 16px',
-              background: 'linear-gradient(135deg, #00ffc8, #00b894)',
-              color: '#000',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
+            
           >
             <Image size={14} />
             Add Image to Timeline
@@ -1810,6 +1735,10 @@ const ExportModal = ({ project, tracks, onClose, onExportComplete, frameRate = 2
 // =====================================================
 
 const VideoEditorComponent = () => {
+  const [activeInspectorTab, setActiveInspectorTab] = useState("transform");
+  const [activeBottomTab, setActiveBottomTab] = useState("timeline");
+  const [activeTool, setActiveTool] = useState("select");
+  const [showNodeEditor, setShowNodeEditor] = useState(false);
   // Core state
   const [project, setProject] = useState({
     title: 'Professional Video Project',
@@ -4394,9 +4323,9 @@ TIMELINE
   };
 
   return (
-    <div className="video-editor-pro">
+<div className="video-editor-pro">
       {/* Premiere Pro Style Menu Bar */}
-      <div ref={menuBarRef} className="editor-navbar">
+      <div ref={menuBarRef} className="editor-navbar" >
         {/* Logo */}
         <div className="nav-logo">
           <Film size={14} />
@@ -4405,7 +4334,7 @@ TIMELINE
 
         {/* Menu Items */}
         {Object.entries(menuItems).map(([key, menu]) => (
-          <div key={key} className="menu-container">
+          <div key={key} className="menu-container" style={{display:"inline-flex",alignItems:"center"}}>
             <button
               className={`menu-button ${activeMenu === key ? 'active' : ''}`}
               onClick={() => setActiveMenu(activeMenu === key ? null : key)}
@@ -4463,29 +4392,26 @@ TIMELINE
       </div>
 
       {/* Top Toolbar Bar */}
-      <div className="editor-menu-bar">
+      <div className="editor-menu-bar" >
+        <VideoEditorUnifiedToolbar
+          activeTool={activeTool}
+          setActiveTool={setActiveTool}
+          showNodeEditor={showNodeEditor}
+          setShowNodeEditor={setShowNodeEditor}
+          onSave={typeof handleSaveProject !== "undefined" ? handleSaveProject : () => {}}
+          onExport={typeof handleExport !== "undefined" ? handleExport : () => {}}
+        />
         {/* Left Section - Project Info */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px' }}>
+        <div >
           <h2 style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>{project.title}</h2>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '3px',
-            padding: '2px 6px',
-            background: 'linear-gradient(135deg, #ffd700, #ff9500)',
-            borderRadius: '8px',
-            fontSize: '8px',
-            fontWeight: 700,
-            color: '#000',
-            textTransform: 'uppercase'
-          }}>
+          <div >
             {getTierIcon()}
             {userTier}
           </div>
         </div>
 
         {/* Workspace Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div >
           <button
             onClick={() => setShowMediaBin(!showMediaBin)}
             title="Project Media"
@@ -4509,19 +4435,7 @@ TIMELINE
           <button
             onClick={() => setShowMediaBrowser(true)}
             title="Media Browser"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '3px',
-              padding: '5px 8px',
-              background: '#2a2a2a',
-              border: '1px solid #404040',
-              borderRadius: '4px',
-              color: '#a0a0a0',
-              fontSize: '9px',
-              fontWeight: 500,
-              cursor: 'pointer'
-            }}
+            
           >
             <Folder size={11} />
             Browser
@@ -4553,7 +4467,7 @@ TIMELINE
         </div>
 
         {/* Playback Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '2px 4px', background: '#252525', borderRadius: '4px' }}>
+        <div >
           <button
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); stop(); }}
@@ -4633,7 +4547,7 @@ TIMELINE
         </div>
 
         {/* Frame Rate Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div >
           <select
             value={frameRate}
             onChange={(e) => setFrameRate(parseInt(e.target.value))}
@@ -4659,10 +4573,72 @@ TIMELINE
         </div>
 
         {/* Spacer to push right section */}
-        <div style={{ flex: 1 }} />
+        <div  />
 
+        <VideoEditorInspectorTabs activeTab={activeInspectorTab} setActiveTab={setActiveInspectorTab} />
+
+        {activeInspectorTab === "transform" && (
+          <VideoEditorCollapsiblePanel title="Transform">
+            <div className="panel-body">
+              Position, scale, rotation, opacity, anchor point, crop, blend mode.
+            </div>
+          </VideoEditorCollapsiblePanel>
+        )}
+
+        {activeInspectorTab === "motion" && (
+          <VideoEditorCollapsiblePanel title="Motion / Keyframes">
+            <div className="panel-body">
+              Keyframe editor, easing curves, motion presets, interpolation, path animation.
+            </div>
+          </VideoEditorCollapsiblePanel>
+        )}
+
+        {activeInspectorTab === "fx" && (
+          <VideoEditorCollapsiblePanel title="Effects Stack">
+            <div className="panel-body">
+              Color effects, blur, sharpen, chroma key, effect preview, effect stack ordering.
+            </div>
+          </VideoEditorCollapsiblePanel>
+        )}
+
+        {activeInspectorTab === "captions" && (
+          <VideoEditorCollapsiblePanel title="Captions / Transcript">
+            <div className="panel-body">
+              Transcribe audio, subtitle generation, lower thirds, text presets, caption styling.
+            </div>
+          </VideoEditorCollapsiblePanel>
+        )}
+
+        {activeInspectorTab === "audio" && (
+          <VideoEditorCollapsiblePanel title="Audio Controls">
+            <div className="panel-body">
+              Volume, pan, mute/solo, ducking, meters, waveform-linked editing.
+            </div>
+          </VideoEditorCollapsiblePanel>
+        )}
+
+        {activeInspectorTab === "scopes" && (
+          <VideoEditorCollapsiblePanel title="Scopes">
+            <div className="panel-body">
+              Waveform, vectorscope, histogram, RGB parade, luma and chroma monitoring.
+            </div>
+          </VideoEditorCollapsiblePanel>
+        )}
+        {showNodeEditor && (
+          <div className="spx-node-editor-panel">
+            <div className="spx-node-editor-header">Node Editor</div>
+            <div className="spx-node-editor-body">
+              Node graph canvas / compositing pipeline / effect routing goes here.
+            </div>
+          </div>
+        )}
+
+        <VideoEditorBottomTabs
+          activeTab={activeBottomTab}
+          setActiveTab={setActiveBottomTab}
+        />
         {/* Right Section - Color, Audio, Save, Export */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div >
           <button
             onClick={() => setShowScopes(!showScopes)}
             title="Video Scopes"
@@ -4730,19 +4706,7 @@ TIMELINE
           <button
             onClick={handleSaveProject}
             title="Save Project (Ctrl+S)"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '3px',
-              padding: '5px 10px',
-              background: '#007aff',
-              border: 'none',
-              borderRadius: '4px',
-              color: '#fff',
-              fontSize: '9px',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
+            
           >
             <Save size={11} />
             Save
@@ -4750,19 +4714,7 @@ TIMELINE
           <button
             onClick={handleExport}
             title="Export Video (Ctrl+E)"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '3px',
-              padding: '5px 10px',
-              background: 'linear-gradient(135deg, #00ffc8, #00b894)',
-              border: 'none',
-              borderRadius: '4px',
-              color: '#000',
-              fontSize: '9px',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
+            
           >
             <Download size={11} />
             Export
@@ -4787,23 +4739,7 @@ TIMELINE
               className="import-btn"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                width: '100%',
-                padding: '14px 16px',
-                background: uploading ? '#333' : 'linear-gradient(135deg, #00ffc8 0%, #00b894 100%)',
-                border: 'none',
-                borderRadius: '8px',
-                color: uploading ? '#888' : '#000',
-                fontSize: '14px',
-                fontWeight: '700',
-                cursor: uploading ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease',
-                boxShadow: uploading ? 'none' : '0 4px 12px rgba(0, 255, 200, 0.25)'
-              }}
+              
             >
               {uploading ? <Loader size={18} className="spin" /> : <Upload size={18} />}
               {uploading ? 'Uploading...' : '📁 Import Media'}
@@ -5329,24 +5265,7 @@ TIMELINE
                 className="import-btn"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  width: '100%',
-                  padding: '12px 16px',
-                  background: uploading ? '#333' : 'linear-gradient(135deg, #00ffc8 0%, #00b894 100%)',
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: uploading ? '#888' : '#000',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  cursor: uploading ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease',
-                  boxShadow: uploading ? 'none' : '0 4px 12px rgba(0, 255, 200, 0.25)',
-                  marginBottom: '12px'
-                }}
+                
               >
                 {uploading ? <Loader size={16} className="spin" /> : <Upload size={16} />}
                 {uploading ? 'Uploading...' : '📁 Import Media'}
@@ -5395,7 +5314,7 @@ TIMELINE
                       ) : (
                         <Icon size={14} />
                       )}
-                      <div style={{ flex: 1 }}>
+                      <div >
                         <div style={{ fontSize: '11px', fontWeight: '500' }}>{media.name}</div>
                         <div style={{ fontSize: '10px', opacity: 0.7 }}>
                           {media.uploading ? 'Uploading...' : media.uploadFailed ? '⚠️ Failed' : media.duration}
@@ -5496,19 +5415,13 @@ TIMELINE
           <div className="preview-area-container">
             <div className="preview-area">
               <div className="preview-container">
-                <div className="monitor-header" style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: '#a7a7a7'
-                }}>
+                <div className="monitor-header" >
                   SOURCE MONITOR
                 </div>
                 <div className="preview-screen">
                   <div className="preview-content">
                     {sourceMonitorMedia ? (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div >
                         {sourceMonitorMedia.type === 'video' && (
                           <video src={sourceMonitorMedia.url} controls style={{ maxWidth: '100%', maxHeight: '100%' }} />
                         )}
@@ -5627,16 +5540,9 @@ TIMELINE
             {/* PROGRAM MONITOR */}
             <div className="preview-area">
               <div className="preview-container">
-                <div className="monitor-header" style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: 'white'
-                }}>
+                <div className="monitor-header" >
                   <span>PROGRAM MONITOR</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div >
                     <button
                       onClick={() => setProgramMonitorMuted(!programMonitorMuted)}
                       title={programMonitorMuted ? 'Unmute Audio' : 'Mute Audio'}
@@ -5696,7 +5602,7 @@ TIMELINE
                           const toOpacity = transitionProgress;
 
                           return (
-                            <div style={{ width: '100%', height: '100%', position: 'relative', background: '#000' }}>
+                            <div >
                               {/* Outgoing clip */}
                               {fromClip.type === 'video' && (
                                 <video
@@ -6000,7 +5906,7 @@ TIMELINE
                         const fadeOverlay = getFadeOverlay(activeClip.effects, clipProgress);
 
                         return (
-                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', background: '#000' }}>
+                          <div >
                             {activeClip.type === 'video' && (
                               <video
                                 key={activeClip.id}
@@ -6259,30 +6165,15 @@ TIMELINE
                 flexDirection: 'column'
               }}>
                 {/* Media Bin Header */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '8px 12px',
-                  background: '#252830',
-                  borderBottom: '1px solid #3f3f46'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div >
+                  <div >
                     <Folder size={14} style={{ color: '#00ffc8' }} />
                     <span style={{ fontSize: '12px', fontWeight: 600, color: '#e0e0e0' }}>Project Media</span>
                     <span style={{ fontSize: '10px', color: '#888' }}>({mediaLibrary.length} items)</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div >
                     {/* Search */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: '#2a2a2a',
-                      borderRadius: '4px',
-                      padding: '4px 8px',
-                      border: '1px solid #3f3f46'
-                    }}>
+                    <div >
                       <Filter size={12} style={{ color: '#888' }} />
                       <input
                         type="text"
@@ -6300,7 +6191,7 @@ TIMELINE
                       />
                     </div>
                     {/* View Toggle */}
-                    <div style={{ display: 'flex', gap: '2px' }}>
+                    <div >
                       <button
                         onClick={() => setMediaBinView('grid')}
                         style={{
@@ -6336,19 +6227,7 @@ TIMELINE
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploading}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '4px 10px',
-                        background: 'linear-gradient(135deg, #00ffc8, #00b894)',
-                        color: '#000',
-                        border: 'none',
-                        borderRadius: '4px',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
+                      
                     >
                       <Upload size={12} />
                       Import
@@ -6372,21 +6251,9 @@ TIMELINE
                 </div>
 
                 {/* Media Bin Content */}
-                <div style={{
-                  flex: 1,
-                  overflow: 'auto',
-                  padding: '12px'
-                }}>
+                <div >
                   {mediaLibrary.length === 0 ? (
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      height: '100%',
-                      color: '#666',
-                      gap: '12px'
-                    }}>
+                    <div >
                       <Folder size={40} style={{ opacity: 0.5 }} />
                       <p style={{ fontSize: '12px', margin: 0 }}>No media imported yet</p>
                       <button
@@ -6454,17 +6321,9 @@ TIMELINE
                               }}
                             >
                               {/* Thumbnail */}
-                              <div style={{
-                                width: '100%',
-                                height: '60px',
-                                background: '#1a1a1a',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                position: 'relative'
-                              }}>
+                              <div >
                                 {media.thumbnail ? (
-                                  <img src={media.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  <img src={media.thumbnail} alt=""  />
                                 ) : (
                                   <Icon size={24} style={{ color: media.type === 'video' ? '#4a9eff' : media.type === 'audio' ? '#ff6b6b' : '#00d4aa' }} />
                                 )}
@@ -6610,7 +6469,7 @@ TIMELINE
                     </div>
                   ) : (
                     /* LIST VIEW */
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div >
                       {/* List Header */}
                       <div style={{
                         display: 'grid',
@@ -6680,7 +6539,7 @@ TIMELINE
                                 justifyContent: 'center'
                               }}>
                                 {media.thumbnail ? (
-                                  <img src={media.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '3px' }} />
+                                  <img src={media.thumbnail} alt=""  />
                                 ) : (
                                   <Icon size={14} style={{ color: media.type === 'video' ? '#4a9eff' : media.type === 'audio' ? '#ff6b6b' : '#00d4aa' }} />
                                 )}
@@ -6832,24 +6691,9 @@ TIMELINE
                         padding: '0 12px',
                         background: '#252830'
                       }}>
-                        <div className="track-controls-left" style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          width: '100%',
-                          background: 'transparent'
-                        }}>
-                          <div className="track-label-container" style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            flex: 1
-                          }}>
-                            <div className="track-type-icon-container" style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px'
-                            }}>
+                        <div className="track-controls-left" >
+                          <div className="track-label-container" >
+                            <div className="track-type-icon-container" >
                               <div className="track-type-icon" style={{
                                 width: '28px',
                                 height: '28px',
@@ -6870,11 +6714,7 @@ TIMELINE
                                 {track.locked ? <Lock size={10} /> : <Unlock size={10} />}
                               </button>
                             </div>
-                            <div className="track-info" style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '2px'
-                            }}>
+                            <div className="track-info" >
                               <div className="track-name-label" style={{
                                 fontSize: '11px',
                                 fontWeight: 600,
@@ -6887,12 +6727,7 @@ TIMELINE
                               }}>Layer {track.zIndex}</div>
                             </div>
                           </div>
-                          <div className="track-control-buttons" style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            marginLeft: 'auto'
-                          }}>
+                          <div className="track-control-buttons" >
                             <button
                               className="track-layer-btn"
                               onClick={() => moveTrackUp(track.id)}
@@ -7496,9 +7331,9 @@ TIMELINE
                         borderRadius: 8,
                         background: 'rgba(255,255,255,0.03)'
                       }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                        <div >
                           <strong>Selected Keyframe</strong>
-                          <div style={{ display: 'flex', gap: 8 }}>
+                          <div >
                             <button type="button" onClick={() => handlePrevNextKeyframe(-1)}>◀ Prev</button>
                             <button type="button" onClick={() => handlePrevNextKeyframe(1)}>Next ▶</button>
                           </div>
@@ -7517,7 +7352,7 @@ TIMELINE
                                   handleUpdateSelectedKeyframe({ value: parsed });
                                 }
                               }}
-                              style={{ width: '100%', padding: 8 }}
+                              
                             />
                           </div>
 
@@ -7530,7 +7365,7 @@ TIMELINE
                                 setSelectedKeyframeDraftInterpolation(nextMode);
                                 handleUpdateSelectedKeyframe({ interpolation: nextMode });
                               }}
-                              style={{ width: '100%', padding: 8 }}
+                              
                             >
                               <option value={INTERPOLATION_TYPES.LINEAR}>Linear</option>
                               <option value={INTERPOLATION_TYPES.EASE_IN}>Ease In</option>
@@ -7915,7 +7750,7 @@ TIMELINE
         <div className="color-workspace-pro">
           <div className="color-workspace-header">
             <span>🎨 Lumetri Color</span>
-            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <div >
               <span style={{fontSize:10,color:'#4e6a82'}}>{selectedClip ? selectedClip.title : 'No clip selected'}</span>
               <button onClick={() => setShowColorGrading(false)} className="close-panel-btn"><X size={14}/></button>
             </div>
@@ -7926,7 +7761,7 @@ TIMELINE
               {['film','cinema','social','vintage','nature','technical'].map(cat => (
                 <div key={cat} style={{marginBottom:10}}>
                   <div style={{fontSize:9,fontWeight:700,color:'#4e6a82',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>{cat}</div>
-                  <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                  <div >
                     {LUT_PRESETS.filter(p => p.cat === cat).map(lut => (
                       <button key={lut.name}
                         onClick={() => { if(selectedClip) applyEffect(selectedClip.id, 'lut_preset', 50); }}
@@ -7956,20 +7791,20 @@ TIMELINE
               <div className="lut-header">HSL / Secondaries</div>
               {[['Hue','#ff6b6b',-180,180,0],['Saturation','#00ffc8',0,200,100],['Luminance','#ffd60a',-100,100,0],['Temperature','#ff9500',-50,50,0],['Tint','#30d158',-50,50,0]].map(([lbl,col,mn,mx,def])=>(
                 <div key={lbl} style={{marginBottom:10}}>
-                  <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#4e6a82',marginBottom:3}}>
+                  <div >
                     <span>{lbl}</span><span style={{color:col,fontFamily:'monospace'}}>{def}</span>
                   </div>
-                  <input type="range" min={mn} max={mx} defaultValue={def} style={{width:'100%',accentColor:col}}/>
+                  <input type="range" min={mn} max={mx} defaultValue={def} />
                 </div>
               ))}
               <div className="lut-header" style={{marginTop:12}}>Vignette</div>
               <div style={{marginBottom:8}}>
-                <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#4e6a82',marginBottom:3}}><span>Amount</span><span>0</span></div>
-                <input type="range" min="-100" max="0" defaultValue="0" style={{width:'100%',accentColor:'#8b949e'}}/>
+                <div ><span>Amount</span><span>0</span></div>
+                <input type="range" min="-100" max="0" defaultValue="0" />
               </div>
               <div style={{marginBottom:8}}>
-                <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#4e6a82',marginBottom:3}}><span>Feather</span><span>50</span></div>
-                <input type="range" min="0" max="100" defaultValue="50" style={{width:'100%',accentColor:'#8b949e'}}/>
+                <div ><span>Feather</span><span>50</span></div>
+                <input type="range" min="0" max="100" defaultValue="50" />
               </div>
             </div>
           </div>
@@ -7995,11 +7830,11 @@ TIMELINE
                     <div key={b} className="eq-knob-wrap"><div className="eq-knob" style={{background:'conic-gradient(#00ffc8 180deg,#21262d 180deg)'}}></div><span>{b}</span></div>
                   ))}
                 </div>
-                <div style={{width:'100%',marginTop:4}}>
+                <div >
                   <div style={{fontSize:9,color:'#4e6a82',marginBottom:2}}>REVERB</div>
-                  <input type="range" min="0" max="100" defaultValue="0" style={{width:'100%',accentColor:'#bf5af2'}}/>
+                  <input type="range" min="0" max="100" defaultValue="0" />
                   <div style={{fontSize:9,color:'#4e6a82',margin:'6px 0 2px'}}>DELAY</div>
-                  <input type="range" min="0" max="100" defaultValue="0" style={{width:'100%',accentColor:'#bf5af2'}}/>
+                  <input type="range" min="0" max="100" defaultValue="0" />
                 </div>
                 <div className="vu-meter-pro">
                   {Array.from({length:20},(_,i)=>(
@@ -8010,7 +7845,7 @@ TIMELINE
                   <input type="range" min="-60" max="12" defaultValue="0" style={{writingMode:'vertical-lr',direction:'rtl',width:32,height:100,accentColor:'#00ffc8'}}/>
                   <span className="fader-db">0dB</span>
                 </div>
-                <div style={{display:'flex',gap:4,justifyContent:'center',marginTop:4}}>
+                <div >
                   <button style={{padding:'3px 7px',background:'rgba(248,81,73,0.15)',border:'1px solid #f85149',borderRadius:4,color:'#f85149',fontSize:9,cursor:'pointer'}}>M</button>
                   <button style={{padding:'3px 7px',background:'rgba(0,255,200,0.1)',border:'1px solid rgba(0,255,200,0.3)',borderRadius:4,color:'#00ffc8',fontSize:9,cursor:'pointer'}}>S</button>
                 </div>
@@ -8023,9 +7858,9 @@ TIMELINE
                       <div key={b} className="eq-knob-wrap"><div className="eq-knob" style={{background:`conic-gradient(${track.color||'#00ffc8'} 180deg,#21262d 180deg)`}}></div><span>{b}</span></div>
                     ))}
                   </div>
-                  <div style={{width:'100%',marginTop:4}}>
+                  <div >
                     <div style={{fontSize:9,color:'#4e6a82',marginBottom:2}}>PAN</div>
-                    <input type="range" min="-100" max="100" defaultValue="0" style={{width:'100%',accentColor:track.color||'#00ffc8'}}/>
+                    <input type="range" min="-100" max="100" defaultValue="0" />
                   </div>
                   <div className="vu-meter-pro">
                     {Array.from({length:20},(_,i)=>(
@@ -8036,7 +7871,7 @@ TIMELINE
                     <input type="range" min="-60" max="12" defaultValue="0" style={{writingMode:'vertical-lr',direction:'rtl',width:32,height:100,accentColor:track.color||'#00ffc8'}}/>
                     <span className="fader-db">0dB</span>
                   </div>
-                  <div style={{display:'flex',gap:4,justifyContent:'center',marginTop:4}}>
+                  <div >
                     <button style={{padding:'3px 7px',background:'rgba(248,81,73,0.15)',border:'1px solid #f85149',borderRadius:4,color:'#f85149',fontSize:9,cursor:'pointer'}}>M</button>
                     <button style={{padding:'3px 7px',background:'rgba(0,255,200,0.1)',border:'1px solid rgba(0,255,200,0.3)',borderRadius:4,color:'#00ffc8',fontSize:9,cursor:'pointer'}}>S</button>
                     <button style={{padding:'3px 7px',background:'rgba(255,107,107,0.1)',border:'1px solid #ff6b6b',borderRadius:4,color:'#ff6b6b',fontSize:9,cursor:'pointer'}}>R</button>
@@ -8053,7 +7888,7 @@ TIMELINE
         <div className="scopes-panel-pro">
           <div className="scopes-header">
             <span>📊 Video Scopes</span>
-            <div style={{display:'flex',gap:6,alignItems:'center'}}>
+            <div >
               {['Waveform','Vectorscope','Histogram','Parade'].map(s=>(
                 <button key={s} style={{padding:'3px 8px',background:'rgba(0,255,200,0.08)',border:'1px solid rgba(0,255,200,0.2)',borderRadius:4,color:'#00ffc8',fontSize:10,cursor:'pointer'}}>{s}</button>
               ))}
@@ -8063,16 +7898,16 @@ TIMELINE
           <div className="scopes-body">
             <div className="scope-canvas-wrap">
               <div style={{fontSize:10,color:'#4e6a82',marginBottom:4}}>WAVEFORM (Luma)</div>
-              <canvas ref={scopesCanvasRef} width={320} height={100} style={{width:'100%',background:'#06060f',borderRadius:6,border:'1px solid #21262d'}}/>
+              <canvas ref={scopesCanvasRef} width={320} height={100} />
             </div>
-            <div style={{display:'flex',gap:12}}>
-              <div className="scope-canvas-wrap" style={{flex:1}}>
+            <div >
+              <div className="scope-canvas-wrap" >
                 <div style={{fontSize:10,color:'#4e6a82',marginBottom:4}}>VECTORSCOPE</div>
                 <canvas ref={vectorCanvasRef} width={100} height={100} style={{borderRadius:'50%',background:'#06060f',border:'1px solid #21262d',display:'block'}}/>
               </div>
               <div className="scope-canvas-wrap" style={{flex:2}}>
                 <div style={{fontSize:10,color:'#4e6a82',marginBottom:4}}>HISTOGRAM (RGB)</div>
-                <canvas ref={histCanvasRef} width={200} height={80} style={{width:'100%',background:'#06060f',borderRadius:6,border:'1px solid #21262d'}}/>
+                <canvas ref={histCanvasRef} width={200} height={80} />
               </div>
             </div>
           </div>
@@ -8154,15 +7989,15 @@ TIMELINE
           </div>
           <div style={{padding:16}}>
             <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Caption Style</div>
-            <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>
+            <div >
               {CAPTION_STYLES.map(s=>(
                 <button key={s.id} style={{padding:'4px 10px',borderRadius:6,border:'1px solid #21262d',background:'#0d1117',color:'#8b949e',fontSize:11,cursor:'pointer'}}>{s.name||s.id}</button>
               ))}
             </div>
-            <textarea style={{width:'100%',background:'#0d1117',border:'1px solid #21262d',borderRadius:6,color:'#e6edf3',padding:8,fontSize:12,resize:'vertical',minHeight:60,boxSizing:'border-box'}} placeholder="Type caption text..."/>
-            <div style={{display:'flex',gap:8,marginTop:8,marginBottom:12}}>
-              <input type="number" placeholder="Start (s)" style={{flex:1,background:'#0d1117',border:'1px solid #21262d',borderRadius:4,color:'#e6edf3',padding:'4px 8px',fontSize:11}}/>
-              <input type="number" placeholder="End (s)" style={{flex:1,background:'#0d1117',border:'1px solid #21262d',borderRadius:4,color:'#e6edf3',padding:'4px 8px',fontSize:11}}/>
+            <textarea  placeholder="Type caption text..."/>
+            <div >
+              <input type="number" placeholder="Start (s)" />
+              <input type="number" placeholder="End (s)" />
               <button onClick={()=>setCaptions(prev=>[...prev,createCaptionSegment({words:[],startTime:currentTime})])}
                 style={{padding:'4px 12px',background:'rgba(0,255,200,0.1)',border:'1px solid rgba(0,255,200,0.3)',borderRadius:4,color:'#00ffc8',fontSize:11,cursor:'pointer'}}>Add</button>
             </div>
@@ -8192,7 +8027,7 @@ TIMELINE
                   alert('Transcription failed: ' + err.message);
                 }
               }}
-              style={{width:'100%',padding:'9px',background:'rgba(191,90,242,0.1)',border:'1px solid rgba(191,90,242,0.3)',borderRadius:6,color:'#bf5af2',fontSize:12,fontWeight:700,cursor:'pointer'}}>
+              >
               🤖 AI Auto-Caption (Whisper)
             </button>
           </div>
@@ -8208,7 +8043,7 @@ TIMELINE
           </div>
           <div style={{padding:16}}>
             <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Text Presets</div>
-            <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:12}}>
+            <div >
               {TEXT_PRESETS.map((p,i)=>(
                 <button key={i} onClick={()=>setTextOverlays(prev=>[...prev,createTextOverlay({text:p.text||'Title Text',style:p})])}
                   style={{padding:'8px 12px',background:'#0d1117',border:'1px solid #21262d',borderRadius:6,color:'#e6edf3',fontSize:11,cursor:'pointer',textAlign:'left'}}>
@@ -8217,7 +8052,7 @@ TIMELINE
               ))}
             </div>
             <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Lower Thirds</div>
-            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            <div >
               {LOWER_THIRD_TEMPLATES.map((t,i)=>(
                 <button key={i} style={{padding:'8px 12px',background:'#0d1117',border:'1px solid #21262d',borderRadius:6,color:'#8b949e',fontSize:11,cursor:'pointer',textAlign:'left'}}>
                   {t.name||'Lower Third '+(i+1)}
@@ -8247,11 +8082,11 @@ TIMELINE
             </div>
             <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Watermark</div>
             <button onClick={()=>setWatermark(createWatermark({text:'StreamPireX'}))}
-              style={{width:'100%',padding:'8px',background:'rgba(0,255,200,0.08)',border:'1px solid rgba(0,255,200,0.2)',borderRadius:6,color:'#00ffc8',fontSize:11,cursor:'pointer',marginBottom:12}}>
+              >
               + Add Watermark
             </button>
             <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Social Templates</div>
-            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            <div >
               {SOCIAL_TEMPLATES.slice(0,6).map((t,i)=>(
                 <button key={i} style={{padding:'6px 10px',background:'#0d1117',border:'1px solid #21262d',borderRadius:6,color:'#8b949e',fontSize:10,cursor:'pointer',textAlign:'left',display:'flex',justifyContent:'space-between'}}>
                   <span>{t.name}</span><span style={{color:'#4e6a82'}}>{t.width}x{t.height}</span>
