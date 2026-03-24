@@ -59,7 +59,7 @@ import EPKCollabHub from "./pages/EPKCollabHub";
 import PublicEPKPage from "./pages/PublicEPK";
 import Contact from "./pages/Contact";
 import VoiceCloneServices from "./pages/VoiceCloneServices";
-import PluginRackDemo from "./pages/PluginRackDemo.js";
+import PluginRackDemo from "./pages/PluginRackDemo";
 import PodcastStudio from "./pages/PodcastStudio";
 import PodcastGuestJoin from "./pages/PodcastGuestJoin";
 import { AsyncGuestRecordPage } from "./pages/PodcastStudioPhase2";

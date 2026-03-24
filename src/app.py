@@ -614,3 +614,46 @@ if __name__ == '__main__':
 # app.register_blueprint(render_api, url_prefix="/api")  # disabled
 app.register_blueprint(plugin_marketplace_bp)
 app.register_blueprint(payout_bp)
+
+# ── Previously unregistered blueprints ──────────────────
+try:
+    from api.ai_auto_edit_routes import ai_auto_edit_bp
+    app.register_blueprint(ai_auto_edit_bp)
+    print('✅ ai_auto_edit_bp registered')
+except Exception as e:
+    print(f'⚠️  ai_auto_edit_bp: {e}')
+
+try:
+    from api.ai_video_credits_routes import ai_video_credits_bp
+    app.register_blueprint(ai_video_credits_bp)
+    print('✅ ai_video_credits_bp registered')
+except Exception as e:
+    print(f'⚠️  ai_video_credits_bp: {e}')
+
+try:
+    from api.beat_sync_routes import beat_sync_bp
+    app.register_blueprint(beat_sync_bp)
+    print('✅ beat_sync_bp registered')
+except Exception as e:
+    print(f'⚠️  beat_sync_bp: {e}')
+
+try:
+    from api.epk_collab_routes import epk_collab_bp as epk_collab_routes_bp
+    app.register_blueprint(epk_collab_routes_bp)
+    print('✅ epk_collab_routes_bp registered')
+except Exception as e:
+    print(f'⚠️  epk_collab_routes_bp: {e}')
+
+try:
+    from api.video_export_routes import video_export_bp
+    app.register_blueprint(video_export_bp)
+    print('✅ video_export_bp registered')
+except Exception as e:
+    print(f'⚠️  video_export_bp: {e}')
+
+try:
+    from api.projects_routes import projects_bp
+    app.register_blueprint(projects_bp)
+    print('✅ projects_bp registered')
+except Exception as e:
+    print(f'⚠️  projects_bp: {e}')
