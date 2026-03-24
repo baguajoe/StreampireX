@@ -1904,67 +1904,80 @@ const VideoEditorComponent = () => {
   };
 
   const handleOpenProject = async () => {
-    const projects = await projectManager.getAllProjects();
-    if (projects.length === 0) {
-      alert('No projects found. Create a new project first.');
-      return;
-    }
-
-    // Simple prompt for now - you can make this a modal later
-    const projectList = projects.map((p, i) => `${i + 1}. ${p.title}`).join('\n');
-    const choice = prompt(`Select a project (enter number):\n${projectList}`);
-
-    if (choice) {
-      const index = parseInt(choice) - 1;
-      if (projects[index]) {
-        try {
-          const loaded = await projectManager.loadProject(projects[index].id);
-          // Load timeline data
-          if (loaded.timeline_data) {
-            const timeline = typeof loaded.timeline_data === 'string'
-              ? JSON.parse(loaded.timeline_data)
-              : loaded.timeline_data;
-            if (timeline.tracks) {
-              setTracks(timeline.tracks);
-            }
-          }
-          setProject(prev => ({ ...prev, title: loaded.title }));
-          console.log('✅ Project loaded:', loaded.title);
-        } catch (error) {
-          alert('Failed to load project: ' + error.message);
-        }
+    try {
+      const token = localStorage.getItem('jwt-token') || localStorage.getItem('token');
+      // Try backend first
+      const r = await fetch(`${backendURL}/api/video-editor/projects`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      let projects = [];
+      if (r.ok) {
+        const data = await r.json();
+        projects = data.projects || [];
+      } else {
+        projects = await projectManager.getAllProjects();
       }
-    }
+      if (projects.length === 0) { alert('No saved projects found.'); return; }
+      const list = projects.map((p, i) => `${i + 1}. ${p.title || p.name}`).join('\n');
+      const choice = prompt(`Select a project:\n${list}`);
+      if (!choice) return;
+      const idx = parseInt(choice) - 1;
+      if (!projects[idx]) return;
+      const proj = projects[idx];
+      // Load it
+      const r2 = await fetch(`${backendURL}/api/video-editor/project/${proj.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (r2.ok) {
+        const loaded = await r2.json();
+        const timeline = typeof loaded.timeline_data === 'string' ? JSON.parse(loaded.timeline_data) : loaded.timeline_data;
+        if (timeline?.tracks) { setTracks(timeline.tracks); }
+        setProject(prev => ({ ...prev, title: loaded.title, id: loaded.id }));
+        alert(`✅ Loaded: ${loaded.title}`);
+      } else {
+        // Fallback to projectManager
+        const loaded = await projectManager.loadProject(proj.id);
+        if (loaded?.timeline_data) {
+          const tl = typeof loaded.timeline_data === 'string' ? JSON.parse(loaded.timeline_data) : loaded.timeline_data;
+          if (tl?.tracks) setTracks(tl.tracks);
+        }
+        setProject(prev => ({ ...prev, title: loaded.title }));
+        alert(`✅ Loaded: ${loaded.title}`);
+      }
+    } catch(e) { alert('Failed to load: ' + e.message); }
   };
 
   const handleSave = async () => {
     try {
       const timelineData = {
-        tracks: tracks,
-        settings: {
-          frameRate,
-          width: project.resolution.width,
-          height: project.resolution.height
-        },
+        tracks,
+        settings: { frameRate, width: project.resolution.width, height: project.resolution.height },
         markers: markersHook.markers
       };
-
-      if (projectManager.currentProject?.id) {
-        await projectManager.saveProject(timelineData, project.title);
+      // Always try direct backend save as fallback
+      const token = localStorage.getItem('jwt-token') || localStorage.getItem('token');
+      const r = await fetch(`${backendURL}/api/video-editor/save-project`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ title: project.title, timeline: timelineData, settings: timelineData.settings })
+      });
+      if (r.ok) {
+        const data = await r.json();
+        if (data.project_id) setProject(prev => ({ ...prev, id: data.project_id }));
         alert('✅ Project saved!');
       } else {
-        // Create new project first
-        const title = prompt('Enter project name:', project.title);
-        if (title) {
-          await projectManager.createProject(title, {
-            width: project.resolution.width,
-            height: project.resolution.height,
-            frameRate
-          });
-          await projectManager.saveProject(timelineData, title);
-          setProject(prev => ({ ...prev, title }));
-          alert('✅ Project saved!');
+        // Fallback to projectManager
+        if (projectManager.currentProject?.id) {
+          await projectManager.saveProject(timelineData, project.title);
+        } else {
+          const title = prompt('Enter project name:', project.title);
+          if (title) {
+            await projectManager.createProject(title, { width: project.resolution.width, height: project.resolution.height, frameRate });
+            await projectManager.saveProject(timelineData, title);
+            setProject(prev => ({ ...prev, title }));
+          }
         }
+        alert('✅ Project saved!');
       }
     } catch (error) {
       alert('Failed to save: ' + error.message);
@@ -2178,25 +2191,36 @@ const VideoEditorComponent = () => {
     }
   };
 
-  const handleSpeedDuration = () => {
-    if (!selectedClip) {
-      alert('Select a clip first');
-      return;
-    }
+  const handleSpeedDuration = async () => {
+    if (!selectedClip) { alert('Select a clip first'); return; }
     const speed = prompt('Enter speed multiplier (0.1 - 10):', selectedClip.speed || '1');
-    if (speed) {
-      const speedVal = parseFloat(speed);
-      if (speedVal >= 0.1 && speedVal <= 10) {
-        const modified = clipOps.changeSpeed(selectedClip, speedVal);
-        setTracks(prevTracks => prevTracks.map(track => ({
-          ...track,
-          clips: track.clips.map(c => c.id === selectedClip.id ? modified : c)
-        })));
-        setSelectedClip(modified);
-        console.log(`⏩ Speed set to ${speedVal}x`);
-      } else {
-        alert('Speed must be between 0.1 and 10');
-      }
+    if (!speed) return;
+    const speedVal = parseFloat(speed);
+    if (speedVal < 0.1 || speedVal > 10) { alert('Speed must be between 0.1 and 10'); return; }
+    const modified = clipOps.changeSpeed(selectedClip, speedVal);
+    setTracks(prevTracks => prevTracks.map(track => ({
+      ...track,
+      clips: track.clips.map(c => c.id === selectedClip.id ? modified : c)
+    })));
+    setSelectedClip(modified);
+    // Wire to backend if clip has cloud ID
+    const pubId = selectedClip.cloudinary_public_id || selectedClip.r2_key;
+    if (pubId) {
+      try {
+        const token = localStorage.getItem('jwt-token') || localStorage.getItem('token');
+        const r = await fetch(`${backendURL}/api/video-editor/transform`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ public_id: pubId, speed: speedVal })
+        });
+        if (r.ok) {
+          const data = await r.json();
+          if (data.transformed_url) {
+            setTracks(prev => prev.map(t => ({ ...t, clips: t.clips.map(c => c.id === selectedClip.id ? { ...c, previewUrl: data.transformed_url } : c) })));
+            console.log(`⏩ Speed ramp applied: ${speedVal}x`);
+          }
+        }
+      } catch(e) { console.warn('Speed ramp backend error:', e.message); }
     }
   };
 
@@ -3974,10 +3998,23 @@ TIMELINE
 
     console.log('📍 Drop detected, draggedMedia:', draggedMedia);
 
-    if (!draggedMedia) {
-      console.log('❌ No draggedMedia found');
+    // Try dataTransfer if draggedMedia state is null (common during fast drags)
+    let resolvedMedia = draggedMedia;
+    if (!resolvedMedia) {
+      try {
+        const raw = e.dataTransfer.getData('text/plain');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && (parsed.name || parsed.url)) resolvedMedia = parsed;
+        }
+      } catch {}
+    }
+    if (!resolvedMedia) {
+      console.log('❌ No media found in state or dataTransfer');
       return;
     }
+    // Use resolvedMedia instead of draggedMedia below
+    const draggedMedia = resolvedMedia;
 
     const track = tracks.find(t => t.id === trackId);
     if (!track) {
@@ -4050,6 +4087,22 @@ TIMELINE
     setSelectedClip(newClip);
 
     console.log(`✅ Added ${draggedMedia.name} to ${track.name} at ${newClip.startTime.toFixed(2)}s`);
+    // Auto-generate thumbnail if clip has cloudinary ID
+    if (newClip.cloudinary_public_id && !newClip.thumbnail) {
+      const token = localStorage.getItem('jwt-token') || localStorage.getItem('token');
+      fetch(`${backendURL}/api/video-editor/thumbnail`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ public_id: newClip.cloudinary_public_id, timestamp: 0 })
+      }).then(r => r.json()).then(data => {
+        if (data.thumbnail_url) {
+          setTracks(prev => prev.map(t => ({
+            ...t,
+            clips: t.clips.map(c => c.id === newClip.id ? { ...c, thumbnail: data.thumbnail_url } : c)
+          })));
+        }
+      }).catch(() => {});
+    }
     if (draggedMedia.cloudinary_public_id) {
       console.log(`   ☁️ Cloudinary ID: ${draggedMedia.cloudinary_public_id}`);
     }
@@ -4243,11 +4296,27 @@ TIMELINE
         tracks,
         markers: markersHook.markers,
         settings: { frameRate, width: project.resolution.width, height: project.resolution.height }
-      }), 30000); // 30 seconds
+      }), 30000);
     }
-
     return () => projectManager.disableAutoSave();
   }, [projectManager.currentProject?.id]);
+
+  // Auto-save to backend every 60s if project has been modified
+  React.useEffect(() => {
+    if (!tracks || tracks.every(t => t.clips.length === 0)) return;
+    const timer = setTimeout(async () => {
+      try {
+        const token = localStorage.getItem('jwt-token') || localStorage.getItem('token');
+        await fetch(`${backendURL}/api/video-editor/save-project`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ title: project.title, timeline: { tracks }, settings: { frameRate }, autosave: true })
+        });
+        console.log('💾 Auto-saved');
+      } catch {}
+    }, 60000);
+    return () => clearTimeout(timer);
+  }, [tracks]);
 
   // Menu definitions
   const menuItems = {
@@ -6017,14 +6086,12 @@ TIMELINE
                                 ref={(el) => {
                                   scopesVideoRef.current = el;
                                   if (el) {
-                                    // Sync video time with timeline
                                     const targetTime = Math.min(clipOffset, el.duration || activeClip.duration);
-                                    if (Math.abs(el.currentTime - targetTime) > 0.5) {
+                                    if (Math.abs(el.currentTime - targetTime) > 0.15) {
                                       el.currentTime = targetTime;
                                     }
-                                    // Sync play/pause state
                                     if (isPlaying && el.paused) {
-                                      el.play().catch(() => { });
+                                      el.play().catch(() => {});
                                     } else if (!isPlaying && !el.paused) {
                                       el.pause();
                                     }
@@ -7125,7 +7192,11 @@ TIMELINE
                                         width: `${width}px`,
                                         backgroundColor: track.color,
                                         opacity: clip.compositing?.opacity ? clip.compositing.opacity / 100 : 1,
-                                        cursor: track.locked ? 'not-allowed' : 'grab'
+                                        cursor: track.locked ? 'not-allowed' : 'grab',
+                                        backgroundImage: clip.thumbnail ? `url(${clip.thumbnail})` : 'none',
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                        backgroundBlendMode: 'luminosity'
                                       }}
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -7158,8 +7229,13 @@ TIMELINE
                                           )}
                                         </div>
                                         {track.type === 'audio' && showAudioWaveforms && (
-                                          <div className="audio-waveform">
-                                            <AudioWaveform size={12} />
+                                          <div className="audio-waveform" style={{position:'absolute',bottom:0,left:0,right:0,height:20,opacity:.6,pointerEvents:'none'}}>
+                                            <svg width="100%" height="20" preserveAspectRatio="none">
+                                              <polyline
+                                                points={Array.from({length:40},(_,i)=>`${(i/39)*100}%,${10-Math.sin(i*0.8+clip.id)*8}`).join(' ')}
+                                                stroke="#00ffc8" strokeWidth="1" fill="none" vectorEffect="non-scaling-stroke"
+                                              />
+                                            </svg>
                                           </div>
                                         )}
                                         {showKeyframes && clip.keyframes && clip.keyframes.length > 0 && (
@@ -7725,7 +7801,24 @@ TIMELINE
           </div>
           <div style={{padding:16}}>
             {selectedClip
-              ? <ChromaKeyPanel settings={chromaKeySettings} onChange={setChromaKeySettings} onPickColor={(c)=>setChromaKeySettings(s=>({...s,color:c}))}/>
+              ? <>
+                <ChromaKeyPanel settings={chromaKeySettings} onChange={setChromaKeySettings} onPickColor={(c)=>setChromaKeySettings(s=>({...s,color:c}))}/>
+                <button onClick={async()=>{
+                  if(!selectedClip) return;
+                  const pubId = selectedClip.cloudinary_public_id || selectedClip.r2_key;
+                  if(!pubId){alert('Upload clip first');return;}
+                  try{
+                    const token=localStorage.getItem('jwt-token')||localStorage.getItem('token');
+                    const r=await fetch(`${backendURL}/api/video-editor/apply-effect`,{
+                      method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+                      body:JSON.stringify({public_id:pubId,effect_id:'chromaKey',intensity:chromaKeySettings.tolerance||30,color:chromaKeySettings.color||'#00ff00'})
+                    });
+                    if(r.ok){const d=await r.json();if(d.processed_url){setTracks(p=>p.map(t=>({...t,clips:t.clips.map(c=>c.id===selectedClip.id?{...c,previewUrl:d.processed_url}:c)})));alert('✅ Chroma key applied!');}}
+                  }catch(e){alert('Chroma key failed: '+e.message);}
+                }} style={{marginTop:10,width:'100%',padding:'8px',background:'rgba(0,255,100,0.1)',border:'1px solid rgba(0,255,100,0.3)',borderRadius:6,color:'#00ff64',fontSize:11,fontWeight:700,cursor:'pointer'}}>
+                  Apply Chroma Key
+                </button>
+              </>
               : <div style={{color:'#4e6a82',fontSize:12,textAlign:'center',padding:20}}>Select a video clip first</div>}
           </div>
         </div>
@@ -7824,7 +7917,22 @@ TIMELINE
             <div style={{fontSize:11,fontWeight:700,color:'#e6edf3',marginBottom:8}}>Text Presets</div>
             <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:12}}>
               {TEXT_PRESETS.map((p,i)=>(
-                <button key={i} onClick={()=>setTextOverlays(prev=>[...prev,createTextOverlay({text:p.text||'Title Text',style:p})])}
+                <button key={i} onClick={async()=>{
+                  setTextOverlays(prev=>[...prev,createTextOverlay({text:p.text||'Title Text',style:p})]);
+                  if(selectedClip){
+                    const pubId=selectedClip.cloudinary_public_id||selectedClip.r2_key;
+                    if(pubId){
+                      try{
+                        const token=localStorage.getItem('jwt-token')||localStorage.getItem('token');
+                        const r=await fetch(`${backendURL}/api/video-editor/add-text`,{
+                          method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+                          body:JSON.stringify({public_id:pubId,text:p.text||'Title Text',font_size:p.fontSize||40,color:p.color||'white',position:p.position||'center'})
+                        });
+                        if(r.ok){const d=await r.json();if(d.text_overlay_url){setTracks(prev=>prev.map(t=>({...t,clips:t.clips.map(c=>c.id===selectedClip.id?{...c,previewUrl:d.text_overlay_url}:c)})));}}
+                      }catch(e){console.warn('Text overlay error:',e.message);}
+                    }
+                  }
+                }}
                   style={{padding:'8px 12px',background:'#0d1117',border:'1px solid #21262d',borderRadius:6,color:'#e6edf3',fontSize:11,cursor:'pointer',textAlign:'left'}}>
                   {p.name||'Preset '+(i+1)}
                 </button>
