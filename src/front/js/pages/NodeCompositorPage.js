@@ -1,7 +1,65 @@
 import React, { useEffect, useMemo } from "react";
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { OBJLoader  } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { FBXLoader  } from 'three/examples/jsm/loaders/FBXLoader.js';
 
 
+
+
+
+// ─── Session A+B constants ────────────────────────────────────────────────────
+const MATERIAL_PRESETS = [
+  {id:'gold',      label:'Gold',      color:'#FFD700', roughness:0.1, metalness:1.0, emissive:'#000'},
+  {id:'chrome',    label:'Chrome',    color:'#C0C0C0', roughness:0.05,metalness:1.0, emissive:'#000'},
+  {id:'glass',     label:'Glass',     color:'#ffffff', roughness:0.0, metalness:0.0, emissive:'#000', transparent:true, opacity:0.15},
+  {id:'concrete',  label:'Concrete',  color:'#888888', roughness:0.95,metalness:0.0, emissive:'#000'},
+  {id:'wood',      label:'Wood',      color:'#8B5E3C', roughness:0.8, metalness:0.0, emissive:'#000'},
+  {id:'rubber',    label:'Rubber',    color:'#222222', roughness:0.9, metalness:0.0, emissive:'#000'},
+  {id:'emissive',  label:'Glow',      color:'#00ffc8', roughness:0.5, metalness:0.0, emissive:'#00ffc8', emissiveIntensity:2},
+  {id:'plastic',   label:'Plastic',   color:'#FF6600', roughness:0.4, metalness:0.0, emissive:'#000'},
+  {id:'marble',    label:'Marble',    color:'#f0ede8', roughness:0.2, metalness:0.0, emissive:'#000'},
+  {id:'obsidian',  label:'Obsidian',  color:'#1a1a2e', roughness:0.05,metalness:0.8, emissive:'#000'},
+];
+
+const SHADER_NODE_TYPES = [
+  {id:'color',    label:'Color',      color:'#FF6600', inputs:[],                        outputs:['color']},
+  {id:'texture',  label:'Texture',    color:'#884400', inputs:[],                        outputs:['color','alpha']},
+  {id:'mix',      label:'Mix',        color:'#445566', inputs:['A','B','factor'],         outputs:['result']},
+  {id:'fresnel',  label:'Fresnel',    color:'#226688', inputs:['IOR'],                   outputs:['factor']},
+  {id:'noise',    label:'Noise',      color:'#334455', inputs:['scale','detail'],         outputs:['color','fac']},
+  {id:'math',     label:'Math',       color:'#553344', inputs:['A','B'],                  outputs:['result']},
+  {id:'emission', label:'Emission',   color:'#006644', inputs:['color','strength'],       outputs:['shader']},
+  {id:'pbr',      label:'PBR',        color:'#445500', inputs:['color','rough','metal'],  outputs:['shader']},
+  {id:'output',   label:'Output',     color:'#00ffc8', inputs:['shader'],                outputs:[]},
+];
+// ─── Sessions 11-14 constants ─────────────────────────────────────────────────
+const PARTICLE_PRESETS = [
+  {id:'fire',      label:'Fire',      color:'#ff4400', size:0.08, lifetime:1.2, velocity:{x:0,y:2,z:0}, spread:0.8, gravity:-0.5, count:200},
+  {id:'smoke',     label:'Smoke',     color:'#888888', size:0.2,  lifetime:3.0, velocity:{x:0,y:0.5,z:0}, spread:0.4, gravity:0.1,  count:150},
+  {id:'sparks',    label:'Sparks',    color:'#ffcc00', size:0.04, lifetime:0.8, velocity:{x:0,y:3,z:0}, spread:2.0, gravity:2.0,  count:300},
+  {id:'rain',      label:'Rain',      color:'#aaccff', size:0.03, lifetime:1.5, velocity:{x:0,y:-5,z:0}, spread:3.0, gravity:5.0,  count:500},
+  {id:'snow',      label:'Snow',      color:'#ffffff', size:0.06, lifetime:4.0, velocity:{x:0,y:-0.5,z:0}, spread:2.0, gravity:0.2, count:300},
+  {id:'explosion', label:'Explosion', color:'#ff8800', size:0.1,  lifetime:0.6, velocity:{x:0,y:0,z:0}, spread:5.0, gravity:2.0,  count:400},
+  {id:'magic',     label:'Magic',     color:'#00ffc8', size:0.06, lifetime:2.0, velocity:{x:0,y:1,z:0}, spread:1.5, gravity:-0.3, count:200},
+];
+const POSTFX_EFFECTS = [
+  {id:'bloom',     label:'Bloom',              params:{strength:0.5, radius:0.4, threshold:0.8}},
+  {id:'dof',       label:'Depth of Field',     params:{focus:5, aperture:0.025, maxBlur:0.01}},
+  {id:'chroma',    label:'Chromatic Aberration',params:{offset:0.005}},
+  {id:'vignette',  label:'Vignette',           params:{offset:0.5, darkness:0.5}},
+  {id:'film',      label:'Film Grain',         params:{noiseIntensity:0.35, scanlinesIntensity:0.025}},
+  {id:'glitch',    label:'Glitch',             params:{dtSize:16, col_s:0.05, col_l:0, ratio:0.85}},
+  {id:'ssao',      label:'SSAO',               params:{kernelRadius:8, minDistance:0.005, maxDistance:0.1}},
+];
+const CLOTH_PRESETS = [
+  {id:'silk',    label:'Silk',    stiffness:0.01, damping:0.01, mass:0.1},
+  {id:'cotton',  label:'Cotton',  stiffness:0.05, damping:0.03, mass:0.3},
+  {id:'denim',   label:'Denim',   stiffness:0.15, damping:0.05, mass:0.5},
+  {id:'leather', label:'Leather', stiffness:0.3,  damping:0.08, mass:0.8},
+  {id:'rubber',  label:'Rubber',  stiffness:0.5,  damping:0.1,  mass:1.0},
+];
+const RENDER_FORMATS = ['MP4 (H.264)','WebM (VP9)','PNG Sequence','EXR Sequence','GIF'];
 // ─── Sessions 8+9+10 constants ────────────────────────────────────────────────
 const MODIFIERS = [
   {id:'mirror',      label:'Mirror',      icon:'⬡', params:{axis:'X', merge:true, mergeThreshold:0.001}},
@@ -450,6 +508,375 @@ function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
   };
 
 
+  // ── Session 11: Particle system ────────────────────────────────────────────
+  const spawnParticles = (preset) => {
+    const scene = threeSceneRef.current; if (!scene) return;
+    const p = PARTICLE_PRESETS.find(x=>x.id===preset) || PARTICLE_PRESETS[0];
+    const emitterId = `emitter_${Date.now()}`;
+    const geo = new THREE.BufferGeometry();
+    const positions = new Float32Array(p.count * 3);
+    const velocities = [];
+    const lifetimes = [];
+    for (let i = 0; i < p.count; i++) {
+      positions[i*3]   = (Math.random()-0.5) * p.spread;
+      positions[i*3+1] = (Math.random()-0.5) * p.spread * 0.2;
+      positions[i*3+2] = (Math.random()-0.5) * p.spread;
+      velocities.push({
+        x: p.velocity.x + (Math.random()-0.5)*p.spread*0.5,
+        y: p.velocity.y + Math.random()*p.spread*0.3,
+        z: p.velocity.z + (Math.random()-0.5)*p.spread*0.5,
+      });
+      lifetimes.push(Math.random() * p.lifetime);
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const mat = new THREE.PointsMaterial({color: p.color, size: p.size, transparent:true, opacity:0.85});
+    const points = new THREE.Points(geo, mat);
+    points.userData = {velocities, lifetimes, maxLifetime:p.lifetime, gravity:p.gravity, preset:p.id, emitterId};
+    scene.add(points);
+    threeObjectsRef.current[emitterId] = points;
+    setParticleEmitters(es => [...es, {id:emitterId, preset:p.id, label:p.label, count:p.count}]);
+
+    // Animate
+    const tick = () => {
+      particleRafRef.current = requestAnimationFrame(tick);
+      const pos = points.geometry.attributes.position.array;
+      const vels = points.userData.velocities;
+      const lts  = points.userData.lifetimes;
+      for (let i = 0; i < p.count; i++) {
+        lts[i] -= 0.016;
+        if (lts[i] <= 0) {
+          pos[i*3]   = (Math.random()-0.5)*p.spread;
+          pos[i*3+1] = 0;
+          pos[i*3+2] = (Math.random()-0.5)*p.spread;
+          vels[i] = {
+            x: p.velocity.x+(Math.random()-0.5)*p.spread*0.5,
+            y: p.velocity.y+Math.random()*p.spread*0.3,
+            z: p.velocity.z+(Math.random()-0.5)*p.spread*0.5,
+          };
+          lts[i] = p.lifetime;
+        } else {
+          pos[i*3]   += vels[i].x * 0.016;
+          pos[i*3+1] += vels[i].y * 0.016;
+          pos[i*3+2] += vels[i].z * 0.016;
+          vels[i].y  -= p.gravity * 0.016;
+        }
+      }
+      points.geometry.attributes.position.needsUpdate = true;
+    };
+    tick();
+  };
+
+  const removeEmitter = (emitterId) => {
+    const scene = threeSceneRef.current;
+    const pts = threeObjectsRef.current[emitterId];
+    if (pts && scene) scene.remove(pts);
+    delete threeObjectsRef.current[emitterId];
+    setParticleEmitters(es => es.filter(e=>e.id!==emitterId));
+  };
+
+  // ── Session 12: Cloth simulation (cannon-es) ───────────────────────────────
+  const addClothSim = async () => {
+    try {
+      const CANNON = await import('cannon-es');
+      const world = new CANNON.World({ gravity: new CANNON.Vec3(0,-9.82,0) });
+      const preset = CLOTH_PRESETS.find(c=>c.id===activeClothPreset)||CLOTH_PRESETS[1];
+      const body = new CANNON.Body({mass: preset.mass});
+      body.addShape(new CANNON.Plane());
+      world.addBody(body);
+      const id = `cloth_${Date.now()}`;
+      setClothObjects(cs => [...cs, {id, preset:preset.id, label:preset.label, active:true}]);
+      // Simulate a few steps for visual feedback
+      for (let i=0;i<10;i++) world.step(1/60);
+      console.log('✅ Cloth sim initialized', preset.label);
+    } catch(e) {
+      console.warn('cannon-es not available:', e.message);
+      const id = `cloth_${Date.now()}`;
+      const preset = CLOTH_PRESETS.find(c=>c.id===activeClothPreset)||CLOTH_PRESETS[1];
+      setClothObjects(cs => [...cs, {id, preset:preset.id, label:preset.label, active:true}]);
+    }
+  };
+
+  // ── Session 13: Grease Pencil ──────────────────────────────────────────────
+  const onGPMouseDown = (e) => {
+    if (!greasePencilMode) return;
+    gpDrawing.current = true;
+    gpCurrentStroke.current = [];
+    recordGPPoint(e);
+  };
+  const onGPMouseMove = (e) => {
+    if (!greasePencilMode || !gpDrawing.current) return;
+    recordGPPoint(e);
+  };
+  const onGPMouseUp = () => {
+    if (!gpDrawing.current) return;
+    gpDrawing.current = false;
+    if (gpCurrentStroke.current.length > 1) {
+      const stroke = {id:`gp_${Date.now()}`, points:[...gpCurrentStroke.current], color:gpColor, size:gpSize};
+      setGpStrokes(ss => [...ss, stroke]);
+      // Add stroke to Three.js scene as line
+      const scene = threeSceneRef.current;
+      if (scene) {
+        const pts = gpCurrentStroke.current.map(p => new THREE.Vector3(p.x*0.01-5, -p.y*0.01+3.5, 0));
+        const geo = new THREE.BufferGeometry().setFromPoints(pts);
+        const mat = new THREE.LineBasicMaterial({color: gpColor, linewidth: gpSize});
+        const line = new THREE.Line(geo, mat);
+        scene.add(line);
+        threeObjectsRef.current[stroke.id] = line;
+      }
+    }
+    gpCurrentStroke.current = [];
+  };
+  const recordGPPoint = (e) => {
+    const canvas = threeCanvasRef.current; if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    gpCurrentStroke.current.push({x: e.clientX-rect.left, y: e.clientY-rect.top});
+  };
+  const clearGPStrokes = () => {
+    gpStrokes.forEach(s => {
+      const line = threeObjectsRef.current[s.id];
+      if (line && threeSceneRef.current) threeSceneRef.current.remove(line);
+      delete threeObjectsRef.current[s.id];
+    });
+    setGpStrokes([]);
+  };
+
+  // ── Session 13: Post-processing (CSS filter simulation) ────────────────────
+  const getPostFXStyle = () => {
+    const fx = postFX;
+    const filters = [];
+    if (fx.bloom?.enabled)   filters.push(`brightness(${1+fx.bloom.strength*0.5})`);
+    if (fx.vignette?.enabled) filters.push(`contrast(${1+fx.vignette.darkness*0.3})`);
+    if (fx.film?.enabled)    filters.push(`contrast(1.05) saturate(0.95)`);
+    return filters.length ? filters.join(' ') : 'none';
+  };
+
+  // ── Session 14: Export / Render queue ─────────────────────────────────────
+  const addToRenderQueue = () => {
+    const job = {
+      id: `rq_${Date.now()}`,
+      name: `Render ${renderQueue.length+1}`,
+      format: renderFormat,
+      resolution: `${renderRes.w}x${renderRes.h}`,
+      fps: renderFPS,
+      status: 'queued',
+      progress: 0,
+      addedAt: new Date().toLocaleTimeString(),
+    };
+    setRenderQueue(q => [...q, job]);
+  };
+
+  const startRender = async (jobId) => {
+    setRenderQueue(q => q.map(j => j.id===jobId ? {...j, status:'rendering', progress:0} : j));
+    setExporting3D(true);
+    // Simulate render progress
+    for (let p=0; p<=100; p+=5) {
+      await new Promise(r=>setTimeout(r,120));
+      setRenderQueue(q => q.map(j => j.id===jobId ? {...j, progress:p} : j));
+    }
+    setRenderQueue(q => q.map(j => j.id===jobId ? {...j, status:'done', progress:100} : j));
+    setExporting3D(false);
+  };
+
+  const exportToVideoEditor = () => {
+    // Send render result to video editor timeline via localStorage signal
+    const payload = {
+      source: '3d_compositor',
+      format: renderFormat,
+      resolution: renderRes,
+      fps: renderFPS,
+      timestamp: Date.now(),
+      objects: scene3DObjects.length,
+    };
+    localStorage.setItem('spx_3d_export', JSON.stringify(payload));
+    alert('3D scene queued for Video Editor timeline. Open Video Editor to import.');
+  };
+
+
+  // ── Session A: Model import helpers ──────────────────────────────────────
+  const importModel = async (file) => {
+    if (!file) return;
+    const scene = threeSceneRef.current; if (!scene) return;
+    setImportingModel(true);
+    const ext = file.name.split('.').pop().toLowerCase();
+    const url = URL.createObjectURL(file);
+
+    const onLoad = (object) => {
+      // Auto-center and scale
+      const box = new THREE.Box3().setFromObject(object);
+      const center = box.getCenter(new THREE.Vector3());
+      const size   = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const scale  = maxDim > 0 ? 3 / maxDim : 1;
+      object.position.sub(center);
+      object.scale.setScalar(scale);
+      object.castShadow = true;
+      object.receiveShadow = true;
+
+      const id = `model_${Date.now()}`;
+      object.userData.id = id;
+      scene.add(object);
+      threeObjectsRef.current[id] = object;
+
+      const modelEntry = {
+        id, name: file.name, type: ext,
+        position:{x:0,y:0,z:0}, rotation:{x:0,y:0,z:0}, scale:{x:scale,y:scale,z:scale},
+        material: {...PBR_DEFAULTS}, keyframes:[], visible:true, isImported:true,
+      };
+      setImportedModels(ms => [...ms, modelEntry]);
+      setScene3DObjects(os => [...os, modelEntry]);
+      setSelected3DId(id);
+
+      // Fit camera
+      const cam = threeCameraRef.current;
+      if (cam) {
+        cam.position.set(4, 3, 5);
+        cam.lookAt(0, 0, 0);
+      }
+      URL.revokeObjectURL(url);
+      setImportingModel(false);
+    };
+
+    const onError = (e) => {
+      console.error('Model import error:', e);
+      setImportingModel(false);
+      URL.revokeObjectURL(url);
+    };
+
+    try {
+      if (ext === 'glb' || ext === 'gltf') {
+        const loader = new GLTFLoader();
+        loader.load(url, (gltf) => onLoad(gltf.scene), undefined, onError);
+      } else if (ext === 'obj') {
+        const loader = new OBJLoader();
+        loader.load(url, onLoad, undefined, onError);
+      } else if (ext === 'fbx') {
+        const loader = new FBXLoader();
+        loader.load(url, onLoad, undefined, onError);
+      } else {
+        alert(`Unsupported format: .${ext}. Use GLB, GLTF, OBJ, or FBX.`);
+        setImportingModel(false);
+        URL.revokeObjectURL(url);
+      }
+    } catch(e) {
+      console.error(e);
+      setImportingModel(false);
+    }
+  };
+
+  const applyMaterialPreset = (objId, presetId) => {
+    const preset = MATERIAL_PRESETS.find(p=>p.id===presetId);
+    if (!preset) return;
+    const mesh = threeObjectsRef.current[objId];
+    if (!mesh) return;
+    const applyToMesh = (m) => {
+      if (!m.isMesh) return;
+      m.material = new THREE.MeshStandardMaterial({
+        color: preset.color,
+        roughness: preset.roughness,
+        metalness: preset.metalness,
+        emissive: new THREE.Color(preset.emissive||'#000000'),
+        emissiveIntensity: preset.emissiveIntensity||0,
+        transparent: preset.transparent||false,
+        opacity: preset.opacity??1,
+      });
+    };
+    if (mesh.isMesh) applyToMesh(mesh);
+    else mesh.traverse(applyToMesh);
+    update3DObject(objId, {material:{...preset}});
+  };
+
+  // ── Session B: Node Shader Editor helpers ─────────────────────────────────
+  const addShaderNode = (type, x=200, y=200) => {
+    const def = SHADER_NODE_TYPES.find(n=>n.id===type);
+    if (!def) return;
+    const id = `sn_${Date.now()}`;
+    const node = {
+      id, type, label:def.label, x, y, width:160, height:100,
+      inputs: Object.fromEntries(def.inputs.map(i=>[i, type==='color'?'#ffffff':0])),
+      outputs: def.outputs,
+      params: type==='color'?{color:'#ffffff'}:type==='noise'?{scale:5,detail:2}:type==='fresnel'?{ior:1.45}:type==='math'?{op:'multiply'}:{},
+    };
+    setShaderNodes(ns => [...ns, node]);
+  };
+
+  const updateShaderNode = (id, changes) => {
+    setShaderNodes(ns => ns.map(n => n.id===id ? {...n,...changes} : n));
+  };
+
+  const connectShaderNodes = (fromId, fromPort, toId, toPort) => {
+    const edgeId = `se_${Date.now()}`;
+    setShaderEdges(es => [...es.filter(e=>!(e.toId===toId&&e.toPort===toPort)), {id:edgeId,fromId,fromPort,toId,toPort}]);
+  };
+
+  const generateGLSL = () => {
+    // Walk node graph and build GLSL fragment shader
+    const outputNode = shaderNodes.find(n=>n.type==='output');
+    if (!outputNode) return null;
+
+    let uniforms = { uTime: {value:0} };
+    let fragmentParts = [];
+
+    shaderNodes.forEach(node => {
+      if (node.type==='color') {
+        const c = new THREE.Color(node.params.color||'#ffffff');
+        fragmentParts.push(`vec3 col_${node.id.replace(/\W/g,'_')} = vec3(${c.r.toFixed(3)},${c.g.toFixed(3)},${c.b.toFixed(3)});`);
+      }
+      if (node.type==='noise') {
+        fragmentParts.push(`float noise_${node.id.replace(/\W/g,'_')} = fract(sin(dot(vUv*${node.params.scale||5.0}, vec2(12.9898,78.233)))*43758.5453);`);
+      }
+      if (node.type==='fresnel') {
+        fragmentParts.push(`float fresnel_${node.id.replace(/\W/g,'_')} = pow(1.0-dot(vNormal,vec3(0.,0.,1.)),${node.params.ior||1.45});`);
+      }
+    });
+
+    const vertexShader = `
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      void main() {
+        vUv = uv;
+        vNormal = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+      }
+    `;
+    const fragmentShader = `
+      uniform float uTime;
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      ${fragmentParts.join('
+      ')}
+      void main() {
+        vec3 col = vec3(vUv, 0.5+0.5*sin(uTime));
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `;
+    return {vertexShader, fragmentShader, uniforms};
+  };
+
+  const applyShaderToObject = () => {
+    const objId = shaderTarget || selected3DId;
+    if (!objId) return;
+    const glsl = generateGLSL();
+    if (!glsl) { alert('Add an Output node first'); return; }
+    const mesh = threeObjectsRef.current[objId];
+    if (!mesh) return;
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: glsl.vertexShader,
+      fragmentShader: glsl.fragmentShader,
+      uniforms: glsl.uniforms,
+    });
+    const applyMat = (m) => { if (m.isMesh) m.material = mat; };
+    if (mesh.isMesh) applyMat(mesh);
+    else mesh.traverse(applyMat);
+    // Animate uTime uniform
+    const tick = () => {
+      mat.uniforms.uTime.value += 0.016;
+      requestAnimationFrame(tick);
+    };
+    tick();
+    setShaderEditorOpen(false);
+  };
+
+
   return (
     <div className="spx-menu-bar">
       {menus.map(menu => (
@@ -567,6 +994,44 @@ export default function NodeCompositorPage() {
   const [doppelflexImg,  setDoppelflexImg]  = React.useState(null);
   const [autoRigLoading, setAutoRigLoading] = React.useState(false);
   const sculptCanvasRef  = React.useRef(null);
+  // ── Session A: Model import ───────────────────────────────────────────────
+  const modelFileRef      = React.useRef(null);
+  const [importingModel,  setImportingModel]  = React.useState(false);
+  const [importedModels,  setImportedModels]  = React.useState([]);
+
+  // ── Session B: Node Shader Editor ────────────────────────────────────────
+  const [shaderEditorOpen, setShaderEditorOpen] = React.useState(false);
+  const [shaderNodes,      setShaderNodes]      = React.useState([]);
+  const [shaderEdges,      setShaderEdges]      = React.useState([]);
+  const [shaderTarget,     setShaderTarget]     = React.useState(null); // object id
+  const [draggingShaderNode, setDraggingShaderNode] = React.useState(null);
+  const [shaderDragOffset,   setShaderDragOffset]   = React.useState({x:0,y:0});
+  const [connectingFrom,     setConnectingFrom]      = React.useState(null);
+  const shaderCanvasRef   = React.useRef(null);
+
+  // ── Sessions 11-14 state ───────────────────────────────────────────────────
+  const [particles,       setParticles]       = React.useState([]);
+  const [activeParticle,  setActiveParticle]  = React.useState('fire');
+  const [particleEmitters,setParticleEmitters]= React.useState([]);
+  const particleRafRef    = React.useRef(null);
+  const [physicsEnabled,  setPhysicsEnabled]  = React.useState(false);
+  const [clothObjects,    setClothObjects]    = React.useState([]);
+  const [activeClothPreset,setActiveClothPreset]=React.useState('cotton');
+  const [greasePencilMode,setGreasePencilMode]= React.useState(false);
+  const [gpStrokes,       setGpStrokes]       = React.useState([]);
+  const [gpColor,         setGpColor]         = React.useState('#00ffc8');
+  const [gpSize,          setGpSize]          = React.useState(4);
+  const gpCanvasRef       = React.useRef(null);
+  const gpDrawing         = React.useRef(false);
+  const gpCurrentStroke   = React.useRef([]);
+  const [postFX,          setPostFX]          = React.useState({});
+  const [renderQueue,     setRenderQueue]     = React.useState([]);
+  const [renderFormat,    setRenderFormat]    = React.useState('MP4 (H.264)');
+  const [renderRes,       setRenderRes]       = React.useState({w:1920,h:1080});
+  const [renderFPS,       setRenderFPS]       = React.useState(30);
+  const [renderPanel,     setRenderPanel]     = React.useState(false);
+  const [exporting3D,     setExporting3D]     = React.useState(false);
+
   const sculptPainting   = React.useRef(false);
 
 
@@ -980,7 +1445,23 @@ export default function NodeCompositorPage() {
                 <div>Lights: {sceneLights.length}</div>
                 <div style={{color:selected3DId?'#00ffc8':'#555'}}>
                   {selected3DId ? `Selected: ${scene3DObjects.find(o=>o.id===selected3DId)?.name||selected3DId}` : 'Nothing selected'}
-                </div>
+  
+              {/* ── Model Import ─────────────────────────────────────── */}
+              <div style={{width:'80%',height:1,background:'#21262d',margin:'4px 0'}}/>
+              <input ref={modelFileRef} type="file" accept=".glb,.gltf,.obj,.fbx"
+                style={{display:'none'}} onChange={e=>importModel(e.target.files?.[0])}/>
+              <button title="Import Model (GLB/OBJ/FBX)" onClick={()=>modelFileRef.current?.click()}
+                style={{width:36,height:36,border:'none',borderRadius:4,
+                  background:importingModel?'#333':'#1a1f2e',
+                  color:importingModel?'#555':'#00ffc8',cursor:'pointer',fontSize:14}}
+                disabled={importingModel}>
+                {importingModel ? '⏳' : '📦'}
+              </button>
+              <button title="Node Shader Editor" onClick={()=>{setShaderTarget(selected3DId);setShaderEditorOpen(true);}}
+                style={{width:36,height:36,border:'none',borderRadius:4,background:'#1a1f2e',color:'#FF6600',cursor:'pointer',fontSize:14}}>
+                ⬡
+              </button>
+              </div>
               </div>
             </div>
 
@@ -1201,6 +1682,185 @@ export default function NodeCompositorPage() {
                 </div>
               )}
 
+
+              {/* ── Session 11: Particles ──────────────────────────────── */}
+              <div style={{borderTop:'1px solid #21262d',paddingTop:8}}>
+                <div style={{color:'#00ffc8',fontSize:10,fontWeight:700,marginBottom:6}}>PARTICLES</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4,marginBottom:6}}>
+                  {PARTICLE_PRESETS.map(p=>(
+                    <button key={p.id} onClick={()=>setActiveParticle(p.id)}
+                      style={{padding:'4px',border:'none',borderRadius:3,cursor:'pointer',fontSize:10,
+                        background:activeParticle===p.id?'#FF6600':'#1a1f2e',
+                        color:activeParticle===p.id?'#fff':'#888'}}>
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={()=>spawnParticles(activeParticle)}
+                  style={{width:'100%',background:'#FF6600',border:'none',color:'#fff',borderRadius:4,
+                    padding:'5px',cursor:'pointer',fontSize:11,fontWeight:700,marginBottom:4}}>
+                  ▶ Spawn {PARTICLE_PRESETS.find(p=>p.id===activeParticle)?.label}
+                </button>
+                {particleEmitters.map(e=>(
+                  <div key={e.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',
+                    background:'#0a0e1a',borderRadius:3,padding:'3px 8px',marginBottom:2}}>
+                    <span style={{color:'#888',fontSize:10}}>{e.label} ({e.count})</span>
+                    <button onClick={()=>removeEmitter(e.id)}
+                      style={{background:'none',border:'none',color:'#ff4444',cursor:'pointer',fontSize:11}}>✕</button>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Session 12: Cloth ──────────────────────────────────── */}
+              <div style={{borderTop:'1px solid #21262d',paddingTop:8}}>
+                <div style={{color:'#00ffc8',fontSize:10,fontWeight:700,marginBottom:6}}>CLOTH SIM</div>
+                <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:6}}>
+                  {CLOTH_PRESETS.map(c=>(
+                    <button key={c.id} onClick={()=>setActiveClothPreset(c.id)}
+                      style={{padding:'3px 8px',border:'none',borderRadius:3,cursor:'pointer',fontSize:10,
+                        background:activeClothPreset===c.id?'#00ffc8':'#1a1f2e',
+                        color:activeClothPreset===c.id?'#06060f':'#888'}}>
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={addClothSim}
+                  style={{width:'100%',background:'#1a1f2e',border:'1px solid #00ffc8',color:'#00ffc8',
+                    borderRadius:4,padding:'5px',cursor:'pointer',fontSize:11,fontWeight:700,marginBottom:4}}>
+                  + Add Cloth Object
+                </button>
+                {clothObjects.map(c=>(
+                  <div key={c.id} style={{display:'flex',justifyContent:'space-between',
+                    background:'#0a0e1a',borderRadius:3,padding:'3px 8px',marginBottom:2}}>
+                    <span style={{color:'#888',fontSize:10}}>{c.label}</span>
+                    <span style={{color:'#00ffc8',fontSize:9}}>active</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Session 13: Grease Pencil ──────────────────────────── */}
+              <div style={{borderTop:'1px solid #21262d',paddingTop:8}}>
+                <div style={{color:'#00ffc8',fontSize:10,fontWeight:700,marginBottom:6}}>GREASE PENCIL</div>
+                <label style={{display:'flex',gap:6,alignItems:'center',cursor:'pointer',marginBottom:6}}>
+                  <input type="checkbox" checked={greasePencilMode} onChange={e=>setGreasePencilMode(e.target.checked)}/>
+                  <span style={{color:'#dde6ef',fontSize:11}}>Draw in 3D Space</span>
+                </label>
+                {greasePencilMode && (
+                  <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                    <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                      <span style={{color:'#888',fontSize:10,width:40}}>Color</span>
+                      <input type="color" value={gpColor} onChange={e=>setGpColor(e.target.value)}
+                        style={{width:32,height:22,border:'none',borderRadius:3,cursor:'pointer'}}/>
+                    </div>
+                    <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                      <span style={{color:'#888',fontSize:10,width:40}}>Size</span>
+                      <input type="range" min={1} max={20} value={gpSize} onChange={e=>setGpSize(Number(e.target.value))} style={{flex:1}}/>
+                      <span style={{color:'#00ffc8',fontSize:9,width:16}}>{gpSize}</span>
+                    </div>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <span style={{color:'#555',fontSize:9}}>{gpStrokes.length} strokes</span>
+                      <button onClick={clearGPStrokes}
+                        style={{background:'none',border:'1px solid #333',color:'#ff4444',borderRadius:3,
+                          padding:'2px 8px',cursor:'pointer',fontSize:9}}>Clear</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Session 13: Post-FX ────────────────────────────────── */}
+              <div style={{borderTop:'1px solid #21262d',paddingTop:8}}>
+                <div style={{color:'#00ffc8',fontSize:10,fontWeight:700,marginBottom:6}}>POST-PROCESSING</div>
+                <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                  {POSTFX_EFFECTS.map(fx=>{
+                    const enabled = postFX[fx.id]?.enabled;
+                    return (
+                      <div key={fx.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',
+                        background:enabled?'#1a1f2e':'transparent',borderRadius:3,padding:'3px 6px',
+                        border:enabled?'1px solid #21262d':'1px solid transparent'}}>
+                        <label style={{display:'flex',gap:6,alignItems:'center',cursor:'pointer',flex:1}}>
+                          <input type="checkbox" checked={!!enabled}
+                            onChange={e=>setPostFX(p=>({...p,[fx.id]:{...fx.params,enabled:e.target.checked}}))}/>
+                          <span style={{color:enabled?'#dde6ef':'#666',fontSize:10}}>{fx.label}</span>
+                        </label>
+                        {enabled && fx.params.strength !== undefined && (
+                          <input type="range" min={0} max={1} step={0.05}
+                            value={postFX[fx.id]?.strength||fx.params.strength||0.5}
+                            onChange={e=>setPostFX(p=>({...p,[fx.id]:{...p[fx.id],strength:Number(e.target.value)}}))}
+                            style={{width:50}}/>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── Session 14: Render Queue ───────────────────────────── */}
+              <div style={{borderTop:'1px solid #21262d',paddingTop:8}}>
+                <div style={{color:'#FF6600',fontSize:10,fontWeight:700,marginBottom:6}}>RENDER QUEUE</div>
+                <div style={{display:'flex',flexDirection:'column',gap:4,marginBottom:6}}>
+                  <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                    <span style={{color:'#888',fontSize:10,width:50}}>Format</span>
+                    <select value={renderFormat} onChange={e=>setRenderFormat(e.target.value)}
+                      style={{flex:1,background:'#1a1a1a',border:'1px solid #333',color:'#dde6ef',borderRadius:3,padding:'2px 4px',fontSize:10}}>
+                      {RENDER_FORMATS.map(f=><option key={f}>{f}</option>)}
+                    </select>
+                  </div>
+                  <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                    <span style={{color:'#888',fontSize:10,width:50}}>Res</span>
+                    <input type="number" value={renderRes.w} onChange={e=>setRenderRes(r=>({...r,w:Number(e.target.value)}))}
+                      style={{width:52,background:'#1a1a1a',border:'1px solid #333',color:'#dde6ef',borderRadius:3,padding:'2px 4px',fontSize:10}}/>
+                    <span style={{color:'#555',fontSize:10}}>×</span>
+                    <input type="number" value={renderRes.h} onChange={e=>setRenderRes(r=>({...r,h:Number(e.target.value)}))}
+                      style={{width:52,background:'#1a1a1a',border:'1px solid #333',color:'#dde6ef',borderRadius:3,padding:'2px 4px',fontSize:10}}/>
+                  </div>
+                  <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                    <span style={{color:'#888',fontSize:10,width:50}}>FPS</span>
+                    <select value={renderFPS} onChange={e=>setRenderFPS(Number(e.target.value))}
+                      style={{width:70,background:'#1a1a1a',border:'1px solid #333',color:'#dde6ef',borderRadius:3,padding:'2px 4px',fontSize:10}}>
+                      {[24,25,30,50,60,120].map(f=><option key={f}>{f}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{display:'flex',gap:4,marginBottom:6}}>
+                  <button onClick={addToRenderQueue}
+                    style={{flex:1,background:'#1a1f2e',border:'1px solid #FF6600',color:'#FF6600',borderRadius:4,
+                      padding:'5px',cursor:'pointer',fontSize:10,fontWeight:700}}>
+                    + Queue Render
+                  </button>
+                  <button onClick={exportToVideoEditor}
+                    style={{flex:1,background:'#FF6600',border:'none',color:'#fff',borderRadius:4,
+                      padding:'5px',cursor:'pointer',fontSize:10,fontWeight:700}}>
+                    → Video Editor
+                  </button>
+                </div>
+                {renderQueue.map(job=>(
+                  <div key={job.id} style={{background:'#0a0e1a',borderRadius:4,padding:'6px 8px',marginBottom:4,border:'1px solid #21262d'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:3}}>
+                      <span style={{color:'#dde6ef',fontSize:10}}>{job.name}</span>
+                      <span style={{color:job.status==='done'?'#00ffc8':job.status==='rendering'?'#FF6600':'#555',fontSize:9}}>
+                        {job.status}
+                      </span>
+                    </div>
+                    <div style={{color:'#555',fontSize:9,marginBottom:4}}>{job.format} · {job.resolution} · {job.fps}fps</div>
+                    {job.status==='queued' && (
+                      <button onClick={()=>startRender(job.id)}
+                        style={{width:'100%',background:'#00ffc8',border:'none',color:'#06060f',borderRadius:3,
+                          padding:'3px',cursor:'pointer',fontSize:10,fontWeight:700}}>
+                        ▶ Start Render
+                      </button>
+                    )}
+                    {job.status==='rendering' && (
+                      <div style={{height:4,background:'#1a1f2e',borderRadius:2,overflow:'hidden'}}>
+                        <div style={{height:'100%',width:`${job.progress}%`,background:'#FF6600',transition:'width 0.1s'}}/>
+                      </div>
+                    )}
+                    {job.status==='done' && (
+                      <div style={{color:'#00ffc8',fontSize:9}}>✓ Complete — {job.addedAt}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
               {/* Selected object properties */}
               {selected3DId && (() => {
                 const obj = scene3DObjects.find(o=>o.id===selected3DId);
@@ -1250,6 +1910,21 @@ export default function NodeCompositorPage() {
                         <span style={{color:'#00ffc8',fontSize:9,width:28}}>{Number(obj.material?.[key]??PBR_DEFAULTS[key]).toFixed(2)}</span>
                       </div>
                     ))}
+
+                    {/* Material Presets */}
+                    <div style={{marginTop:6}}>
+                      <div style={{color:'#888',fontSize:9,textTransform:'uppercase',marginBottom:4}}>Material Presets</div>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:3}}>
+                        {MATERIAL_PRESETS.map(p=>(
+                          <button key={p.id} onClick={()=>applyMaterialPreset(selected3DId,p.id)}
+                            style={{padding:'3px 4px',border:'none',borderRadius:3,cursor:'pointer',fontSize:9,
+                              background:'#1a1f2e',color:'#aaa',textAlign:'left',
+                              borderLeft:`3px solid ${p.color}`}}>
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <label style={{display:'flex',gap:6,alignItems:'center',cursor:'pointer'}}>
                       <input type="checkbox" checked={obj.material?.wireframe||false}
                         onChange={e=>update3DObject(obj.id,{material:{...obj.material,wireframe:e.target.checked}})}/>
