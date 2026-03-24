@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   EFFECT_LIBRARY,
   PRESET_LIBRARY,
@@ -15,20 +15,109 @@ const groupByCategory = (items = []) =>
     return acc;
   }, {});
 
-const renderGroupedList = (groups) =>
-  Object.entries(groups).map(([category, items]) => (
-    <div key={category} className="spx-effect-category">
-      <div className="spx-effect-title">{category}</div>
-      {items.map((item) => (
-        <div key={item.id} className="spx-effect">
-          <div className="spx-effect-name">{item.name}</div>
-          <div className="spx-effect-source">{item.source}</div>
-        </div>
-      ))}
+const BrowserGroup = ({ title, items, kind, onApply, onDragStart }) => (
+  <div className="spx-effect-category" key={title}>
+    <div className="spx-effect-title">{title}</div>
+    {items.map((item) => (
+      <button
+        key={item.id}
+        className="spx-effect"
+        draggable
+        onDragStart={() => onDragStart({ ...item, kind })}
+        onClick={() => onApply({ ...item, kind })}
+        type="button"
+        title={`Apply ${item.name}`}
+      >
+        <div className="spx-effect-name">{item.name}</div>
+        <div className="spx-effect-source">{item.source}</div>
+      </button>
+    ))}
+  </div>
+);
+
+const AssetList = ({ assets, onDragMediaStart }) => {
+  if (!assets.length) {
+    return <div className="spx-empty">No imported media</div>;
+  }
+
+  return assets.map((asset) => (
+    <div
+      key={asset.id}
+      className="spx-media-item"
+      draggable
+      onDragStart={() => onDragMediaStart(asset)}
+      title="Drag to timeline"
+    >
+      <div className="spx-media-thumb" />
+      <div className="spx-media-meta">
+        <div className="spx-media-name">{asset.name}</div>
+        <div className="spx-media-type">{asset.type || "media"}</div>
+      </div>
     </div>
   ));
+};
+
+const AssetGrid = ({ assets, onDragMediaStart }) => {
+  if (!assets.length) {
+    return <div className="spx-empty">No imported media</div>;
+  }
+
+  return assets.map((asset) => (
+    <div
+      key={asset.id}
+      className="spx-media-card"
+      draggable
+      onDragStart={() => onDragMediaStart(asset)}
+      title="Drag to timeline"
+    >
+      <div className="spx-media-thumb large" />
+      <div className="spx-media-name">{asset.name}</div>
+      <div className="spx-media-type">{asset.type || "media"}</div>
+    </div>
+  ));
+};
+
+const ImportBlock = ({ inputRef, handleUploadMedia, onExternalDrop, compact = false }) => (
+  <div
+    className={`spx-import-block ${compact ? "is-compact" : ""}`}
+    onDragOver={(e) => {
+      e.preventDefault();
+      e.currentTarget.classList.add("is-dragover");
+    }}
+    onDragLeave={(e) => {
+      e.currentTarget.classList.remove("is-dragover");
+    }}
+    onDrop={(e) => {
+      e.preventDefault();
+      e.currentTarget.classList.remove("is-dragover");
+      onExternalDrop(e);
+    }}
+  >
+    <input
+      ref={inputRef}
+      type="file"
+      multiple
+      onChange={handleUploadMedia}
+      className="spx-hidden-file-input"
+    />
+
+    <button
+      className="spx-import-btn"
+      type="button"
+      onClick={() => inputRef.current?.click()}
+    >
+      ⤴ Import Media
+    </button>
+
+    <div className="spx-import-help">
+      Drag files here from your desktop, or click Import Media
+    </div>
+  </div>
+);
 
 const SPXEditorSidebar = ({ editor }) => {
+  const inputRef = useRef(null);
+
   const {
     activeTool,
     setActiveTool,
@@ -44,10 +133,23 @@ const SPXEditorSidebar = ({ editor }) => {
     setColorSearch,
     assets,
     layers,
-    handleUploadMedia
+    selectedClip,
+    handleUploadMedia,
+    onDragMediaStart,
+    onDragPresetStart,
+    applyEffectToSelectedClip,
+    applyPresetToSelectedClip,
+    applyTransitionToSelectedClip,
+    applyColorToSelectedClip
   } = editor;
 
   const counts = summarizeLibraries();
+
+  const onExternalDrop = (e) => {
+    const files = Array.from(e.dataTransfer?.files || []);
+    if (!files.length) return;
+    handleUploadMedia({ target: { files } });
+  };
 
   const filteredEffects = EFFECT_LIBRARY.filter((item) =>
     item.name.toLowerCase().includes(effectSearch.toLowerCase())
@@ -70,33 +172,14 @@ const SPXEditorSidebar = ({ editor }) => {
       <div className="spx-panel">
         <div className="spx-section-title">Project Bin</div>
 
-        <div className="spx-project-toolbar">
-          <button className="spx-mini-action">New Bin</button>
-          <button className="spx-mini-action">Search</button>
-          <button className="spx-mini-action">Sort</button>
-        </div>
-
-        <input
-          type="file"
-          multiple
-          onChange={handleUploadMedia}
-          className="spx-file-input"
+        <ImportBlock
+          inputRef={inputRef}
+          handleUploadMedia={handleUploadMedia}
+          onExternalDrop={onExternalDrop}
         />
 
         <div className="spx-media-bin">
-          {assets.length === 0 ? (
-            <div className="spx-empty">No project media yet</div>
-          ) : (
-            assets.map((asset) => (
-              <div key={asset.id} className="spx-media-item">
-                <div className="spx-media-thumb" />
-                <div className="spx-media-meta">
-                  <div className="spx-media-name">{asset.name}</div>
-                  <div className="spx-media-type">{asset.type || "media"}</div>
-                </div>
-              </div>
-            ))
-          )}
+          <AssetList assets={assets} onDragMediaStart={onDragMediaStart} />
         </div>
       </div>
 
@@ -121,6 +204,7 @@ const SPXEditorSidebar = ({ editor }) => {
               key={tool}
               className={`spx-tool ${activeTool === tool ? "active" : ""}`}
               onClick={() => setActiveTool(tool)}
+              type="button"
             >
               {tool}
             </button>
@@ -137,7 +221,7 @@ const SPXEditorSidebar = ({ editor }) => {
                 <span className="spx-layer-dot" />
                 <span className="spx-layer-name">{layer.name}</span>
               </div>
-              <div className="spx-layer-controls">👁 🔒</div>
+              <div className="spx-layer-controls">{layer.type}</div>
             </div>
           ))}
         </div>
@@ -148,18 +232,16 @@ const SPXEditorSidebar = ({ editor }) => {
   const mediaTab = (
     <div className="spx-panel">
       <div className="spx-section-title">Media Bin</div>
+
+      <ImportBlock
+        inputRef={inputRef}
+        handleUploadMedia={handleUploadMedia}
+        onExternalDrop={onExternalDrop}
+        compact={true}
+      />
+
       <div className="spx-media-bin-grid">
-        {assets.length === 0 ? (
-          <div className="spx-empty">No imported media</div>
-        ) : (
-          assets.map((asset) => (
-            <div key={asset.id} className="spx-media-card">
-              <div className="spx-media-thumb large" />
-              <div className="spx-media-name">{asset.name}</div>
-              <div className="spx-media-type">{asset.type || "media"}</div>
-            </div>
-          ))
-        )}
+        <AssetGrid assets={assets} onDragMediaStart={onDragMediaStart} />
       </div>
     </div>
   );
@@ -168,6 +250,9 @@ const SPXEditorSidebar = ({ editor }) => {
     <div className="spx-panel">
       <div className="spx-section-title">Effects Browser</div>
       <div className="spx-library-count">Loaded: {counts.effects}</div>
+      <div className="spx-selection-hint">
+        {selectedClip ? `Selected clip: ${selectedClip.name}` : "Select a clip to apply effects"}
+      </div>
       <input
         className="spx-search"
         placeholder="Search effects..."
@@ -175,7 +260,16 @@ const SPXEditorSidebar = ({ editor }) => {
         onChange={(e) => setEffectSearch(e.target.value)}
       />
       <div className="spx-scroll-list">
-        {renderGroupedList(groupByCategory(filteredEffects))}
+        {Object.entries(groupByCategory(filteredEffects)).map(([category, items]) => (
+          <BrowserGroup
+            key={category}
+            title={category}
+            items={items}
+            kind="effect"
+            onApply={applyEffectToSelectedClip}
+            onDragStart={onDragPresetStart}
+          />
+        ))}
       </div>
     </div>
   );
@@ -184,6 +278,9 @@ const SPXEditorSidebar = ({ editor }) => {
     <div className="spx-panel">
       <div className="spx-section-title">Preset Browser</div>
       <div className="spx-library-count">Loaded: {counts.presets}</div>
+      <div className="spx-selection-hint">
+        {selectedClip ? `Selected clip: ${selectedClip.name}` : "Select a clip to apply presets"}
+      </div>
       <input
         className="spx-search"
         placeholder="Search presets..."
@@ -191,7 +288,16 @@ const SPXEditorSidebar = ({ editor }) => {
         onChange={(e) => setPresetSearch(e.target.value)}
       />
       <div className="spx-scroll-list">
-        {renderGroupedList(groupByCategory(filteredPresets))}
+        {Object.entries(groupByCategory(filteredPresets)).map(([category, items]) => (
+          <BrowserGroup
+            key={category}
+            title={category}
+            items={items}
+            kind="preset"
+            onApply={applyPresetToSelectedClip}
+            onDragStart={onDragPresetStart}
+          />
+        ))}
       </div>
     </div>
   );
@@ -200,6 +306,9 @@ const SPXEditorSidebar = ({ editor }) => {
     <div className="spx-panel">
       <div className="spx-section-title">Transitions</div>
       <div className="spx-library-count">Loaded: {counts.transitions}</div>
+      <div className="spx-selection-hint">
+        {selectedClip ? `Apply to outgoing edge of: ${selectedClip.name}` : "Select a clip first"}
+      </div>
       <input
         className="spx-search"
         placeholder="Search transitions..."
@@ -207,7 +316,16 @@ const SPXEditorSidebar = ({ editor }) => {
         onChange={(e) => setTransitionSearch(e.target.value)}
       />
       <div className="spx-scroll-list">
-        {renderGroupedList(groupByCategory(filteredTransitions))}
+        {Object.entries(groupByCategory(filteredTransitions)).map(([category, items]) => (
+          <BrowserGroup
+            key={category}
+            title={category}
+            items={items}
+            kind="transition"
+            onApply={applyTransitionToSelectedClip}
+            onDragStart={onDragPresetStart}
+          />
+        ))}
       </div>
     </div>
   );
@@ -216,6 +334,9 @@ const SPXEditorSidebar = ({ editor }) => {
     <div className="spx-panel">
       <div className="spx-section-title">Color / LUT Browser</div>
       <div className="spx-library-count">Loaded: {counts.color}</div>
+      <div className="spx-selection-hint">
+        {selectedClip ? `Selected clip: ${selectedClip.name}` : "Select a clip to apply color presets"}
+      </div>
       <input
         className="spx-search"
         placeholder="Search color presets..."
@@ -223,22 +344,31 @@ const SPXEditorSidebar = ({ editor }) => {
         onChange={(e) => setColorSearch(e.target.value)}
       />
       <div className="spx-scroll-list">
-        {renderGroupedList(groupByCategory(filteredColor))}
+        {Object.entries(groupByCategory(filteredColor)).map(([category, items]) => (
+          <BrowserGroup
+            key={category}
+            title={category}
+            items={items}
+            kind="color"
+            onApply={applyColorToSelectedClip}
+            onDragStart={onDragPresetStart}
+          />
+        ))}
       </div>
     </div>
   );
 
   return (
     <aside className="spx-editor-sidebar">
-      <div className="spx-panel-title">SPX Editor</div>
+      <div className="spx-panel-title">SPX EDITOR</div>
 
       <div className="spx-tabs six-tabs">
-        <button className={activeSidebarTab === "project" ? "active" : ""} onClick={() => setActiveSidebarTab("project")}>Project</button>
-        <button className={activeSidebarTab === "media" ? "active" : ""} onClick={() => setActiveSidebarTab("media")}>Media</button>
-        <button className={activeSidebarTab === "effects" ? "active" : ""} onClick={() => setActiveSidebarTab("effects")}>Effects</button>
-        <button className={activeSidebarTab === "presets" ? "active" : ""} onClick={() => setActiveSidebarTab("presets")}>Presets</button>
-        <button className={activeSidebarTab === "transitions" ? "active" : ""} onClick={() => setActiveSidebarTab("transitions")}>Transitions</button>
-        <button className={activeSidebarTab === "color" ? "active" : ""} onClick={() => setActiveSidebarTab("color")}>Color</button>
+        <button className={activeSidebarTab === "project" ? "active" : ""} onClick={() => setActiveSidebarTab("project")} type="button">Project</button>
+        <button className={activeSidebarTab === "media" ? "active" : ""} onClick={() => setActiveSidebarTab("media")} type="button">Media</button>
+        <button className={activeSidebarTab === "effects" ? "active" : ""} onClick={() => setActiveSidebarTab("effects")} type="button">Effects</button>
+        <button className={activeSidebarTab === "presets" ? "active" : ""} onClick={() => setActiveSidebarTab("presets")} type="button">Presets</button>
+        <button className={activeSidebarTab === "transitions" ? "active" : ""} onClick={() => setActiveSidebarTab("transitions")} type="button">Transitions</button>
+        <button className={activeSidebarTab === "color" ? "active" : ""} onClick={() => setActiveSidebarTab("color")} type="button">Color</button>
       </div>
 
       {activeSidebarTab === "project" && projectTab}

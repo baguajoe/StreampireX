@@ -718,7 +718,7 @@ const Sidebar = ({ user }) => {
         <>
           {/* ── Creative Tools ── */}
           <MenuItem to="/video-editor" className={isActive("/video-editor") ? "active" : ""}>
-            🎬 <span className="sidebar-label">Video Editor</span>
+            🎬 <span className="sidebar-label">SPX Editor</span>
             <MenuHint className="sidebar-hint">FREE</MenuHint>
           </MenuItem>
           <MenuItem to="/motion-studio" className={isActive("/motion-studio") ? "active" : ""}>

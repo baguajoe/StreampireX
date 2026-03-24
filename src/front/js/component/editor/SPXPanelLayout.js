@@ -132,7 +132,6 @@ const SPXPanelLayout = ({ editor }) => {
             assets={editor.assets || []}
           />
         </div>
-
         <div className="spx-editor-center-stack spx-dock-panel">
           <SPXDualMonitor
             canvasRef={editor.canvasRef}

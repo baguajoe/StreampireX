@@ -1,7 +1,68 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import * as Interact from "./SPXInteractionLayer.js";
 
 const TIME_MARKS = ["00:00", "00:02", "00:04", "00:06", "00:08", "00:10"];
+
+const clipSizeClass = (length = 0) => {
+  if (length <= 2) return "is-short";
+  if (length <= 4) return "is-medium";
+  if (length <= 6) return "is-long";
+  return "is-xl";
+};
+
+const TimelineRuler = ({ currentTime, setPlayhead, zoomLevel }) => {
+  const rulerRef = useRef(null);
+  const [dragging, setDragging] = useState(false);
+
+  const updateFromEvent = (e) => {
+    if (!rulerRef.current) return;
+    const rect = rulerRef.current.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    setPlayhead(pct * 10);
+  };
+
+  useEffect(() => {
+    const onMove = (e) => {
+      if (!dragging) return;
+      updateFromEvent(e);
+    };
+    const onUp = () => setDragging(false);
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [dragging]);
+
+  return (
+    <div
+      ref={rulerRef}
+      className="spx-ruler-pro"
+      onMouseDown={(e) => {
+        setDragging(true);
+        updateFromEvent(e);
+      }}
+    >
+      <div className="spx-ruler-readouts">
+        <span>Playhead {currentTime.toFixed(2)}s</span>
+        <span>Zoom {zoomLevel}%</span>
+      </div>
+
+      <div className="spx-ruler-ticks">
+        {TIME_MARKS.map((mark) => (
+          <span key={mark} className="spx-ruler-tick">{mark}</span>
+        ))}
+      </div>
+
+      <div
+        className="spx-ruler-playhead"
+        style={{ left: `${Math.max(0, Math.min(100, (currentTime / 10) * 100))}%` }}
+      />
+    </div>
+  );
+};
 
 const SPXEditorTimeline = ({ editor }) => {
   const {
@@ -18,10 +79,47 @@ const SPXEditorTimeline = ({ editor }) => {
     addMarkerAtPlayhead,
     zoomLevel,
     setZoomLevel,
-    snapModes
+    snapModes,
+    toggleTrackLock,
+    toggleTrackMute,
+    toggleTrackSolo,
+    trimClipLeft,
+    trimClipRight
   } = editor;
 
-  const playheadLeft = `${(currentTime / 10) * 100}%`;
+  const trackListRef = useRef(null);
+  const [snapGuide, setSnapGuide] = useState(null);
+
+  useEffect(() => {
+    if (!trackListRef.current) return;
+    const pct = Math.max(0, Math.min(100, (currentTime / 10) * 100));
+    trackListRef.current.style.setProperty("--spx-playhead-pct", `${pct}%`);
+  }, [currentTime]);
+
+  const applyTrim = (e, clip, side) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const startX = e.clientX;
+    const pxPerSec = 80;
+
+    const onMove = (moveEvent) => {
+      const dx = moveEvent.clientX - startX;
+      const deltaSeconds = dx / pxPerSec;
+
+      if (side === "left") trimClipLeft(clip.id, deltaSeconds);
+      if (side === "right") trimClipRight(clip.id, deltaSeconds);
+    };
+
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      setSnapGuide(null);
+    };
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
 
   return (
     <div className="spx-editor-timeline">
@@ -29,42 +127,38 @@ const SPXEditorTimeline = ({ editor }) => {
         <span>Timeline - Sequence 01</span>
 
         <div className="spx-timeline-actions">
-          <button className="spx-header-btn" onClick={() => addTrack("video")}>+ Video Track</button>
-          <button className="spx-header-btn" onClick={() => addTrack("audio")}>+ Audio Track</button>
-          <button className="spx-header-btn" onClick={addMarkerAtPlayhead}>+ Marker</button>
-          <button className="spx-header-btn" onClick={() => setZoomLevel(Interact.zoomTimelineAroundCursor({ currentZoom: zoomLevel, delta: -10 }))}>-</button>
-          <button className="spx-header-btn" onClick={() => setZoomLevel(Interact.zoomTimelineAroundCursor({ currentZoom: zoomLevel, delta: 10 }))}>+</button>
+          <button className="spx-header-btn" onClick={() => addTrack("video")} type="button">+ Video Track</button>
+          <button className="spx-header-btn" onClick={() => addTrack("audio")} type="button">+ Audio Track</button>
+          <button className="spx-header-btn" onClick={addMarkerAtPlayhead} type="button">+ Marker</button>
+          <button
+            className="spx-header-btn"
+            onClick={() => setZoomLevel(Interact.zoomTimelineAroundCursor({ currentZoom: zoomLevel, delta: -10 }))}
+            type="button"
+          >
+            -
+          </button>
+          <button
+            className="spx-header-btn"
+            onClick={() => setZoomLevel(Interact.zoomTimelineAroundCursor({ currentZoom: zoomLevel, delta: 10 }))}
+            type="button"
+          >
+            +
+          </button>
         </div>
       </div>
 
-      <div
-        className="spx-editor-ruler"
-        onClick={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          const pct = (e.clientX - rect.left) / rect.width;
-          const rawTime = pct * 10;
-          const snapTime = snapModes?.markers
-            ? Interact.getSnapTime({ rawTime, markers, clipEdges: [], threshold: 0.12 })
-            : rawTime;
-          setPlayhead(snapTime);
-        }}
-      >
-        {TIME_MARKS.map((mark) => (
-          <span key={mark}>{mark}</span>
-        ))}
-      </div>
+      <TimelineRuler
+        currentTime={currentTime}
+        setPlayhead={setPlayhead}
+        zoomLevel={zoomLevel}
+      />
 
-      <div className="spx-editor-track-list timeline-with-playhead">
-        <div className="spx-playhead-line" style={{ left: playheadLeft }} />
+      <div ref={trackListRef} className="spx-editor-track-list">
+        <div className="spx-timeline-playhead" />
 
-        {markers.map((marker) => (
-          <div
-            key={marker.id}
-            className="spx-marker-line"
-            style={{ left: `${(marker.time / 10) * 100}%` }}
-            title={marker.label}
-          />
-        ))}
+        {snapGuide != null ? (
+          <div className="spx-snap-guide" style={{ left: `${snapGuide}%` }} />
+        ) : null}
 
         {tracks.map((track) => (
           <div
@@ -74,10 +168,10 @@ const SPXEditorTimeline = ({ editor }) => {
             <div className="spx-editor-track-name">
               <div className="spx-track-badge">{track.name}</div>
               <div className="spx-track-controls">
-                <span>M</span>
-                <span>S</span>
-                <span>L</span>
-                <button className="spx-track-remove" onClick={() => removeTrack(track.id)}>×</button>
+                <button className={`spx-track-toggle ${track.muted ? "is-active" : ""}`} type="button" onClick={() => toggleTrackMute(track.id)}>M</button>
+                <button className={`spx-track-toggle ${track.solo ? "is-active" : ""}`} type="button" onClick={() => toggleTrackSolo(track.id)}>S</button>
+                <button className={`spx-track-toggle ${track.locked ? "is-active" : ""}`} type="button" onClick={() => toggleTrackLock(track.id)}>L</button>
+                <button className="spx-track-remove" onClick={() => removeTrack(track.id)} type="button">×</button>
               </div>
             </div>
 
@@ -89,36 +183,71 @@ const SPXEditorTimeline = ({ editor }) => {
                 const pct = (e.clientX - rect.left) / rect.width;
                 const laneTime = Math.max(0, pct * 10);
                 onDropMediaToTrack(track.id, laneTime);
+                setSnapGuide(pct * 100);
               }}
             >
-              {(track.clips || []).map((clip) => (
-                <div
-                  key={clip.id}
-                  className={`spx-editor-clip ${track.type === "audio" ? "is-audio" : "is-video"} ${selectedClipId === clip.id ? "is-selected" : ""}`}
-                  style={{
-                    marginLeft: `${clip.start * (0.76 * zoomLevel)}px`,
-                    width: `${clip.length * (1.1 * zoomLevel)}px`
-                  }}
-                  onClick={() => toggleClipSelection(clip.id)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.stopPropagation();
-                    onDropPresetToClip(track.id, clip.id);
-                  }}
-                >
-                  <div className="spx-editor-clip-name">{clip.name}</div>
-                  {!!(clip.presets || []).length && (
-                    <div className="spx-editor-clip-presets">
-                      {(clip.presets || []).slice(-2).map((p, i) => (
-                        <span key={`${clip.id}-${i}`} className="spx-clip-preset-tag">{p.name}</span>
-                      ))}
+              <div className="spx-track-grid" />
+              <div className="spx-track-clips">
+                {(track.clips || []).map((clip) => (
+                  <button
+                    key={clip.id}
+                    className={`spx-editor-clip ${track.type === "audio" ? "is-audio" : "is-video"} ${clipSizeClass(clip.length)} ${selectedClipId === clip.id ? "is-selected" : ""}`}
+                    onClick={() => toggleClipSelection(clip.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.stopPropagation();
+                      onDropPresetToClip(track.id, clip.id);
+                    }}
+                    type="button"
+                    title={clip.name}
+                  >
+                    <div className="spx-clip-trim-handle left" onMouseDown={(e) => applyTrim(e, clip, "left")} />
+                    <div className="spx-editor-clip-name">
+                      {clip.name}
+                      {clip.linkedGroupId ? <span className="spx-clip-link-badge">🔗</span> : null}
                     </div>
-                  )}
-                  {!!clip.blendMode && clip.blendMode !== "normal" && (
-                    <div className="spx-clip-preset-tag">{clip.blendMode}</div>
-                  )}
-                </div>
-              ))}
+
+                    {!!(clip.presets || []).length && (
+                      <div className="spx-editor-clip-presets">
+                        {(clip.presets || []).slice(-2).map((p, i) => (
+                          <span key={`${clip.id}-${i}`} className="spx-clip-preset-tag">{p.name}</span>
+                        ))}
+                      </div>
+                    )}
+
+                    {!!(clip.effects || []).length && (
+                      <div className="spx-editor-clip-effects">
+                        {(clip.effects || []).slice(-2).map((fx, i) => (
+                          <span key={`${clip.id}-fx-${i}`} className="spx-clip-effect-tag">{fx.name}</span>
+                        ))}
+                      </div>
+                    )}
+
+                    {track.type === "audio" ? (
+                      <div className="spx-audio-waveform">
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                    ) : null}
+
+                    {!!clip.blendMode && clip.blendMode !== "normal" && (
+                      <div className="spx-clip-preset-tag">{clip.blendMode}</div>
+                    )}
+
+                    <div className="spx-clip-trim-handle right" onMouseDown={(e) => applyTrim(e, clip, "right")} />
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         ))}
