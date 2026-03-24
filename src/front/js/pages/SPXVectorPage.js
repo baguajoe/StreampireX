@@ -11,6 +11,39 @@ import "../../styles/SPXVector.css";
 const uid = () => `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
 const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
 
+const GOOGLE_FONTS = [
+  'Inter','Roboto','Open Sans','Lato','Montserrat','Oswald','Raleway','Poppins',
+  'Playfair Display','Merriweather','Source Code Pro','JetBrains Mono','Bebas Neue',
+  'Dancing Script','Pacifico','Lobster','Anton','Archivo Black','Nunito','Quicksand',
+];
+const PARAGRAPH_STYLES = [
+  {name:'Body',      fontSize:16, fontWeight:400, lineHeight:1.6, letterSpacing:0,   textAlign:'left'},
+  {name:'Heading 1', fontSize:64, fontWeight:700, lineHeight:1.1, letterSpacing:-1,  textAlign:'left'},
+  {name:'Heading 2', fontSize:48, fontWeight:700, lineHeight:1.2, letterSpacing:-0.5,textAlign:'left'},
+  {name:'Heading 3', fontSize:32, fontWeight:600, lineHeight:1.3, letterSpacing:0,   textAlign:'left'},
+  {name:'Caption',   fontSize:12, fontWeight:400, lineHeight:1.4, letterSpacing:0.5, textAlign:'left'},
+  {name:'Quote',     fontSize:24, fontWeight:300, lineHeight:1.7, letterSpacing:1,   textAlign:'center'},
+];
+const OPENTYPE_FEATURES = [
+  {id:'liga',  label:'Ligatures'},
+  {id:'kern',  label:'Kerning'},
+  {id:'smcp',  label:'Small Caps'},
+  {id:'onum',  label:'Old-style Nums'},
+  {id:'frac',  label:'Fractions'},
+  {id:'tnum',  label:'Tabular Nums'},
+  {id:'c2sc',  label:'Caps to SC'},
+  {id:'swsh',  label:'Swash'},
+];
+function injectGoogleFont(family) {
+  const id = `gf-${family.replace(/\s+/g,'-')}`;
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id; link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap`;
+  document.head.appendChild(link);
+}
+
+
 // ─── Tool Definitions ─────────────────────────────────────────────────────────
 const TOOLS = [
   { id:'select',    icon:'↖',  label:'Selection Tool',    shortcut:'V', group:'select' },
@@ -98,6 +131,18 @@ export default function SPXVectorPage() {
   const [traceMode,      setTraceMode]      = useState('bw'); // bw, color, gray
   const [tracing,        setTracing]        = useState(false);
   const [showPatterns,   setShowPatterns]   = useState(false);
+  // ── Typography Engine ─────────────────────────────────────────────────────
+  const [activeTypoTab,   setActiveTypoTab]   = useState('character');
+  const [fontFamily,      setFontFamily]      = useState('Inter');
+  const [fontStyle,       setFontStyle]       = useState('normal');
+  const [letterSpacing,   setLetterSpacing]   = useState(0);
+  const [lineHeight,      setLineHeight]      = useState(1.4);
+  const [textDecoration,  setTextDecoration]  = useState('none');
+  const [textTransformV,  setTextTransformV]  = useState('none');
+  const [otFeatures,      setOtFeatures]      = useState({liga:true,kern:true});
+  const [textOnPath,      setTextOnPath]      = useState(false);
+  const [textOnPathId,    setTextOnPathId]    = useState('');
+  const [pathOffset,      setPathOffset]      = useState(0);
   const [aiFillOpen,    setAiFillOpen]    = useState(false);
   const [aiFillPrompt,  setAiFillPrompt]  = useState('');
   const [aiFillLoading, setAiFillLoading] = useState(false);
@@ -494,9 +539,29 @@ export default function SPXVectorPage() {
       el=<path key={layer.id} d={d} {...common} transform={transform}/>;
     } else if(layer.type==='text') {
       const lines=String(layer.text||'').split('\n');
-      el=<text key={layer.id} x={layer.x} y={(layer.y||0)+(layer.fontSize||24)} fontSize={layer.fontSize||24} fontWeight={layer.fontWeight||400} fill={fill} opacity={opacity} transform={transform}>
-        {lines.map((l,i)=><tspan key={i} x={layer.x} dy={i===0?0:(layer.fontSize||24)*1.4}>{l}</tspan>)}
-      </text>;
+      const otStr = Object.entries(layer.otFeatures||{}).filter(([,v])=>v).map(([k])=>`"${k}"`).join(', ') || 'normal';
+      const pathLayers = project.layers.filter(pl=>pl.type==='path'&&pl.id!==layer.id);
+      const onPath = layer.textOnPath && layer.textOnPathId;
+      el = onPath ? (
+        <text key={layer.id} fontSize={layer.fontSize||24} fontWeight={layer.fontWeight||400}
+          fontFamily={layer.fontFamily||'Inter'} fontStyle={layer.fontStyle||'normal'}
+          fill={fill} opacity={opacity} transform={transform}
+          letterSpacing={layer.letterSpacing||0}
+          textDecoration={layer.textDecoration||'none'}
+          style={{textTransform:layer.textTransformV||'none',fontFeatureSettings:otStr}}>
+          <textPath href={`#${layer.textOnPathId}`} startOffset={`${layer.pathOffset||0}%`}>
+            {layer.text||''}
+          </textPath>
+        </text>
+      ) : (
+        <text key={layer.id} x={layer.x} y={(layer.y||0)+(layer.fontSize||24)} fontSize={layer.fontSize||24}
+          fontWeight={layer.fontWeight||400} fontFamily={layer.fontFamily||'Inter'}
+          fontStyle={layer.fontStyle||'normal'} fill={fill} opacity={opacity} transform={transform}
+          letterSpacing={layer.letterSpacing||0} textDecoration={layer.textDecoration||'none'}
+          style={{textTransform:layer.textTransformV||'none',fontFeatureSettings:otStr}}>
+          {lines.map((l,i)=><tspan key={i} x={layer.x} dy={i===0?0:(layer.fontSize||24)*(layer.lineHeight||1.4)}>{l}</tspan>)}
+        </text>
+      );
     } else if(layer.type==='polygon') {
       const cx=(layer.x||0)+(layer.width||100)/2, cy=(layer.y||0)+(layer.height||100)/2, r=Math.min(layer.width||100,layer.height||100)/2;
       const sides=layer.sides||6;
@@ -894,6 +959,214 @@ export default function SPXVectorPage() {
                     </select>
                   </div>
                 </>
+              )}
+            </div>
+          )}
+
+
+          {/* ── Typography Panel ── shows when type tool active or text layer selected ── */}
+          {(activeTool==='type' || (selectedLayer&&selectedLayer.type==='text')) && (
+            <div style={{borderTop:'1px solid #21262d',padding:10,display:'flex',flexDirection:'column',gap:8}}>
+              <div style={{color:'#00ffc8',fontFamily:'JetBrains Mono',fontSize:11,fontWeight:700,letterSpacing:1}}>TYPOGRAPHY</div>
+
+              {/* Sub-tabs */}
+              <div style={{display:'flex',gap:2,marginBottom:4}}>
+                {['character','paragraph','path','opentype'].map(t=>(
+                  <button key={t} onClick={()=>setActiveTypoTab(t)}
+                    style={{flex:1,padding:'3px 0',border:'none',borderRadius:3,cursor:'pointer',fontSize:9,fontWeight:700,textTransform:'uppercase',
+                      background:activeTypoTab===t?'#00ffc8':'#1a1f2e',color:activeTypoTab===t?'#06060f':'#888'}}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              {/* CHARACTER TAB */}
+              {activeTypoTab==='character' && (
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  <span style={{color:'#888',fontSize:10}}>Font Family</span>
+                  <select value={selectedLayer?.fontFamily||fontFamily}
+                    onChange={e=>{
+                      injectGoogleFont(e.target.value);
+                      setFontFamily(e.target.value);
+                      if(selectedLayer) updateLayer(selectedIds[0]||selectedLayer.id,{fontFamily:e.target.value});
+                    }}
+                    style={{background:'#1a1a1a',border:'1px solid #333',color:'#dde6ef',borderRadius:3,padding:'4px 6px',fontSize:11,width:'100%'}}>
+                    {GOOGLE_FONTS.map(f=><option key={f} value={f} style={{fontFamily:f}}>{f}</option>)}
+                  </select>
+
+                  <div style={{display:'flex',gap:6}}>
+                    <div style={{flex:1}}>
+                      <span style={{color:'#888',fontSize:10}}>Size</span>
+                      <input type="number" min={1} max={999}
+                        value={selectedLayer?.fontSize||24}
+                        onChange={e=>{ if(selectedLayer) updateLayer(selectedLayer.id,{fontSize:Number(e.target.value)}); }}
+                        style={{width:'100%',background:'#1a1a1a',border:'1px solid #333',color:'#dde6ef',borderRadius:3,padding:'3px 6px',fontSize:11}}/>
+                    </div>
+                    <div style={{flex:1}}>
+                      <span style={{color:'#888',fontSize:10}}>Weight</span>
+                      <select value={selectedLayer?.fontWeight||400}
+                        onChange={e=>{ if(selectedLayer) updateLayer(selectedLayer.id,{fontWeight:Number(e.target.value)}); }}
+                        style={{width:'100%',background:'#1a1a1a',border:'1px solid #333',color:'#dde6ef',borderRadius:3,padding:'3px 6px',fontSize:11}}>
+                        {[100,200,300,400,500,600,700,800,900].map(w=><option key={w} value={w}>{w}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{display:'flex',gap:4}}>
+                    {['normal','italic','oblique'].map(st=>(
+                      <button key={st} onClick={()=>{ setFontStyle(st); if(selectedLayer) updateLayer(selectedLayer.id,{fontStyle:st}); }}
+                        style={{flex:1,padding:'3px 0',border:'none',borderRadius:3,cursor:'pointer',fontSize:10,
+                          background:(selectedLayer?.fontStyle||fontStyle)===st?'#FF6600':'#1a1f2e',
+                          color:(selectedLayer?.fontStyle||fontStyle)===st?'#fff':'#888',fontStyle:st}}>
+                        {st}
+                      </button>
+                    ))}
+                  </div>
+
+                  <span style={{color:'#888',fontSize:10}}>Letter Spacing</span>
+                  <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                    <input type="range" min={-10} max={50} step={0.5}
+                      value={selectedLayer?.letterSpacing||letterSpacing}
+                      onChange={e=>{ const v=Number(e.target.value); setLetterSpacing(v); if(selectedLayer) updateLayer(selectedLayer.id,{letterSpacing:v}); }}
+                      style={{flex:1}}/>
+                    <span style={{color:'#00ffc8',fontSize:10,width:32,textAlign:'right'}}>{selectedLayer?.letterSpacing||letterSpacing}</span>
+                  </div>
+
+                  <span style={{color:'#888',fontSize:10}}>Line Height</span>
+                  <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                    <input type="range" min={0.8} max={4} step={0.05}
+                      value={selectedLayer?.lineHeight||lineHeight}
+                      onChange={e=>{ const v=Number(e.target.value); setLineHeight(v); if(selectedLayer) updateLayer(selectedLayer.id,{lineHeight:v}); }}
+                      style={{flex:1}}/>
+                    <span style={{color:'#00ffc8',fontSize:10,width:32,textAlign:'right'}}>{(selectedLayer?.lineHeight||lineHeight).toFixed(2)}</span>
+                  </div>
+
+                  <span style={{color:'#888',fontSize:10}}>Decoration</span>
+                  <div style={{display:'flex',gap:4}}>
+                    {['none','underline','line-through','overline'].map(d=>(
+                      <button key={d} onClick={()=>{ setTextDecoration(d); if(selectedLayer) updateLayer(selectedLayer.id,{textDecoration:d}); }}
+                        style={{flex:1,padding:'3px 0',border:'none',borderRadius:3,cursor:'pointer',fontSize:9,
+                          background:(selectedLayer?.textDecoration||textDecoration)===d?'#FF6600':'#1a1f2e',
+                          color:(selectedLayer?.textDecoration||textDecoration)===d?'#fff':'#888'}}>
+                        {d==='none'?'—':d==='underline'?'U̲':d==='line-through'?'S̶':'Ō'}
+                      </button>
+                    ))}
+                  </div>
+
+                  <span style={{color:'#888',fontSize:10}}>Transform</span>
+                  <div style={{display:'flex',gap:4}}>
+                    {['none','uppercase','lowercase','capitalize'].map(t=>(
+                      <button key={t} onClick={()=>{ setTextTransformV(t); if(selectedLayer) updateLayer(selectedLayer.id,{textTransformV:t}); }}
+                        style={{flex:1,padding:'3px 0',border:'none',borderRadius:3,cursor:'pointer',fontSize:9,
+                          background:(selectedLayer?.textTransformV||textTransformV)===t?'#FF6600':'#1a1f2e',
+                          color:(selectedLayer?.textTransformV||textTransformV)===t?'#fff':'#888'}}>
+                        {t==='none'?'Aa':t==='uppercase'?'AA':t==='lowercase'?'aa':'Aa'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* PARAGRAPH TAB */}
+              {activeTypoTab==='paragraph' && (
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  <span style={{color:'#888',fontSize:10}}>Alignment</span>
+                  <div style={{display:'flex',gap:4}}>
+                    {['left','center','right','justify'].map(a=>(
+                      <button key={a} onClick={()=>{ if(selectedLayer) updateLayer(selectedLayer.id,{textAlign:a}); }}
+                        style={{flex:1,padding:'4px 0',border:'none',borderRadius:3,cursor:'pointer',fontSize:12,
+                          background:(selectedLayer?.textAlign||'left')===a?'#00ffc8':'#1a1f2e',
+                          color:(selectedLayer?.textAlign||'left')===a?'#06060f':'#888'}}>
+                        {a==='left'?'⬅':a==='center'?'☰':a==='right'?'➡':'≡'}
+                      </button>
+                    ))}
+                  </div>
+
+                  <span style={{color:'#888',fontSize:10}}>Paragraph Styles</span>
+                  <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                    {PARAGRAPH_STYLES.map(ps=>(
+                      <button key={ps.name} onClick={()=>{ if(selectedLayer) updateLayer(selectedLayer.id,{
+                          fontSize:ps.fontSize, fontWeight:ps.fontWeight,
+                          lineHeight:ps.lineHeight, letterSpacing:ps.letterSpacing,
+                          textAlign:ps.textAlign,
+                        });
+                      }}
+                        style={{background:'#1a1f2e',border:'1px solid #21262d',color:'#dde6ef',borderRadius:4,
+                          padding:'5px 10px',cursor:'pointer',textAlign:'left',fontSize:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <span style={{fontWeight:ps.fontWeight,fontSize:Math.min(ps.fontSize,14)}}>{ps.name}</span>
+                        <span style={{color:'#555',fontSize:9}}>{ps.fontSize}px / {ps.fontWeight}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* PATH TAB */}
+              {activeTypoTab==='path' && (
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
+                    <input type="checkbox"
+                      checked={selectedLayer?.textOnPath||false}
+                      onChange={e=>{ if(selectedLayer) updateLayer(selectedLayer.id,{textOnPath:e.target.checked}); }}/>
+                    <span style={{color:'#dde6ef',fontSize:11}}>Text on Path</span>
+                  </label>
+
+                  {selectedLayer?.textOnPath && (
+                    <>
+                      <span style={{color:'#888',fontSize:10}}>Target Path Layer</span>
+                      <select value={selectedLayer?.textOnPathId||''}
+                        onChange={e=>{ if(selectedLayer) updateLayer(selectedLayer.id,{textOnPathId:e.target.value}); }}
+                        style={{background:'#1a1a1a',border:'1px solid #333',color:'#dde6ef',borderRadius:3,padding:'4px 6px',fontSize:11}}>
+                        <option value="">— select path —</option>
+                        {project.layers.filter(l=>l.type==='path'&&l.id!==selectedLayer?.id).map(l=>(
+                          <option key={l.id} value={l.id}>{l.name}</option>
+                        ))}
+                      </select>
+
+                      <span style={{color:'#888',fontSize:10}}>Path Offset</span>
+                      <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                        <input type="range" min={0} max={100} step={1}
+                          value={selectedLayer?.pathOffset||0}
+                          onChange={e=>{ if(selectedLayer) updateLayer(selectedLayer.id,{pathOffset:Number(e.target.value)}); }}
+                          style={{flex:1}}/>
+                        <span style={{color:'#00ffc8',fontSize:10,width:32}}>{selectedLayer?.pathOffset||0}%</span>
+                      </div>
+                    </>
+                  )}
+
+                  {!selectedLayer?.textOnPath && (
+                    <div style={{color:'#555',fontSize:10,fontStyle:'italic'}}>
+                      Enable "Text on Path", then select a path layer to flow text along its curve.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* OPENTYPE TAB */}
+              {activeTypoTab==='opentype' && (
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  <span style={{color:'#888',fontSize:10}}>OpenType Features</span>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
+                    {OPENTYPE_FEATURES.map(f=>{
+                      const active = (selectedLayer?.otFeatures||otFeatures)[f.id];
+                      return (
+                        <button key={f.id} onClick={()=>{
+                          const cur = selectedLayer?.otFeatures||otFeatures;
+                          const next = {...cur,[f.id]:!cur[f.id]};
+                          setOtFeatures(next);
+                          if(selectedLayer) updateLayer(selectedLayer.id,{otFeatures:next});
+                        }}
+                          style={{padding:'5px 6px',border:'none',borderRadius:3,cursor:'pointer',fontSize:10,
+                            background:active?'#00ffc8':'#1a1f2e',color:active?'#06060f':'#888',textAlign:'left'}}>
+                          {f.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div style={{color:'#555',fontSize:9,marginTop:4}}>
+                    Features apply via CSS font-feature-settings. Requires font support.
+                  </div>
+                </div>
               )}
             </div>
           )}
