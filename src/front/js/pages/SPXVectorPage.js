@@ -11,6 +11,20 @@ import "../../styles/SPXVector.css";
 const uid = () => `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
 const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
 
+
+const VARI_AXES = [
+  {id:'wght', label:'Weight',   min:100, max:900, step:1,   default:400},
+  {id:'wdth', label:'Width',    min:50,  max:200, step:1,   default:100},
+  {id:'slnt', label:'Slant',    min:-15, max:15,  step:0.5, default:0},
+  {id:'opsz', label:'Opt Size', min:8,   max:144, step:1,   default:14},
+];
+const DEFAULT_CHAR_STYLES = [
+  {id:'cs_bold_teal', name:'Bold Teal',   props:{fontWeight:700, fill:'#00ffc8', fontSize:null}},
+  {id:'cs_heading',   name:'Heading',     props:{fontWeight:800, fontSize:48,    fill:null}},
+  {id:'cs_caption',   name:'Caption',     props:{fontWeight:300, fontSize:11,    fill:'#888888'}},
+  {id:'cs_accent',    name:'Accent',      props:{fontWeight:600, fill:'#FF6600', fontSize:null}},
+  {id:'cs_code',      name:'Code',        props:{fontFamily:'Source Code Pro', fontSize:13, fill:'#00ffc8'}},
+];
 const GOOGLE_FONTS = [
   'Inter','Roboto','Open Sans','Lato','Montserrat','Oswald','Raleway','Poppins',
   'Playfair Display','Merriweather','Source Code Pro','JetBrains Mono','Bebas Neue',
@@ -131,6 +145,12 @@ export default function SPXVectorPage() {
   const [traceMode,      setTraceMode]      = useState('bw'); // bw, color, gray
   const [tracing,        setTracing]        = useState(false);
   const [showPatterns,   setShowPatterns]   = useState(false);
+  // ── Variable Fonts + Char Styles ────────────────────────────────────────────
+  const [variAxes,       setVariAxes]       = useState({wght:400,wdth:100,slnt:0,opsz:14});
+  const [charStyles,     setCharStyles]     = useState(DEFAULT_CHAR_STYLES);
+  const [selRange,       setSelRange]       = useState(null); // {start,end}
+  const [richText,       setRichText]       = useState([]); // [{char,style:{}}]
+  const [showCharStyles, setShowCharStyles] = useState(false);
   // ── Typography Engine ─────────────────────────────────────────────────────
   const [activeTypoTab,   setActiveTypoTab]   = useState('character');
   const [fontFamily,      setFontFamily]      = useState('Inter');
@@ -548,7 +568,7 @@ export default function SPXVectorPage() {
           fill={fill} opacity={opacity} transform={transform}
           letterSpacing={layer.letterSpacing||0}
           textDecoration={layer.textDecoration||'none'}
-          style={{textTransform:layer.textTransformV||'none',fontFeatureSettings:otStr}}>
+          style={{textTransform:layer.textTransformV||'none',fontFeatureSettings:otStr,fontVariationSettings:layer.variSettings||'normal'}}>
           <textPath href={`#${layer.textOnPathId}`} startOffset={`${layer.pathOffset||0}%`}>
             {layer.text||''}
           </textPath>
@@ -559,7 +579,10 @@ export default function SPXVectorPage() {
           fontStyle={layer.fontStyle||'normal'} fill={fill} opacity={opacity} transform={transform}
           letterSpacing={layer.letterSpacing||0} textDecoration={layer.textDecoration||'none'}
           style={{textTransform:layer.textTransformV||'none',fontFeatureSettings:otStr}}>
-          {lines.map((l,i)=><tspan key={i} x={layer.x} dy={i===0?0:(layer.fontSize||24)*(layer.lineHeight||1.4)}>{l}</tspan>)}
+          {layer.richText && layer.richText.length
+            ? renderRichSpans(layer)
+            : lines.map((l,i)=><tspan key={i} x={layer.x} dy={i===0?0:(layer.fontSize||24)*(layer.lineHeight||1.4)}>{l}</tspan>)
+          }
         </text>
       );
     } else if(layer.type==='polygon') {
@@ -663,6 +686,61 @@ export default function SPXVectorPage() {
       opacity:1,blendMode:'normal',x:0,y:0,width:project.width,height:project.height,src:aiFillResult,effects:[]};
     setProject(p=>({...p,layers:[...p.layers,nl]}));
     setAiFillOpen(false); setAiFillResult(null); clearMaskVec();
+  };
+
+  // ── Rich text / char style helpers ───────────────────────────────────────────
+  const initRichText = (text) => text.split('').map(ch => ({char:ch, style:{}}));
+
+  const applyCharStyle = (props) => {
+    if (!selectedLayer || !selRange) return;
+    const rt = (selectedLayer.richText || initRichText(selectedLayer.text||''));
+    const {start,end} = selRange;
+    const updated = rt.map((c,i) => i>=start&&i<=end ? {...c, style:{...c.style,...props}} : c);
+    updateLayer(selectedLayer.id, {richText: updated});
+  };
+
+  const clearCharStyles = () => {
+    if (!selectedLayer) return;
+    const rt = (selectedLayer.richText || initRichText(selectedLayer.text||''));
+    updateLayer(selectedLayer.id, {richText: rt.map(c=>({...c,style:{}}))});
+  };
+
+  const buildVariSettings = (axes) => {
+    return Object.entries(axes).map(([k,v])=>`"${k}" ${v}`).join(', ');
+  };
+
+  const syncRichText = (layer) => {
+    if (!layer || layer.type!=='text') return [];
+    const text = layer.text || '';
+    const rt = layer.richText || [];
+    // pad/trim richText to match text length
+    const synced = text.split('').map((ch,i) => ({char:ch, style: rt[i]?.style||{}}));
+    return synced;
+  };
+
+  const renderRichSpans = (layer) => {
+    const rt = syncRichText(layer);
+    if (!rt.length) return null;
+    // group consecutive chars with identical style
+    const groups = [];
+    let cur = null;
+    rt.forEach((c,i) => {
+      const key = JSON.stringify(c.style);
+      if (!cur || JSON.stringify(cur.style) !== key) {
+        cur = {text:'', style:c.style}; groups.push(cur);
+      }
+      cur.text += c.char;
+    });
+    return groups.map((g,i) => (
+      <tspan key={i}
+        fill={g.style.fill||undefined}
+        fontSize={g.style.fontSize||undefined}
+        fontWeight={g.style.fontWeight||undefined}
+        fontFamily={g.style.fontFamily||undefined}
+        fontStyle={g.style.fontStyle||undefined}
+        letterSpacing={g.style.letterSpacing||undefined}
+      >{g.text}</tspan>
+    ));
   };
 
   return (
@@ -1066,6 +1144,98 @@ export default function SPXVectorPage() {
                   </div>
                 </div>
               )}
+
+
+              {/* VARIABLE FONT AXES */}
+              <div style={{marginTop:6,borderTop:'1px solid #21262d',paddingTop:6}}>
+                <div style={{color:'#888',fontSize:10,marginBottom:4}}>Variable Font Axes</div>
+                {VARI_AXES.map(ax=>{
+                  const val = (selectedLayer?.variAxes||variAxes)[ax.id]||ax.default;
+                  return (
+                    <div key={ax.id} style={{display:'flex',alignItems:'center',gap:6,marginBottom:4}}>
+                      <span style={{color:'#888',fontSize:9,width:60}}>{ax.label}</span>
+                      <input type="range" min={ax.min} max={ax.max} step={ax.step} value={val}
+                        onChange={e=>{
+                          const newAxes = {...(selectedLayer?.variAxes||variAxes), [ax.id]:Number(e.target.value)};
+                          setVariAxes(newAxes);
+                          if (selectedLayer) {
+                            const variSettings = buildVariSettings(newAxes);
+                            updateLayer(selectedLayer.id, {variAxes:newAxes, variSettings});
+                          }
+                        }} style={{flex:1}}/>
+                      <span style={{color:'#00ffc8',fontSize:9,width:28,textAlign:'right'}}>{val}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* CHARACTER STYLES */}
+              <div style={{borderTop:'1px solid #21262d',paddingTop:6}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                  <span style={{color:'#888',fontSize:10}}>Character Styles</span>
+                  <button onClick={()=>setShowCharStyles(s=>!s)}
+                    style={{background:'none',border:'none',color:'#00ffc8',cursor:'pointer',fontSize:10}}>
+                    {showCharStyles?'▲':'▼'}
+                  </button>
+                </div>
+
+                {showCharStyles && (
+                  <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                    <div style={{fontSize:9,color:'#555',marginBottom:2}}>
+                      Select text layer, set cursor range below, then apply style.
+                    </div>
+
+                    {/* Range picker */}
+                    <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                      <span style={{color:'#888',fontSize:9,width:32}}>From</span>
+                      <input type="number" min={0}
+                        max={(selectedLayer?.text||'').length-1}
+                        value={selRange?.start||0}
+                        onChange={e=>setSelRange(r=>({...r||{end:0},start:Number(e.target.value)}))}
+                        style={{width:48,background:'#1a1a1a',border:'1px solid #333',color:'#dde6ef',borderRadius:3,padding:'2px 4px',fontSize:10}}/>
+                      <span style={{color:'#888',fontSize:9,width:20}}>To</span>
+                      <input type="number" min={0}
+                        max={(selectedLayer?.text||'').length-1}
+                        value={selRange?.end||0}
+                        onChange={e=>setSelRange(r=>({...r||{start:0},end:Number(e.target.value)}))}
+                        style={{width:48,background:'#1a1a1a',border:'1px solid #333',color:'#dde6ef',borderRadius:3,padding:'2px 4px',fontSize:10}}/>
+                      <button onClick={clearCharStyles}
+                        style={{background:'#1a1f2e',border:'1px solid #333',color:'#aaa',borderRadius:3,padding:'2px 6px',cursor:'pointer',fontSize:9}}>
+                        Clear
+                      </button>
+                    </div>
+
+                    {/* Style presets */}
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4,marginTop:4}}>
+                      {charStyles.map(cs=>(
+                        <button key={cs.id} onClick={()=>applyCharStyle(Object.fromEntries(Object.entries(cs.props).filter(([,v])=>v!==null)))}
+                          style={{padding:'4px 6px',border:'1px solid #21262d',borderRadius:3,cursor:'pointer',fontSize:10,
+                            background:'#1a1f2e',color:'#dde6ef',textAlign:'left'}}>
+                          {cs.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Save current selection as new style */}
+                    <button onClick={()=>{
+                      if (!selectedLayer) return;
+                      const name = prompt('Style name:');
+                      if (!name) return;
+                      const props = {
+                        fontWeight: selectedLayer.fontWeight||400,
+                        fontSize:   selectedLayer.fontSize||24,
+                        fill:       selectedLayer.fill||'#000000',
+                        fontFamily: selectedLayer.fontFamily||'Inter',
+                      };
+                      setCharStyles(cs=>[...cs,{id:`cs_${Date.now()}`,name,props}]);
+                    }}
+                      style={{marginTop:4,background:'#0d1117',border:'1px solid #00ffc8',color:'#00ffc8',borderRadius:3,
+                        padding:'4px 8px',cursor:'pointer',fontSize:10}}>
+                      + Save Current as Style
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* PARAGRAPH TAB */}
               {activeTypoTab==='paragraph' && (
