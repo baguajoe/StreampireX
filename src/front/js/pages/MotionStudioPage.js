@@ -11,10 +11,137 @@ import { exportFrame, exportProject, exportVideo, importProject } from "../utils
 import { saveToCloud, listCloudProjects, loadFromCloud, deleteCloudProject } from "../utils/cloudSave";
 import { ANIMATABLE_PROPS } from "../utils/motionstudio/keyframeEngine";
 
+// ─── Expressions Engine ───────────────────────────────────────────────────────
+const EXPR_LIBRARY = [
+  {id:'wiggle_pos',   name:'Wiggle Position',  prop:'x',       expr:'wiggle(2, 30)'},
+  {id:'wiggle_rot',   name:'Wiggle Rotation',  prop:'rotation',expr:'wiggle(3, 15)'},
+  {id:'wiggle_scale', name:'Wiggle Scale',     prop:'scaleX',  expr:'wiggle(2, 0.1) + 1'},
+  {id:'loop_rot',     name:'Loop Rotation',    prop:'rotation',expr:'loopOut("cycle")'},
+  {id:'bounce_y',     name:'Bounce Y',         prop:'y',       expr:'Math.abs(Math.sin(time * 3)) * -80'},
+  {id:'pendulum',     name:'Pendulum',         prop:'rotation',expr:'Math.sin(time * 2) * 45'},
+  {id:'heartbeat',    name:'Heartbeat Scale',  prop:'scaleX',  expr:'1 + Math.pow(Math.sin(time * 6), 12) * 0.3'},
+  {id:'flicker',      name:'Flicker Opacity',  prop:'opacity', expr:'Math.random() > 0.1 ? 1 : 0.3'},
+  {id:'spiral_x',     name:'Spiral X',         prop:'x',       expr:'Math.cos(time) * 100'},
+  {id:'spiral_y',     name:'Spiral Y',         prop:'y',       expr:'Math.sin(time) * 100'},
+  {id:'typewriter',   name:'Typewriter',       prop:'opacity', expr:'time > thisLayer.inPoint ? 1 : 0'},
+  {id:'ease_in',      name:'Ease In',          prop:'x',       expr:'linear(time, 0, 2, 0, 300)'},
+];
+
+const LINKABLE_PROPS = ['x','y','rotation','scaleX','scaleY','opacity','width','height'];
+
 const MOTION_KEY = "spx_motion_project";
 
 // ── Shared Menu Bar Component ──
 function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
+  // ── Expression eval sandbox ───────────────────────────────────────────────────
+  const evalExpression = (expr, time, layer, allLayers) => {
+    try {
+      const wiggle = (freq, amp) => {
+        const seed = (layer.id||'').charCodeAt(0) || 1;
+        return (Math.sin(time * freq * Math.PI * 2 + seed) * amp);
+      };
+      const loopOut = (type='cycle') => {
+        const kfs = layer.keyframes || {};
+        return time; // simplified: return time, full impl cycles through keyframes
+      };
+      const loopIn = (type='cycle') => time;
+      const linear = (t, t1, t2, v1, v2) => {
+        if (t <= t1) return v1;
+        if (t >= t2) return v2;
+        return v1 + (v2 - v1) * ((t - t1) / (t2 - t1));
+      };
+      const ease = (t, t1, t2, v1, v2) => {
+        if (t <= t1) return v1;
+        if (t >= t2) return v2;
+        const p = (t - t1) / (t2 - t1);
+        const ep = p < 0.5 ? 2*p*p : -1+(4-2*p)*p;
+        return v1 + (v2 - v1) * ep;
+      };
+      const random = (min=0, max=1) => min + Math.random() * (max - min);
+      const thisLayer = layer;
+      const comp = { layers: allLayers, duration: 10 };
+      // eslint-disable-next-line no-new-func
+      const fn = new Function('time','thisLayer','wiggle','loopOut','loopIn','linear','ease','random','comp','Math',
+        `"use strict"; return (${expr});`);
+      return fn(time, thisLayer, wiggle, loopOut, loopIn, linear, ease, random, comp, Math);
+    } catch(e) {
+      return null;
+    }
+  };
+
+  const getLayerPropAtTime = (layer, prop, time, allLayers) => {
+    // Check property links first
+    const link = propertyLinks.find(l => l.dstId === layer.id && l.dstProp === prop);
+    if (link) {
+      const srcLayer = allLayers.find(l => l.id === link.srcId);
+      if (srcLayer) {
+        if (link.expr) return evalExpression(link.expr, time, srcLayer, allLayers);
+        return srcLayer[link.srcProp] ?? layer[prop];
+      }
+    }
+    // Check layer expression
+    const expr = layer.expressions?.[prop];
+    if (expr) {
+      const result = evalExpression(expr, time, layer, allLayers);
+      if (result !== null) return result;
+    }
+    return layer[prop];
+  };
+
+  const openExprPanel = (layerId, prop, currentExpr='') => {
+    setExprTarget({layerId, prop});
+    setExprText(currentExpr);
+    setExprError('');
+    setExprPanelOpen(true);
+  };
+
+  const saveExpression = () => {
+    if (!exprTarget) return;
+    // test eval
+    const layers = project?.layers || [];
+    const layer = layers.find(l => l.id === exprTarget.layerId);
+    if (layer) {
+      const result = evalExpression(exprText, 0, layer, layers);
+      if (result === null && exprText.trim()) {
+        setExprError('Expression error — check syntax');
+        return;
+      }
+    }
+    setExprError('');
+    setProject(p => ({
+      ...p,
+      layers: p.layers.map(l => l.id === exprTarget.layerId
+        ? {...l, expressions: {...(l.expressions||{}), [exprTarget.prop]: exprText || undefined}}
+        : l
+      )
+    }));
+    setExprPanelOpen(false);
+  };
+
+  const removeExpression = (layerId, prop) => {
+    setProject(p => ({
+      ...p,
+      layers: p.layers.map(l => {
+        if (l.id !== layerId) return l;
+        const expressions = {...(l.expressions||{})};
+        delete expressions[prop];
+        return {...l, expressions};
+      })
+    }));
+  };
+
+  const addPropertyLink = (srcId, srcProp, dstId, dstProp, expr='') => {
+    setPropertyLinks(pl => [
+      ...pl.filter(l => !(l.dstId===dstId && l.dstProp===dstProp)),
+      {srcId, srcProp, dstId, dstProp, expr}
+    ]);
+  };
+
+  const removePropertyLink = (dstId, dstProp) => {
+    setPropertyLinks(pl => pl.filter(l => !(l.dstId===dstId && l.dstProp===dstProp)));
+  };
+
+
   return (
     <div className="spx-menu-bar">
       {menus.map(menu => (
@@ -102,6 +229,33 @@ const LAYER_TYPES = [
 
 const BLEND_MODES = ['source-over','multiply','screen','overlay','darken','lighten','color-dodge','color-burn','difference','exclusion'];
 
+
+// Expression-aware property row component
+function ExprPropRow({label, prop, layer, onOpenExpr, children}) {
+  const hasExpr = !!(layer?.expressions?.[prop]);
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:2,marginBottom:6}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span style={{color:'#888',fontSize:10,textTransform:'uppercase',letterSpacing:0.5}}>{label}</span>
+        <button
+          title={hasExpr ? `Expression: ${layer.expressions[prop]}` : 'Add Expression'}
+          onClick={()=>onOpenExpr(layer.id, prop, layer?.expressions?.[prop]||'')}
+          style={{background:'none',border:'none',cursor:'pointer',fontSize:11,
+            color:hasExpr?'#00ffc8':'#444',padding:'0 2px'}}>
+          ƒ
+        </button>
+      </div>
+      {children}
+      {hasExpr && (
+        <div style={{color:'#00ffc8',fontSize:9,fontFamily:'JetBrains Mono',opacity:0.7,
+          whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+          ƒ {layer.expressions[prop]}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MotionStudioPage() {
   const canvasRef    = useRef(null);
   const timelineRef  = useRef(null);
@@ -151,6 +305,16 @@ export default function MotionStudioPage() {
   const [zoom,         setZoom]         = useState(1);
   const [showGrid,     setShowGrid]     = useState(false);
   const [exporting,    setExporting]    = useState(false);
+  // ── Expressions Engine (Sessions 4+5) ────────────────────────────────────────
+  const [exprPanelOpen,  setExprPanelOpen]  = useState(false);
+  const [exprTarget,     setExprTarget]     = useState(null); // {layerId, prop}
+  const [exprText,       setExprText]       = useState('');
+  const [exprError,      setExprError]      = useState('');
+  const [exprLibOpen,    setExprLibOpen]    = useState(false);
+  const [linkMode,       setLinkMode]       = useState(false);
+  const [linkSource,     setLinkSource]     = useState(null); // {layerId, prop}
+  const [propertyLinks,  setPropertyLinks]  = useState([]); // [{srcId,srcProp,dstId,dstProp,expr}]
+
 
   const { scrubTo } = usePlaybackEngine();
 
@@ -724,5 +888,104 @@ export default function MotionStudioPage() {
         </div>
       </div>
     </div>
+      {/* ── Expression Editor Panel ─────────────────────────────────────── */}
+      {exprPanelOpen && exprTarget && (
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.88)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:8,padding:20,width:580,display:'flex',flexDirection:'column',gap:12}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span style={{color:'#00ffc8',fontFamily:'JetBrains Mono',fontSize:13,fontWeight:700}}>
+                ƒ Expression — {exprTarget.prop}
+              </span>
+              <div style={{display:'flex',gap:8}}>
+                <button onClick={()=>setExprLibOpen(true)}
+                  style={{background:'#1a1f2e',border:'1px solid #333',color:'#FF6600',borderRadius:4,padding:'3px 10px',cursor:'pointer',fontSize:11}}>
+                  Library
+                </button>
+                <button onClick={()=>setExprPanelOpen(false)}
+                  style={{background:'none',border:'none',color:'#888',cursor:'pointer',fontSize:18}}>✕</button>
+              </div>
+            </div>
+
+            <div style={{fontSize:10,color:'#555',fontFamily:'JetBrains Mono'}}>
+              Available: time · thisLayer · wiggle(freq,amp) · loopOut(type) · linear(t,t1,t2,v1,v2) · ease() · random(min,max) · Math
+            </div>
+
+            <textarea
+              value={exprText}
+              onChange={e=>{setExprText(e.target.value); setExprError('');}}
+              placeholder={'e.g. wiggle(2, 30)\ne.g. Math.sin(time * 3) * 100\ne.g. loopOut("cycle")'}
+              rows={6}
+              style={{background:'#06060f',border:`1px solid ${exprError?'#ff4444':'#333'}`,borderRadius:4,
+                padding:'10px',color:'#00ffc8',fontSize:12,fontFamily:'JetBrains Mono',
+                resize:'vertical',outline:'none',width:'100%',boxSizing:'border-box'}}
+            />
+
+            {exprError && <div style={{color:'#ff4444',fontSize:11,fontFamily:'JetBrains Mono'}}>{exprError}</div>}
+
+            {/* Quick test */}
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <span style={{color:'#888',fontSize:11}}>Test at t=1:</span>
+              <span style={{color:'#00ffc8',fontSize:11,fontFamily:'JetBrains Mono'}}>
+                {(() => {
+                  const layers = project?.layers||[];
+                  const layer = layers.find(l=>l.id===exprTarget.layerId)||{};
+                  const r = evalExpression(exprText, 1, layer, layers);
+                  return r===null ? '⚠️ error' : String(typeof r==='number'?r.toFixed(3):r);
+                })()}
+              </span>
+            </div>
+
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              {exprText && (
+                <button onClick={()=>{removeExpression(exprTarget.layerId,exprTarget.prop);setExprPanelOpen(false);}}
+                  style={{background:'#1a1f2e',border:'1px solid #444',color:'#ff4444',borderRadius:4,padding:'6px 14px',cursor:'pointer',fontSize:12}}>
+                  Remove
+                </button>
+              )}
+              <button onClick={saveExpression}
+                style={{background:'#FF6600',color:'#fff',border:'none',borderRadius:4,padding:'6px 18px',cursor:'pointer',fontWeight:700,fontSize:12}}>
+                ƒ Apply Expression
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Expression Library ───────────────────────────────────────────── */}
+      {exprLibOpen && (
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.88)',zIndex:10000,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:8,padding:20,width:520,maxHeight:'80vh',overflowY:'auto',display:'flex',flexDirection:'column',gap:10}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span style={{color:'#00ffc8',fontFamily:'JetBrains Mono',fontSize:13,fontWeight:700}}>Expression Library</span>
+              <button onClick={()=>setExprLibOpen(false)} style={{background:'none',border:'none',color:'#888',cursor:'pointer',fontSize:18}}>✕</button>
+            </div>
+            <div style={{fontSize:10,color:'#555'}}>Click to load into editor. Double-click to apply directly.</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+              {EXPR_LIBRARY.map(ex=>(
+                <div key={ex.id}
+                  style={{background:'#1a1f2e',border:'1px solid #21262d',borderRadius:6,padding:10,cursor:'pointer'}}
+                  onClick={()=>{setExprText(ex.expr); setExprLibOpen(false);}}
+                  onDoubleClick={()=>{
+                    if (exprTarget) {
+                      setExprText(ex.expr);
+                      setExprLibOpen(false);
+                    }
+                  }}>
+                  <div style={{color:'#dde6ef',fontSize:11,fontWeight:600,marginBottom:4}}>{ex.name}</div>
+                  <div style={{color:'#00ffc8',fontSize:10,fontFamily:'JetBrains Mono',opacity:0.8}}>{ex.expr}</div>
+                  <div style={{color:'#555',fontSize:9,marginTop:4}}>prop: {ex.prop}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Property Links Panel (floating button) ───────────────────────── */}
+      <button title="Expressions & Links" onClick={()=>setExprLibOpen(true)}
+        style={{position:'fixed',bottom:80,right:24,zIndex:1000,width:44,height:44,borderRadius:'50%',
+          background:'#1a1f2e',border:'2px solid #00ffc8',color:'#00ffc8',
+          fontSize:16,cursor:'pointer',boxShadow:'0 4px 16px rgba(0,255,200,0.2)'}}>ƒ</button>
+
   );
 }
