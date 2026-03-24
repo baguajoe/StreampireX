@@ -1384,3 +1384,311 @@ border-radius:6px;
   font-size:12px;
   padding:0 8px;
 }
+
+
+
+.spx-editor-workspace-column{
+  display:flex;
+  flex-direction:column;
+  height:calc(100vh - 72px);
+  min-height:0;
+}
+
+.spx-editor-top-region{
+  flex:1 1 auto;
+  min-height:0;
+  overflow:hidden;
+}
+
+.spx-editor-bottom-region{
+  flex:0 0 220px;
+  min-height:220px;
+  border-top:1px solid #1f3350;
+  background:#081423;
+}
+
+.spx-editor-premiere-grid{
+  height:100%;
+  min-height:0;
+}
+
+.spx-editor-left-stack{
+  display:grid;
+  grid-template-rows:minmax(260px, 46%) minmax(220px, 54%);
+  gap:12px;
+  min-height:0;
+}
+
+.spx-bin-tree-panel,
+.spx-bin-content-panel{
+  min-height:0;
+  overflow:hidden;
+}
+
+.spx-bin-tree,
+.spx-bin-content-panel .spx-scroll-list{
+  overflow:auto;
+}
+
+.spx-bin-content-panel{
+  display:flex;
+  flex-direction:column;
+}
+
+.spx-bin-toolbar{
+  flex:0 0 auto;
+}
+
+.spx-bin-content-panel .spx-scroll-list{
+  flex:1 1 auto;
+  min-height:0;
+}
+
+.spx-editor-center-stack,
+.spx-editor-right-stack,
+.spx-dock-panel{
+  min-height:0;
+}
+
+.spx-editor-timeline{
+  height:100%;
+  min-height:220px;
+}
+
+@media (max-width: 1280px){
+  .spx-editor-workspace-column{
+    height:auto;
+  }
+
+  .spx-editor-bottom-region{
+    min-height:260px;
+  }
+
+  .spx-editor-left-stack{
+    grid-template-rows:300px 320px;
+  }
+}
+
+
+
+.spx-editor-header-shell{
+  display:flex;
+  flex-direction:column;
+  border-bottom:1px solid #1f3350;
+  background:linear-gradient(180deg,#081322,#091729);
+}
+
+.spx-editor-menubar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:34px;
+  padding:0 12px;
+  border-bottom:1px solid #16263d;
+}
+
+.spx-editor-menubar-left{
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+
+.spx-menu-item{
+  background:transparent;
+  border:none;
+  color:#dce8ff;
+  font-size:12px;
+  padding:6px 10px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.spx-menu-item:hover{
+  background:#13253b;
+}
+
+.spx-editor-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:46px;
+  padding:0 12px;
+}
+
+.spx-editor-left-stack{
+  display:grid !important;
+  grid-template-rows: 48% 52%;
+  gap:12px;
+  min-height:0;
+  overflow:hidden;
+}
+
+.spx-bin-tree-panel{
+  min-height:0;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+
+.spx-bin-tree{
+  flex:1 1 auto;
+  overflow:auto;
+  min-height:0;
+}
+
+.spx-bin-content-panel{
+  min-height:0;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+
+.spx-bin-content-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:8px;
+}
+
+.spx-bin-content-list{
+  flex:1 1 auto;
+  min-height:0;
+  overflow:auto;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.spx-editor-workspace-column{
+  height:calc(100vh - 84px);
+}
+
+.spx-editor-top-region{
+  min-height:0;
+}
+
+.spx-editor-bottom-region{
+  flex:0 0 230px;
+  min-height:230px;
+}
+
+.spx-editor-timeline{
+  height:100%;
+  min-height:230px;
+}
+
+@media (max-width: 1280px){
+  .spx-editor-left-stack{
+    grid-template-rows: 300px 320px;
+  }
+}
+
+
+
+/* ---- CLICK/FUNCTIONALITY RECOVERY PATCH ---- */
+
+/* Real UI should always receive clicks */
+.spx-editor-header-shell,
+.spx-editor-menubar,
+.spx-editor-header,
+.spx-editor-layout-shell,
+.spx-editor-premiere-grid,
+.spx-editor-left-stack,
+.spx-editor-center-stack,
+.spx-editor-right-stack,
+.spx-editor-top-region,
+.spx-editor-bottom-region,
+.spx-bin-tree-panel,
+.spx-bin-content-panel,
+.spx-bin-tree,
+.spx-bin-content-list,
+.spx-panel,
+.spx-bin-row,
+.spx-effect,
+.spx-header-btn,
+.spx-workspace-btn,
+.spx-workspace-select,
+.spx-menu-item,
+.spx-editor-timeline,
+.spx-editor-track-lane,
+.spx-editor-clip,
+.spx-track-remove,
+.spx-search,
+.spx-input,
+button,
+select,
+input {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 5;
+}
+
+/* Decorative / overlay elements must never block clicks */
+.spx-playhead-line,
+.spx-marker-line,
+.spx-monitor-safe-area,
+.spx-editor-canvas-placeholder,
+.spx-bin-count,
+.spx-bin-chevron {
+  pointer-events: none !important;
+}
+
+/* Monitor frame should not sit above controls */
+.spx-monitor-frame,
+.spx-monitor-stage {
+  position: relative;
+  z-index: 1;
+}
+
+.spx-monitor-controls,
+.spx-editor-panel-header,
+.spx-timeline-actions {
+  position: relative;
+  z-index: 6;
+}
+
+/* Make left browser definitely visible/clickable */
+.spx-editor-left-stack {
+  overflow: hidden;
+}
+
+.spx-bin-tree-panel,
+.spx-bin-content-panel {
+  border: 1px solid #223956;
+}
+
+.spx-bin-content-list {
+  min-height: 220px;
+  overflow: auto;
+}
+
+/* Ensure timeline stays interactive */
+.spx-editor-bottom-region {
+  position: relative;
+  z-index: 6;
+}
+
+.spx-editor-timeline {
+  overflow: hidden;
+}
+
+/* Prevent any accidental full-panel transparent blocker */
+.spx-dock-panel::before,
+.spx-panel::before {
+  pointer-events: none !important;
+}
+
+
+
+.spx-upload-label{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+
+.spx-editor-track-lane{
+  min-height:56px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.03));
+}

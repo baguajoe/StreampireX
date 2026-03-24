@@ -127,6 +127,8 @@ const SPXPanelLayout = ({ editor }) => {
           <SPXBinContentPanel
             activeNodeId={activeNodeId}
             onDragPresetStart={editor.onDragPresetStart}
+            onDragMediaStart={editor.onDragMediaStart}
+            handleUploadMedia={editor.handleUploadMedia}
             assets={editor.assets || []}
           />
         </div>

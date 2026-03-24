@@ -13,6 +13,7 @@ const SPXEditorTimeline = ({ editor }) => {
     selectedClipId,
     toggleClipSelection,
     onDropPresetToClip,
+    onDropMediaToTrack,
     markers = [],
     addMarkerAtPlayhead,
     zoomLevel,
@@ -80,7 +81,16 @@ const SPXEditorTimeline = ({ editor }) => {
               </div>
             </div>
 
-            <div className="spx-editor-track-lane">
+            <div
+              className="spx-editor-track-lane"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const pct = (e.clientX - rect.left) / rect.width;
+                const laneTime = Math.max(0, pct * 10);
+                onDropMediaToTrack(track.id, laneTime);
+              }}
+            >
               {(track.clips || []).map((clip) => (
                 <div
                   key={clip.id}
@@ -91,7 +101,10 @@ const SPXEditorTimeline = ({ editor }) => {
                   }}
                   onClick={() => toggleClipSelection(clip.id)}
                   onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => onDropPresetToClip(track.id, clip.id)}
+                  onDrop={(e) => {
+                    e.stopPropagation();
+                    onDropPresetToClip(track.id, clip.id);
+                  }}
                 >
                   <div className="spx-editor-clip-name">{clip.name}</div>
                   {!!(clip.presets || []).length && (

@@ -12,9 +12,12 @@ const SPXEditorComponent = () => {
     <div className="spx-editor-shell">
       <SPXEditorHeader editor={editor} />
 
-      <div className="spx-editor-workspace">
-        <div className="spx-editor-main spx-editor-main-full">
+      <div className="spx-editor-workspace spx-editor-workspace-column">
+        <div className="spx-editor-main spx-editor-main-full spx-editor-top-region">
           <SPXPanelLayout editor={editor} />
+        </div>
+
+        <div className="spx-editor-bottom-region">
           <SPXEditorTimeline editor={editor} />
         </div>
       </div>

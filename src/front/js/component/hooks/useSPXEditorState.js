@@ -18,16 +18,17 @@ export const useSPXEditorState = () => {
   const [selectedClipId, setSelectedClipId] = useState(null);
   const [selectedClipIds, setSelectedClipIds] = useState([]);
   const [draggedPreset, setDraggedPreset] = useState(null);
+  const [draggedMedia, setDraggedMedia] = useState(null);
 
   const [tracks, setTracks] = useState([
     ...SPX_DEFAULT_TRACKS.map((t, i) => ({
       ...t,
       clips:
-        i === 4 ? [{ id: uid(), name: "Main Footage", start: 0, length: 5, presets: [], blendMode: "normal" }] :
-        i === 3 ? [{ id: uid(), name: "B-Roll", start: 2, length: 3, presets: [], blendMode: "normal" }] :
-        i === 2 ? [{ id: uid(), name: "Title Overlay", start: 1, length: 2, presets: [], blendMode: "normal" }] :
-        i === 5 ? [{ id: uid(), name: "Dialogue", start: 0, length: 5, presets: [], blendMode: "normal" }] :
-        i === 6 ? [{ id: uid(), name: "Music", start: 1, length: 6, presets: [], blendMode: "normal" }] :
+        i === 4 ? [{ id: uid(), name: "Main Footage", start: 0, length: 5, presets: [], blendMode: "normal", sourceType: "placeholder" }] :
+        i === 3 ? [{ id: uid(), name: "B-Roll", start: 2, length: 3, presets: [], blendMode: "normal", sourceType: "placeholder" }] :
+        i === 2 ? [{ id: uid(), name: "Title Overlay", start: 1, length: 2, presets: [], blendMode: "normal", sourceType: "placeholder" }] :
+        i === 5 ? [{ id: uid(), name: "Dialogue", start: 0, length: 5, presets: [], blendMode: "normal", sourceType: "placeholder" }] :
+        i === 6 ? [{ id: uid(), name: "Music", start: 1, length: 6, presets: [], blendMode: "normal", sourceType: "placeholder" }] :
         []
     }))
   ]);
@@ -36,12 +37,10 @@ export const useSPXEditorState = () => {
   const [duration] = useState(10);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isPlaying, setIsPlaying] = useState(false);
-
   const [markers, setMarkers] = useState([
     Step1.createMarker({ time: 1.5, label: "Intro", color: "yellow" }),
     Step1.createMarker({ time: 4.0, label: "Cut Point", color: "cyan" })
   ]);
-
   const [snapModes, setSnapModes] = useState(Step1.SPX_SNAP_MODES);
   const [rippleMode, setRippleMode] = useState("none");
   const [savedUserPresets, setSavedUserPresets] = useState([]);
@@ -70,13 +69,24 @@ export const useSPXEditorState = () => {
 
   const handleUploadMedia = useCallback((e) => {
     const files = Array.from(e.target.files || []);
-    const mapped = files.map((f, index) => ({
-      id: `${Date.now()}-${index}`,
-      name: f.name,
-      type: f.type || "unknown",
-      duration: 0,
-      raw: f
-    }));
+    const mapped = files.map((f, index) => {
+      const type = (f.type || "").startsWith("video/")
+        ? "video"
+        : (f.type || "").startsWith("audio/")
+        ? "audio"
+        : (f.type || "").startsWith("image/")
+        ? "image"
+        : "media";
+
+      return {
+        id: `${Date.now()}-${index}`,
+        name: f.name,
+        type,
+        mimeType: f.type || "unknown",
+        duration: type === "audio" ? 5 : type === "video" ? 5 : 4,
+        raw: f
+      };
+    });
     setAssets((prev) => [...prev, ...mapped]);
   }, []);
 
@@ -108,7 +118,15 @@ export const useSPXEditorState = () => {
   const stepTime = useCallback((delta) => setCurrentTime((prev) => Math.max(0, prev + delta)), []);
   const setPlayhead = useCallback((time) => setCurrentTime(Math.max(0, time)), []);
 
-  const onDragPresetStart = useCallback((preset) => setDraggedPreset(preset), []);
+  const onDragPresetStart = useCallback((preset) => {
+    setDraggedPreset(preset);
+    setDraggedMedia(null);
+  }, []);
+
+  const onDragMediaStart = useCallback((asset) => {
+    setDraggedMedia(asset);
+    setDraggedPreset(null);
+  }, []);
 
   const applyPresetToClip = useCallback((trackId, clipId, preset) => {
     pushUndo();
@@ -133,6 +151,37 @@ export const useSPXEditorState = () => {
     applyPresetToClip(trackId, clipId, draggedPreset);
     setDraggedPreset(null);
   }, [draggedPreset, applyPresetToClip]);
+
+  const onDropMediaToTrack = useCallback((trackId, laneTime = 0) => {
+    if (!draggedMedia) return;
+
+    pushUndo();
+    setTracks((prev) =>
+      prev.map((track) => {
+        if (track.id !== trackId) return track;
+
+        const clipType = draggedMedia.type === "audio" ? "audio" : "video";
+        if (track.type !== clipType && !(track.type === "video" and clipType === "image")) return track;
+
+        const newClip = {
+          id: uid(),
+          name: draggedMedia.name,
+          start: Math.max(0, Number(laneTime || 0)),
+          length: draggedMedia.duration || 4,
+          presets: [],
+          blendMode: "normal",
+          sourceType: draggedMedia.type,
+          assetId: draggedMedia.id
+        };
+
+        return {
+          ...track,
+          clips: [...(track.clips || []), newClip]
+        };
+      })
+    );
+    setDraggedMedia(null);
+  }, [draggedMedia, pushUndo]);
 
   const toggleClipSelection = useCallback((clipId) => {
     setSelectedClipIds((prev) => Step1.toggleClipSelection(prev, clipId));
@@ -174,30 +223,6 @@ export const useSPXEditorState = () => {
     setAutosaves((prev) => [...prev, Stable.createAutosaveEntry(snapshotState())]);
   }, [snapshotState]);
 
-  const undoAction = useCallback(() => {
-    const current = snapshotState()
-    const prev = undoRedoRef.current.undoState(current)
-    setTracks(prev.tracks || [])
-    setAssets(prev.assets || [])
-    setSelectedClipId(prev.selectedClipId || null)
-    setSelectedClipIds(prev.selectedClipIds || [])
-    setCurrentTime(prev.currentTime || 0)
-    setMarkers(prev.markers || [])
-    setComments(prev.comments || [])
-  }, [snapshotState]);
-
-  const redoAction = useCallback(() => {
-    const current = snapshotState()
-    const next = undoRedoRef.current.redoState(current)
-    setTracks(next.tracks || [])
-    setAssets(next.assets || [])
-    setSelectedClipId(next.selectedClipId || null)
-    setSelectedClipIds(next.selectedClipIds || [])
-    setCurrentTime(next.currentTime || 0)
-    setMarkers(next.markers || [])
-    setComments(next.comments || [])
-  }, [snapshotState]);
-
   return {
     canvasRef,
     previewRef,
@@ -235,16 +260,15 @@ export const useSPXEditorState = () => {
     stepTime,
     setPlayhead,
     onDragPresetStart,
+    onDragMediaStart,
     onDropPresetToClip,
+    onDropMediaToTrack,
     toggleClipSelection,
     addMarkerAtPlayhead,
     saveCurrentPreset,
     addCommentAtPlayhead,
     saveVersion,
     createBrandKit,
-    autosaveProject,
-    undoAction,
-    redoAction,
-    pushUndo
+    autosaveProject
   };
 };
