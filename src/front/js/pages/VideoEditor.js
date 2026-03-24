@@ -1,3 +1,4 @@
+import '../../styles/VideoEditorComponent.css';
 import "../../styles/VideoEditor.css";
 // =============================================================================
 // VideoEditor.js - Video Editor Page

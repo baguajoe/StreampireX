@@ -1,13 +1,15 @@
 import React from "react";
 
-const SPXEditorHeader = ({ editor }) => {
+const SPXEditorHeader = ({ editor, onOpenExport }) => {
   const {
     projectName,
     isPlaying,
     handlePlayPause,
     handlePause,
     handleFastForward,
-    handleExport
+    activeSequencePresetId,
+    setActiveSequencePresetId,
+    sequencePresets
   } = editor;
 
   return (
@@ -18,13 +20,25 @@ const SPXEditorHeader = ({ editor }) => {
       </div>
 
       <div className="spx-editor-header-center">
+        <select
+          className="spx-sequence-select"
+          value={activeSequencePresetId}
+          onChange={(e) => setActiveSequencePresetId(e.target.value)}
+        >
+          {(sequencePresets || []).map((preset) => (
+            <option key={preset.id} value={preset.id}>
+              {preset.name}
+            </option>
+          ))}
+        </select>
+
         <button className="spx-header-btn" type="button" onClick={handlePlayPause}>
           {isPlaying ? "Pause" : "Play"}
         </button>
         <button className="spx-header-btn" type="button" onClick={handlePause}>
           Pause
         </button>
-        <button className="spx-header-btn spx-header-btn-accent" type="button" onClick={handleExport}>
+        <button className="spx-header-btn spx-header-btn-accent" type="button" onClick={onOpenExport}>
           Export
         </button>
         <button className="spx-header-btn" type="button" onClick={handleFastForward}>

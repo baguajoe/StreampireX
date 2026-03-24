@@ -8,6 +8,17 @@ import * as Actions from "../editor/SPXEditorActions.js";
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
+
+const SEQUENCE_PRESETS = [
+  { id: "1080p24", name: "HD 1080p 24 fps", width: 1920, height: 1080, fps: 24 },
+  { id: "1080p23976", name: "HD 1080p 23.976 fps", width: 1920, height: 1080, fps: 23.976 },
+  { id: "1080p2997", name: "HD 1080p 29.97 fps", width: 1920, height: 1080, fps: 29.97 },
+  { id: "1080p30", name: "HD 1080p 30 fps", width: 1920, height: 1080, fps: 30 },
+  { id: "4k24", name: "UHD 4K 24 fps", width: 3840, height: 2160, fps: 24 },
+  { id: "4k2997", name: "UHD 4K 29.97 fps", width: 3840, height: 2160, fps: 29.97 }
+];
+
+
 export const useSPXEditorState = () => {
   const canvasRef = useRef(null);
   const previewRef = useRef(null);
@@ -16,6 +27,7 @@ export const useSPXEditorState = () => {
   const undoRedoRef = useRef(Stable.createUndoRedoStack());
 
   const [projectName] = useState("Professional Video Project");
+  const [activeSequencePresetId, setActiveSequencePresetId] = useState("1080p24");
   const [activeTool, setActiveTool] = useState("select");
   const [activeSidebarTab, setActiveSidebarTab] = useState("project");
   const [effectSearch, setEffectSearch] = useState("");
@@ -25,6 +37,7 @@ export const useSPXEditorState = () => {
 
   const [assets, setAssets] = useState([]);
   const [selectedClipId, setSelectedClipId] = useState(null);
+  const [sourceClipId, setSourceClipId] = useState(null);
   const [selectedClipIds, setSelectedClipIds] = useState([]);
   const [draggedPreset, setDraggedPreset] = useState(null);
   const [draggedMedia, setDraggedMedia] = useState(null);
@@ -32,18 +45,27 @@ export const useSPXEditorState = () => {
   const [sourceInPoint, setSourceInPoint] = useState(null);
   const [sourceOutPoint, setSourceOutPoint] = useState(null);
 
-  const [tracks, setTracks] = useState(
-    SPX_DEFAULT_TRACKS.map((t, i) => ({
-      ...t,
-      clips:
-        i === 4 ? [{ id: uid(), name: "Main Footage", start: 0, length: 5, presets: [], effects: [], transitions: [], blendMode: "normal", sourceType: "placeholder", transform: { x: 0, y: 0, scale: 100, rotation: 0, opacity: 100 }, colorAdjustments: { exposure: 0, contrast: 0, saturation: 100, temperature: 0, tint: 0 } }] :
-        i === 3 ? [{ id: uid(), name: "B-Roll", start: 2, length: 3, presets: [], effects: [], transitions: [], blendMode: "normal", sourceType: "placeholder", transform: { x: 0, y: 0, scale: 100, rotation: 0, opacity: 100 }, colorAdjustments: { exposure: 0, contrast: 0, saturation: 100, temperature: 0, tint: 0 } }] :
-        i === 2 ? [{ id: uid(), name: "Title Overlay", start: 1, length: 2, presets: [], effects: [], transitions: [], blendMode: "screen", sourceType: "placeholder", transform: { x: 0, y: 0, scale: 100, rotation: 0, opacity: 100 }, colorAdjustments: { exposure: 0, contrast: 0, saturation: 100, temperature: 0, tint: 0 } }] :
-        i === 5 ? [{ id: uid(), name: "Dialogue", start: 0, length: 5, presets: [], effects: [], transitions: [], blendMode: "normal", sourceType: "placeholder", transform: { x: 0, y: 0, scale: 100, rotation: 0, opacity: 100 }, colorAdjustments: { exposure: 0, contrast: 0, saturation: 100, temperature: 0, tint: 0 } }] :
-        i === 6 ? [{ id: uid(), name: "Music", start: 1, length: 6, presets: [], effects: [], transitions: [], blendMode: "normal", sourceType: "placeholder", transform: { x: 0, y: 0, scale: 100, rotation: 0, opacity: 100 }, colorAdjustments: { exposure: 0, contrast: 0, saturation: 100, temperature: 0, tint: 0 } }] :
-        []
-    }))
-  );
+  
+
+const [sequences, setSequences] = useState([
+  {
+    id:"seq1",
+    name:"Sequence 01",
+    tracks: SPX_DEFAULT_TRACKS.map(t=>({...t,clips:[]}))
+  }
+])
+
+const [activeSequenceId, setActiveSequenceId] = useState("seq1")
+
+const activeSequence = sequences.find(s=>s.id===activeSequenceId)
+
+const [tracks, setTracks]
+ = useState(
+  SPX_DEFAULT_TRACKS.map(track => ({
+    ...track,
+    clips: []
+  }))
+);
 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration] = useState(10);
@@ -62,6 +84,9 @@ export const useSPXEditorState = () => {
   const [brandKits, setBrandKits] = useState([]);
   const [autosaves, setAutosaves] = useState([]);
 
+  const activeSequencePreset =
+    SEQUENCE_PRESETS.find((p) => p.id === activeSequencePresetId) || SEQUENCE_PRESETS[0];
+
   const selectedClipLocation = useMemo(
     () => Actions.findClipLocation(tracks, selectedClipId),
     [tracks, selectedClipId]
@@ -70,10 +95,18 @@ export const useSPXEditorState = () => {
   const selectedClip = selectedClipLocation?.clip || null;
   const selectedTrack = selectedClipLocation?.track || null;
 
+  const sourceClipLocation = useMemo(
+    () => Actions.findClipLocation(tracks, sourceClipId),
+    [tracks, sourceClipId]
+  );
+
+  const sourceClip = sourceClipLocation?.clip || null;
+
   const currentSourceAsset = useMemo(() => {
-    if (!selectedClip?.assetId) return null;
-    return assets.find((asset) => asset.id === selectedClip.assetId) || null;
-  }, [assets, selectedClip]);
+    const preferredClip = sourceClip || selectedClip;
+    if (!preferredClip?.assetId) return null;
+    return assets.find((asset) => asset.id === preferredClip.assetId) || null;
+  }, [assets, sourceClip, selectedClip]);
 
 
   useEffect(() => {
@@ -282,6 +315,53 @@ const layers = useMemo(
     );
   }, []);
 
+  const createTransitionBetweenClips = useCallback((trackId, leftClipId, rightClipId, transitionType = "crossDissolve") => {
+    setTracks((prev) =>
+      prev.map((track) => {
+        if (track.id !== trackId) return track;
+
+        const leftClip = (track.clips || []).find((c) => c.id === leftClipId);
+        const rightClip = (track.clips || []).find((c) => c.id === rightClipId);
+
+        if (!leftClip || !rightClip) return track;
+
+        const overlap = 0.5;
+        const transitionId = `transition-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+        const transitionClip = {
+          id: transitionId,
+          type: "transition",
+          name: transitionType,
+          transitionType,
+          leftClipId,
+          rightClipId,
+          start: Math.max(leftClip.start + leftClip.length - overlap, 0),
+          length: overlap
+        };
+
+        return {
+          ...track,
+          clips: [...track.clips.filter((c) => c.id !== transitionId), transitionClip]
+        };
+      })
+    );
+  }, []);
+
+  const updateTransitionDuration = useCallback((transitionId, delta) => {
+    setTracks((prev) =>
+      prev.map((track) => ({
+        ...track,
+        clips: (track.clips || []).map((clip) => {
+          if (clip.id !== transitionId || clip.type !== "transition") return clip;
+          return {
+            ...clip,
+            length: Math.max(0.1, clip.length + delta)
+          };
+        })
+      }))
+    );
+  }, []);
+
   const unlinkSelectedClip = useCallback(() => {
     if (!selectedClipId) return;
     setTracks((prev) =>
@@ -321,6 +401,57 @@ const layers = useMemo(
       insertMode: mode
     });
   }, [currentSourceAsset, sourceInPoint, sourceOutPoint]);
+
+
+  const splitClipAtPlayhead = useCallback((clipId) => {
+    setTracks((prev) =>
+      prev.map((track) => {
+        const target = (track.clips || []).find((clip) => clip.id === clipId);
+        if (!target || target.type === "transition") return track;
+        const splitTime = currentTime;
+        if (splitTime <= target.start || splitTime >= target.start + target.length) return track;
+
+        const first = {
+          ...target,
+          id: `${target.id}-a-${Date.now()}`,
+          length: splitTime - target.start
+        };
+
+        const second = {
+          ...target,
+          id: `${target.id}-b-${Date.now()}`,
+          start: splitTime,
+          length: (target.start + target.length) - splitTime
+        };
+
+        return {
+          ...track,
+          clips: (track.clips || []).flatMap((clip) =>
+            clip.id === clipId ? [first, second] : [clip]
+          )
+        };
+      })
+    );
+  }, [currentTime]);
+
+  const slipClipBy = useCallback((clipId, delta) => {
+    setTracks((prev) =>
+      prev.map((track) => ({
+        ...track,
+        clips: (track.clips || []).map((clip) =>
+          clip.id === clipId
+            ? { ...clip, start: Math.max(0, clip.start + delta) }
+            : clip
+        )
+      }))
+    );
+  }, []);
+
+  const panTimelineBy = useCallback((amount) => {
+    const el = document.querySelector(".spx-editor-track-list");
+    if (el) el.scrollLeft += amount;
+  }, []);
+
 
   const addTrack = useCallback((type = "video") => {
     pushUndo();
@@ -409,6 +540,10 @@ const layers = useMemo(
   const handleExport = useCallback(() => {
     const payload = {
       projectName,
+    activeSequencePresetId,
+    setActiveSequencePresetId,
+    activeSequencePreset,
+    sequencePresets: SEQUENCE_PRESETS,
       exportedAt: new Date().toISOString(),
       tracks,
       assets: assets.map((a) => ({
@@ -632,6 +767,10 @@ const layers = useMemo(
     setSelectedClipIds([]);
   }, []);
 
+  const loadClipToSourceMonitor = useCallback((clipId) => {
+    setSourceClipId(clipId);
+  }, []);
+
   const updateSelectedClipProperty = useCallback((path, value) => {
     if (!selectedClipId) return;
     pushUndo();
@@ -697,6 +836,10 @@ const layers = useMemo(
     sourceVideoRef,
     programVideoRef,
     projectName,
+    activeSequencePresetId,
+    setActiveSequencePresetId,
+    activeSequencePreset,
+    sequencePresets: SEQUENCE_PRESETS,
     activeTool,
     setActiveTool,
     activeSidebarTab,
@@ -745,15 +888,59 @@ const layers = useMemo(
     handleUploadMedia,
     addTrack,
     removeTrack,
-    deleteSelectedClip,
+    
+deleteSelectedClip,
+
+addTransitionBetweenClips: (trackId, leftClipId, rightClipId, type="crossDissolve") => {
+
+  setTracks(prev =>
+    prev.map(track => {
+
+      if(track.id !== trackId) return track
+
+      const left = track.clips.find(c=>c.id===leftClipId)
+      const right = track.clips.find(c=>c.id===rightClipId)
+
+      if(!left || !right) return track
+
+      const duration = 0.4
+
+      const transition = {
+
+        id: "transition-"+Date.now(),
+        name: type,
+        type: "transition",
+        start: right.start - duration,
+        length: duration,
+        transitionType: type
+
+      }
+
+      return {
+
+        ...track,
+        clips: [...track.clips, transition]
+
+      }
+
+    })
+  )
+
+},
+
     toggleTrackLock,
     toggleTrackMute,
     toggleTrackSolo,
     trimClipLeft,
     trimClipRight,
+    createTransitionBetweenClips,
+    updateTransitionDuration,
     unlinkSelectedClip,
     linkSelectedToLinkedGroup,
     insertSourceToTimeline,
+    splitClipAtPlayhead,
+    slipClipBy,
+    panTimelineBy,
     handlePlayPause,
     handlePause,
     handleRewind,
@@ -767,6 +954,7 @@ const layers = useMemo(
     onDropMediaToTrack,
     toggleClipSelection,
     clearSelectedClip,
+    loadClipToSourceMonitor,
     updateSelectedClipProperty,
     applyPresetToSelectedClip,
     applyEffectToSelectedClip,
@@ -783,3 +971,25 @@ const layers = useMemo(
     autosaveProject
   };
 };
+
+
+const createSequence = () => {
+
+  const id = "seq"+Date.now()
+
+  setSequences(prev=>[
+    ...prev,
+    {
+      id,
+      name:"Sequence "+(prev.length+1),
+      tracks: SPX_DEFAULT_TRACKS.map(t=>({...t,clips:[]}))
+    }
+  ])
+
+  setActiveSequenceId(id)
+
+}
+
+const switchSequence = (id)=>{
+  setActiveSequenceId(id)
+}

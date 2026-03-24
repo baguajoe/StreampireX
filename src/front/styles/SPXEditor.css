@@ -3144,3 +3144,284 @@ width:100%;
 .spx-clip-trim-handle:hover{
   background:rgba(255,255,255,.35);
 }
+
+/* transitions */
+
+.spx-transition{
+  position:absolute;
+  top:0;
+  bottom:0;
+  width:40px;
+  background:linear-gradient(90deg,
+    rgba(255,255,255,.0),
+    rgba(255,255,255,.35),
+    rgba(255,255,255,.0)
+  );
+  border-left:1px solid rgba(255,255,255,.4);
+  border-right:1px solid rgba(255,255,255,.4);
+  pointer-events:none;
+  opacity:.8;
+}
+
+.spx-transition.crossDissolve{
+  background:linear-gradient(90deg,
+    rgba(0,255,200,.1),
+    rgba(0,255,200,.5),
+    rgba(0,255,200,.1)
+  );
+}
+
+.spx-transition.audioFade{
+  background:linear-gradient(90deg,
+    rgba(255,180,0,.15),
+    rgba(255,180,0,.5),
+    rgba(255,180,0,.15)
+  );
+}
+
+/* step 2 transitions */
+.spx-transition-dropzone{
+  width:22px;
+  height:38px;
+  border:1px dashed #4f688b;
+  background:#0f1b2d;
+  color:#d8ebff;
+  border-radius:8px;
+  cursor:pointer;
+  align-self:center;
+}
+
+.spx-transition-dropzone:hover{
+  border-color:#00ffc8;
+  color:#00ffc8;
+}
+
+.spx-transition-chip{
+  min-width:80px;
+  height:26px;
+  padding:0 10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  border-radius:999px;
+  background:linear-gradient(90deg,rgba(0,255,200,.15),rgba(0,255,200,.45),rgba(0,255,200,.15));
+  border:1px solid rgba(0,255,200,.35);
+  color:#eafcff;
+  position:relative;
+}
+
+.spx-transition-chip.constantPower{
+  background:linear-gradient(90deg,rgba(255,210,0,.14),rgba(255,210,0,.4),rgba(255,210,0,.14));
+  border-color:rgba(255,210,0,.35);
+}
+
+/* step 3 waveform + stronger snap */
+.spx-audio-waveform{
+  display:flex;
+  align-items:flex-end;
+  gap:2px;
+  height:16px;
+  margin-top:4px;
+}
+
+.spx-audio-waveform span{
+  width:3px;
+  background:rgba(255,255,255,.65);
+  border-radius:2px;
+}
+
+.spx-audio-waveform span:nth-child(1){height:4px;}
+.spx-audio-waveform span:nth-child(2){height:8px;}
+.spx-audio-waveform span:nth-child(3){height:12px;}
+.spx-audio-waveform span:nth-child(4){height:6px;}
+.spx-audio-waveform span:nth-child(5){height:14px;}
+.spx-audio-waveform span:nth-child(6){height:10px;}
+.spx-audio-waveform span:nth-child(7){height:15px;}
+.spx-audio-waveform span:nth-child(8){height:7px;}
+.spx-audio-waveform span:nth-child(9){height:13px;}
+.spx-audio-waveform span:nth-child(10){height:9px;}
+.spx-audio-waveform span:nth-child(11){height:11px;}
+.spx-audio-waveform span:nth-child(12){height:5px;}
+
+.spx-snap-guide{
+  background:#ffd400;
+  box-shadow:0 0 14px rgba(255,212,0,.8);
+}
+
+.spx-clip-trim-handle:hover{
+  background:rgba(255,255,255,.35);
+}
+
+/* step 3 waveform + stronger snap */
+.spx-audio-waveform{
+  display:flex;
+  align-items:flex-end;
+  gap:2px;
+  height:16px;
+  margin-top:4px;
+}
+
+.spx-audio-waveform span{
+  width:3px;
+  background:rgba(255,255,255,.65);
+  border-radius:2px;
+}
+
+.spx-audio-waveform span:nth-child(1){height:4px;}
+.spx-audio-waveform span:nth-child(2){height:8px;}
+.spx-audio-waveform span:nth-child(3){height:12px;}
+.spx-audio-waveform span:nth-child(4){height:6px;}
+.spx-audio-waveform span:nth-child(5){height:14px;}
+.spx-audio-waveform span:nth-child(6){height:10px;}
+.spx-audio-waveform span:nth-child(7){height:15px;}
+.spx-audio-waveform span:nth-child(8){height:7px;}
+.spx-audio-waveform span:nth-child(9){height:13px;}
+.spx-audio-waveform span:nth-child(10){height:9px;}
+.spx-audio-waveform span:nth-child(11){height:11px;}
+.spx-audio-waveform span:nth-child(12){height:5px;}
+
+.spx-snap-guide{
+  background:#ffd400;
+  box-shadow:0 0 14px rgba(255,212,0,.8);
+}
+
+.spx-clip-trim-handle:hover{
+  background:rgba(255,255,255,.35);
+}
+
+.spx-sequence-select{
+  min-width: 210px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid #31517c;
+  background: #132238;
+  color: #dce8ff;
+  padding: 0 10px;
+}
+
+.spx-source-monitor-badge{
+  position:absolute;
+  top:10px;
+  right:10px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:rgba(0,255,200,.18);
+  border:1px solid rgba(0,255,200,.4);
+  color:#dffff7;
+  font-size:11px;
+}
+
+.spx-source-monitor-badge{
+  position:absolute;
+  top:10px;
+  right:10px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:rgba(0,255,200,.18);
+  border:1px solid rgba(0,255,200,.4);
+  color:#dffff7;
+  font-size:11px;
+}
+
+.spx-monitor-ruler{
+  display:grid;
+  grid-template-columns:72px minmax(0,1fr) 72px;
+  align-items:center;
+  gap:10px;
+  margin-top:8px;
+  height:26px;
+}
+
+.spx-monitor-ruler-time{
+  font-size:12px;
+  color:#9eb6d8;
+}
+
+.spx-monitor-ruler-track{
+  position:relative;
+  height:16px;
+  border-radius:999px;
+  background:rgba(255,255,255,.08);
+}
+
+.spx-monitor-ruler-cti{
+  position:absolute;
+  top:-2px;
+  bottom:-2px;
+  width:2px;
+  background:#00ffc8;
+  box-shadow:0 0 8px rgba(0,255,200,.7);
+}
+
+.spx-monitor-ruler-cti::before{
+  content:"";
+  position:absolute;
+  top:-2px;
+  left:50%;
+  transform:translateX(-50%);
+  width:10px;
+  height:10px;
+  border-radius:999px;
+  background:#00ffc8;
+}
+
+.spx-export-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+
+.spx-export-modal{
+  width:min(1100px, 92vw);
+  max-height:88vh;
+  overflow:auto;
+  background:#121212;
+  border:1px solid #2f2f2f;
+  border-radius:14px;
+  box-shadow:0 20px 60px rgba(0,0,0,.45);
+}
+
+.spx-export-header,
+.spx-export-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 18px;
+  border-bottom:1px solid #2b2b2b;
+}
+
+.spx-export-actions{
+  border-top:1px solid #2b2b2b;
+  border-bottom:none;
+  justify-content:flex-end;
+  gap:10px;
+}
+
+.spx-export-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:18px;
+  padding:18px;
+}
+
+.spx-export-section,
+.spx-export-preview{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  background:#171717;
+  border:1px solid #2c2c2c;
+  border-radius:10px;
+  padding:14px;
+}
+
+.spx-export-toggles{
+  display:flex;
+  gap:18px;
+  margin-top:8px;
+}
