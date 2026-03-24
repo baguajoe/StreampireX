@@ -130,6 +130,7 @@
     ]
   },
   "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.19.3",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
     "@google/model-viewer": "^4.0.0",

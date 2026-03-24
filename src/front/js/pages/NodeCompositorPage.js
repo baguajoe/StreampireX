@@ -8,6 +8,27 @@ import { FBXLoader  } from 'three/examples/jsm/loaders/FBXLoader.js';
 
 
 
+
+// ─── Sessions C+D constants ───────────────────────────────────────────────────
+const RIGID_BODY_TYPES = [
+  {id:'dynamic',    label:'Dynamic',    desc:'Affected by gravity + forces'},
+  {id:'fixed',      label:'Fixed',      desc:'Static, never moves'},
+  {id:'kinematic',  label:'Kinematic',  desc:'Controlled by animation'},
+];
+const COLLIDER_SHAPES = [
+  {id:'cuboid',   label:'Box'},
+  {id:'ball',     label:'Sphere'},
+  {id:'capsule',  label:'Capsule'},
+  {id:'cylinder', label:'Cylinder'},
+  {id:'trimesh',  label:'Trimesh (exact)'},
+];
+const WEIGHT_COLORS = [
+  {w:0.0, color:'#0000ff'},
+  {w:0.25,color:'#00ffff'},
+  {w:0.5, color:'#00ff00'},
+  {w:0.75,color:'#ffff00'},
+  {w:1.0, color:'#ff0000'},
+];
 // ─── Session A+B constants ────────────────────────────────────────────────────
 const MATERIAL_PRESETS = [
   {id:'gold',      label:'Gold',      color:'#FFD700', roughness:0.1, metalness:1.0, emissive:'#000'},
@@ -877,6 +898,248 @@ function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
   };
 
 
+  // ── Session C: Rapier WASM Physics ────────────────────────────────────────
+  const initRapier = async () => {
+    try {
+      const RAPIER = await import('@dimforge/rapier3d-compat');
+      await RAPIER.init();
+      const world = new RAPIER.World(new RAPIER.Vector3(gravity.x, gravity.y, gravity.z));
+      rapierWorldRef.current = {world, RAPIER};
+      console.log('✅ Rapier physics initialized');
+      return {world, RAPIER};
+    } catch(e) {
+      console.warn('Rapier init failed:', e.message);
+      return null;
+    }
+  };
+
+  const addRigidBody = async (objId, bodyType='dynamic', colliderShape='cuboid') => {
+    let ctx = rapierWorldRef.current;
+    if (!ctx) ctx = await initRapier();
+    if (!ctx) return;
+    const {world, RAPIER} = ctx;
+    const mesh = threeObjectsRef.current[objId];
+    if (!mesh) return;
+
+    const pos = mesh.position;
+    const bodyDesc = bodyType === 'fixed'
+      ? RAPIER.RigidBodyDesc.fixed()
+      : bodyType === 'kinematic'
+      ? RAPIER.RigidBodyDesc.kinematicPositionBased()
+      : RAPIER.RigidBodyDesc.dynamic();
+
+    bodyDesc.setTranslation(pos.x, pos.y, pos.z);
+    const body = world.createRigidBody(bodyDesc);
+
+    // Collider
+    let colliderDesc;
+    const box = new THREE.Box3().setFromObject(mesh);
+    const size = box.getSize(new THREE.Vector3());
+    if      (colliderShape==='cuboid')   colliderDesc = RAPIER.ColliderDesc.cuboid(size.x/2, size.y/2, size.z/2);
+    else if (colliderShape==='ball')     colliderDesc = RAPIER.ColliderDesc.ball(Math.max(size.x,size.y,size.z)/2);
+    else if (colliderShape==='capsule')  colliderDesc = RAPIER.ColliderDesc.capsule(size.y/2, size.x/4);
+    else if (colliderShape==='cylinder') colliderDesc = RAPIER.ColliderDesc.cylinder(size.y/2, size.x/4);
+    else colliderDesc = RAPIER.ColliderDesc.cuboid(size.x/2, size.y/2, size.z/2);
+
+    colliderDesc.setRestitution(0.3).setFriction(0.7);
+    world.createCollider(colliderDesc, body);
+    rapierBodiesRef.current[objId] = body;
+
+    setPhysicsObjects(ps => [...ps.filter(p=>p.id!==objId), {id:objId, bodyType, colliderShape,
+      name: scene3DObjects.find(o=>o.id===objId)?.name||objId}]);
+  };
+
+  const startPhysics = () => {
+    if (physicsRunning) return;
+    setPhysicsRunning(true);
+    const tick = () => {
+      const ctx = rapierWorldRef.current;
+      if (!ctx) return;
+      ctx.world.step();
+      // Sync Three.js objects with physics
+      Object.entries(rapierBodiesRef.current).forEach(([objId, body]) => {
+        const mesh = threeObjectsRef.current[objId];
+        if (!mesh) return;
+        const t = body.translation();
+        const r = body.rotation();
+        mesh.position.set(t.x, t.y, t.z);
+        mesh.quaternion.set(r.x, r.y, r.z, r.w);
+      });
+      rapierRafRef.current = requestAnimationFrame(tick);
+    };
+    rapierRafRef.current = requestAnimationFrame(tick);
+  };
+
+  const stopPhysics = () => {
+    setPhysicsRunning(false);
+    if (rapierRafRef.current) cancelAnimationFrame(rapierRafRef.current);
+  };
+
+  const resetPhysics = () => {
+    stopPhysics();
+    // Reset all physics objects to original positions
+    scene3DObjects.forEach(obj => {
+      const body = rapierBodiesRef.current[obj.id];
+      const mesh = threeObjectsRef.current[obj.id];
+      if (body && mesh) {
+        body.setTranslation({x:obj.position.x, y:obj.position.y, z:obj.position.z}, true);
+        body.setLinvel({x:0,y:0,z:0}, true);
+        body.setAngvel({x:0,y:0,z:0}, true);
+        mesh.position.set(obj.position.x, obj.position.y, obj.position.z);
+      }
+    });
+  };
+
+  const applyForce = (objId, force) => {
+    const body = rapierBodiesRef.current[objId];
+    if (!body) return;
+    body.applyImpulse(force, true);
+  };
+
+  // ── Session D: SkinnedMesh + Weight Painting ──────────────────────────────
+  const convertToSkinnedMesh = (objId) => {
+    const scene = threeSceneRef.current;
+    const mesh = threeObjectsRef.current[objId];
+    if (!mesh || !mesh.isMesh) { alert('Select a mesh object first'); return; }
+    if (mesh.isSkinnedMesh) { console.log('Already a SkinnedMesh'); return; }
+
+    // Build skeleton from rig bones
+    const bones = [];
+    const boneMap = {};
+    const bonesData = rigBones.length ? rigBones : RIG_BONES_DEFAULTS;
+
+    bonesData.forEach(bd => {
+      const bone = new THREE.Bone();
+      bone.name = bd.name;
+      bone.position.set(...bd.head);
+      boneMap[bd.id] = bone;
+      bones.push(bone);
+    });
+
+    // Parent bones
+    bonesData.forEach(bd => {
+      if (bd.parent && boneMap[bd.parent]) {
+        boneMap[bd.parent].add(boneMap[bd.id]);
+      }
+    });
+
+    const rootBone = bones[0];
+    const skeleton = new THREE.Skeleton(bones);
+
+    // Create skinned mesh
+    const geo = mesh.geometry.clone();
+    const vertCount = geo.attributes.position.count;
+
+    // Assign simple proximity-based weights
+    const skinIndices  = new Float32Array(vertCount * 4);
+    const skinWeights  = new Float32Array(vertCount * 4);
+    const pos = geo.attributes.position.array;
+
+    for (let i = 0; i < vertCount; i++) {
+      const vy = pos[i*3+1];
+      // Simple vertical weight distribution across 2 bones
+      const t = Math.max(0, Math.min(1, (vy + 1) / 2));
+      const boneA = 0, boneB = Math.min(1, bones.length-1);
+      skinIndices[i*4] = boneA; skinIndices[i*4+1] = boneB;
+      skinWeights[i*4] = 1-t;  skinWeights[i*4+1] = t;
+      skinIndices[i*4+2] = 0;  skinIndices[i*4+3] = 0;
+      skinWeights[i*4+2] = 0;  skinWeights[i*4+3] = 0;
+    }
+
+    geo.setAttribute('skinIndex',  new THREE.Uint16BufferAttribute(skinIndices, 4));
+    geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skinWeights, 4));
+
+    const skinnedMesh = new THREE.SkinnedMesh(geo, mesh.material);
+    skinnedMesh.add(rootBone);
+    skinnedMesh.bind(skeleton);
+    skinnedMesh.userData = {...mesh.userData};
+    skinnedMesh.position.copy(mesh.position);
+    skinnedMesh.rotation.copy(mesh.rotation);
+    skinnedMesh.scale.copy(mesh.scale);
+
+    scene.remove(mesh);
+    scene.add(skinnedMesh);
+    threeObjectsRef.current[objId] = skinnedMesh;
+
+    setScene3DObjects(os => os.map(o => o.id===objId ? {...o, isSkinned:true} : o));
+    console.log('✅ Converted to SkinnedMesh with', bones.length, 'bones');
+  };
+
+  const paintBoneWeight = (e) => {
+    if (!weightPaintMode || !activeBone || !selected3DId) return;
+    const mesh = threeObjectsRef.current[selected3DId];
+    if (!mesh || !mesh.isSkinnedMesh) return;
+    const geo = mesh.geometry;
+    const skinWeights = geo.attributes.skinWeight;
+    const skinIndices = geo.attributes.skinIndex;
+    const pos = geo.attributes.position.array;
+
+    const canvas = threeCanvasRef.current; if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = ((e.clientX-rect.left)/rect.width)*2-1;
+    const my = -((e.clientY-rect.top)/rect.height)*2+1;
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera({x:mx,y:my}, threeCameraRef.current);
+    const hits = raycaster.intersectObject(mesh);
+    if (!hits.length) return;
+    const hitPt = hits[0].point;
+
+    // Find bone index
+    const boneIdx = (rigBones.length ? rigBones : RIG_BONES_DEFAULTS).findIndex(b=>b.id===activeBone);
+    if (boneIdx < 0) return;
+
+    const arr = skinWeights.array;
+    const idxArr = skinIndices.array;
+    for (let i=0; i<pos.length/3; i++) {
+      const vx=pos[i*3], vy=pos[i*3+1], vz=pos[i*3+2];
+      const dist = hitPt.distanceTo(new THREE.Vector3(vx,vy,vz));
+      if (dist < wpBrushRadius) {
+        const falloff = (1 - dist/wpBrushRadius) * wpBrushStrength;
+        // Find slot for this bone
+        for (let s=0; s<4; s++) {
+          if (idxArr[i*4+s] === boneIdx) {
+            if (wpBrushMode==='add')      arr[i*4+s] = Math.min(1, arr[i*4+s]+falloff);
+            else if (wpBrushMode==='subtract') arr[i*4+s] = Math.max(0, arr[i*4+s]-falloff);
+            else arr[i*4+s] = arr[i*4+s]*(1-falloff) + 0.5*falloff;
+            break;
+          }
+        }
+      }
+    }
+    skinWeights.needsUpdate = true;
+
+    // Update weight overlay colors
+    updateWeightColors(mesh, boneIdx);
+  };
+
+  const updateWeightColors = (mesh, boneIdx) => {
+    const geo = mesh.geometry;
+    const skinWeights = geo.attributes.skinWeight;
+    const skinIndices = geo.attributes.skinIndex;
+    const vertCount = geo.attributes.position.count;
+    const colors = new Float32Array(vertCount*3);
+    for (let i=0; i<vertCount; i++) {
+      let w = 0;
+      for (let s=0; s<4; s++) {
+        if (skinIndices.array[i*4+s]===boneIdx) { w=skinWeights.array[i*4+s]; break; }
+      }
+      // Map weight to color: blue(0) → green(0.5) → red(1)
+      const r = w > 0.5 ? (w-0.5)*2 : 0;
+      const g = w < 0.5 ? w*2 : (1-w)*2;
+      const b = w < 0.5 ? 1-w*2 : 0;
+      colors[i*3]=r; colors[i*3+1]=g; colors[i*3+2]=b;
+    }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors,3));
+    if (mesh.material && !Array.isArray(mesh.material)) {
+      mesh.material.vertexColors = true;
+      mesh.material.needsUpdate = true;
+    }
+  };
+
+  const wpMouseDown = (e) => { if (weightPaintMode) paintBoneWeight(e); };
+  const wpMouseMove = (e) => { if (weightPaintMode && e.buttons===1) paintBoneWeight(e); };
+
+
   return (
     <div className="spx-menu-bar">
       {menus.map(menu => (
@@ -994,6 +1257,24 @@ export default function NodeCompositorPage() {
   const [doppelflexImg,  setDoppelflexImg]  = React.useState(null);
   const [autoRigLoading, setAutoRigLoading] = React.useState(false);
   const sculptCanvasRef  = React.useRef(null);
+  // ── Session C: Rapier Physics ────────────────────────────────────────────
+  const rapierWorldRef    = React.useRef(null);
+  const rapierBodiesRef   = React.useRef({});   // objId -> rigidBody
+  const rapierRafRef      = React.useRef(null);
+  const [physicsRunning,  setPhysicsRunning]   = React.useState(false);
+  const [physicsObjects,  setPhysicsObjects]   = React.useState([]);
+  const [gravity,         setGravity]          = React.useState({x:0,y:-9.81,z:0});
+  const [physicsDebug,    setPhysicsDebug]      = React.useState(false);
+
+  // ── Session D: SkinnedMesh + Weight Painting ──────────────────────────────
+  const [weightPaintMode,  setWeightPaintMode]  = React.useState(false);
+  const [activeBone,       setActiveBone]       = React.useState(null);
+  const [boneWeights,      setBoneWeights]      = React.useState({});  // objId -> {boneId -> Float32Array}
+  const [wpBrushRadius,    setWpBrushRadius]    = React.useState(0.5);
+  const [wpBrushStrength,  setWpBrushStrength]  = React.useState(0.5);
+  const [wpBrushMode,      setWpBrushMode]      = React.useState('add'); // add|subtract|smooth
+  const weightCanvasRef    = React.useRef(null);
+
   // ── Session A: Model import ───────────────────────────────────────────────
   const modelFileRef      = React.useRef(null);
   const [importingModel,  setImportingModel]  = React.useState(false);
@@ -1682,6 +1963,175 @@ export default function NodeCompositorPage() {
                 </div>
               )}
 
+
+
+              {/* ── Session C: Rapier Physics ──────────────────────────── */}
+              <div style={{borderTop:'1px solid #21262d',paddingTop:8}}>
+                <div style={{color:'#00ffc8',fontSize:10,fontWeight:700,marginBottom:6}}>PHYSICS — RAPIER</div>
+
+                {/* Gravity */}
+                <div style={{display:'flex',gap:4,alignItems:'center',marginBottom:6}}>
+                  <span style={{color:'#888',fontSize:10,width:44}}>Gravity Y</span>
+                  <input type="range" min={-30} max={0} step={0.1} value={gravity.y}
+                    onChange={e=>{
+                      const y=Number(e.target.value);
+                      setGravity(g=>({...g,y}));
+                      const ctx=rapierWorldRef.current;
+                      if(ctx) ctx.world.gravity={x:gravity.x,y,z:gravity.z};
+                    }} style={{flex:1}}/>
+                  <span style={{color:'#00ffc8',fontSize:9,width:32}}>{gravity.y}</span>
+                </div>
+
+                {/* Play/Stop/Reset */}
+                <div style={{display:'flex',gap:4,marginBottom:6}}>
+                  <button onClick={async()=>{ if(!rapierWorldRef.current) await initRapier(); startPhysics(); }}
+                    disabled={physicsRunning}
+                    style={{flex:1,padding:'5px',border:'none',borderRadius:3,cursor:'pointer',fontSize:11,fontWeight:700,
+                      background:physicsRunning?'#333':'#00ffc8',color:physicsRunning?'#555':'#06060f'}}>
+                    ▶ Play
+                  </button>
+                  <button onClick={stopPhysics} disabled={!physicsRunning}
+                    style={{flex:1,padding:'5px',border:'none',borderRadius:3,cursor:'pointer',fontSize:11,fontWeight:700,
+                      background:!physicsRunning?'#333':'#ff4444',color:'#fff'}}>
+                    ⏹ Stop
+                  </button>
+                  <button onClick={resetPhysics}
+                    style={{flex:1,padding:'5px',border:'none',borderRadius:3,cursor:'pointer',fontSize:11,
+                      background:'#1a1f2e',color:'#888'}}>
+                    ↺ Reset
+                  </button>
+                </div>
+
+                {/* Add physics to selected */}
+                {selected3DId && (
+                  <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                    <span style={{color:'#888',fontSize:9}}>Add to selected object:</span>
+                    <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                      {RIGID_BODY_TYPES.map(t=>(
+                        <button key={t.id} onClick={()=>addRigidBody(selected3DId,t.id,'cuboid')}
+                          title={t.desc}
+                          style={{padding:'3px 8px',border:'none',borderRadius:3,cursor:'pointer',fontSize:10,
+                            background:'#1a1f2e',color:'#aaa'}}>
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                      {COLLIDER_SHAPES.map(c=>(
+                        <button key={c.id} onClick={()=>addRigidBody(selected3DId,'dynamic',c.id)}
+                          style={{padding:'2px 6px',border:'1px solid #21262d',borderRadius:3,cursor:'pointer',fontSize:9,
+                            background:'#0d1117',color:'#666'}}>
+                          {c.label}
+                        </button>
+                      ))}
+                    </div>
+                    <button onClick={()=>applyForce(selected3DId,{x:0,y:5,z:0})}
+                      style={{padding:'4px',border:'1px solid #FF6600',borderRadius:3,cursor:'pointer',fontSize:10,
+                        background:'transparent',color:'#FF6600'}}>
+                      ↑ Apply Impulse (up)
+                    </button>
+                  </div>
+                )}
+
+                {/* Physics objects list */}
+                {physicsObjects.length > 0 && (
+                  <div style={{marginTop:6}}>
+                    <span style={{color:'#555',fontSize:9}}>Physics objects ({physicsObjects.length})</span>
+                    {physicsObjects.map(p=>(
+                      <div key={p.id} style={{display:'flex',justifyContent:'space-between',
+                        background:'#0a0e1a',borderRadius:3,padding:'2px 6px',marginTop:2}}>
+                        <span style={{color:'#888',fontSize:9}}>{p.name}</span>
+                        <span style={{color:'#555',fontSize:8}}>{p.bodyType} · {p.colliderShape}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* ── Session D: Weight Painting ──────────────────────────── */}
+              <div style={{borderTop:'1px solid #21262d',paddingTop:8}}>
+                <div style={{color:'#FF6600',fontSize:10,fontWeight:700,marginBottom:6}}>WEIGHT PAINTING</div>
+
+                {selected3DId && (
+                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                    {/* Convert to SkinnedMesh */}
+                    {!scene3DObjects.find(o=>o.id===selected3DId)?.isSkinned && (
+                      <button onClick={()=>convertToSkinnedMesh(selected3DId)}
+                        style={{background:'#1a1f2e',border:'1px solid #FF6600',color:'#FF6600',
+                          borderRadius:4,padding:'5px',cursor:'pointer',fontSize:10,fontWeight:700}}>
+                        ⬡ Convert to SkinnedMesh
+                      </button>
+                    )}
+
+                    {scene3DObjects.find(o=>o.id===selected3DId)?.isSkinned && (<>
+                      {/* Weight paint toggle */}
+                      <label style={{display:'flex',gap:6,alignItems:'center',cursor:'pointer'}}>
+                        <input type="checkbox" checked={weightPaintMode}
+                          onChange={e=>setWeightPaintMode(e.target.checked)}/>
+                        <span style={{color:'#dde6ef',fontSize:11}}>Weight Paint Mode</span>
+                      </label>
+
+                      {weightPaintMode && (<>
+                        {/* Bone selector */}
+                        <span style={{color:'#888',fontSize:10}}>Active Bone</span>
+                        <select value={activeBone||''}
+                          onChange={e=>setActiveBone(e.target.value)}
+                          style={{background:'#1a1a1a',border:'1px solid #333',color:'#dde6ef',
+                            borderRadius:3,padding:'3px 6px',fontSize:10}}>
+                          <option value="">— select bone —</option>
+                          {(rigBones.length?rigBones:RIG_BONES_DEFAULTS).map(b=>(
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                          ))}
+                        </select>
+
+                        {/* Brush settings */}
+                        {[['Radius','wpBrushRadius',setWpBrushRadius,0.1,3,0.05],
+                          ['Strength','wpBrushStrength',setWpBrushStrength,0,1,0.01]].map(([lbl,key,setter,min,max,step])=>(
+                          <div key={key} style={{display:'flex',gap:6,alignItems:'center'}}>
+                            <span style={{color:'#888',fontSize:10,width:52}}>{lbl}</span>
+                            <input type="range" min={min} max={max} step={step}
+                              value={key==='wpBrushRadius'?wpBrushRadius:wpBrushStrength}
+                              onChange={e=>setter(Number(e.target.value))} style={{flex:1}}/>
+                            <span style={{color:'#FF6600',fontSize:9,width:28}}>
+                              {(key==='wpBrushRadius'?wpBrushRadius:wpBrushStrength).toFixed(2)}
+                            </span>
+                          </div>
+                        ))}
+
+                        {/* Brush mode */}
+                        <div style={{display:'flex',gap:4}}>
+                          {['add','subtract','smooth'].map(m=>(
+                            <button key={m} onClick={()=>setWpBrushMode(m)}
+                              style={{flex:1,padding:'3px 0',border:'none',borderRadius:3,cursor:'pointer',fontSize:10,
+                                background:wpBrushMode===m?'#FF6600':'#1a1f2e',
+                                color:wpBrushMode===m?'#fff':'#888'}}>
+                              {m}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Weight legend */}
+                        <div style={{display:'flex',gap:0,height:8,borderRadius:3,overflow:'hidden',marginTop:2}}>
+                          {WEIGHT_COLORS.map((wc,i)=>(
+                            <div key={i} style={{flex:1,background:wc.color}}/>
+                          ))}
+                        </div>
+                        <div style={{display:'flex',justifyContent:'space-between'}}>
+                          <span style={{color:'#555',fontSize:8}}>0.0</span>
+                          <span style={{color:'#555',fontSize:8}}>1.0</span>
+                        </div>
+                        <div style={{color:'#555',fontSize:9,fontStyle:'italic'}}>
+                          Click+drag on mesh to paint weights
+                        </div>
+                      </>)}
+                    </>)}
+                  </div>
+                )}
+
+                {!selected3DId && (
+                  <div style={{color:'#555',fontSize:10,fontStyle:'italic'}}>Select a mesh object to begin weight painting</div>
+                )}
+              </div>
 
               {/* ── Session 11: Particles ──────────────────────────────── */}
               <div style={{borderTop:'1px solid #21262d',paddingTop:8}}>
