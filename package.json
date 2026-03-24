@@ -87,6 +87,8 @@
     "bc-console": "0.0.2",
     "css-loader": "^6.5.1",
     "dotenv-webpack": "^7.0.3",
+    "electron": "^41.0.3",
+    "electron-builder": "^26.8.1",
     "envfile": "^6.17.0",
     "error-overlay-webpack-plugin": "^1.0.0",
     "eslint": "^8.4.0",
@@ -128,6 +130,8 @@
     ]
   },
   "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@google/model-viewer": "^4.0.0",
     "@mediapipe/camera_utils": "^0.3.1675466862",
     "@mediapipe/face_detection": "^0.4.1646425229",

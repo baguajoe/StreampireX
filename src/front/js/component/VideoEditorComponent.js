@@ -430,6 +430,7 @@ import {
   useKeyboardShortcuts
 } from './hooks/useVideoEditorState';
 import { useTierAccess } from './hooks/useTierAccess';
+import { useFFmpeg } from './hooks/useFFmpeg';
 import { KEYFRAME_PROPERTIES, INTERPOLATION_TYPES, DEFAULT_KEYFRAME_VALUE_BY_PROPERTY } from '../keyframes/engine/keyframeTypes';
 import VideoEditorEffectsPanel from './VideoEditorEffectsPanel';
 
@@ -2203,7 +2204,19 @@ const VideoEditorComponent = () => {
       clips: track.clips.map(c => c.id === selectedClip.id ? modified : c)
     })));
     setSelectedClip(modified);
-    // Wire to backend if clip has cloud ID
+    // Try local FFmpeg first (instant), fall back to server
+    const localFile = selectedClip._localFile;
+    if (localFile) {
+      try {
+        console.log('⚡ Processing speed ramp locally...');
+        const blob = await ffmpeg.speedRamp(localFile, speedVal);
+        const url = URL.createObjectURL(blob);
+        setTracks(prev => prev.map(t => ({ ...t, clips: t.clips.map(c => c.id === selectedClip.id ? { ...c, previewUrl: url, _speedProcessed: true } : c) })));
+        console.log(`⏩ Speed ramp done locally: ${speedVal}x`);
+        return;
+      } catch(e) { console.warn('Local speed ramp failed, trying server:', e.message); }
+    }
+    // Fall back to server
     const pubId = selectedClip.cloudinary_public_id || selectedClip.r2_key;
     if (pubId) {
       try {
@@ -2217,10 +2230,9 @@ const VideoEditorComponent = () => {
           const data = await r.json();
           if (data.transformed_url) {
             setTracks(prev => prev.map(t => ({ ...t, clips: t.clips.map(c => c.id === selectedClip.id ? { ...c, previewUrl: data.transformed_url } : c) })));
-            console.log(`⏩ Speed ramp applied: ${speedVal}x`);
           }
         }
-      } catch(e) { console.warn('Speed ramp backend error:', e.message); }
+      } catch(e) { console.warn('Speed ramp server error:', e.message); }
     }
   };
 
@@ -2423,6 +2435,7 @@ TIMELINE
 
   // User tier
   const [userTier] = useState('professional');
+  const ffmpeg = useFFmpeg();
 
   // UI state
   const [showSnapToGrid, setShowSnapToGrid] = useState(true);
@@ -4132,25 +4145,57 @@ TIMELINE
 
   // EXPORT HANDLER (NEW)
   const handleExport = () => {
-    // Check if we have any clips
     const totalClips = tracks.reduce((sum, track) => sum + track.clips.length, 0);
-
     if (totalClips === 0) {
       alert('Please add some media to the timeline before exporting.');
       return;
     }
-
-    // Check if we have Cloudinary clips
-    const hasCloudinaryClips = tracks.some(track =>
-      track.clips.some(clip => clip.cloudinary_public_id)
-    );
-
-    if (!hasCloudinaryClips) {
-      alert('Please upload media files first. Local files need to be uploaded to cloud storage before export.');
+    // Allow export with local files OR cloud files
+    const hasLocalClips = tracks.some(t => t.clips.some(c => c._localFile));
+    const hasCloudClips = tracks.some(t => t.clips.some(c => c.cloudinary_public_id || c.r2_key));
+    if (!hasLocalClips && !hasCloudClips) {
+      alert('Please add media to the timeline before exporting.');
       return;
     }
-
+    // If in Electron, offer native export
+    if (electronFS.isElectron) {
+      const hasLocalClips = tracks.some(t => t.clips.some(c => c._localPath || c._localFile));
+      if (hasLocalClips && window.confirm('Export locally using native FFmpeg? (Faster, no upload needed)')) {
+        handleNativeExport();
+        return;
+      }
+    }
     setShowExportModal(true);
+  };
+
+  const handleNativeExport = async () => {
+    try {
+      const savePath = await electronFS.saveExport(new Blob(), 'StreamPireX-Export.mp4');
+      if (!savePath) return;
+      // Build FFmpeg args from timeline
+      const videoClips = tracks
+        .filter(t => t.type === 'video')
+        .flatMap(t => t.clips)
+        .filter(c => c._localPath)
+        .sort((a,b) => a.startTime - b.startTime);
+      if (videoClips.length === 0) { alert('No local clips to export'); return; }
+      const listPath = savePath.replace('.mp4', '_list.txt');
+      const listContent = videoClips.map(c => `file '${c._localPath}'`).join('\n');
+      await electronFS.saveExport(new Blob([listContent], {type:'text/plain'}), listPath);
+      const result = await electronFS.runFFmpeg([
+        '-f', 'concat', '-safe', '0',
+        '-i', listPath,
+        '-vf', 'scale=1920:1080,fps=24',
+        '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+        '-c:a', 'aac', '-b:a', '192k',
+        savePath
+      ]);
+      if (result.code === 0) {
+        alert(`✅ Exported to: ${savePath}`);
+      } else {
+        alert('Export failed: ' + result.stderr?.slice(-200));
+      }
+    } catch(e) { alert('Native export error: ' + e.message); }
   };
 
   // SAVE PROJECT HANDLER (NEW)
@@ -4855,7 +4900,27 @@ TIMELINE
           }}>
             <button
               className="import-btn"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={async () => {
+                if (electronFS.isElectron) {
+                  // Native file picker — no upload needed
+                  const files = await electronFS.openFiles();
+                  if (files.length > 0) {
+                    const newItems = files.map(f => ({
+                      id: Date.now() + Math.random(),
+                      name: f.name,
+                      type: f.type,
+                      url: f.url,
+                      _localPath: f._localPath,
+                      _isLocal: true,
+                      duration: f.type === 'image' ? '0:05' : '0:30',
+                      uploading: false,
+                    }));
+                    setMediaLibrary(prev => [...prev, ...newItems]);
+                  }
+                } else {
+                  fileInputRef.current?.click();
+                }
+              }}
               disabled={uploading}
               style={{
                 display: 'flex',
@@ -7805,6 +7870,18 @@ TIMELINE
                 <ChromaKeyPanel settings={chromaKeySettings} onChange={setChromaKeySettings} onPickColor={(c)=>setChromaKeySettings(s=>({...s,color:c}))}/>
                 <button onClick={async()=>{
                   if(!selectedClip) return;
+                  const localFile = selectedClip._localFile;
+                  if(localFile){
+                    try{
+                      console.log('⚡ Chroma key processing locally...');
+                      const colorHex = (chromaKeySettings.color||'#00ff00').replace('#','0x');
+                      const blob = await ffmpeg.chromaKey(localFile, colorHex, (chromaKeySettings.similarity||30)/100, (chromaKeySettings.blend||10)/100);
+                      const url = URL.createObjectURL(blob);
+                      setTracks(p=>p.map(t=>({...t,clips:t.clips.map(c=>c.id===selectedClip.id?{...c,previewUrl:url}:c)})));
+                      alert('✅ Chroma key applied locally!');
+                      return;
+                    }catch(e){console.warn('Local chroma key failed:',e.message);}
+                  }
                   const pubId = selectedClip.cloudinary_public_id || selectedClip.r2_key;
                   if(!pubId){alert('Upload clip first');return;}
                   try{
