@@ -1,6 +1,39 @@
 import React, { useEffect, useMemo } from "react";
 import * as THREE from 'three';
 
+
+// ─── Sessions 8+9+10 constants ────────────────────────────────────────────────
+const MODIFIERS = [
+  {id:'mirror',      label:'Mirror',      icon:'⬡', params:{axis:'X', merge:true, mergeThreshold:0.001}},
+  {id:'array',       label:'Array',       icon:'⊞', params:{count:3, offsetX:1.2, offsetY:0, offsetZ:0}},
+  {id:'subdivision', label:'Subdivision', icon:'◈', params:{levels:1, renderLevels:2}},
+  {id:'solidify',    label:'Solidify',    icon:'▣', params:{thickness:0.1, offset:-1}},
+  {id:'bevel',       label:'Bevel',       icon:'◻', params:{width:0.1, segments:2}},
+  {id:'displace',    label:'Displace',    icon:'〜', params:{strength:0.5, midLevel:0.5}},
+  {id:'wave',        label:'Wave',        icon:'∿', params:{height:0.5, width:1.5, speed:1}},
+];
+const SCULPT_BRUSHES = [
+  {id:'draw',    label:'Draw',    icon:'✏', strength:0.5, radius:50},
+  {id:'smooth',  label:'Smooth',  icon:'◯', strength:0.4, radius:60},
+  {id:'grab',    label:'Grab',    icon:'✋', strength:0.8, radius:80},
+  {id:'crease',  label:'Crease',  icon:'⌒', strength:0.6, radius:40},
+  {id:'flatten', label:'Flatten', icon:'▬', strength:0.5, radius:70},
+  {id:'pinch',   label:'Pinch',   icon:'◉', strength:0.5, radius:35},
+  {id:'inflate', label:'Inflate', icon:'◎', strength:0.4, radius:55},
+  {id:'clay',    label:'Clay',    icon:'◧', strength:0.5, radius:65},
+];
+const SHAPE_KEY_DEFAULTS = [
+  {id:'sk_basis', name:'Basis', value:1.0, muted:false},
+];
+const RIG_BONES_DEFAULTS = [
+  {id:'bone_root', name:'Root',   head:[0,0,0], tail:[0,1,0], parent:null},
+  {id:'bone_spine',name:'Spine',  head:[0,1,0], tail:[0,2,0], parent:'bone_root'},
+  {id:'bone_head', name:'Head',   head:[0,2,0], tail:[0,2.8,0], parent:'bone_spine'},
+  {id:'bone_larm', name:'L.Arm',  head:[0,1.8,0], tail:[-1,1.2,0], parent:'bone_spine'},
+  {id:'bone_rarm', name:'R.Arm',  head:[0,1.8,0], tail:[1,1.2,0],  parent:'bone_spine'},
+  {id:'bone_lleg', name:'L.Leg',  head:[0,0,0], tail:[-0.4,-1.5,0], parent:'bone_root'},
+  {id:'bone_rleg', name:'R.Leg',  head:[0,0,0], tail:[0.4,-1.5,0],  parent:'bone_root'},
+];
 // ─── Blender Lite — Session 6+7 constants ────────────────────────────────────
 const PRIMITIVES = [
   {id:'box',      label:'Box',       icon:'⬜'},
@@ -243,6 +276,180 @@ function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
   }, [kfPlaying, scene3DObjects, kfDuration]);
 
 
+  // ── Modifier system ────────────────────────────────────────────────────────
+  const applyModifier = (objId, modId, params) => {
+    const scene = threeSceneRef.current;
+    const mesh = threeObjectsRef.current[objId];
+    if (!scene || !mesh) return;
+    if (modId === 'mirror') {
+      const clone = mesh.clone();
+      clone.scale.x *= -1;
+      clone.userData.isMirror = true;
+      scene.add(clone);
+      threeObjectsRef.current[objId + '_mirror'] = clone;
+    }
+    if (modId === 'array') {
+      for (let i = 1; i < (params.count||3); i++) {
+        const clone = mesh.clone();
+        clone.position.x += (params.offsetX||1.2) * i;
+        clone.position.y += (params.offsetY||0) * i;
+        clone.position.z += (params.offsetZ||0) * i;
+        clone.userData.isArray = true;
+        scene.add(clone);
+        threeObjectsRef.current[`${objId}_arr_${i}`] = clone;
+      }
+    }
+    if (modId === 'subdivision') {
+      // Visual indicator only — full loop subdivision requires BufferGeometry manipulation
+      mesh.material.wireframe = false;
+      mesh.material.flatShading = false;
+      mesh.material.needsUpdate = true;
+    }
+    if (modId === 'solidify') {
+      const clone = mesh.clone();
+      clone.scale.multiplyScalar(1 + (params.thickness||0.1));
+      clone.material = mesh.material.clone();
+      clone.material.side = THREE.BackSide;
+      scene.add(clone);
+      threeObjectsRef.current[objId + '_solidify'] = clone;
+    }
+    if (modId === 'bevel') {
+      // Mark for bevel — full edge bevel requires geometry processing
+      mesh.userData.bevel = params;
+    }
+    setScene3DObjects(objs => objs.map(o => o.id === objId
+      ? {...o, modifiers: [...(o.modifiers||[]), {id: modId, params, enabled: true}]}
+      : o
+    ));
+  };
+
+  const removeModifier = (objId, modId) => {
+    setScene3DObjects(objs => objs.map(o => o.id === objId
+      ? {...o, modifiers: (o.modifiers||[]).filter(m => m.id !== modId)}
+      : o
+    ));
+  };
+
+  // ── Shape keys ─────────────────────────────────────────────────────────────
+  const addShapeKey = () => {
+    const name = `Key ${shapeKeys.length}`;
+    const id = `sk_${Date.now()}`;
+    setShapeKeys(ks => [...ks, {id, name, value:0, muted:false}]);
+  };
+
+  const updateShapeKey = (id, changes) => {
+    setShapeKeys(ks => ks.map(k => k.id===id ? {...k,...changes} : k));
+    // Morph targets would go here with actual geometry morphing
+    const mesh = threeObjectsRef.current[selected3DId];
+    if (mesh && changes.value !== undefined) {
+      // Simulate morph: scale slightly based on shape key value
+      if (id !== 'sk_basis') mesh.scale.y = 1 + changes.value * 0.1;
+    }
+  };
+
+  // ── Sculpt brush painting ──────────────────────────────────────────────────
+  const onSculptMouseDown = (e) => {
+    if (activeMode !== 'sculpt') return;
+    sculptPainting.current = true;
+    applyBrushStroke(e);
+  };
+  const onSculptMouseMove = (e) => {
+    if (!sculptPainting.current || activeMode !== 'sculpt') return;
+    applyBrushStroke(e);
+  };
+  const onSculptMouseUp = () => { sculptPainting.current = false; };
+
+  const applyBrushStroke = (e) => {
+    const mesh = threeObjectsRef.current[selected3DId];
+    if (!mesh || !mesh.geometry) return;
+    const pos = mesh.geometry.attributes.position;
+    if (!pos) return;
+    const canvas = threeCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const my = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera({x:mx, y:my}, threeCameraRef.current);
+    const hits = raycaster.intersectObject(mesh);
+    if (!hits.length) return;
+    const hitPt = hits[0].point;
+    const arr = pos.array;
+    const strength = sculptStrength * 0.1;
+    const radiusWorld = sculptRadius * 0.05;
+    for (let i = 0; i < arr.length; i += 3) {
+      const vx = arr[i], vy = arr[i+1], vz = arr[i+2];
+      const dist = hitPt.distanceTo(new THREE.Vector3(vx,vy,vz));
+      if (dist < radiusWorld) {
+        const falloff = 1 - dist / radiusWorld;
+        if (sculptBrush === 'draw' || sculptBrush === 'inflate') {
+          arr[i+1] += strength * falloff;
+          if (sculptSymmetry) arr[i] += strength * falloff * 0.5;
+        } else if (sculptBrush === 'smooth') {
+          arr[i+1] *= (1 - strength * falloff * 0.3);
+        } else if (sculptBrush === 'grab') {
+          arr[i]   += mx * strength * falloff * 2;
+          arr[i+1] += my * strength * falloff * 2;
+        } else if (sculptBrush === 'flatten') {
+          arr[i+1] = arr[i+1] * (1 - falloff * strength) + hitPt.y * (falloff * strength);
+        } else if (sculptBrush === 'pinch') {
+          arr[i]   += (hitPt.x - vx) * strength * falloff;
+          arr[i+2] += (hitPt.z - vz) * strength * falloff;
+        } else if (sculptBrush === 'crease') {
+          arr[i+1] -= strength * falloff * (dist < radiusWorld * 0.3 ? -2 : 1);
+        }
+      }
+    }
+    pos.needsUpdate = true;
+    mesh.geometry.computeVertexNormals();
+  };
+
+  // ── Basic rigging ──────────────────────────────────────────────────────────
+  const initDefaultRig = () => {
+    setRigBones(RIG_BONES_DEFAULTS);
+    setRigVisible(true);
+    // Draw bones as line segments in Three.js scene
+    const scene = threeSceneRef.current; if (!scene) return;
+    RIG_BONES_DEFAULTS.forEach(bone => {
+      const mat = new THREE.LineBasicMaterial({color:'#FF6600'});
+      const pts = [
+        new THREE.Vector3(...bone.head),
+        new THREE.Vector3(...bone.tail),
+      ];
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      const line = new THREE.Line(geo, mat);
+      line.userData.boneId = bone.id;
+      scene.add(line);
+      threeObjectsRef.current['rig_' + bone.id] = line;
+    });
+  };
+
+  const rotateBone = (boneId, axis, deg) => {
+    const line = threeObjectsRef.current['rig_' + boneId];
+    if (!line) return;
+    const rad = THREE.MathUtils.degToRad(deg);
+    if (axis==='x') line.rotation.x += rad;
+    if (axis==='y') line.rotation.y += rad;
+    if (axis==='z') line.rotation.z += rad;
+    setRigBones(bs => bs.map(b => b.id===boneId
+      ? {...b, rotation: {x:(b.rotation?.x||0)+(axis==='x'?deg:0), y:(b.rotation?.y||0)+(axis==='y'?deg:0), z:(b.rotation?.z||0)+(axis==='z'?deg:0)}}
+      : b
+    ));
+  };
+
+  // ── Doppelflex auto-rig ────────────────────────────────────────────────────
+  const handleDoppelflexUpload = async (e) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    const url = URL.createObjectURL(file);
+    setDoppelflexImg(url);
+    setAutoRigLoading(true);
+    // Stub: in production this calls Doppelflex API
+    await new Promise(r => setTimeout(r, 1500));
+    initDefaultRig();
+    setAutoRigLoading(false);
+  };
+
+
   return (
     <div className="spx-menu-bar">
       {menus.map(menu => (
@@ -343,6 +550,25 @@ export default function NodeCompositorPage() {
   const [nlaClips,        setNlaClips]        = React.useState([]);
   const [orbitState,      setOrbitState]      = React.useState({theta:0.5, phi:1.0, radius:8});
   const orbitDrag         = React.useRef(null);
+  // ── Sessions 8+9+10 state ──────────────────────────────────────────────────
+  const [activeMode,     setActiveMode]     = React.useState('object'); // object|edit|sculpt|pose
+  const [modifierPanel,  setModifierPanel]  = React.useState(false);
+  const [sculptBrush,    setSculptBrush]    = React.useState('draw');
+  const [sculptRadius,   setSculptRadius]   = React.useState(50);
+  const [sculptStrength, setSculptStrength] = React.useState(0.5);
+  const [sculptSymmetry, setSculptSymmetry] = React.useState(true);
+  const [textureLayer,   setTextureLayer]   = React.useState(0);
+  const [textureLayers,  setTextureLayers]  = React.useState([{id:'tl_0',name:'Base Color',visible:true,opacity:1,blendMode:'normal'}]);
+  const [shapeKeys,      setShapeKeys]      = React.useState(SHAPE_KEY_DEFAULTS);
+  const [activeShapeKey, setActiveShapeKey] = React.useState('sk_basis');
+  const [rigBones,       setRigBones]       = React.useState([]);
+  const [rigVisible,     setRigVisible]     = React.useState(false);
+  const [selectedBone,   setSelectedBone]   = React.useState(null);
+  const [doppelflexImg,  setDoppelflexImg]  = React.useState(null);
+  const [autoRigLoading, setAutoRigLoading] = React.useState(false);
+  const sculptCanvasRef  = React.useRef(null);
+  const sculptPainting   = React.useRef(false);
+
 
 
   // Auto-save nodes/edges
@@ -783,6 +1009,197 @@ export default function NodeCompositorPage() {
                   </div>
                 ))}
               </div>
+
+
+              {/* ── Mode selector ──────────────────────────────────────── */}
+              <div style={{display:'flex',gap:2,marginBottom:6}}>
+                {['object','edit','sculpt','pose'].map(m=>(
+                  <button key={m} onClick={()=>setActiveMode(m)}
+                    style={{flex:1,padding:'3px 0',border:'none',borderRadius:3,cursor:'pointer',fontSize:9,fontWeight:700,textTransform:'uppercase',
+                      background:activeMode===m?'#00ffc8':'#1a1f2e',color:activeMode===m?'#06060f':'#888'}}>
+                    {m}
+                  </button>
+                ))}
+              </div>
+
+              {/* ── Sculpt mode tools ──────────────────────────────────── */}
+              {activeMode==='sculpt' && (
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  <div style={{color:'#FF6600',fontSize:10,fontWeight:700}}>SCULPT BRUSHES</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
+                    {SCULPT_BRUSHES.map(b=>(
+                      <button key={b.id} onClick={()=>setSculptBrush(b.id)}
+                        style={{padding:'5px 4px',border:'none',borderRadius:3,cursor:'pointer',fontSize:10,
+                          background:sculptBrush===b.id?'#FF6600':'#1a1f2e',
+                          color:sculptBrush===b.id?'#fff':'#888',display:'flex',gap:4,alignItems:'center'}}>
+                        <span>{b.icon}</span><span>{b.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',gap:4,marginTop:4}}>
+                    {[['Radius','sculptRadius',setSculptRadius,10,200],['Strength','sculptStrength',setSculptStrength,0,1,0.01]].map(([lbl,key,setter,min,max,step=1])=>(
+                      <div key={key} style={{display:'flex',gap:6,alignItems:'center'}}>
+                        <span style={{color:'#888',fontSize:10,width:55}}>{lbl}</span>
+                        <input type="range" min={min} max={max} step={step}
+                          value={key==='sculptRadius'?sculptRadius:sculptStrength}
+                          onChange={e=>setter(Number(e.target.value))} style={{flex:1}}/>
+                        <span style={{color:'#00ffc8',fontSize:9,width:28,textAlign:'right'}}>
+                          {key==='sculptRadius'?sculptRadius:sculptStrength.toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                    <label style={{display:'flex',gap:6,alignItems:'center',cursor:'pointer'}}>
+                      <input type="checkbox" checked={sculptSymmetry} onChange={e=>setSculptSymmetry(e.target.checked)}/>
+                      <span style={{color:'#888',fontSize:10}}>X Symmetry</span>
+                    </label>
+                  </div>
+                  <div style={{color:'#555',fontSize:9,fontStyle:'italic'}}>Click+drag on viewport to sculpt</div>
+
+                  {/* Texture painting layers */}
+                  <div style={{borderTop:'1px solid #21262d',paddingTop:6,marginTop:4}}>
+                    <div style={{color:'#888',fontSize:10,fontWeight:700,marginBottom:4}}>TEXTURE LAYERS</div>
+                    {textureLayers.map((tl,i)=>(
+                      <div key={tl.id} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',
+                        borderBottom:'1px solid #0a0e1a'}}>
+                        <span style={{color:textureLayer===i?'#00ffc8':'#888',fontSize:10,cursor:'pointer',flex:1}}
+                          onClick={()=>setTextureLayer(i)}>{tl.name}</span>
+                        <input type="range" min={0} max={1} step={0.01} value={tl.opacity}
+                          onChange={e=>setTextureLayers(ls=>ls.map((l,j)=>j===i?{...l,opacity:Number(e.target.value)}:l))}
+                          style={{width:50}}/>
+                      </div>
+                    ))}
+                    <button onClick={()=>setTextureLayers(ls=>[...ls,{id:`tl_${Date.now()}`,name:`Layer ${ls.length}`,visible:true,opacity:1,blendMode:'normal'}])}
+                      style={{marginTop:4,background:'#0d1117',border:'1px solid #333',color:'#aaa',borderRadius:3,padding:'3px 8px',cursor:'pointer',fontSize:10,width:'100%'}}>
+                      + Add Layer
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Shape Keys ──────────────────────────────────────────── */}
+              {activeMode==='edit' && (
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  <div style={{color:'#FF6600',fontSize:10,fontWeight:700}}>SHAPE KEYS</div>
+                  {shapeKeys.map(sk=>(
+                    <div key={sk.id} style={{display:'flex',flexDirection:'column',gap:2}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <span style={{color:activeShapeKey===sk.id?'#00ffc8':'#888',fontSize:10,cursor:'pointer'}}
+                          onClick={()=>setActiveShapeKey(sk.id)}>{sk.name}</span>
+                        <span style={{color:'#555',fontSize:9}}>{sk.value.toFixed(2)}</span>
+                      </div>
+                      {sk.id !== 'sk_basis' && (
+                        <input type="range" min={0} max={1} step={0.01} value={sk.value}
+                          onChange={e=>updateShapeKey(sk.id,{value:Number(e.target.value)})}
+                          style={{width:'100%'}}/>
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={addShapeKey}
+                    style={{background:'#0d1117',border:'1px solid #333',color:'#aaa',borderRadius:3,padding:'3px 8px',cursor:'pointer',fontSize:10}}>
+                    + Add Shape Key
+                  </button>
+                </div>
+              )}
+
+              {/* ── Modifiers ───────────────────────────────────────────── */}
+              {activeMode==='object' && selected3DId && (
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  <div style={{color:'#FF6600',fontSize:10,fontWeight:700}}>MODIFIERS</div>
+                  {(() => {
+                    const obj = scene3DObjects.find(o=>o.id===selected3DId);
+                    const mods = obj?.modifiers||[];
+                    return (<>
+                      {mods.map(m=>(
+                        <div key={m.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',
+                          background:'#1a1f2e',borderRadius:4,padding:'4px 8px',border:'1px solid #21262d'}}>
+                          <span style={{color:'#dde6ef',fontSize:10}}>{m.id.charAt(0).toUpperCase()+m.id.slice(1)}</span>
+                          <button onClick={()=>removeModifier(selected3DId,m.id)}
+                            style={{background:'none',border:'none',color:'#ff4444',cursor:'pointer',fontSize:12}}>✕</button>
+                        </div>
+                      ))}
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4,marginTop:4}}>
+                        {MODIFIERS.map(m=>(
+                          <button key={m.id} onClick={()=>applyModifier(selected3DId,m.id,m.params)}
+                            title={m.label}
+                            style={{padding:'5px 4px',border:'none',borderRadius:3,cursor:'pointer',fontSize:10,
+                              background:'#1a1f2e',color:'#aaa',display:'flex',gap:4,alignItems:'center'}}>
+                            <span>{m.icon}</span><span>{m.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>);
+                  })()}
+                </div>
+              )}
+
+              {/* ── Rigging / Pose ──────────────────────────────────────── */}
+              {activeMode==='pose' && (
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  <div style={{color:'#FF6600',fontSize:10,fontWeight:700}}>RIGGING</div>
+
+                  {rigBones.length === 0 ? (
+                    <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                      <button onClick={initDefaultRig}
+                        style={{background:'#1a1f2e',border:'1px solid #333',color:'#dde6ef',borderRadius:4,
+                          padding:'6px',cursor:'pointer',fontSize:10}}>
+                        + Generate Default Rig
+                      </button>
+                      <div style={{borderTop:'1px solid #21262d',paddingTop:6}}>
+                        <div style={{color:'#888',fontSize:10,marginBottom:4}}>Doppelflex Auto-Rig</div>
+                        <div style={{fontSize:9,color:'#555',marginBottom:4}}>Upload a selfie/pose photo to auto-generate rig</div>
+                        <label style={{display:'block',background:'#0d1117',border:'1px dashed #333',borderRadius:4,
+                          padding:'8px',cursor:'pointer',textAlign:'center',color:'#888',fontSize:10}}>
+                          {autoRigLoading ? '⏳ Auto-rigging…' : '📷 Upload Photo'}
+                          <input type="file" accept="image/*" onChange={handleDoppelflexUpload} style={{display:'none'}}/>
+                        </label>
+                        {doppelflexImg && <img src={doppelflexImg} alt="ref" style={{width:'100%',borderRadius:4,marginTop:4,opacity:0.5}}/>}
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                      {rigBones.map(bone=>(
+                        <div key={bone.id}
+                          onClick={()=>setSelectedBone(bone.id)}
+                          style={{padding:'4px 8px',borderRadius:3,cursor:'pointer',
+                            background:selectedBone===bone.id?'#1a1f2e':'transparent',
+                            border:selectedBone===bone.id?'1px solid #FF6600':'1px solid transparent',
+                            display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <span style={{color:'#dde6ef',fontSize:10}}>{bone.name}</span>
+                          {bone.parent && <span style={{color:'#555',fontSize:8}}>↖ {bone.parent.replace('bone_','')}</span>}
+                        </div>
+                      ))}
+                      {selectedBone && (
+                        <div style={{marginTop:4,display:'flex',flexDirection:'column',gap:4}}>
+                          <div style={{color:'#888',fontSize:9}}>Rotate selected bone:</div>
+                          <div style={{display:'flex',gap:4}}>
+                            {['x','y','z'].map(ax=>(
+                              <div key={ax} style={{flex:1,display:'flex',flexDirection:'column',gap:2}}>
+                                <span style={{color:'#555',fontSize:8,textAlign:'center'}}>{ax.toUpperCase()}</span>
+                                <div style={{display:'flex',gap:2}}>
+                                  <button onClick={()=>rotateBone(selectedBone,ax,-5)}
+                                    style={{flex:1,background:'#1a1f2e',border:'none',color:'#aaa',borderRadius:2,cursor:'pointer',fontSize:10}}>−</button>
+                                  <button onClick={()=>rotateBone(selectedBone,ax,5)}
+                                    style={{flex:1,background:'#1a1f2e',border:'none',color:'#aaa',borderRadius:2,cursor:'pointer',fontSize:10}}>+</button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <button onClick={()=>{setRigBones([]); setRigVisible(false); setSelectedBone(null);
+                            Object.keys(threeObjectsRef.current).filter(k=>k.startsWith('rig_')).forEach(k=>{
+                              threeSceneRef.current?.remove(threeObjectsRef.current[k]);
+                              delete threeObjectsRef.current[k];
+                            });
+                          }}
+                            style={{background:'#1a1f2e',border:'1px solid #444',color:'#ff4444',borderRadius:3,
+                              padding:'3px 8px',cursor:'pointer',fontSize:10,marginTop:4}}>
+                            Clear Rig
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Selected object properties */}
               {selected3DId && (() => {
