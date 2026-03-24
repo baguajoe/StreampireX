@@ -64,6 +64,43 @@ function makeLayer(type, extras={}) {
 
 function SPXMenuDropdown({ label, items }) {
   const [open, setOpen] = React.useState(false);
+  const canvasToBase64 = () => { const c = canvasRef.current; return c ? c.toDataURL('image/png').split(',')[1] : ''; };
+  const maskToBase64   = () => { const m = maskCanvasRef.current; return m ? m.toDataURL('image/png').split(',')[1] : ''; };
+  const clearMask = () => { const m = maskCanvasRef.current; if (m) m.getContext('2d').clearRect(0,0,m.width,m.height); };
+  const drawMask = (e) => {
+    const m = maskCanvasRef.current; if (!m) return;
+    const r = m.getBoundingClientRect();
+    const x = (e.clientX - r.left) * (m.width / r.width);
+    const y = (e.clientY - r.top)  * (m.height / r.height);
+    const ctx = m.getContext('2d');
+    ctx.fillStyle = 'white'; ctx.beginPath();
+    ctx.arc(x, y, maskBrushSize / 2, 0, Math.PI * 2); ctx.fill();
+  };
+  const onMaskMD = (e) => { maskPainting.current = true;  drawMask(e); };
+  const onMaskMM = (e) => { if (maskPainting.current) drawMask(e); };
+  const onMaskMU = ()  => { maskPainting.current = false; };
+  const runAiFill = async () => {
+    setAiFillLoading(true); setAiFillResult(null);
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+      const res = await fetch('/api/ai-fill/inpaint', {
+        method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`},
+        body: JSON.stringify({ image: canvasToBase64(), mask: maskToBase64(), prompt: aiFillPrompt }),
+      });
+      const data = await res.json();
+      if (data.url) setAiFillResult(data.url);
+      else alert('AI Fill: ' + (data.error||'unknown'));
+    } catch(err) { alert('AI Fill: ' + err.message); }
+    setAiFillLoading(false);
+  };
+  const acceptAiFill = () => {
+    if (!aiFillResult) return;
+    const nl = { id:`${Date.now()}_aifill`, type:'image', name:'AI Fill', visible:true, locked:false,
+      opacity:1, blendMode:'normal', x:0, y:0, width:project.width, height:project.height, src:aiFillResult, effects:[] };
+    setProject(p => ({...p, layers:[...p.layers, nl]}));
+    setAiFillOpen(false); setAiFillResult(null); clearMask();
+  };
+
   return (
     <div className="spx-menu-item" onMouseLeave={() => setOpen(false)}>
       <button className="spx-menu-btn" onMouseEnter={() => setOpen(true)} onClick={() => setOpen(o => !o)}>
@@ -98,6 +135,13 @@ export default function SPXCanvasPage() {
   const [pan,          setPan]          = useState({ x:0, y:0 });
   const [history,      setHistory]      = useState([]);
   const [future,       setFuture]       = useState([]);
+  const [aiFillOpen,    setAiFillOpen]    = useState(false);
+  const [aiFillPrompt,  setAiFillPrompt]  = useState('');
+  const [aiFillLoading, setAiFillLoading] = useState(false);
+  const [aiFillResult,  setAiFillResult]  = useState(null);
+  const maskCanvasRef = useRef(null);
+  const maskPainting  = useRef(false);
+  const [maskBrushSize, setMaskBrushSize] = useState(40);
   const [status,       setStatus]       = useState('Ready');
   const [activeTab,    setActiveTab]    = useState('layers');
   const [brushColor,   setBrushColor]   = useState('#00ffc8');
@@ -688,5 +732,41 @@ export default function SPXCanvasPage() {
         </div>
       </div>
     </div>
+      <button title="AI Fill" onClick={()=>setAiFillOpen(true)} style={{position:'fixed',bottom:24,right:24,zIndex:1000,width:48,height:48,borderRadius:'50%',background:'#FF6600',border:'none',color:'#fff',fontSize:20,cursor:'pointer',boxShadow:'0 4px 16px rgba(255,102,0,0.5)'}}>✦</button>
+      {aiFillOpen&&(
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.85)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:8,padding:20,width:540,maxHeight:'90vh',overflowY:'auto',display:'flex',flexDirection:'column',gap:12}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span style={{color:'#00ffc8',fontFamily:'JetBrains Mono',fontSize:13,fontWeight:700}}>✦ Content-Aware AI Fill</span>
+              <button onClick={()=>setAiFillOpen(false)} style={{background:'none',border:'none',color:'#888',cursor:'pointer',fontSize:18}}>✕</button>
+            </div>
+            <div style={{fontSize:11,color:'#666'}}>Paint mask over area to fill. White=replace, black=keep.</div>
+            <div style={{position:'relative',width:'100%',background:'#111',borderRadius:4,overflow:'hidden',border:'1px solid #333',aspectRatio:`${project.width}/${project.height}`}}>
+              <canvas ref={canvasRef} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',pointerEvents:'none'}}/>
+              <canvas ref={maskCanvasRef} width={project.width} height={project.height}
+                style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',cursor:'crosshair',opacity:0.55}}
+                onMouseDown={onMaskMD} onMouseMove={onMaskMM} onMouseUp={onMaskMU} onMouseLeave={onMaskMU}/>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <span style={{color:'#888',fontSize:11,width:70}}>Brush</span>
+              <input type="range" min={5} max={200} value={maskBrushSize} onChange={e=>setMaskBrushSize(Number(e.target.value))} style={{flex:1}}/>
+              <span style={{color:'#00ffc8',fontSize:11,width:28}}>{maskBrushSize}</span>
+              <button onClick={clearMask} style={{background:'#1a1f2e',border:'1px solid #333',color:'#aaa',borderRadius:4,padding:'2px 8px',cursor:'pointer',fontSize:11}}>Clear</button>
+            </div>
+            <input value={aiFillPrompt} onChange={e=>setAiFillPrompt(e.target.value)}
+              placeholder="Prompt: seamless grass, brick wall, blue sky…"
+              style={{background:'#06060f',border:'1px solid #333',borderRadius:4,padding:'7px 10px',color:'#dde6ef',fontSize:12,fontFamily:'JetBrains Mono',outline:'none'}}/>
+            {aiFillResult&&<img src={aiFillResult} alt="AI Result" style={{width:'100%',borderRadius:4,border:'1px solid #333'}}/>}
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              {aiFillResult&&<button onClick={acceptAiFill} style={{background:'#00ffc8',color:'#06060f',border:'none',borderRadius:4,padding:'7px 18px',cursor:'pointer',fontWeight:700,fontSize:12}}>✓ Accept as Layer</button>}
+              <button onClick={runAiFill} disabled={aiFillLoading}
+                style={{background:aiFillLoading?'#333':'#FF6600',color:'#fff',border:'none',borderRadius:4,padding:'7px 18px',cursor:aiFillLoading?'not-allowed':'pointer',fontWeight:700,fontSize:12}}>
+                {aiFillLoading?'⏳ Generating…':'✦ Generate Fill'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
   );
 }
