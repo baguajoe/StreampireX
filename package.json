@@ -143,6 +143,7 @@
     "@stripe/stripe-js": "^6.1.0",
     "axios": "^1.8.3",
     "bootstrap": "^5.3.8",
+    "cannon-es": "^0.20.0",
     "chart.js": "^4.4.8",
     "hls.js": "^1.5.20",
     "i18next": "^24.2.3",
@@ -165,6 +166,7 @@
     "recharts": "^2.15.4",
     "socket.io-client": "^4.8.1",
     "styled-components": "^6.1.15",
+    "three": "^0.183.2",
     "zustand": "^5.0.12"
   }
 }

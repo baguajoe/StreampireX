@@ -1,4 +1,30 @@
 import React, { useEffect, useMemo } from "react";
+import * as THREE from 'three';
+
+// ─── Blender Lite — Session 6+7 constants ────────────────────────────────────
+const PRIMITIVES = [
+  {id:'box',      label:'Box',       icon:'⬜'},
+  {id:'sphere',   label:'Sphere',    icon:'⬤'},
+  {id:'cylinder', label:'Cylinder',  icon:'⬡'},
+  {id:'cone',     label:'Cone',      icon:'▲'},
+  {id:'torus',    label:'Torus',     icon:'◎'},
+  {id:'plane',    label:'Plane',     icon:'▬'},
+  {id:'icosphere',label:'Icosphere', icon:'⬡'},
+];
+const LIGHT_TYPES = [
+  {id:'point',       label:'Point'},
+  {id:'directional', label:'Directional'},
+  {id:'spot',        label:'Spot'},
+  {id:'ambient',     label:'Ambient'},
+  {id:'hemisphere',  label:'Hemisphere'},
+];
+const PBR_DEFAULTS = {
+  color:'#888888', roughness:0.5, metalness:0.0,
+  emissive:'#000000', emissiveIntensity:0,
+  wireframe:false, transparent:false, opacity:1,
+};
+const CAMERA_MODES = ['perspective','orthographic'];
+const ANIM_INTERPS  = ['linear','ease','step'];
 import { requestRender } from "../utils/render/renderClient";
 import { saveToCloud, listCloudProjects, loadFromCloud, deleteCloudProject } from "../utils/cloudSave";
 import { useEditorStore } from "../store/useEditorStore";
@@ -7,6 +33,216 @@ const COMP_KEY = "spx_compositor_project";
 
 // ── Shared Menu Bar Component ──
 function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
+  // ── Three.js scene bootstrap ──────────────────────────────────────────────
+  const init3DScene = React.useCallback(() => {
+    const canvas = threeCanvasRef.current;
+    if (!canvas || threeRendererRef.current) return;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    threeRendererRef.current = renderer;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#0d1117');
+    threeSceneRef.current = scene;
+
+    const camera = new THREE.PerspectiveCamera(60, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+    camera.position.set(5, 5, 8);
+    camera.lookAt(0, 0, 0);
+    threeCameraRef.current = camera;
+
+    // Grid helper
+    const grid = new THREE.GridHelper(20, 20, '#21262d', '#21262d');
+    scene.add(grid);
+
+    // Axes helper
+    const axes = new THREE.AxesHelper(3);
+    scene.add(axes);
+
+    // Default lights
+    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambient);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(5, 10, 5);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+
+    const animate = () => {
+      threeRafRef.current = requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    };
+    animate();
+  }, []);
+
+  const destroy3DScene = React.useCallback(() => {
+    if (threeRafRef.current) cancelAnimationFrame(threeRafRef.current);
+    if (threeRendererRef.current) { threeRendererRef.current.dispose(); threeRendererRef.current = null; }
+    threeSceneRef.current = null; threeCameraRef.current = null;
+  }, []);
+
+  React.useEffect(() => {
+    if (show3D) { setTimeout(init3DScene, 50); }
+    else { destroy3DScene(); }
+    return () => destroy3DScene();
+  }, [show3D]);
+
+  const add3DPrimitive = (type) => {
+    const scene = threeSceneRef.current; if (!scene) return;
+    let geo;
+    if      (type==='box')       geo = new THREE.BoxGeometry(1,1,1);
+    else if (type==='sphere')    geo = new THREE.SphereGeometry(0.7,32,32);
+    else if (type==='cylinder')  geo = new THREE.CylinderGeometry(0.5,0.5,1.5,32);
+    else if (type==='cone')      geo = new THREE.ConeGeometry(0.6,1.5,32);
+    else if (type==='torus')     geo = new THREE.TorusGeometry(0.6,0.25,16,64);
+    else if (type==='plane')     geo = new THREE.PlaneGeometry(2,2);
+    else if (type==='icosphere') geo = new THREE.IcosahedronGeometry(0.7,2);
+    else geo = new THREE.BoxGeometry(1,1,1);
+
+    const mat = new THREE.MeshStandardMaterial({color:'#888888', roughness:0.5, metalness:0});
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    mesh.position.set(0, 0.5, 0);
+    scene.add(mesh);
+
+    const id = `obj_${Date.now()}`;
+    mesh.userData.id = id;
+    threeObjectsRef.current[id] = mesh;
+
+    const obj = {
+      id, type, name: type.charAt(0).toUpperCase()+type.slice(1),
+      position:{x:0,y:0.5,z:0}, rotation:{x:0,y:0,z:0}, scale:{x:1,y:1,z:1},
+      material:{...PBR_DEFAULTS}, keyframes:[], visible:true,
+    };
+    setScene3DObjects(o => [...o, obj]);
+    setSelected3DId(id);
+  };
+
+  const update3DObject = (id, changes) => {
+    setScene3DObjects(objs => objs.map(o => o.id===id ? {...o,...changes} : o));
+    const mesh = threeObjectsRef.current[id];
+    if (!mesh) return;
+    if (changes.position) mesh.position.set(changes.position.x, changes.position.y, changes.position.z);
+    if (changes.rotation) mesh.rotation.set(
+      THREE.MathUtils.degToRad(changes.rotation.x),
+      THREE.MathUtils.degToRad(changes.rotation.y),
+      THREE.MathUtils.degToRad(changes.rotation.z)
+    );
+    if (changes.scale) mesh.scale.set(changes.scale.x, changes.scale.y, changes.scale.z);
+    if (changes.material) {
+      const m = mesh.material;
+      if (changes.material.color)     m.color.set(changes.material.color);
+      if (changes.material.roughness !== undefined) m.roughness = changes.material.roughness;
+      if (changes.material.metalness !== undefined) m.metalness = changes.material.metalness;
+      if (changes.material.emissive)  m.emissive.set(changes.material.emissive);
+      if (changes.material.wireframe !== undefined) m.wireframe = changes.material.wireframe;
+      if (changes.material.transparent !== undefined) { m.transparent = changes.material.transparent; m.opacity = changes.material.opacity??1; }
+      m.needsUpdate = true;
+    }
+    if (changes.visible !== undefined) mesh.visible = changes.visible;
+  };
+
+  const delete3DObject = (id) => {
+    const scene = threeSceneRef.current;
+    const mesh = threeObjectsRef.current[id];
+    if (mesh && scene) scene.remove(mesh);
+    delete threeObjectsRef.current[id];
+    setScene3DObjects(o => o.filter(ob => ob.id!==id));
+    if (selected3DId===id) setSelected3DId(null);
+  };
+
+  const add3DLight = (type) => {
+    const scene = threeSceneRef.current; if (!scene) return;
+    let light;
+    const id = `light_${Date.now()}`;
+    if      (type==='point')       light = new THREE.PointLight(0xffffff, 1, 20);
+    else if (type==='directional') light = new THREE.DirectionalLight(0xffffff, 1);
+    else if (type==='spot')        { light = new THREE.SpotLight(0xffffff, 1); light.angle = Math.PI/6; }
+    else if (type==='ambient')     light = new THREE.AmbientLight(0xffffff, 0.5);
+    else if (type==='hemisphere')  light = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+    if (!light) return;
+    light.position.set(3, 5, 3);
+    light.castShadow = type !== 'ambient' && type !== 'hemisphere';
+    scene.add(light);
+    threeObjectsRef.current[id] = light;
+    setSceneLights(ls => [...ls, {id, type, color:'#ffffff', intensity:1, x:3, y:5, z:3}]);
+  };
+
+  // ── Orbit controls (manual) ────────────────────────────────────────────────
+  const onOrbitMouseDown = (e) => { orbitDrag.current = {x:e.clientX, y:e.clientY, ...orbitState}; };
+  const onOrbitMouseMove = (e) => {
+    if (!orbitDrag.current) return;
+    const dx = (e.clientX - orbitDrag.current.x) * 0.01;
+    const dy = (e.clientY - orbitDrag.current.y) * 0.01;
+    const theta = orbitDrag.current.theta + dx;
+    const phi   = Math.max(0.1, Math.min(Math.PI-0.1, orbitDrag.current.phi + dy));
+    const {radius} = orbitDrag.current;
+    const cam = threeCameraRef.current;
+    if (cam) {
+      cam.position.set(
+        radius * Math.sin(phi) * Math.sin(theta),
+        radius * Math.cos(phi),
+        radius * Math.sin(phi) * Math.cos(theta),
+      );
+      cam.lookAt(0,0,0);
+    }
+    setOrbitState({theta, phi, radius});
+  };
+  const onOrbitMouseUp = () => { orbitDrag.current = null; };
+  const onOrbitWheel   = (e) => {
+    const cam = threeCameraRef.current; if (!cam) return;
+    const r = Math.max(1, orbitState.radius + e.deltaY * 0.01);
+    const {theta,phi} = orbitState;
+    cam.position.set(r*Math.sin(phi)*Math.sin(theta), r*Math.cos(phi), r*Math.sin(phi)*Math.cos(theta));
+    cam.lookAt(0,0,0);
+    setOrbitState(s=>({...s,radius:r}));
+  };
+
+  // ── Keyframe animation (Session 7) ────────────────────────────────────────
+  const addKeyframe = (objId, prop, value) => {
+    setScene3DObjects(objs => objs.map(o => {
+      if (o.id !== objId) return o;
+      const kfs = o.keyframes.filter(k => !(k.time===kfTime && k.prop===prop));
+      return {...o, keyframes: [...kfs, {time:kfTime, prop, value, interp:'linear'}]};
+    }));
+  };
+
+  React.useEffect(() => {
+    if (!kfPlaying) return;
+    const start = performance.now();
+    const tick = () => {
+      const t = ((performance.now()-start)/1000) % kfDuration;
+      setKfTime(t);
+      scene3DObjects.forEach(obj => {
+        const mesh = threeObjectsRef.current[obj.id]; if (!mesh) return;
+        ['position','rotation','scale'].forEach(prop => {
+          const kfs = obj.keyframes.filter(k=>k.prop===prop).sort((a,b)=>a.time-b.time);
+          if (kfs.length < 2) return;
+          let k0 = kfs[0], k1 = kfs[kfs.length-1];
+          for (let i=0; i<kfs.length-1; i++) {
+            if (kfs[i].time <= t && kfs[i+1].time >= t) { k0=kfs[i]; k1=kfs[i+1]; break; }
+          }
+          const alpha = k1.time===k0.time ? 0 : (t-k0.time)/(k1.time-k0.time);
+          const lerp = (a,b) => a+(b-a)*alpha;
+          if (prop==='position') mesh.position.set(lerp(k0.value.x,k1.value.x),lerp(k0.value.y,k1.value.y),lerp(k0.value.z,k1.value.z));
+          if (prop==='rotation') mesh.rotation.set(
+            THREE.MathUtils.degToRad(lerp(k0.value.x,k1.value.x)),
+            THREE.MathUtils.degToRad(lerp(k0.value.y,k1.value.y)),
+            THREE.MathUtils.degToRad(lerp(k0.value.z,k1.value.z))
+          );
+          if (prop==='scale') mesh.scale.set(lerp(k0.value.x,k1.value.x),lerp(k0.value.y,k1.value.y),lerp(k0.value.z,k1.value.z));
+        });
+      });
+      threeRafRef.kfAnim = requestAnimationFrame(tick);
+    };
+    threeRafRef.kfAnim = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(threeRafRef.kfAnim);
+  }, [kfPlaying, scene3DObjects, kfDuration]);
+
+
   return (
     <div className="spx-menu-bar">
       {menus.map(menu => (
@@ -81,6 +317,33 @@ export default function NodeCompositorPage() {
   }
   const duration = 10;
   const [projectName, setProjectName] = React.useState("Untitled Composite");
+  // ── Blender Lite 3D Viewport (Sessions 6+7) ───────────────────────────────
+  const threeCanvasRef   = useRef ? React.useRef(null) : React.useRef(null);
+  const threeSceneRef    = React.useRef(null);
+  const threeRendererRef = React.useRef(null);
+  const threeCameraRef   = React.useRef(null);
+  const threeRafRef      = React.useRef(null);
+  const threeObjectsRef  = React.useRef({});   // id -> THREE.Object3D
+  const threeGizmoRef    = React.useRef(null);
+
+  const [show3D,          setShow3D]          = React.useState(false);
+  const [scene3DObjects,  setScene3DObjects]  = React.useState([]);
+  const [selected3DId,    setSelected3DId]    = React.useState(null);
+  const [cameraMode,      setCameraMode]      = React.useState('perspective');
+  const [renderMode,      setRenderMode]      = React.useState('solid'); // solid|wireframe|material
+  const [sceneLights,     setSceneLights]     = React.useState([
+    {id:'amb_default', type:'ambient', color:'#ffffff', intensity:0.4},
+    {id:'dir_default', type:'directional', color:'#ffffff', intensity:0.8, x:5, y:10, z:5},
+  ]);
+  const [hdriEnabled,     setHdriEnabled]     = React.useState(false);
+  const [activeAnim3D,    setActiveAnim3D]    = React.useState(null);
+  const [kfTime,          setKfTime]          = React.useState(0);
+  const [kfPlaying,       setKfPlaying]       = React.useState(false);
+  const [kfDuration,      setKfDuration]      = React.useState(5);
+  const [nlaClips,        setNlaClips]        = React.useState([]);
+  const [orbitState,      setOrbitState]      = React.useState({theta:0.5, phi:1.0, radius:8});
+  const orbitDrag         = React.useRef(null);
+
 
   // Auto-save nodes/edges
   React.useEffect(() => {
@@ -411,5 +674,238 @@ export default function NodeCompositorPage() {
         </div>
       </div>
     </div>
+      {/* ── Blender Lite 3D Viewport toggle ──────────────────────────────── */}
+      <button onClick={()=>setShow3D(s=>!s)}
+        title="Toggle 3D Viewport"
+        style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',zIndex:1000,
+          padding:'8px 24px',borderRadius:20,border:'2px solid #00ffc8',
+          background:show3D?'#00ffc8':'#0d1117',color:show3D?'#06060f':'#00ffc8',
+          cursor:'pointer',fontWeight:700,fontSize:12,fontFamily:'JetBrains Mono',
+          boxShadow:'0 4px 20px rgba(0,255,200,0.3)'}}>
+        {show3D ? '✕ Close 3D' : '⬡ 3D Viewport'}
+      </button>
+
+      {/* ── 3D Viewport Panel ─────────────────────────────────────────────── */}
+      {show3D && (
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'#06060f',zIndex:2000,display:'flex',flexDirection:'column'}}>
+
+          {/* Top bar */}
+          <div style={{height:40,background:'#0d1117',borderBottom:'1px solid #21262d',display:'flex',alignItems:'center',gap:12,padding:'0 16px',flexShrink:0}}>
+            <span style={{color:'#00ffc8',fontFamily:'JetBrains Mono',fontSize:12,fontWeight:700}}>⬡ SPX 3D — Blender Lite</span>
+            <div style={{flex:1}}/>
+            {/* Camera mode */}
+            {CAMERA_MODES.map(m=>(
+              <button key={m} onClick={()=>{
+                setCameraMode(m);
+                const cam = threeCameraRef.current;
+                if (!cam) return;
+              }}
+                style={{padding:'3px 10px',border:'none',borderRadius:3,cursor:'pointer',fontSize:10,
+                  background:cameraMode===m?'#00ffc8':'#1a1f2e',color:cameraMode===m?'#06060f':'#888'}}>
+                {m}
+              </button>
+            ))}
+            {/* Render mode */}
+            {['solid','wireframe','material'].map(m=>(
+              <button key={m} onClick={()=>{
+                setRenderMode(m);
+                Object.values(threeObjectsRef.current).forEach(mesh=>{
+                  if (mesh.material) mesh.material.wireframe = m==='wireframe';
+                });
+              }}
+                style={{padding:'3px 10px',border:'none',borderRadius:3,cursor:'pointer',fontSize:10,
+                  background:renderMode===m?'#FF6600':'#1a1f2e',color:renderMode===m?'#fff':'#888'}}>
+                {m}
+              </button>
+            ))}
+            <button onClick={()=>setShow3D(false)}
+              style={{background:'none',border:'none',color:'#888',cursor:'pointer',fontSize:20,marginLeft:8}}>✕</button>
+          </div>
+
+          <div style={{flex:1,display:'flex',overflow:'hidden'}}>
+
+            {/* Left toolbar */}
+            <div style={{width:48,background:'#0d1117',borderRight:'1px solid #21262d',display:'flex',flexDirection:'column',alignItems:'center',padding:'8px 0',gap:4,flexShrink:0}}>
+              {PRIMITIVES.map(p=>(
+                <button key={p.id} title={p.label} onClick={()=>add3DPrimitive(p.id)}
+                  style={{width:36,height:36,border:'none',borderRadius:4,background:'#1a1f2e',color:'#aaa',cursor:'pointer',fontSize:16}}>
+                  {p.icon}
+                </button>
+              ))}
+              <div style={{width:'80%',height:1,background:'#21262d',margin:'4px 0'}}/>
+              {LIGHT_TYPES.map(l=>(
+                <button key={l.id} title={`Add ${l.label} Light`} onClick={()=>add3DLight(l.id)}
+                  style={{width:36,height:36,border:'none',borderRadius:4,background:'#1a1f2e',color:'#FF6600',cursor:'pointer',fontSize:11,fontWeight:700}}>
+                  ☀
+                </button>
+              ))}
+            </div>
+
+            {/* Viewport canvas */}
+            <div style={{flex:1,position:'relative',overflow:'hidden'}}
+              onMouseDown={onOrbitMouseDown} onMouseMove={onOrbitMouseMove}
+              onMouseUp={onOrbitMouseUp} onMouseLeave={onOrbitMouseUp}
+              onWheel={onOrbitWheel}>
+              <canvas ref={threeCanvasRef} style={{width:'100%',height:'100%',display:'block'}}
+                width={1200} height={700}/>
+              {/* Viewport overlay info */}
+              <div style={{position:'absolute',top:8,left:8,color:'#555',fontSize:10,fontFamily:'JetBrains Mono',pointerEvents:'none'}}>
+                <div>Objects: {scene3DObjects.length}</div>
+                <div>Lights: {sceneLights.length}</div>
+                <div style={{color:selected3DId?'#00ffc8':'#555'}}>
+                  {selected3DId ? `Selected: ${scene3DObjects.find(o=>o.id===selected3DId)?.name||selected3DId}` : 'Nothing selected'}
+                </div>
+              </div>
+            </div>
+
+            {/* Right panel */}
+            <div style={{width:240,background:'#0d1117',borderLeft:'1px solid #21262d',overflowY:'auto',flexShrink:0,padding:10,display:'flex',flexDirection:'column',gap:10}}>
+
+              {/* Scene outliner */}
+              <div>
+                <div style={{color:'#00ffc8',fontSize:10,fontWeight:700,marginBottom:6,textTransform:'uppercase',letterSpacing:1}}>Scene</div>
+                {scene3DObjects.map(obj=>(
+                  <div key={obj.id} onClick={()=>setSelected3DId(obj.id)}
+                    style={{padding:'4px 8px',borderRadius:3,cursor:'pointer',marginBottom:2,
+                      background:selected3DId===obj.id?'#1a1f2e':'transparent',
+                      border:selected3DId===obj.id?'1px solid #00ffc8':'1px solid transparent',
+                      display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <span style={{color:'#dde6ef',fontSize:11}}>{obj.name}</span>
+                    <button onClick={e=>{e.stopPropagation();delete3DObject(obj.id);}}
+                      style={{background:'none',border:'none',color:'#444',cursor:'pointer',fontSize:12}}>✕</button>
+                  </div>
+                ))}
+                {sceneLights.map(l=>(
+                  <div key={l.id} style={{padding:'4px 8px',borderRadius:3,marginBottom:2,
+                    background:'#0a0e1a',border:'1px solid #1a1f2e',display:'flex',alignItems:'center',gap:6}}>
+                    <span style={{color:'#FF6600',fontSize:10}}>☀</span>
+                    <span style={{color:'#888',fontSize:10}}>{l.type}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Selected object properties */}
+              {selected3DId && (() => {
+                const obj = scene3DObjects.find(o=>o.id===selected3DId);
+                if (!obj) return null;
+                return (
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    <div style={{color:'#FF6600',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1}}>Properties</div>
+
+                    {/* Transform */}
+                    {['position','rotation','scale'].map(prop=>(
+                      <div key={prop}>
+                        <div style={{color:'#888',fontSize:9,marginBottom:3,textTransform:'uppercase'}}>{prop}</div>
+                        <div style={{display:'flex',gap:4}}>
+                          {['x','y','z'].map(ax=>(
+                            <div key={ax} style={{flex:1}}>
+                              <span style={{color:'#555',fontSize:8}}>{ax.toUpperCase()}</span>
+                              <input type="number" step={prop==='scale'?0.1:0.5}
+                                value={Number((obj[prop]?.[ax]??0)).toFixed(2)}
+                                onChange={e=>{
+                                  const v = Number(e.target.value);
+                                  update3DObject(obj.id,{[prop]:{...obj[prop],[ax]:v}});
+                                  if (prop==='position') addKeyframe(obj.id,'position',{...obj.position,[ax]:v});
+                                }}
+                                style={{width:'100%',background:'#06060f',border:'1px solid #333',
+                                  color:'#dde6ef',borderRadius:3,padding:'2px 4px',fontSize:10}}/>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* PBR Material */}
+                    <div style={{color:'#888',fontSize:9,textTransform:'uppercase',marginTop:4}}>Material</div>
+                    <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                      <span style={{color:'#666',fontSize:10,width:60}}>Color</span>
+                      <input type="color" value={obj.material?.color||'#888888'}
+                        onChange={e=>update3DObject(obj.id,{material:{...obj.material,color:e.target.value}})}
+                        style={{width:36,height:24,border:'none',borderRadius:3,cursor:'pointer'}}/>
+                    </div>
+                    {[['Roughness','roughness',0,1,0.01],['Metalness','metalness',0,1,0.01],['Opacity','opacity',0,1,0.01]].map(([lbl,key,min,max,step])=>(
+                      <div key={key} style={{display:'flex',gap:6,alignItems:'center'}}>
+                        <span style={{color:'#666',fontSize:10,width:60}}>{lbl}</span>
+                        <input type="range" min={min} max={max} step={step}
+                          value={obj.material?.[key]??PBR_DEFAULTS[key]}
+                          onChange={e=>update3DObject(obj.id,{material:{...obj.material,[key]:Number(e.target.value)}})}
+                          style={{flex:1}}/>
+                        <span style={{color:'#00ffc8',fontSize:9,width:28}}>{Number(obj.material?.[key]??PBR_DEFAULTS[key]).toFixed(2)}</span>
+                      </div>
+                    ))}
+                    <label style={{display:'flex',gap:6,alignItems:'center',cursor:'pointer'}}>
+                      <input type="checkbox" checked={obj.material?.wireframe||false}
+                        onChange={e=>update3DObject(obj.id,{material:{...obj.material,wireframe:e.target.checked}})}/>
+                      <span style={{color:'#888',fontSize:10}}>Wireframe</span>
+                    </label>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* ── NLA / Keyframe Timeline (Session 7) ─────────────────────── */}
+          <div style={{height:160,background:'#0d1117',borderTop:'1px solid #21262d',flexShrink:0,display:'flex',flexDirection:'column'}}>
+            <div style={{height:28,display:'flex',alignItems:'center',gap:10,padding:'0 12px',borderBottom:'1px solid #21262d'}}>
+              <span style={{color:'#FF6600',fontSize:10,fontWeight:700,fontFamily:'JetBrains Mono'}}>NLA EDITOR</span>
+              <button onClick={()=>setKfPlaying(p=>!p)}
+                style={{padding:'2px 12px',border:'none',borderRadius:3,cursor:'pointer',fontSize:11,
+                  background:kfPlaying?'#ff4444':'#00ffc8',color:kfPlaying?'#fff':'#06060f',fontWeight:700}}>
+                {kfPlaying?'⏹ Stop':'▶ Play'}
+              </button>
+              <span style={{color:'#888',fontSize:10}}>t = {kfTime.toFixed(2)}s</span>
+              <input type="range" min={0} max={kfDuration} step={0.01} value={kfTime}
+                onChange={e=>setKfTime(Number(e.target.value))}
+                style={{width:200}}/>
+              <span style={{color:'#555',fontSize:10}}>dur:</span>
+              <input type="number" min={1} max={60} value={kfDuration}
+                onChange={e=>setKfDuration(Number(e.target.value))}
+                style={{width:40,background:'#06060f',border:'1px solid #333',color:'#dde6ef',borderRadius:3,padding:'2px 4px',fontSize:10}}/>
+              <span style={{color:'#555',fontSize:10}}>s</span>
+              <div style={{flex:1}}/>
+              {selected3DId && (
+                <button onClick={()=>{
+                  const obj = scene3DObjects.find(o=>o.id===selected3DId);
+                  if (obj) { addKeyframe(selected3DId,'position',obj.position); addKeyframe(selected3DId,'rotation',obj.rotation); }
+                }}
+                  style={{padding:'2px 10px',border:'1px solid #FF6600',borderRadius:3,cursor:'pointer',fontSize:10,background:'transparent',color:'#FF6600'}}>
+                  ◆ Insert Keyframe
+                </button>
+              )}
+            </div>
+
+            {/* Timeline tracks */}
+            <div style={{flex:1,overflowX:'auto',overflowY:'auto',padding:'4px 0'}}>
+              {scene3DObjects.filter(o=>o.keyframes?.length>0).map(obj=>(
+                <div key={obj.id} style={{display:'flex',alignItems:'center',height:24,borderBottom:'1px solid #0a0e1a'}}>
+                  <div style={{width:120,padding:'0 8px',color:'#888',fontSize:10,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                    {obj.name}
+                  </div>
+                  <div style={{flex:1,position:'relative',height:'100%',background:'#06060f'}}>
+                    {obj.keyframes.map((kf,i)=>(
+                      <div key={i} style={{
+                        position:'absolute',top:'50%',transform:'translate(-50%,-50%)',
+                        left:`${(kf.time/kfDuration)*100}%`,
+                        width:8,height:8,background:'#FF6600',
+                        clipPath:'polygon(50% 0%,100% 50%,50% 100%,0% 50%)',
+                        cursor:'pointer',
+                      }} title={`t=${kf.time.toFixed(2)} ${kf.prop}`}/>
+                    ))}
+                    {/* Playhead */}
+                    <div style={{position:'absolute',top:0,bottom:0,width:1,background:'#00ffc8',
+                      left:`${(kfTime/kfDuration)*100}%`,pointerEvents:'none'}}/>
+                  </div>
+                </div>
+              ))}
+              {scene3DObjects.every(o=>!o.keyframes?.length) && (
+                <div style={{color:'#333',fontSize:10,padding:'8px 130px',fontFamily:'JetBrains Mono'}}>
+                  No keyframes yet — select an object and click Insert Keyframe
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
   );
 }
