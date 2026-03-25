@@ -390,6 +390,7 @@ import {
   Circle
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
+const electronFS = window.electronFS || { isElectron: false, saveExport: async () => null, openFiles: async () => [], runFFmpeg: async () => ({}) };
 import KeyframePanel from '../keyframes/ui/KeyframePanel';
 import KeyframeTimelineStrip from '../keyframes/ui/KeyframeTimelineStrip';
 import {

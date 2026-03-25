@@ -1910,7 +1910,7 @@ export default function SPXVectorPage() {
                     onChange={e=>{ setExtrudeDepth(Number(e.target.value)); setTimeout(buildExtrudeMesh,10); }}
                     style={{width:'100%'}}/>
                   <span style={{color:'#FF6600',fontSize:10}}>{extrudeDepth.toFixed(2)}</span>
-                </div>
+              
 
                 </div>}
 
@@ -1953,9 +1953,10 @@ export default function SPXVectorPage() {
                     onChange={e=>{ setExtrudeBevel(Number(e.target.value)); setTimeout(buildExtrudeMesh,10); }}
                     style={{width:'100%'}}/>
                   <span style={{color:'#FF6600',fontSize:10}}>{extrudeBevel.toFixed(3)}</span>
-                </div>
-
                 </div>}
+                
+
+                
                 {/* Material */}
                 <div>
                   <div style={{color:'#888',fontSize:10,marginBottom:6}}>Material</div>
