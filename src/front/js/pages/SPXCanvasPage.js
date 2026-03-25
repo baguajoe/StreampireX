@@ -479,7 +479,7 @@ export default function SPXCanvasPage() {
 
   const TOOL_GROUPS = ['select','transform','paint','create','view'];
 
-  return (
+  return (<>
     <div style={S.app}>
       {/* ── Top Bar ── */}
       <div style={S.topbar}>
@@ -768,5 +768,5 @@ export default function SPXCanvasPage() {
         </div>
       )}
 
-  );
+  </> );
 }
