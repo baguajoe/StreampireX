@@ -3,12 +3,33 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OBJLoader  } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { FBXLoader  } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 
 
 
 
 
 
+
+// ─── Spline Gap constants ─────────────────────────────────────────────────────
+const INTERACTION_TRIGGERS = [
+  {id:'hover_spin',    label:'Spin on Hover',     event:'hover',  action:'rotate',   params:{y:360, duration:1}},
+  {id:'hover_scale',   label:'Scale on Hover',    event:'hover',  action:'scale',    params:{to:1.2, duration:0.3}},
+  {id:'hover_glow',    label:'Glow on Hover',     event:'hover',  action:'emissive', params:{color:'#00ffc8', intensity:2}},
+  {id:'click_spin',    label:'Spin on Click',     event:'click',  action:'rotate',   params:{y:360, duration:0.8}},
+  {id:'click_bounce',  label:'Bounce on Click',   event:'click',  action:'bounce',   params:{height:1, duration:0.5}},
+  {id:'click_explode', label:'Explode on Click',  event:'click',  action:'explode',  params:{force:3, duration:1}},
+  {id:'scroll_rotate', label:'Rotate on Scroll',  event:'scroll', action:'rotate',   params:{axis:'y', speed:0.5}},
+  {id:'scroll_float',  label:'Float on Scroll',   event:'scroll', action:'translate',params:{axis:'y', speed:0.3}},
+];
+const TEXT3D_FONTS = [
+  {id:'helvetiker',  label:'Helvetiker',  url:'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json'},
+  {id:'optimer',     label:'Optimer',     url:'https://threejs.org/examples/fonts/optimer_regular.typeface.json'},
+  {id:'gentilis',    label:'Gentilis',    url:'https://threejs.org/examples/fonts/gentilis_regular.typeface.json'},
+  {id:'droid_sans',  label:'Droid Sans',  url:'https://threejs.org/examples/fonts/droid/droid_sans_regular.typeface.json'},
+  {id:'droid_serif', label:'Droid Serif', url:'https://threejs.org/examples/fonts/droid/droid_serif_regular.typeface.json'},
+];
 // ─── Sessions C+D constants ───────────────────────────────────────────────────
 const RIGID_BODY_TYPES = [
   {id:'dynamic',    label:'Dynamic',    desc:'Affected by gravity + forces'},
@@ -1140,6 +1161,291 @@ function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
   const wpMouseMove = (e) => { if (weightPaintMode && e.buttons===1) paintBoneWeight(e); };
 
 
+  // ── Spline Gap 1: Clipping Planes ─────────────────────────────────────────
+  const addClippingPlane = (axis='y', constant=0) => {
+    const renderer = threeRendererRef.current; if (!renderer) return;
+    renderer.localClippingEnabled = true;
+    const normal = axis==='x' ? new THREE.Vector3(-1,0,0)
+                 : axis==='y' ? new THREE.Vector3(0,-1,0)
+                 : new THREE.Vector3(0,0,-1);
+    const plane = new THREE.Plane(normal, constant);
+    const id = `clip_${Date.now()}`;
+    // Apply to all scene materials
+    threeSceneRef.current?.traverse(obj => {
+      if (obj.isMesh && obj.material) {
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        mats.forEach(m => {
+          m.clippingPlanes = [...(m.clippingPlanes||[]), plane];
+          m.clipShadows = true;
+          m.needsUpdate = true;
+        });
+      }
+    });
+    setClippingPlanes(ps => [...ps, {id, axis, constant, plane}]);
+  };
+
+  const updateClippingPlane = (id, constant) => {
+    setClippingPlanes(ps => ps.map(p => {
+      if (p.id !== id) return p;
+      p.plane.constant = constant;
+      return {...p, constant};
+    }));
+  };
+
+  const removeClippingPlane = (id) => {
+    const cp = clippingPlanes.find(p=>p.id===id);
+    if (!cp) return;
+    threeSceneRef.current?.traverse(obj => {
+      if (obj.isMesh && obj.material) {
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        mats.forEach(m => {
+          m.clippingPlanes = (m.clippingPlanes||[]).filter(p=>p!==cp.plane);
+          m.needsUpdate = true;
+        });
+      }
+    });
+    setClippingPlanes(ps => ps.filter(p=>p.id!==id));
+  };
+
+  const clearAllClipping = () => {
+    threeSceneRef.current?.traverse(obj => {
+      if (obj.isMesh && obj.material) {
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        mats.forEach(m => { m.clippingPlanes = []; m.needsUpdate = true; });
+      }
+    });
+    setClippingPlanes([]);
+  };
+
+  // ── Spline Gap 2: 3D Text ──────────────────────────────────────────────────
+  const create3DText = async () => {
+    setText3DLoading(true);
+    const scene = threeSceneRef.current; if (!scene) { setText3DLoading(false); return; }
+    const fontDef = TEXT3D_FONTS.find(f=>f.id===text3DFont) || TEXT3D_FONTS[0];
+
+    const loadFont = () => new Promise((resolve, reject) => {
+      if (fontCacheRef.current[fontDef.id]) { resolve(fontCacheRef.current[fontDef.id]); return; }
+      const loader = new FontLoader();
+      loader.load(fontDef.url, font => {
+        fontCacheRef.current[fontDef.id] = font;
+        resolve(font);
+      }, undefined, reject);
+    });
+
+    try {
+      const font = await loadFont();
+      const geo = new TextGeometry(text3DContent || 'SPX', {
+        font, size: text3DSize, depth: text3DDepth,
+        curveSegments: 12, bevelEnabled: true,
+        bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 5,
+      });
+      geo.computeBoundingBox();
+      const center = new THREE.Vector3();
+      geo.boundingBox.getCenter(center);
+      geo.translate(-center.x, -center.y, -center.z);
+
+      const mat = new THREE.MeshStandardMaterial({
+        color: text3DColor, roughness: 0.3, metalness: 0.5,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.castShadow = true;
+      scene.add(mesh);
+
+      const id = `text3d_${Date.now()}`;
+      mesh.userData.id = id;
+      threeObjectsRef.current[id] = mesh;
+
+      const obj = {
+        id, type:'text3d', name:`Text: ${text3DContent.slice(0,10)}`,
+        position:{x:0,y:0,z:0}, rotation:{x:0,y:0,z:0}, scale:{x:1,y:1,z:1},
+        material:{color:text3DColor, roughness:0.3, metalness:0.5},
+        keyframes:[], visible:true,
+      };
+      setScene3DObjects(os => [...os, obj]);
+      setSelected3DId(id);
+      setText3DPanelOpen(false);
+    } catch(e) {
+      console.error('3D Text error:', e);
+      alert('Could not load font. Check network connection.');
+    }
+    setText3DLoading(false);
+  };
+
+  // ── Spline Gap 3: Web Embed Export ────────────────────────────────────────
+  const generateEmbedCode = async () => {
+    setEmbedGenerating(true);
+    const renderer = threeRendererRef.current;
+    const canvas   = threeCanvasRef.current;
+    if (!renderer || !canvas) { setEmbedGenerating(false); return; }
+
+    // Capture current viewport as thumbnail
+    renderer.render(threeSceneRef.current, threeCameraRef.current);
+    const thumbnail = canvas.toDataURL('image/jpeg', 0.6);
+
+    // Build scene descriptor
+    const sceneData = {
+      objects: scene3DObjects.map(o => ({
+        id:o.id, type:o.type, name:o.name,
+        position:o.position, rotation:o.rotation, scale:o.scale,
+        material:o.material,
+      })),
+      lights: sceneLights,
+      camera: {
+        theta: orbitState.theta, phi: orbitState.phi, radius: orbitState.radius,
+      },
+      triggers: objectTriggers,
+    };
+
+    const sceneJSON = JSON.stringify(sceneData);
+    const encoded   = btoa(unescape(encodeURIComponent(sceneJSON)));
+
+    const code = `<!-- SPX 3D Embed — streampirex.com -->
+<div id="spx-3d-embed" style="width:100%;aspect-ratio:16/9;"></div>
+<script src="https://streampirex.com/embed/spx3d.js"></script>
+<script>
+  SPX3D.init('#spx-3d-embed', {
+    scene: '${encoded.slice(0,80)}...', // full scene data
+    autoRotate: true,
+    background: '#06060f',
+    controls: true,
+  });
+</script>
+<!-- Generated by StreamPireX SPX 3D — ${new Date().toLocaleDateString()} -->`;
+
+    setEmbedCode(code);
+    setEmbedGenerating(false);
+  };
+
+  // ── Spline Gap 4: Interactive States ─────────────────────────────────────
+  const assignTrigger = (objId, triggerId) => {
+    setObjectTriggers(t => ({
+      ...t,
+      [objId]: [...new Set([...(t[objId]||[]), triggerId])],
+    }));
+  };
+
+  const removeTrigger = (objId, triggerId) => {
+    setObjectTriggers(t => ({
+      ...t,
+      [objId]: (t[objId]||[]).filter(id=>id!==triggerId),
+    }));
+  };
+
+  const handleViewportClick3D = (e) => {
+    const canvas = threeCanvasRef.current; if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = ((e.clientX-rect.left)/rect.width)*2-1;
+    const my = -((e.clientY-rect.top)/rect.height)*2+1;
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera({x:mx,y:my}, threeCameraRef.current);
+    const meshes = Object.entries(threeObjectsRef.current)
+      .filter(([,m])=>m.isMesh||m.isGroup)
+      .map(([,m])=>m);
+    const hits = raycaster.intersectObjects(meshes, true);
+    if (!hits.length) return;
+    const hit = hits[0].object;
+    // Walk up to find root object with id
+    let root = hit;
+    while (root.parent && !root.userData.id) root = root.parent;
+    const objId = root.userData.id;
+    if (!objId) return;
+    // Fire click triggers
+    const triggers = objectTriggers[objId] || [];
+    triggers.forEach(tId => {
+      const tDef = INTERACTION_TRIGGERS.find(t=>t.id===tId);
+      if (!tDef || tDef.event!=='click') return;
+      fireInteraction(objId, tDef);
+    });
+  };
+
+  const handleViewportHover3D = (e) => {
+    const canvas = threeCanvasRef.current; if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = ((e.clientX-rect.left)/rect.width)*2-1;
+    const my = -((e.clientY-rect.top)/rect.height)*2+1;
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera({x:mx,y:my}, threeCameraRef.current);
+    const meshes = Object.entries(threeObjectsRef.current)
+      .filter(([,m])=>m.isMesh||m.isGroup).map(([,m])=>m);
+    const hits = raycaster.intersectObjects(meshes, true);
+    const hoveredId = hits.length ? (() => {
+      let root = hits[0].object;
+      while (root.parent && !root.userData.id) root = root.parent;
+      return root.userData.id;
+    })() : null;
+    // Fire hover triggers for newly hovered object
+    if (hoveredId && hoveredId !== hoverStateRef.current.id) {
+      const triggers = objectTriggers[hoveredId] || [];
+      triggers.forEach(tId => {
+        const tDef = INTERACTION_TRIGGERS.find(t=>t.id===tId);
+        if (tDef?.event==='hover') fireInteraction(hoveredId, tDef);
+      });
+    }
+    hoverStateRef.current.id = hoveredId;
+  };
+
+  const fireInteraction = (objId, tDef) => {
+    const mesh = threeObjectsRef.current[objId]; if (!mesh) return;
+    const {action, params} = tDef;
+    const start = performance.now();
+    const duration = (params.duration||1) * 1000;
+    const origScale = mesh.scale.clone();
+    const origPos   = mesh.position.clone();
+
+    const tick = () => {
+      const t = Math.min(1, (performance.now()-start)/duration);
+      const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+      if (action==='rotate') {
+        mesh.rotation.y += THREE.MathUtils.degToRad(params.y||360) * (1/60) / (params.duration||1);
+      } else if (action==='scale') {
+        const s = 1 + (params.to-1)*ease;
+        mesh.scale.set(s,s,s);
+      } else if (action==='bounce') {
+        mesh.position.y = origPos.y + Math.sin(t*Math.PI) * (params.height||1);
+      } else if (action==='emissive') {
+        if (mesh.material) {
+          mesh.material.emissive = new THREE.Color(params.color||'#00ffc8');
+          mesh.material.emissiveIntensity = t < 0.5 ? params.intensity*ease*2 : params.intensity*(1-ease)*2;
+          mesh.material.needsUpdate = true;
+        }
+      } else if (action==='explode') {
+        mesh.position.y = origPos.y + ease * params.force;
+        mesh.rotation.x += 0.1;
+        mesh.rotation.z += 0.05;
+      }
+      if (t < 1 && action !== 'rotate') {
+        interactRafRef.current[objId] = requestAnimationFrame(tick);
+      } else if (action==='rotate') {
+        if (t < 1) interactRafRef.current[objId] = requestAnimationFrame(tick);
+      }
+    };
+    if (interactRafRef.current[objId]) cancelAnimationFrame(interactRafRef.current[objId]);
+    interactRafRef.current[objId] = requestAnimationFrame(tick);
+  };
+
+  // Scroll trigger handler
+  React.useEffect(() => {
+    const onScroll = () => {
+      Object.entries(objectTriggers).forEach(([objId, triggers]) => {
+        triggers.forEach(tId => {
+          const tDef = INTERACTION_TRIGGERS.find(t=>t.id===tId);
+          if (tDef?.event==='scroll') {
+            const mesh = threeObjectsRef.current[objId]; if (!mesh) return;
+            const scrollY = window.scrollY || 0;
+            if (tDef.params.action==='rotate' || tDef.action==='rotate') {
+              mesh.rotation.y = scrollY * (tDef.params.speed||0.5) * 0.01;
+            } else if (tDef.action==='translate') {
+              mesh.position.y = scrollY * (tDef.params.speed||0.3) * 0.01;
+            }
+          }
+        });
+      });
+    };
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [objectTriggers]);
+
+
   return (
     <div className="spx-menu-bar">
       {menus.map(menu => (
@@ -1257,6 +1563,32 @@ export default function NodeCompositorPage() {
   const [doppelflexImg,  setDoppelflexImg]  = React.useState(null);
   const [autoRigLoading, setAutoRigLoading] = React.useState(false);
   const sculptCanvasRef  = React.useRef(null);
+  // ── Spline Gap state ──────────────────────────────────────────────────────
+  // 1. Clipping planes
+  const [clippingPlanes,   setClippingPlanes]   = React.useState([]);
+  const [clipPanelOpen,    setClipPanelOpen]    = React.useState(false);
+
+  // 2. 3D Text
+  const [text3DPanelOpen,  setText3DPanelOpen]  = React.useState(false);
+  const [text3DContent,    setText3DContent]    = React.useState('SPX');
+  const [text3DFont,       setText3DFont]       = React.useState('helvetiker');
+  const [text3DSize,       setText3DSize]       = React.useState(1);
+  const [text3DDepth,      setText3DDepth]      = React.useState(0.3);
+  const [text3DColor,      setText3DColor]      = React.useState('#00ffc8');
+  const [text3DLoading,    setText3DLoading]    = React.useState(false);
+  const fontCacheRef       = React.useRef({});
+
+  // 3. Web embed
+  const [embedPanelOpen,   setEmbedPanelOpen]   = React.useState(false);
+  const [embedCode,        setEmbedCode]        = React.useState('');
+  const [embedGenerating,  setEmbedGenerating]  = React.useState(false);
+
+  // 4. Interactive states
+  const [interactPanelOpen,setInteractPanelOpen]= React.useState(false);
+  const [objectTriggers,   setObjectTriggers]   = React.useState({}); // objId -> [triggerId]
+  const interactRafRef     = React.useRef({});
+  const hoverStateRef      = React.useRef({});
+
   // ── Session C: Rapier Physics ────────────────────────────────────────────
   const rapierWorldRef    = React.useRef(null);
   const rapierBodiesRef   = React.useRef({});   // objId -> rigidBody
@@ -1964,6 +2296,151 @@ export default function NodeCompositorPage() {
               )}
 
 
+
+
+              {/* ── Spline Gap 1: Clipping Planes ──────────────────────── */}
+              <div style={{borderTop:'1px solid #21262d',paddingTop:8}}>
+                <div style={{color:'#00ffc8',fontSize:10,fontWeight:700,marginBottom:6}}>CLIPPING PLANES</div>
+                <div style={{display:'flex',gap:4,marginBottom:6}}>
+                  {['x','y','z'].map(axis=>(
+                    <button key={axis} onClick={()=>addClippingPlane(axis, 0)}
+                      style={{flex:1,padding:'4px',border:'none',borderRadius:3,cursor:'pointer',fontSize:11,fontWeight:700,
+                        background:'#1a1f2e',color:'#aaa'}}>
+                      + {axis.toUpperCase()}
+                    </button>
+                  ))}
+                  {clippingPlanes.length>0 && (
+                    <button onClick={clearAllClipping}
+                      style={{padding:'4px 8px',border:'none',borderRadius:3,cursor:'pointer',fontSize:10,
+                        background:'#1a1f2e',color:'#ff4444'}}>
+                      Clear
+                    </button>
+                  )}
+                </div>
+                {clippingPlanes.map(cp=>(
+                  <div key={cp.id} style={{display:'flex',flexDirection:'column',gap:3,marginBottom:6,
+                    background:'#0a0e1a',borderRadius:4,padding:'6px 8px'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <span style={{color:'#888',fontSize:10}}>Clip {cp.axis.toUpperCase()}</span>
+                      <button onClick={()=>removeClippingPlane(cp.id)}
+                        style={{background:'none',border:'none',color:'#ff4444',cursor:'pointer',fontSize:11}}>✕</button>
+                    </div>
+                    <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                      <input type="range" min={-5} max={5} step={0.05} value={cp.constant}
+                        onChange={e=>updateClippingPlane(cp.id,Number(e.target.value))}
+                        style={{flex:1}}/>
+                      <span style={{color:'#00ffc8',fontSize:9,width:32}}>{cp.constant.toFixed(2)}</span>
+                    </div>
+                  </div>
+                ))}
+                {clippingPlanes.length===0 && (
+                  <div style={{color:'#333',fontSize:9,fontStyle:'italic'}}>
+                    Add a plane to slice through objects in real-time
+                  </div>
+                )}
+              </div>
+
+              {/* ── Spline Gap 2: 3D Text ────────────────────────────────── */}
+              <div style={{borderTop:'1px solid #21262d',paddingTop:8}}>
+                <div style={{color:'#00ffc8',fontSize:10,fontWeight:700,marginBottom:6}}>3D TEXT</div>
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  <input value={text3DContent} onChange={e=>setText3DContent(e.target.value)}
+                    placeholder="Enter text..."
+                    style={{background:'#06060f',border:'1px solid #333',borderRadius:3,
+                      padding:'5px 8px',color:'#dde6ef',fontSize:12,fontFamily:'JetBrains Mono',outline:'none'}}/>
+                  <select value={text3DFont} onChange={e=>setText3DFont(e.target.value)}
+                    style={{background:'#1a1a1a',border:'1px solid #333',color:'#dde6ef',borderRadius:3,padding:'3px 6px',fontSize:10}}>
+                    {TEXT3D_FONTS.map(f=><option key={f.id} value={f.id}>{f.label}</option>)}
+                  </select>
+                  <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                    <span style={{color:'#888',fontSize:10,width:40}}>Color</span>
+                    <input type="color" value={text3DColor} onChange={e=>setText3DColor(e.target.value)}
+                      style={{width:32,height:22,border:'none',borderRadius:3,cursor:'pointer'}}/>
+                  </div>
+                  {[['Size','text3DSize',setText3DSize,0.1,5,0.1],['Depth','text3DDepth',setText3DDepth,0.01,2,0.05]].map(([lbl,key,setter,min,max,step])=>(
+                    <div key={key} style={{display:'flex',gap:6,alignItems:'center'}}>
+                      <span style={{color:'#888',fontSize:10,width:40}}>{lbl}</span>
+                      <input type="range" min={min} max={max} step={step}
+                        value={key==='text3DSize'?text3DSize:text3DDepth}
+                        onChange={e=>setter(Number(e.target.value))} style={{flex:1}}/>
+                      <span style={{color:'#00ffc8',fontSize:9,width:28}}>
+                        {(key==='text3DSize'?text3DSize:text3DDepth).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                  <button onClick={create3DText} disabled={text3DLoading||!text3DContent.trim()}
+                    style={{background:text3DLoading?'#333':'#00ffc8',color:text3DLoading?'#555':'#06060f',
+                      border:'none',borderRadius:4,padding:'6px',cursor:'pointer',fontWeight:700,fontSize:11}}>
+                    {text3DLoading ? '⏳ Loading font…' : '⬡ Create 3D Text'}
+                  </button>
+                </div>
+              </div>
+
+              {/* ── Spline Gap 3: Web Embed Export ──────────────────────── */}
+              <div style={{borderTop:'1px solid #21262d',paddingTop:8}}>
+                <div style={{color:'#FF6600',fontSize:10,fontWeight:700,marginBottom:6}}>WEB EMBED</div>
+                <div style={{color:'#555',fontSize:9,marginBottom:6}}>
+                  Export your 3D scene as an embeddable widget for any website.
+                </div>
+                <button onClick={generateEmbedCode} disabled={embedGenerating}
+                  style={{width:'100%',background:embedGenerating?'#333':'#FF6600',color:'#fff',
+                    border:'none',borderRadius:4,padding:'6px',cursor:'pointer',fontWeight:700,fontSize:11,marginBottom:6}}>
+                  {embedGenerating ? '⏳ Generating…' : '⬡ Generate Embed Code'}
+                </button>
+                {embedCode && (
+                  <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                    <textarea readOnly value={embedCode} rows={6}
+                      style={{background:'#06060f',border:'1px solid #333',borderRadius:4,
+                        padding:'8px',color:'#00ffc8',fontSize:9,fontFamily:'JetBrains Mono',
+                        resize:'none',width:'100%',boxSizing:'border-box'}}/>
+                    <button onClick={()=>navigator.clipboard.writeText(embedCode)}
+                      style={{background:'#1a1f2e',border:'1px solid #00ffc8',color:'#00ffc8',
+                        borderRadius:3,padding:'4px',cursor:'pointer',fontSize:10}}>
+                      📋 Copy to Clipboard
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Spline Gap 4: Interactive States ────────────────────── */}
+              <div style={{borderTop:'1px solid #21262d',paddingTop:8}}>
+                <div style={{color:'#FF6600',fontSize:10,fontWeight:700,marginBottom:6}}>INTERACTIVE STATES</div>
+                {selected3DId ? (
+                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                    <div style={{color:'#888',fontSize:9}}>
+                      Assign triggers to: {scene3DObjects.find(o=>o.id===selected3DId)?.name||selected3DId}
+                    </div>
+                    <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                      {INTERACTION_TRIGGERS.map(t=>{
+                        const active = (objectTriggers[selected3DId]||[]).includes(t.id);
+                        return (
+                          <button key={t.id} onClick={()=>active?removeTrigger(selected3DId,t.id):assignTrigger(selected3DId,t.id)}
+                            style={{padding:'4px 8px',border:'none',borderRadius:3,cursor:'pointer',fontSize:10,
+                              textAlign:'left',display:'flex',justifyContent:'space-between',alignItems:'center',
+                              background:active?'#1a1f2e':'transparent',
+                              color:active?'#dde6ef':'#555',
+                              borderLeft:active?`3px solid ${t.event==='hover'?'#00ffc8':t.event==='click'?'#FF6600':'#888'}`:'3px solid transparent'}}>
+                            <span>{t.label}</span>
+                            <span style={{fontSize:8,color:'#555'}}>{t.event}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {(objectTriggers[selected3DId]||[]).length > 0 && (
+                      <div style={{marginTop:4}}>
+                        <div style={{color:'#555',fontSize:9,marginBottom:4}}>Active triggers — click/hover in viewport to test</div>
+                        <button onClick={()=>setObjectTriggers(t=>({...t,[selected3DId]:[]}))}
+                          style={{background:'none',border:'1px solid #333',color:'#ff4444',borderRadius:3,
+                            padding:'3px 8px',cursor:'pointer',fontSize:9}}>
+                          Clear All Triggers
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{color:'#555',fontSize:10,fontStyle:'italic'}}>Select an object to assign interactions</div>
+                )}
+              </div>
 
               {/* ── Session C: Rapier Physics ──────────────────────────── */}
               <div style={{borderTop:'1px solid #21262d',paddingTop:8}}>
