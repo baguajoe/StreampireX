@@ -1252,17 +1252,14 @@ const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
 
   return (
     <div className="source-monitor-panel" style={{
-      position: 'fixed',
-      left: '50%',
-      top: '50%',
-      transform: 'translate(-50%, -50%)',
-      width: '700px',
-      maxWidth: '90vw',
+      width: '100%',
+      height: '100%',
       background: '#1e1e1e',
       border: '1px solid #3f3f46',
-      borderRadius: '8px',
-      zIndex: 1000,
-      boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+      borderRadius: '4px',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden'
     }}>
       {/* Header */}
       <div style={{
@@ -5646,7 +5643,7 @@ TIMELINE
                     {sourceMonitorMedia ? (
                       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {sourceMonitorMedia.type === 'video' && (
-                          <video src={sourceMonitorMedia.url} controls style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                          <video src={sourceMonitorMedia.url} controls style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} />
                         )}
                         {sourceMonitorMedia.type === 'audio' && (
                           <div className="audio-preview">
