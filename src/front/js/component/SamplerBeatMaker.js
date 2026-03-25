@@ -17,6 +17,7 @@ import ChopView from './ChopView';
 import SynthCreator from './SynthCreator';
 import DrumDesigner from './DrumDesigner';
 import InstrumentBuilder from './InstrumentBuilder';
+import SPX3000Tab from './SPX3000Tab';
 
 // =============================================================================
 // CONSTANTS
@@ -2795,6 +2796,7 @@ const SamplerBeatMaker = ({
           { id: 'sampler', label: '🎧 Sampler', title: 'Sample Editor, Waveform, Chop, ADSR' },
           { id: 'drumpad', label: '🥁 Drum Kit', title: 'MPC Pads, Performance, Kits' },
           { id: 'beats', label: '🎹 Beat Maker', title: 'Step Sequencer, Patterns, Song Mode' },
+          { id: 'spx3000', label: '🎛️ SPX3000', title: 'SPX3000 — MPC3000 engine, 12-bit DAC, 4 banks, 96 PPQN' },
           { id: 'chords', label: '🎼 Chords', title: 'Chord Progression Generator' },
           { id: 'sounds', label: '🔊 Sounds', title: 'Freesound Sample Browser' },
           { id: 'loops', label: '🔁 Loops', title: 'Looperman Loop Browser' },
@@ -2935,6 +2937,17 @@ const SamplerBeatMaker = ({
             handlePadDown={(i) => { initCtx(); playPad(i); }}
             handlePadUp={(i) => { if (pads[i]?.playMode === 'hold') stopPad(i); }}
           />
+        )}
+
+        {/* ── SPX3000 TAB ── */}
+        {activeTab === 'spx3000' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            <SPX3000Tab
+              onExport={onExport}
+              onSendToArrange={onSendToArrange}
+              isEmbedded={true}
+            />
+          </div>
         )}
 
         {/* ── STEMS TAB ── */}
