@@ -1174,7 +1174,7 @@ export default function SPXVectorPage() {
   };
 
 
-  return (
+  return (<>
     <div style={S.app}>
       {/* ── Top Bar ── */}
       <div style={S.topbar}>
@@ -2028,5 +2028,5 @@ export default function SPXVectorPage() {
         </div>
       )}
 
-  );
+  </> );
 }
