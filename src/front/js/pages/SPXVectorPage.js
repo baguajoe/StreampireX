@@ -2,12 +2,24 @@
 // SPX Vector — Illustrator-rival vector editor with full bezier pen tool
 
 import { saveToCloud, listCloudProjects, loadFromCloud, deleteCloudProject } from "../utils/cloudSave";
+import * as THREE from 'three';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { anchorsToBezierPath, createAnchor, moveAnchor, updateInHandle, updateOutHandle } from "../utils/spxvector/bezierMath";
 import { booleanUnion, booleanSubtract, booleanIntersect, booleanExclude } from "../utils/spxvector/booleanOps";
 import { exportFullSVG } from "../utils/spxvector/svgExport";
 import "../../styles/SPXVector.css";
 
+
+// ─── SVG → 3D Extrude constants ──────────────────────────────────────────────
+const EXTRUDE_MATERIALS = [
+  {id:'teal_metal', label:'Teal Metal',  color:'#00ffc8', roughness:0.2, metalness:0.8},
+  {id:'orange',     label:'Orange',      color:'#FF6600', roughness:0.4, metalness:0.3},
+  {id:'gold',       label:'Gold',        color:'#FFD700', roughness:0.1, metalness:1.0},
+  {id:'chrome',     label:'Chrome',      color:'#C0C0C0', roughness:0.05,metalness:1.0},
+  {id:'white',      label:'White',       color:'#ffffff', roughness:0.8, metalness:0.0},
+  {id:'black',      label:'Black',       color:'#111111', roughness:0.5, metalness:0.2},
+  {id:'glass',      label:'Glass',       color:'#ffffff', roughness:0.0, metalness:0.0, transparent:true, opacity:0.2},
+];
 const uid = () => `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
 const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
 
@@ -145,6 +157,21 @@ export default function SPXVectorPage() {
   const [traceMode,      setTraceMode]      = useState('bw'); // bw, color, gray
   const [tracing,        setTracing]        = useState(false);
   const [showPatterns,   setShowPatterns]   = useState(false);
+  // ── SVG → 3D Extrude (Session 1) ─────────────────────────────────────────
+  const [extrudeOpen,     setExtrudeOpen]     = useState(false);
+  const [extrudeDepth,    setExtrudeDepth]    = useState(0.3);
+  const [extrudeBevel,    setExtrudeBevel]    = useState(0.02);
+  const [extrudeMaterial, setExtrudeMaterial] = useState('teal_metal');
+  const [extrudeLoading,  setExtrudeLoading]  = useState(false);
+  const [extrudePreview,  setExtrudePreview]  = useState(null); // base64 PNG preview
+  const extrudeCanvasRef  = useRef(null);
+  const extrudeSceneRef   = useRef(null);
+  const extrudeRendererRef= useRef(null);
+  const extrudeCameraRef  = useRef(null);
+  const extrudeRafRef     = useRef(null);
+  const extrudeMeshRef    = useRef(null);
+  const extrudeOrbitRef   = useRef(null);
+
   // ── Variable Fonts + Char Styles ────────────────────────────────────────────
   const [variAxes,       setVariAxes]       = useState({wght:400,wdth:100,slnt:0,opsz:14});
   const [charStyles,     setCharStyles]     = useState(DEFAULT_CHAR_STYLES);
@@ -742,6 +769,194 @@ export default function SPXVectorPage() {
       >{g.text}</tspan>
     ));
   };
+
+  // ── SVG → 3D Extrude helpers ─────────────────────────────────────────────
+  const initExtrudeScene = () => {
+    const canvas = extrudeCanvasRef.current;
+    if (!canvas || extrudeRendererRef.current) return;
+    const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    extrudeRendererRef.current = renderer;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#0d1117');
+    extrudeSceneRef.current = scene;
+
+    const camera = new THREE.PerspectiveCamera(45, canvas.clientWidth/canvas.clientHeight, 0.01, 100);
+    camera.position.set(0, 0, 4);
+    extrudeCameraRef.current = camera;
+
+    // Lights
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+    const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+    dir.position.set(3, 5, 3); dir.castShadow = true;
+    scene.add(dir);
+    const fill = new THREE.DirectionalLight(0x00ffc8, 0.3);
+    fill.position.set(-3, -2, -2);
+    scene.add(fill);
+
+    const animate = () => {
+      extrudeRafRef.current = requestAnimationFrame(animate);
+      if (extrudeMeshRef.current) extrudeMeshRef.current.rotation.y += 0.005;
+      renderer.render(scene, camera);
+    };
+    animate();
+  };
+
+  const destroyExtrudeScene = () => {
+    if (extrudeRafRef.current) cancelAnimationFrame(extrudeRafRef.current);
+    if (extrudeRendererRef.current) { extrudeRendererRef.current.dispose(); extrudeRendererRef.current = null; }
+    extrudeSceneRef.current = null; extrudeCameraRef.current = null; extrudeMeshRef.current = null;
+  };
+
+  // Convert SVG path string to THREE.Shape
+  const svgPathToThreeShape = (pathData) => {
+    const shape = new THREE.Shape();
+    if (!pathData) return shape;
+    const cmds = pathData.match(/[MmLlHhVvCcSsQqTtAaZz][^MmLlHhVvCcSsQqTtAaZz]*/g) || [];
+    let cx = 0, cy = 0;
+    cmds.forEach(cmd => {
+      const type = cmd[0];
+      const nums = cmd.slice(1).trim().split(/[\s,]+/).map(Number).filter(n=>!isNaN(n));
+      if (type==='M') { shape.moveTo(nums[0], -nums[1]); cx=nums[0]; cy=nums[1]; }
+      else if (type==='L') { shape.lineTo(nums[0], -nums[1]); cx=nums[0]; cy=nums[1]; }
+      else if (type==='H') { shape.lineTo(nums[0], -cy); cx=nums[0]; }
+      else if (type==='V') { shape.lineTo(cx, -nums[0]); cy=nums[0]; }
+      else if (type==='C') {
+        for (let i=0;i<nums.length;i+=6)
+          shape.bezierCurveTo(nums[i],-nums[i+1],nums[i+2],-nums[i+3],nums[i+4],-nums[i+5]);
+        cx=nums[nums.length-2]; cy=nums[nums.length-1];
+      }
+      else if (type==='Q') {
+        for (let i=0;i<nums.length;i+=4)
+          shape.quadraticCurveTo(nums[i],-nums[i+1],nums[i+2],-nums[i+3]);
+        cx=nums[nums.length-2]; cy=nums[nums.length-1];
+      }
+      else if (type==='Z'||type==='z') shape.closePath();
+    });
+    return shape;
+  };
+
+  const buildExtrudeMesh = () => {
+    const scene = extrudeSceneRef.current; if (!scene) return;
+    // Remove old mesh
+    if (extrudeMeshRef.current) { scene.remove(extrudeMeshRef.current); extrudeMeshRef.current = null; }
+
+    const matDef = EXTRUDE_MATERIALS.find(m=>m.id===extrudeMaterial) || EXTRUDE_MATERIALS[0];
+    const mat = new THREE.MeshStandardMaterial({
+      color: matDef.color, roughness: matDef.roughness, metalness: matDef.metalness,
+      transparent: matDef.transparent||false, opacity: matDef.opacity??1,
+    });
+
+    // Get path layers from project
+    const pathLayers = project.layers.filter(l => l.type==='path' && l.anchors?.length > 0);
+    const shapes = [];
+
+    if (pathLayers.length > 0) {
+      pathLayers.forEach(layer => {
+        // Build SVG path string from anchors
+        if (!layer.anchors || layer.anchors.length < 2) return;
+        const scale = 0.003; // normalize from SVG coords
+        const shape = new THREE.Shape();
+        const first = layer.anchors[0];
+        shape.moveTo(first.x * scale, -first.y * scale);
+        for (let i=1; i<layer.anchors.length; i++) {
+          const a = layer.anchors[i];
+          const prev = layer.anchors[i-1];
+          if (prev.out && a.in) {
+            shape.bezierCurveTo(
+              prev.out.x*scale, -prev.out.y*scale,
+              a.in.x*scale,     -a.in.y*scale,
+              a.x*scale,        -a.y*scale
+            );
+          } else {
+            shape.lineTo(a.x*scale, -a.y*scale);
+          }
+        }
+        if (layer.closed) shape.closePath();
+        shapes.push(shape);
+      });
+    }
+
+    // Fallback: create a simple star shape if no paths
+    if (shapes.length === 0) {
+      const star = new THREE.Shape();
+      const pts = 5; const outer = 1; const inner = 0.4;
+      for (let i=0; i<pts*2; i++) {
+        const r = i%2===0 ? outer : inner;
+        const a = (i/pts/2)*Math.PI*2 - Math.PI/2;
+        if (i===0) star.moveTo(Math.cos(a)*r, Math.sin(a)*r);
+        else star.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+      }
+      star.closePath();
+      shapes.push(star);
+    }
+
+    const extrudeSettings = {
+      depth: extrudeDepth,
+      bevelEnabled: extrudeBevel > 0,
+      bevelThickness: extrudeBevel,
+      bevelSize: extrudeBevel * 0.8,
+      bevelSegments: 4,
+      curveSegments: 16,
+    };
+
+    const group = new THREE.Group();
+    shapes.forEach(shape => {
+      const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+      geo.computeBoundingBox();
+      const center = new THREE.Vector3();
+      geo.boundingBox.getCenter(center);
+      geo.translate(-center.x, -center.y, -center.z);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.castShadow = true;
+      group.add(mesh);
+    });
+
+    // Auto-scale to fit viewport
+    const box = new THREE.Box3().setFromObject(group);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    if (maxDim > 0) group.scale.setScalar(2 / maxDim);
+
+    scene.add(group);
+    extrudeMeshRef.current = group;
+  };
+
+  const sendToCompositor = () => {
+    // Serialize mesh data to localStorage for Node Compositor to pick up
+    const payload = {
+      source: 'spx_vector_extrude',
+      timestamp: Date.now(),
+      layers: project.layers.filter(l=>l.type==='path').length,
+      extrudeDepth,
+      extrudeBevel,
+      material: EXTRUDE_MATERIALS.find(m=>m.id===extrudeMaterial),
+      projectName: project.name,
+    };
+    localStorage.setItem('spx_vector_to_3d', JSON.stringify(payload));
+    alert('3D mesh sent to Node Compositor. Open the compositor and import from Vector.');
+    setExtrudeOpen(false);
+  };
+
+  const onExtrudeOrbitDown = (e) => { extrudeOrbitRef.current = {x:e.clientX,y:e.clientY}; };
+  const onExtrudeOrbitMove = (e) => {
+    if (!extrudeOrbitRef.current || !extrudeMeshRef.current) return;
+    const dx = (e.clientX - extrudeOrbitRef.current.x) * 0.01;
+    const dy = (e.clientY - extrudeOrbitRef.current.y) * 0.01;
+    extrudeMeshRef.current.rotation.y += dx;
+    extrudeMeshRef.current.rotation.x += dy;
+    extrudeOrbitRef.current = {x:e.clientX, y:e.clientY};
+  };
+  const onExtrudeOrbitUp = () => { extrudeOrbitRef.current = null; };
+  const onExtrudeWheel = (e) => {
+    const cam = extrudeCameraRef.current; if (!cam) return;
+    cam.position.z = Math.max(0.5, Math.min(10, cam.position.z + e.deltaY * 0.005));
+  };
+
 
   return (
     <div style={S.app}>
@@ -1414,6 +1629,123 @@ export default function SPXVectorPage() {
                 style={{background:aiFillLoading?'#333':'#FF6600',color:'#fff',border:'none',borderRadius:4,padding:'7px 18px',cursor:aiFillLoading?'not-allowed':'pointer',fontWeight:700,fontSize:12}}>
                 {aiFillLoading?'⏳ Generating…':'✦ Generate Fill'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── SVG → 3D Extrude button ──────────────────────────────────────── */}
+      <button title="Extrude to 3D"
+        onClick={()=>{ setExtrudeOpen(true); setTimeout(()=>{ initExtrudeScene(); buildExtrudeMesh(); },80); }}
+        style={{position:'fixed',bottom:80,right:24,zIndex:1000,width:48,height:48,borderRadius:'50%',
+          background:'#0d1117',border:'2px solid #FF6600',color:'#FF6600',
+          fontSize:16,cursor:'pointer',boxShadow:'0 4px 16px rgba(255,102,0,0.3)',fontWeight:700}}>
+        3D
+      </button>
+
+      {/* ── Extrude Modal ─────────────────────────────────────────────────── */}
+      {extrudeOpen && (
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.9)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:8,width:740,maxHeight:'90vh',
+            display:'flex',flexDirection:'column',overflow:'hidden'}}>
+
+            {/* Header */}
+            <div style={{height:44,background:'#0a0e1a',borderBottom:'1px solid #21262d',
+              display:'flex',alignItems:'center',gap:12,padding:'0 16px',flexShrink:0}}>
+              <span style={{color:'#FF6600',fontFamily:'JetBrains Mono',fontSize:13,fontWeight:700}}>⬡ SVG → 3D Extrude</span>
+              <span style={{color:'#555',fontSize:11}}>{project.layers.filter(l=>l.type==='path').length} path layers</span>
+              <div style={{flex:1}}/>
+              <button onClick={()=>{ destroyExtrudeScene(); setExtrudeOpen(false); }}
+                style={{background:'none',border:'none',color:'#888',cursor:'pointer',fontSize:20}}>✕</button>
+            </div>
+
+            <div style={{display:'flex',flex:1,overflow:'hidden'}}>
+              {/* 3D Preview */}
+              <div style={{flex:1,position:'relative',background:'#06060f',minHeight:360}}>
+                <canvas ref={extrudeCanvasRef} width={480} height={360}
+                  style={{width:'100%',height:'100%',display:'block',cursor:'grab'}}
+                  onMouseDown={onExtrudeOrbitDown} onMouseMove={onExtrudeOrbitMove}
+                  onMouseUp={onExtrudeOrbitUp} onMouseLeave={onExtrudeOrbitUp}
+                  onWheel={onExtrudeWheel}/>
+                <div style={{position:'absolute',bottom:8,left:8,color:'#333',fontSize:9,fontFamily:'JetBrains Mono'}}>
+                  Drag to orbit · Scroll to zoom · Auto-rotating
+                </div>
+              </div>
+
+              {/* Controls */}
+              <div style={{width:220,background:'#0d1117',borderLeft:'1px solid #21262d',
+                padding:14,display:'flex',flexDirection:'column',gap:10,overflowY:'auto',flexShrink:0}}>
+
+                {/* Depth */}
+                <div>
+                  <div style={{color:'#888',fontSize:10,marginBottom:4}}>Extrude Depth</div>
+                  <input type="range" min={0.01} max={2} step={0.01} value={extrudeDepth}
+                    onChange={e=>{ setExtrudeDepth(Number(e.target.value)); setTimeout(buildExtrudeMesh,10); }}
+                    style={{width:'100%'}}/>
+                  <span style={{color:'#FF6600',fontSize:10}}>{extrudeDepth.toFixed(2)}</span>
+                </div>
+
+                {/* Bevel */}
+                <div>
+                  <div style={{color:'#888',fontSize:10,marginBottom:4}}>Bevel Size</div>
+                  <input type="range" min={0} max={0.2} step={0.005} value={extrudeBevel}
+                    onChange={e=>{ setExtrudeBevel(Number(e.target.value)); setTimeout(buildExtrudeMesh,10); }}
+                    style={{width:'100%'}}/>
+                  <span style={{color:'#FF6600',fontSize:10}}>{extrudeBevel.toFixed(3)}</span>
+                </div>
+
+                {/* Material */}
+                <div>
+                  <div style={{color:'#888',fontSize:10,marginBottom:6}}>Material</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                    {EXTRUDE_MATERIALS.map(m=>(
+                      <button key={m.id} onClick={()=>{ setExtrudeMaterial(m.id); setTimeout(buildExtrudeMesh,10); }}
+                        style={{padding:'5px 8px',border:'none',borderRadius:4,cursor:'pointer',fontSize:10,
+                          textAlign:'left',display:'flex',alignItems:'center',gap:8,
+                          background:extrudeMaterial===m.id?'#1a1f2e':'transparent',
+                          color:extrudeMaterial===m.id?'#dde6ef':'#666',
+                          borderLeft:`3px solid ${m.color}`}}>
+                        <div style={{width:12,height:12,borderRadius:'50%',background:m.color,flexShrink:0}}/>
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Rebuild */}
+                <button onClick={buildExtrudeMesh}
+                  style={{background:'#1a1f2e',border:'1px solid #333',color:'#aaa',
+                    borderRadius:4,padding:'6px',cursor:'pointer',fontSize:11}}>
+                  ↺ Rebuild Mesh
+                </button>
+
+                {/* Info */}
+                <div style={{background:'#06060f',borderRadius:4,padding:'8px',fontSize:9,color:'#555',lineHeight:1.5}}>
+                  {project.layers.filter(l=>l.type==='path').length > 0
+                    ? `Extruding ${project.layers.filter(l=>l.type==='path').length} path layer(s) from your vector art.`
+                    : 'No path layers found — showing demo star shape. Draw paths in the canvas first.'}
+                </div>
+
+                {/* Actions */}
+                <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:'auto'}}>
+                  <button onClick={sendToCompositor}
+                    style={{background:'#FF6600',border:'none',color:'#fff',borderRadius:4,
+                      padding:'8px',cursor:'pointer',fontWeight:700,fontSize:12}}>
+                    → Send to 3D Compositor
+                  </button>
+                  <button onClick={()=>{
+                    const canvas = extrudeCanvasRef.current; if (!canvas) return;
+                    const link = document.createElement('a');
+                    link.download = `${project.name}_3d_preview.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                  }}
+                    style={{background:'#1a1f2e',border:'1px solid #333',color:'#aaa',borderRadius:4,
+                      padding:'6px',cursor:'pointer',fontSize:11}}>
+                    📷 Save Preview PNG
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
