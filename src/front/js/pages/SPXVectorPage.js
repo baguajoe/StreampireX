@@ -159,6 +159,18 @@ export default function SPXVectorPage() {
   const [showPatterns,   setShowPatterns]   = useState(false);
   // ── SVG → 3D Extrude (Session 1) ─────────────────────────────────────────
   const [extrudeOpen,     setExtrudeOpen]     = useState(false);
+  // ── Sessions 2+3 additions ────────────────────────────────────────────────
+  const [depthMode,       setDepthMode]       = useState('flat'); // flat|midas
+  const [depthMapUrl,     setDepthMapUrl]     = useState(null);
+  const [depthLoading,    setDepthLoading]    = useState(false);
+  const [depthStrength,   setDepthStrength]   = useState(1.0);
+  const [depthSmoothing,  setDepthSmoothing]  = useState(2);
+  const [exportPanel,     setExportPanel]     = useState(false);
+  const [exportFormat,    setExportFormat]    = useState('glb');
+  const [exportLoading,   setExportLoading]   = useState(false);
+  const [motionTarget,    setMotionTarget]    = useState(false);
+  const [videoTarget,     setVideoTarget]     = useState(false);
+
   const [extrudeDepth,    setExtrudeDepth]    = useState(0.3);
   const [extrudeBevel,    setExtrudeBevel]    = useState(0.02);
   const [extrudeMaterial, setExtrudeMaterial] = useState('teal_metal');
@@ -958,6 +970,210 @@ export default function SPXVectorPage() {
   };
 
 
+  // ── Session 2: MiDaS AI Depth ────────────────────────────────────────────
+  const rasterizeSVGtoBase64 = () => {
+    const svg = svgRef.current; if (!svg) return null;
+    const serialized = new XMLSerializer().serializeToString(svg);
+    const blob = new Blob([serialized], {type:'image/svg+xml'});
+    return new Promise(resolve => {
+      const img = new Image();
+      const url = URL.createObjectURL(blob);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width  = project.width  || 1920;
+        canvas.height = project.height || 1080;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/png').split(',')[1]);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  };
+
+  const runMiDaS = async () => {
+    setDepthLoading(true);
+    setDepthMapUrl(null);
+    try {
+      const b64 = await rasterizeSVGtoBase64();
+      if (!b64) throw new Error('Could not rasterize SVG');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+      const res = await fetch('/api/ai-fill/depth', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json', Authorization:`Bearer ${token}`},
+        body: JSON.stringify({image: b64}),
+      });
+      const data = await res.json();
+      if (data.url) {
+        setDepthMapUrl(data.url);
+        // Apply depth map to extrude mesh
+        await applyDepthMapToMesh(data.url);
+      } else {
+        alert('MiDaS error: ' + (data.error||'unknown'));
+      }
+    } catch(e) {
+      alert('Depth error: ' + e.message);
+    }
+    setDepthLoading(false);
+  };
+
+  const applyDepthMapToMesh = async (depthUrl) => {
+    const scene = extrudeSceneRef.current; if (!scene) return;
+    // Remove old mesh
+    if (extrudeMeshRef.current) { scene.remove(extrudeMeshRef.current); extrudeMeshRef.current = null; }
+
+    // Load depth map image
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image(); i.crossOrigin = 'anonymous';
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = depthUrl;
+    });
+
+    // Read depth pixels
+    const offscreen = document.createElement('canvas');
+    const dw = Math.min(img.width, 256); // downsample for performance
+    const dh = Math.min(img.height, 144);
+    offscreen.width = dw; offscreen.height = dh;
+    const ctx = offscreen.getContext('2d');
+    ctx.drawImage(img, 0, 0, dw, dh);
+    const pixels = ctx.getImageData(0, 0, dw, dh).data;
+
+    // Build displaced PlaneGeometry
+    const geo = new THREE.PlaneGeometry(3, 3 * (dh/dw), dw-1, dh-1);
+    const pos = geo.attributes.position.array;
+    for (let i=0; i<dh; i++) {
+      for (let j=0; j<dw; j++) {
+        const pxIdx = (i*dw+j)*4;
+        const brightness = pixels[pxIdx]/255; // R channel = depth
+        const vertIdx = (i*dw+j)*3;
+        pos[vertIdx+2] = brightness * depthStrength * 0.8; // displace Z
+      }
+    }
+    geo.attributes.position.needsUpdate = true;
+    geo.computeVertexNormals();
+
+    const matDef = EXTRUDE_MATERIALS.find(m=>m.id===extrudeMaterial)||EXTRUDE_MATERIALS[0];
+    const mat = new THREE.MeshStandardMaterial({
+      color: matDef.color, roughness: matDef.roughness, metalness: matDef.metalness,
+      side: THREE.DoubleSide,
+    });
+
+    // Optionally load the depth map as a texture too
+    const loader = new THREE.TextureLoader();
+    loader.crossOrigin = 'anonymous';
+    const tex = await new Promise(r => loader.load(depthUrl, r, undefined, ()=>r(null)));
+    if (tex) mat.map = tex;
+
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    scene.add(mesh);
+    extrudeMeshRef.current = mesh;
+  };
+
+  // ── Session 3: Export + Pipeline ─────────────────────────────────────────
+  const exportAs = async (format) => {
+    setExportLoading(true);
+    try {
+      if (format === 'png') {
+        // Export 3D preview as PNG
+        const renderer = extrudeRendererRef.current;
+        const scene    = extrudeSceneRef.current;
+        const camera   = extrudeCameraRef.current;
+        if (!renderer||!scene||!camera) throw new Error('Scene not initialized');
+        renderer.render(scene, camera);
+        const canvas = extrudeCanvasRef.current;
+        const link = document.createElement('a');
+        link.download = `${project.name}_3d.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } else if (format === 'svg') {
+        // Export original SVG
+        const svgData = exportFullSVG(project);
+        const blob = new Blob([svgData], {type:'image/svg+xml'});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `${project.name}.svg`;
+        link.href = url; link.click();
+        URL.revokeObjectURL(url);
+      } else if (format === 'glb') {
+        // GLB export via GLTFExporter
+        try {
+          const {GLTFExporter} = await import('three/examples/jsm/exporters/GLTFExporter.js');
+          const exporter = new GLTFExporter();
+          const mesh = extrudeMeshRef.current;
+          if (!mesh) throw new Error('No 3D mesh — open Extrude panel first');
+          exporter.parse(mesh, (gltf) => {
+            const blob = new Blob([gltf], {type:'model/gltf-binary'});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `${project.name}.glb`;
+            link.href = url; link.click();
+            URL.revokeObjectURL(url);
+          }, (err)=>{ throw err; }, {binary:true});
+        } catch(e) {
+          alert('GLB export: ' + e.message);
+        }
+      } else if (format === 'obj') {
+        try {
+          const {OBJExporter} = await import('three/examples/jsm/exporters/OBJExporter.js');
+          const exporter = new OBJExporter();
+          const mesh = extrudeMeshRef.current;
+          if (!mesh) throw new Error('No 3D mesh');
+          const result = exporter.parse(mesh);
+          const blob = new Blob([result], {type:'text/plain'});
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.download = `${project.name}.obj`;
+          link.href = url; link.click();
+          URL.revokeObjectURL(url);
+        } catch(e) {
+          alert('OBJ export: ' + e.message);
+        }
+      }
+    } catch(e) {
+      alert('Export error: ' + e.message);
+    }
+    setExportLoading(false);
+  };
+
+  const sendToMotionStudio = () => {
+    const payload = {
+      source: 'spx_vector_3d',
+      type: 'extrude',
+      projectName: project.name,
+      depthMode,
+      depthMapUrl,
+      material: EXTRUDE_MATERIALS.find(m=>m.id===extrudeMaterial),
+      timestamp: Date.now(),
+    };
+    localStorage.setItem('spx_3d_to_motion', JSON.stringify(payload));
+    setMotionTarget(true);
+    setTimeout(()=>setMotionTarget(false), 3000);
+  };
+
+  const sendToVideoEditor = () => {
+    const renderer = extrudeRendererRef.current;
+    const scene    = extrudeSceneRef.current;
+    const camera   = extrudeCameraRef.current;
+    let thumbnail = '';
+    if (renderer && scene && camera) {
+      renderer.render(scene, camera);
+      thumbnail = extrudeCanvasRef.current?.toDataURL('image/jpeg', 0.7) || '';
+    }
+    const payload = {
+      source: 'spx_vector_3d',
+      type: 'video_layer',
+      projectName: project.name,
+      thumbnail,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem('spx_3d_to_video', JSON.stringify(payload));
+    setVideoTarget(true);
+    setTimeout(()=>setVideoTarget(false), 3000);
+  };
+
+
   return (
     <div style={S.app}>
       {/* ── Top Bar ── */}
@@ -1676,8 +1892,19 @@ export default function SPXVectorPage() {
               <div style={{width:220,background:'#0d1117',borderLeft:'1px solid #21262d',
                 padding:14,display:'flex',flexDirection:'column',gap:10,overflowY:'auto',flexShrink:0}}>
 
+                {/* Mode toggle */}
+                <div style={{display:'flex',gap:4,marginBottom:4}}>
+                  {[['flat','Flat Extrude'],['midas','AI Depth (MiDaS)']].map(([id,lbl])=>(
+                    <button key={id} onClick={()=>{ setDepthMode(id); if(id==='flat') buildExtrudeMesh(); }}
+                      style={{flex:1,padding:'4px',border:'none',borderRadius:3,cursor:'pointer',fontSize:9,fontWeight:700,
+                        background:depthMode===id?'#00ffc8':'#1a1f2e',color:depthMode===id?'#06060f':'#888'}}>
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+
                 {/* Depth */}
-                <div>
+                {depthMode==='flat' && <div>
                   <div style={{color:'#888',fontSize:10,marginBottom:4}}>Extrude Depth</div>
                   <input type="range" min={0.01} max={2} step={0.01} value={extrudeDepth}
                     onChange={e=>{ setExtrudeDepth(Number(e.target.value)); setTimeout(buildExtrudeMesh,10); }}
@@ -1685,8 +1912,42 @@ export default function SPXVectorPage() {
                   <span style={{color:'#FF6600',fontSize:10}}>{extrudeDepth.toFixed(2)}</span>
                 </div>
 
+                </div>}
+
+                {/* MiDaS AI Depth */}
+                {depthMode==='midas' && (
+                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                    <div style={{color:'#555',fontSize:9,lineHeight:1.5}}>
+                      Rasterizes your SVG and sends it to MiDaS depth estimation. Result is displaced as a 3D surface.
+                    </div>
+                    <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                      <span style={{color:'#888',fontSize:10,width:60}}>Strength</span>
+                      <input type="range" min={0.1} max={3} step={0.1} value={depthStrength}
+                        onChange={e=>setDepthStrength(Number(e.target.value))} style={{flex:1}}/>
+                      <span style={{color:'#00ffc8',fontSize:9,width:24}}>{depthStrength.toFixed(1)}</span>
+                    </div>
+                    <button onClick={runMiDaS} disabled={depthLoading}
+                      style={{background:depthLoading?'#333':'#00ffc8',color:depthLoading?'#555':'#06060f',
+                        border:'none',borderRadius:4,padding:'6px',cursor:depthLoading?'not-allowed':'pointer',
+                        fontWeight:700,fontSize:11}}>
+                      {depthLoading ? '⏳ Running MiDaS…' : '✦ Generate AI Depth'}
+                    </button>
+                    {depthMapUrl && (
+                      <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                        <span style={{color:'#888',fontSize:9}}>Depth map:</span>
+                        <img src={depthMapUrl} alt="depth" style={{width:'100%',borderRadius:4,border:'1px solid #333'}}/>
+                        <button onClick={()=>applyDepthMapToMesh(depthMapUrl)}
+                          style={{background:'#1a1f2e',border:'1px solid #FF6600',color:'#FF6600',
+                            borderRadius:3,padding:'4px',cursor:'pointer',fontSize:10}}>
+                          ↺ Reapply to Mesh
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Bevel */}
-                <div>
+                {depthMode==='flat' && <div>
                   <div style={{color:'#888',fontSize:10,marginBottom:4}}>Bevel Size</div>
                   <input type="range" min={0} max={0.2} step={0.005} value={extrudeBevel}
                     onChange={e=>{ setExtrudeBevel(Number(e.target.value)); setTimeout(buildExtrudeMesh,10); }}
@@ -1694,6 +1955,7 @@ export default function SPXVectorPage() {
                   <span style={{color:'#FF6600',fontSize:10}}>{extrudeBevel.toFixed(3)}</span>
                 </div>
 
+                </div>}
                 {/* Material */}
                 <div>
                   <div style={{color:'#888',fontSize:10,marginBottom:6}}>Material</div>
@@ -1726,6 +1988,20 @@ export default function SPXVectorPage() {
                     : 'No path layers found — showing demo star shape. Draw paths in the canvas first.'}
                 </div>
 
+                {/* Export */}
+                <div style={{borderTop:'1px solid #21262d',paddingTop:8,marginTop:4}}>
+                  <div style={{color:'#888',fontSize:10,marginBottom:6}}>Export 3D Mesh</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
+                    {[['glb','GLB'],['obj','OBJ'],['png','PNG'],['svg','SVG']].map(([fmt,lbl])=>(
+                      <button key={fmt} onClick={()=>exportAs(fmt)} disabled={exportLoading}
+                        style={{padding:'5px',border:'1px solid #21262d',borderRadius:3,cursor:'pointer',fontSize:10,
+                          background:'#0d1117',color:'#aaa'}}>
+                        ↓ {lbl}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Actions */}
                 <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:'auto'}}>
                   <button onClick={sendToCompositor}
@@ -1733,16 +2009,17 @@ export default function SPXVectorPage() {
                       padding:'8px',cursor:'pointer',fontWeight:700,fontSize:12}}>
                     → Send to 3D Compositor
                   </button>
-                  <button onClick={()=>{
-                    const canvas = extrudeCanvasRef.current; if (!canvas) return;
-                    const link = document.createElement('a');
-                    link.download = `${project.name}_3d_preview.png`;
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                  }}
-                    style={{background:'#1a1f2e',border:'1px solid #333',color:'#aaa',borderRadius:4,
-                      padding:'6px',cursor:'pointer',fontSize:11}}>
-                    📷 Save Preview PNG
+                  <button onClick={sendToMotionStudio}
+                    style={{background:motionTarget?'#00ffc8':'#1a1f2e',
+                      border:'1px solid #333',color:motionTarget?'#06060f':'#aaa',borderRadius:4,
+                      padding:'6px',cursor:'pointer',fontSize:11,fontWeight:motionTarget?700:400}}>
+                    {motionTarget ? '✓ Sent!' : '→ Send to Motion Studio'}
+                  </button>
+                  <button onClick={sendToVideoEditor}
+                    style={{background:videoTarget?'#00ffc8':'#1a1f2e',
+                      border:'1px solid #333',color:videoTarget?'#06060f':'#aaa',borderRadius:4,
+                      padding:'6px',cursor:'pointer',fontSize:11,fontWeight:videoTarget?700:400}}>
+                    {videoTarget ? '✓ Sent!' : '→ Send to Video Editor'}
                   </button>
                 </div>
               </div>

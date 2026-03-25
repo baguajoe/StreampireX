@@ -61,3 +61,34 @@ def remove_bg():
         return jsonify({'url': _poll(r.json()['id'])})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@ai_fill_bp.route('/depth', methods=['POST'])
+@jwt_required()
+def depth_estimate():
+    """
+    Body JSON:
+      image : base64 PNG (rasterized SVG)
+    Returns:
+      { url: <depth map PNG url> }
+    Uses: isl-org/midas on Replicate
+    """
+    body  = request.get_json(force=True)
+    image = body.get('image', '')
+    if not image:
+        return jsonify({'error': 'image is required'}), 400
+
+    payload = {
+        'version': '884e41df9a86bdbb2e60dc1bec660ef6b2f3f14d3c7b2a18c86cce1da2df2c3c',
+        'input': {
+            'image': _uri(image),
+            'model_type': 'DPT_Large',
+        }
+    }
+    try:
+        r = requests.post(REPLICATE_API, json=payload, headers=HEADERS, timeout=15)
+        r.raise_for_status()
+        result_url = _poll(r.json()['id'])
+        return jsonify({'url': result_url})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
