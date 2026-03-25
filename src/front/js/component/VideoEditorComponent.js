@@ -6285,6 +6285,7 @@ TIMELINE
             )}
 
             {showSourceMonitor && sourceMonitorMedia && (
+              <div style={{width:'100%', height:300, flexShrink:0}}>
               <SourceMonitor
                 selectedMedia={sourceMonitorMedia}
                 onAddToTimeline={(media, inPoint, outPoint, insertType) => {
@@ -6375,6 +6376,7 @@ TIMELINE
                 }}
                 onClose={() => setShowSourceMonitor(false)}
               />
+              </div>
             )}
 
             {/* ========================================
