@@ -884,8 +884,7 @@ function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
       uniform float uTime;
       varying vec2 vUv;
       varying vec3 vNormal;
-      ${fragmentParts.join('
-      ')}
+      ${fragmentParts.join('\n')}
       void main() {
         vec3 col = vec3(vUv, 0.5+0.5*sin(uTime));
         gl_FragColor = vec4(col, 1.0);
@@ -1779,7 +1778,7 @@ export default function NodeCompositorPage() {
     });
   };
 
-  return (
+  return (<>
     <div className="node-compositor-page"
       style={{ display:"flex", flexDirection:"column", height:"calc(100vh - 60px)", overflow:"hidden" }}>
       <AppMenuBar
@@ -1945,7 +1944,7 @@ export default function NodeCompositorPage() {
               <ShaderPreviewCanvas shaderId="basicColor" height={180} />
             </div>
 
-            <RotoOverlayEditor shape={rotoShape} setShape={setRotoShape} width={320} height={180} />
+                        <RotoOverlayEditor shape={rotoShape} setShape={setRotoShape} width={320} height={180} />
             <RotoTimelinePanel />
             <RenderQueuePanel />
             <BackendRenderPanel />
@@ -1953,47 +1952,91 @@ export default function NodeCompositorPage() {
             <NodeEnginePanel frame={Math.floor(currentTime * 30)} evaluation={engineEvaluation} />
 
             <div style={{ padding:8 }}>
-              <button onClick={handleRenderProject}
-                style={{ width:"100%", padding:"8px", borderRadius:6, cursor:"pointer",
-                  fontWeight:700, fontSize:12, background:"#00ffc8", color:"#000", border:"none" }}>
+              <button
+                onClick={handleRenderProject}
+                style={{
+                  width:"100%",
+                  padding:"8px",
+                  borderRadius:6,
+                  cursor:"pointer",
+                  fontWeight:700,
+                  fontSize:12,
+                  background:"#00ffc8",
+                  color:"#000",
+                  border:"none"
+                }}
+              >
                 ▶ Render Project
               </button>
             </div>
 
             <div className="motion-panel">
               <div className="motion-panel-title">Graph Output</div>
+
               <pre
                 style={{
                   margin: 0,
                   whiteSpace: "pre-wrap",
                   fontSize: 12,
                   lineHeight: 1.5,
-                  color: "#d9eaff",
+                  color: "#d9eaff"
                 }}
               >
-{JSON.stringify({ currentTime, edges, rotoShape, graphResult, engineEvaluation }, null, 2)}
+{JSON.stringify(
+  { currentTime, edges, rotoShape, graphResult, engineEvaluation },
+  null,
+
+)}
               </pre>
             </div>
+
           </div>
         </div>
       </div>
     </div>
-      {/* ── Blender Lite 3D Viewport toggle ──────────────────────────────── */}
-      <button onClick={()=>setShow3D(s=>!s)}
-        title="Toggle 3D Viewport"
-        style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',zIndex:1000,
-          padding:'8px 24px',borderRadius:20,border:'2px solid #00ffc8',
-          background:show3D?'#00ffc8':'#0d1117',color:show3D?'#06060f':'#00ffc8',
-          cursor:'pointer',fontWeight:700,fontSize:12,fontFamily:'JetBrains Mono',
-          boxShadow:'0 4px 20px rgba(0,255,200,0.3)'}}>
-        {show3D ? '✕ Close 3D' : '⬡ 3D Viewport'}
-      </button>
 
-      {/* ── 3D Viewport Panel ─────────────────────────────────────────────── */}
-      {show3D && (
-        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'#06060f',zIndex:2000,display:'flex',flexDirection:'column'}}>
+    {/* ── Blender Lite 3D Viewport toggle ──────────────────────────────── */}
+    <button
+      onClick={() => setShow3D(s => !s)}
+      title="Toggle 3D Viewport"
+      style={{
+        position:"fixed",
+        bottom:24,
+        left:"50%",
+        transform:"translateX(-50%)",
+        zIndex:1000,
+        padding:"8px 24px",
+        borderRadius:20,
+        border:"2px solid #00ffc8",
+        background: show3D ? "#00ffc8" : "#0d1117",
+        color: show3D ? "#06060f" : "#00ffc8",
+        cursor:"pointer",
+        fontWeight:700,
+        fontSize:12,
+        fontFamily:"JetBrains Mono",
+        boxShadow:"0 4px 20px rgba(0,255,200,0.3)"
+      }}
+    >
+      {show3D ? "✕ Close 3D" : "⬡ 3D Viewport"}
+    </button>
 
-          {/* Top bar */}
+    {/* ── 3D Viewport Panel ─────────────────────────────────────────────── */}
+    {show3D && (
+      <div
+        style={{
+          position:"fixed",
+          top:0,
+          left:0,
+          right:0,
+          bottom:0,
+          background:"#06060f",
+          zIndex:2000,
+          display:"flex",
+          flexDirection:"column"
+        }}
+      >
+
+        {/* Top bar */}
           <div style={{height:40,background:'#0d1117',borderBottom:'1px solid #21262d',display:'flex',alignItems:'center',gap:12,padding:'0 16px',flexShrink:0}}>
             <span style={{color:'#00ffc8',fontFamily:'JetBrains Mono',fontSize:12,fontWeight:700}}>⬡ SPX 3D — Blender Lite</span>
             <div style={{flex:1}}/>
@@ -2926,5 +2969,5 @@ export default function NodeCompositorPage() {
         </div>
       )}
 
-  );
+  </>);
 }
