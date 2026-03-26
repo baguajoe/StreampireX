@@ -215,6 +215,40 @@ const applyDacRolloff = (ctx, buffer) => {
   return out;
 };
 
+
+// =============================================================================
+// OUTPUT TRANSFORMER SATURATION (analog warmth sim)
+// =============================================================================
+const applyOutputSaturation = (ctx, buffer, drive = 1.8, warmth = 0.3) => {
+  if (!buffer) return buffer;
+  const nc  = buffer.numberOfChannels;
+  const len = buffer.length;
+  const out = ctx.createBuffer(nc, len, buffer.sampleRate);
+  // Low-shelf warmth coefficients (boost ~200Hz)
+  const sr   = buffer.sampleRate;
+  const f0   = 200;
+  const wc   = 2 * Math.PI * f0 / sr;
+  const norm = 1 / (1 + wc);
+  for (let ch = 0; ch < nc; ch++) {
+    const src = buffer.getChannelData(ch);
+    const dst = out.getChannelData(ch);
+    let prev_in = 0, prev_out = 0;
+    for (let i = 0; i < len; i++) {
+      // 1. Drive into soft-clip (tanh approximation)
+      const driven = src[i] * drive;
+      const clipped = driven / (1 + Math.abs(driven));  // faster than tanh, same curve
+      // 2. Low-shelf warmth (single-pole highpass subtracted = shelf)
+      const hp  = norm * (clipped - prev_in + prev_out);
+      prev_in   = clipped;
+      prev_out  = hp;
+      const warm = clipped - warmth * hp;
+      // 3. Output at unity (compensate drive gain)
+      dst[i] = warm / drive * 1.05;
+    }
+  }
+  return out;
+};
+
 // =============================================================================
 // ZERO-CROSSING SNAP (same as main SamplerBeatMaker)
 // =============================================================================
@@ -277,6 +311,9 @@ const SPX3000Tab = ({
   // ── DAC / Character ───────────────────────────────────────────────────────
   const [dacEnabled, setDacEnabled]     = useState(true);   // global 12-bit on/off
   const [rolloffEnabled, setRolloffEnabled] = useState(true);
+  const [saturationEnabled, setSaturationEnabled] = useState(true);
+  const [satDrive, setSatDrive]   = useState(1.8);
+  const [satWarmth, setSatWarmth] = useState(0.3);
   const [linnEnabled, setLinnEnabled]   = useState(true);
   const [velPitchEnabled, setVelPitchEnabled] = useState(true);
   const [noiseAmt, setNoiseAmt]         = useState(100);    // 0-200% noise floor
@@ -380,7 +417,7 @@ const SPX3000Tab = ({
   // =============================================================================
 
   const getProcessedBuffer = useCallback(async (bank, padIdx) => {
-    const cacheKey = `${bank}_${padIdx}_${dacEnabled ? 1 : 0}_${rolloffEnabled ? 1 : 0}`;
+    const cacheKey = `${bank}_${padIdx}_${dacEnabled ? 1 : 0}_${rolloffEnabled ? 1 : 0}_${saturationEnabled ? 1 : 0}_${satDrive}_${satWarmth}`;
     if (dacCache.current[cacheKey]) return dacCache.current[cacheKey];
     const pad = banksRef.current[bank][padIdx];
     if (!pad?.buffer) return null;
@@ -1092,6 +1129,7 @@ const SPX3000Tab = ({
           let buf = pad.buffer;
           if (rolloffEnabled) buf = applyDacRolloff(oc, buf);
           if (dacEnabled && pad.dacOn) buf = applyDac12bit(oc, buf);
+          if (saturationEnabled) buf = applyOutputSaturation(oc, buf, satDrive, satWarmth);
           src.buffer = buf;
           gain.gain.value = (pad.volume / 100) * velNorm;
           src.connect(gain); gain.connect(mg);
@@ -1444,6 +1482,26 @@ const SPX3000Tab = ({
               <input type="checkbox" checked={velPitchEnabled} onChange={e => setVelPitchEnabled(e.target.checked)} />
               Vel→Pitch
             </label>
+            <label className="char-ctrl">
+              <input type="checkbox" checked={saturationEnabled} onChange={e => { setSaturationEnabled(e.target.checked); dacCache.current = {}; }} />
+              Transformer Sat
+            </label>
+            {saturationEnabled && <>
+              <div className="char-ctrl" style={{display:'flex',alignItems:'center',gap:6}}>
+                <span style={{fontSize:10,color:'#aaa',width:36}}>Drive</span>
+                <input type="range" min={1} max={4} step={0.1} value={satDrive}
+                  onChange={e => { setSatDrive(Number(e.target.value)); dacCache.current = {}; }}
+                  style={{width:80}}/>
+                <span style={{fontSize:10,color:'#FF6600',width:24}}>{satDrive.toFixed(1)}</span>
+              </div>
+              <div className="char-ctrl" style={{display:'flex',alignItems:'center',gap:6}}>
+                <span style={{fontSize:10,color:'#aaa',width:36}}>Warmth</span>
+                <input type="range" min={0} max={1} step={0.05} value={satWarmth}
+                  onChange={e => { setSatWarmth(Number(e.target.value)); dacCache.current = {}; }}
+                  style={{width:80}}/>
+                <span style={{fontSize:10,color:'#FF6600',width:24}}>{satWarmth.toFixed(2)}</span>
+              </div>
+            </>}
             <div className="char-noise">
               <label>Noise</label>
               <input type="range" min={0} max={300} value={noiseAmt} onChange={e => setNoiseAmt(+e.target.value)} />
