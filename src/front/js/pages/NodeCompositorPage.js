@@ -1496,61 +1496,6 @@ export default function NodeCompositorPage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, [objectTriggers]);
 
-
-  // ── Three.js scene bootstrap ──────────────────────────────────────────────
-  const init3DScene = React.useCallback(() => {
-    const canvas = threeCanvasRef.current;
-    if (!canvas || threeRendererRef.current) return;
-
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    threeRendererRef.current = renderer;
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#0d1117');
-    threeSceneRef.current = scene;
-
-    const camera = new THREE.PerspectiveCamera(60, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-    camera.position.set(5, 5, 8);
-    camera.lookAt(0, 0, 0);
-    threeCameraRef.current = camera;
-
-    // Grid helper
-    const grid = new THREE.GridHelper(20, 20, '#21262d', '#21262d');
-    scene.add(grid);
-
-    // Axes helper
-    const axes = new THREE.AxesHelper(3);
-    scene.add(axes);
-
-    // Default lights
-    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
-    scene.add(ambient);
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(5, 10, 5);
-    dirLight.castShadow = true;
-    scene.add(dirLight);
-
-    const animate = () => {
-      threeRafRef.current = requestAnimationFrame(animate);
-      renderer.render(scene, camera);
-    };
-    animate();
-  }, []);
-
-  const destroy3DScene = React.useCallback(() => {
-    if (threeRafRef.current) cancelAnimationFrame(threeRafRef.current);
-    if (threeRendererRef.current) { threeRendererRef.current.dispose(); threeRendererRef.current = null; }
-    threeSceneRef.current = null; threeCameraRef.current = null;
-  }, []);
-
-  React.useEffect(() => {
-    if (show3D) { setTimeout(init3DScene, 50); }
-    else { destroy3DScene(); }
   const [edges, setEdges] = React.useState([]);
   const [currentTime, setCurrentTime] = React.useState(0);
   const [playing, setPlaying] = React.useState(false);
