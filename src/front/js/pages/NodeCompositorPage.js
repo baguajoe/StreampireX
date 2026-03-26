@@ -1736,7 +1736,7 @@ export default function NodeCompositorPage() {
     };
   }, [playing]);
 
-  const addShaderNode = () => {
+  const addCompositorShaderNode = () => {
     addNode({
       type: "shader",
       x: 240 + nodes.length * 20,
