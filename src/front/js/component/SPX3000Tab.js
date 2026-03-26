@@ -1,3 +1,4 @@
+import "../../styles/SPX3000Tab.css";
 // =============================================================================
 // SPX3000Tab.js — StreamPireX 3000 Engine
 // Full MPC3000 emulation: 12-bit DAC, 4 banks, choke groups, 96 PPQN sequencer,
