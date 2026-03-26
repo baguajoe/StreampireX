@@ -1439,6 +1439,7 @@ const SPX3000Tab = ({
                     onDragOver={(e) => onDragOver(e, padIdx)}
                     onDragLeave={onDragLeave}
                     onDrop={(e) => onDrop(e, padIdx)}
+                    onClick={(e) => { if (!pad.buffer && !e.defaultPrevented) fileSelect(activeBank, padIdx); }}
                   >
                     {/* Pad number */}
                     <span className="spx-pad-num">{padIdx + 1}</span>
@@ -1457,7 +1458,7 @@ const SPX3000Tab = ({
 
                     {/* Sample name */}
                     <span className="spx-pad-name">
-                      {pad.buffer ? pad.name : '—'}
+                      {pad.buffer ? pad.name : <span style={{fontSize:9,color:'#505050',letterSpacing:1}}>DROP AUDIO</span>}
                     </span>
 
                     {/* Load button */}
