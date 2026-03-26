@@ -166,60 +166,69 @@ const COMP_KEY = "spx_compositor_project";
 
 // ── Shared Menu Bar Component ──
 function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
-  // ── Three.js scene bootstrap ──────────────────────────────────────────────
-  const init3DScene = React.useCallback(() => {
-    const canvas = threeCanvasRef.current;
-    if (!canvas || threeRendererRef.current) return;
+  return (
+    <div className="spx-menu-bar">
+      {menus.map(menu => (
+        <MenuDropdown key={menu.label} label={menu.label} items={menu.items} />
+      ))}
+      <input
+        className="spx-project-name-input"
+        value={projectName || ""}
+        onChange={e => setProjectName(e.target.value)}
+        placeholder="Untitled Project"
+      />
+      <div style={{flex:1}}/>
+      {rightContent}
+    </div>
+  );
+}
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    threeRendererRef.current = renderer;
+function MenuDropdown({ label, items }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="spx-menu-item" onMouseLeave={() => setOpen(false)}>
+      <button className="spx-menu-btn" onMouseEnter={() => setOpen(true)} onClick={() => setOpen(o => !o)}>
+        {label}
+      </button>
+      {open && (
+        <div className="spx-menu-dropdown">
+          {items.map((item, i) => item === "---"
+            ? <div key={i} style={{height:1,background:"#21262d",margin:"3px 0"}}/>
+            : <button key={item.label} className="spx-menu-dropdown-item"
+                onClick={() => { item.action(); setOpen(false); }}>
+                <span>{item.label}</span>
+                {item.shortcut && <span style={{color:"#4e6a82",fontSize:10,marginLeft:"auto"}}>{item.shortcut}</span>}
+              </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#0d1117');
-    threeSceneRef.current = scene;
+import NodeGraph from "../component/compositor/NodeGraph";
+import NodeGraphPro from "../component/compositor/NodeGraphPro";
+import { evaluateGraph } from "../utils/compositor/nodeEngine";
+import { SHADER_NODE_PRESETS } from "../component/nodecompositor/vfx/shaderNodePresets";
+import ShaderPreviewCanvas from "../component/nodecompositor/vfx/ShaderPreviewCanvas";
+import CompositorTimeline from "../component/compositor/CompositorTimeline";
+import "../../styles/NodeCompositor.css";
+import "../../styles/MotionStudioPro.css";
+import CompositorInspectorPro from "../component/nodecompositor/pro/CompositorInspectorPro";
+import CompositorPreviewPro from "../component/nodecompositor/pro/CompositorPreviewPro";
+import RotoOverlayEditor from "../component/nodecompositor/pro/RotoOverlayEditor";
+import TrackerPanelPro from "../component/nodecompositor/pro/TrackerPanelPro";
+import GPUMultiPassPanel from "../component/nodecompositor/pro/GPUMultiPassPanel";
+import RenderQueuePanel from "../component/nodecompositor/pro/RenderQueuePanel";
+import BackendRenderPanel from "../component/nodecompositor/pro/BackendRenderPanel";
+import MediaIngestPanel from "../component/nodecompositor/pro/MediaIngestPanel";
+import ColorPipelinePanel from "../component/nodecompositor/pro/ColorPipelinePanel";
+import RotoTimelinePanel from "../component/nodecompositor/pro/RotoTimelinePanel";
+import DependencyGraphPanel from "../component/nodecompositor/pro/DependencyGraphPanel";
+import { createGraphRunner } from "../utils/compositor/engine/graphRunner";
+import NodeEnginePanel from "../component/nodecompositor/pro/NodeEnginePanel";
 
-    const camera = new THREE.PerspectiveCamera(60, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-    camera.position.set(5, 5, 8);
-    camera.lookAt(0, 0, 0);
-    threeCameraRef.current = camera;
-
-    // Grid helper
-    const grid = new THREE.GridHelper(20, 20, '#21262d', '#21262d');
-    scene.add(grid);
-
-    // Axes helper
-    const axes = new THREE.AxesHelper(3);
-    scene.add(axes);
-
-    // Default lights
-    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
-    scene.add(ambient);
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(5, 10, 5);
-    dirLight.castShadow = true;
-    scene.add(dirLight);
-
-    const animate = () => {
-      threeRafRef.current = requestAnimationFrame(animate);
-      renderer.render(scene, camera);
-    };
-    animate();
-  }, []);
-
-  const destroy3DScene = React.useCallback(() => {
-    if (threeRafRef.current) cancelAnimationFrame(threeRafRef.current);
-    if (threeRendererRef.current) { threeRendererRef.current.dispose(); threeRendererRef.current = null; }
-    threeSceneRef.current = null; threeCameraRef.current = null;
-  }, []);
-
-  React.useEffect(() => {
-    if (show3D) { setTimeout(init3DScene, 50); }
-    else { destroy3DScene(); }
+export default function NodeCompositorPage() {
     return () => destroy3DScene();
   }, [show3D]);
 
@@ -1445,69 +1454,60 @@ function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
   }, [objectTriggers]);
 
 
-  return (
-    <div className="spx-menu-bar">
-      {menus.map(menu => (
-        <MenuDropdown key={menu.label} label={menu.label} items={menu.items} />
-      ))}
-      <input
-        className="spx-project-name-input"
-        value={projectName || ""}
-        onChange={e => setProjectName(e.target.value)}
-        placeholder="Untitled Project"
-      />
-      <div style={{flex:1}}/>
-      {rightContent}
-    </div>
-  );
-}
+  // ── Three.js scene bootstrap ──────────────────────────────────────────────
+  const init3DScene = React.useCallback(() => {
+    const canvas = threeCanvasRef.current;
+    if (!canvas || threeRendererRef.current) return;
 
-function MenuDropdown({ label, items }) {
-  const [open, setOpen] = React.useState(false);
-  return (
-    <div className="spx-menu-item" onMouseLeave={() => setOpen(false)}>
-      <button className="spx-menu-btn" onMouseEnter={() => setOpen(true)} onClick={() => setOpen(o => !o)}>
-        {label}
-      </button>
-      {open && (
-        <div className="spx-menu-dropdown">
-          {items.map((item, i) => item === "---"
-            ? <div key={i} style={{height:1,background:"#21262d",margin:"3px 0"}}/>
-            : <button key={item.label} className="spx-menu-dropdown-item"
-                onClick={() => { item.action(); setOpen(false); }}>
-                <span>{item.label}</span>
-                {item.shortcut && <span style={{color:"#4e6a82",fontSize:10,marginLeft:"auto"}}>{item.shortcut}</span>}
-              </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    threeRendererRef.current = renderer;
 
-import NodeGraph from "../component/compositor/NodeGraph";
-import NodeGraphPro from "../component/compositor/NodeGraphPro";
-import { evaluateGraph } from "../utils/compositor/nodeEngine";
-import { SHADER_NODE_PRESETS } from "../component/nodecompositor/vfx/shaderNodePresets";
-import ShaderPreviewCanvas from "../component/nodecompositor/vfx/ShaderPreviewCanvas";
-import CompositorTimeline from "../component/compositor/CompositorTimeline";
-import "../../styles/NodeCompositor.css";
-import "../../styles/MotionStudioPro.css";
-import CompositorInspectorPro from "../component/nodecompositor/pro/CompositorInspectorPro";
-import CompositorPreviewPro from "../component/nodecompositor/pro/CompositorPreviewPro";
-import RotoOverlayEditor from "../component/nodecompositor/pro/RotoOverlayEditor";
-import TrackerPanelPro from "../component/nodecompositor/pro/TrackerPanelPro";
-import GPUMultiPassPanel from "../component/nodecompositor/pro/GPUMultiPassPanel";
-import RenderQueuePanel from "../component/nodecompositor/pro/RenderQueuePanel";
-import BackendRenderPanel from "../component/nodecompositor/pro/BackendRenderPanel";
-import MediaIngestPanel from "../component/nodecompositor/pro/MediaIngestPanel";
-import ColorPipelinePanel from "../component/nodecompositor/pro/ColorPipelinePanel";
-import RotoTimelinePanel from "../component/nodecompositor/pro/RotoTimelinePanel";
-import DependencyGraphPanel from "../component/nodecompositor/pro/DependencyGraphPanel";
-import { createGraphRunner } from "../utils/compositor/engine/graphRunner";
-import NodeEnginePanel from "../component/nodecompositor/pro/NodeEnginePanel";
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#0d1117');
+    threeSceneRef.current = scene;
 
-export default function NodeCompositorPage() {
+    const camera = new THREE.PerspectiveCamera(60, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+    camera.position.set(5, 5, 8);
+    camera.lookAt(0, 0, 0);
+    threeCameraRef.current = camera;
+
+    // Grid helper
+    const grid = new THREE.GridHelper(20, 20, '#21262d', '#21262d');
+    scene.add(grid);
+
+    // Axes helper
+    const axes = new THREE.AxesHelper(3);
+    scene.add(axes);
+
+    // Default lights
+    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambient);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(5, 10, 5);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+
+    const animate = () => {
+      threeRafRef.current = requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    };
+    animate();
+  }, []);
+
+  const destroy3DScene = React.useCallback(() => {
+    if (threeRafRef.current) cancelAnimationFrame(threeRafRef.current);
+    if (threeRendererRef.current) { threeRendererRef.current.dispose(); threeRendererRef.current = null; }
+    threeSceneRef.current = null; threeCameraRef.current = null;
+  }, []);
+
+  React.useEffect(() => {
+    if (show3D) { setTimeout(init3DScene, 50); }
+    else { destroy3DScene(); }
   const [edges, setEdges] = React.useState([]);
   const [currentTime, setCurrentTime] = React.useState(0);
   const [playing, setPlaying] = React.useState(false);
