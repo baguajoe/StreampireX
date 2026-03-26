@@ -305,6 +305,7 @@ const SPX3000Tab = ({
     D: Array.from({ length: SPX_PADS }, (_, i) => mkPad(i)),
   }));
   const [activeBank, setActiveBank]   = useState('A');
+  const [splitView, setSplitView]     = useState(false);
   const [selectedPad, setSelectedPad] = useState(null);
   const [activePads, setActivePads]   = useState(new Set());
   const [dragPad, setDragPad]         = useState(null);
@@ -1385,11 +1386,21 @@ const SPX3000Tab = ({
       {/* ══════════════════════════════════════════════════════════════
           PADS VIEW
           ══════════════════════════════════════════════════════════════ */}
-      {view === 'pads' && (
-        <div className="spx3000-pads-view">
+      {(view === 'pads' || splitView) && (
+        <div className="spx3000-pads-view" style={{display:'flex',flexDirection:'row',gap:0,overflow:'hidden'}}>
+          <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'auto',padding:12,gap:12,minWidth:0}}>
 
-          {/* Bank selector */}
-          <div className="spx3000-bank-row">
+          {/* Split toggle + Bank selector */}
+          <div className="spx3000-bank-row" style={{display:'flex',alignItems:'center',gap:6}}>
+            <button
+              onClick={() => setSplitView(s => !s)}
+              style={{padding:'4px 10px',border:'1px solid #3a3b3f',borderRadius:3,cursor:'pointer',
+                fontSize:10,fontWeight:700,fontFamily:'Share Tech Mono,monospace',
+                background: splitView ? '#e8a020' : '#1e1f21',
+                color: splitView ? '#0e0f10' : '#888880',flexShrink:0}}
+            >
+              {splitView ? '⊟ SPLIT' : '⊞ SPLIT'}
+            </button>
             {SPX_BANKS.map(b => (
               <button
                 key={b}
