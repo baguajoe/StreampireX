@@ -2796,6 +2796,7 @@ const SamplerBeatMaker = ({
         {[
           { id: 'sampler', label: '🎧 Sampler', title: 'Sample Editor, Waveform, Chop, ADSR' },
           { id: 'drumpad', label: '🥁 Drum Kit', title: 'MPC Pads, Performance, Kits' },
+          { id: 'chop', label: '✂️ Chop', title: 'Sample Chop — slice, trim, assign to pads' },
           { id: 'beats', label: '🎹 Beat Maker', title: 'Step Sequencer, Patterns, Song Mode' },
           { id: 'spx3000', label: '🎛️ SPX3000', title: 'SPX3000 — MPC3000 engine, 12-bit DAC, 4 banks, 96 PPQN' },
           { id: 'sp1200', label: '🔴 SP-1200', title: 'SP-1200 — E-mu 1987, 26kHz, asymmetric saturation, boom bap' },
@@ -2916,6 +2917,55 @@ const SamplerBeatMaker = ({
               stopVocalBeat: () => { },
             }}
           />
+        )}
+
+        {/* ── CHOP TAB ── */}
+        {activeTab === 'chop' && (
+          <div style={{ flex:1, minHeight:0, overflow:'hidden', display:'flex', flexDirection:'column', position:'relative' }}>
+            {pads.some(p => p.buffer) ? (
+              <div style={{ display:'flex', flexDirection:'column', gap:8, padding:'8px 12px' }}>
+                {/* Pad selector */}
+                <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
+                  <span style={{ fontSize:10, color:'#888', fontFamily:'Share Tech Mono,monospace', letterSpacing:1 }}>SELECT PAD TO CHOP:</span>
+                  {pads.map((pad, i) => pad.buffer && (
+                    <button key={i}
+                      onClick={() => { setChopIdx(i); setChopPts([]); setShowChop(true); }}
+                      style={{
+                        padding:'3px 10px', border:`1px solid ${chopIdx===i?'#00ffc8':'#3a3b3f'}`,
+                        borderRadius:3, cursor:'pointer', fontSize:10,
+                        background: chopIdx===i ? 'rgba(0,255,200,0.15)' : '#1e1f21',
+                        color: chopIdx===i ? '#00ffc8' : '#888',
+                        fontFamily:'Share Tech Mono,monospace'
+                      }}>
+                      {i+1}: {pad.name || `PAD ${i+1}`}
+                    </button>
+                  ))}
+                </div>
+                {/* ChopView */}
+                {chopIdx !== null && showChop && (
+                  <ChopView engine={{
+                    pads, setPads, chopIdx, setChopIdx,
+                    chopPts, setChopPts,
+                    chopSens, setChopSens,
+                    chopMode, setChopMode,
+                    chopSlices, setChopSlices,
+                    chopCanvas, zeroCrossSnap, setZeroCrossSnap,
+                    updatePad, setShowChop, showChop,
+                    ctxRef, initCtx, bpm,
+                  }}/>
+                )}
+                {chopIdx === null && (
+                  <div style={{ padding:40, textAlign:'center', color:'#555', fontFamily:'Share Tech Mono,monospace', fontSize:11 }}>
+                    Select a loaded pad above to open the chop editor
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ padding:40, textAlign:'center', color:'#555', fontFamily:'Share Tech Mono,monospace', fontSize:11 }}>
+                Load samples onto pads first (Sampler or Drum Kit tab)
+              </div>
+            )}
+          </div>
         )}
 
         {/* ── BEAT MAKER TAB ── */}
