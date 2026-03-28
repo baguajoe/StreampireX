@@ -1,18 +1,18 @@
 /* SP-1200 — dark charcoal gray hardware aesthetic */
 .sp12-root {
-  --sp-bg:       #3a3a3a;
-  --sp-panel:    #424242;
-  --sp-panel2:   #4a4a4a;
+  --sp-bg:       #2a2a2a;
+  --sp-panel:    #363636;
+  --sp-panel2:   #404040;
   --sp-border:   #555;
-  --sp-blue:     #5a8ab0;
+  --sp-blue:     #6aaad0;
   --sp-red:      #cc2200;
   --sp-red-on:   #ff3300;
   --sp-green-on: #00cc44;
   --sp-lcd-bg:   #1a2a1a;
-  --sp-lcd-fg:   #44ff44;
-  --sp-text:     #dddddd;
-  --sp-text2:    #aaaaaa;
-  --sp-text3:    #777777;
+  --sp-lcd-fg:   #66ff66;
+  --sp-text:     #eeeeee;
+  --sp-text2:    #bbbbbb;
+  --sp-text3:    #999999;
   --sp-font:     'Share Tech Mono','Courier New',monospace;
   --sp-ui:       'Barlow Condensed',Arial,sans-serif;
   background:    var(--sp-bg);
@@ -46,9 +46,9 @@
 }
 .sp12-logo-main {
   font-family:   var(--sp-font);
-  font-size:     20px;
+  font-size:     22px;
   font-weight:   700;
-  color:         var(--sp-text);
+  color:         #ffffff;
   letter-spacing:3px;
 }
 .sp12-logo-sub {
@@ -192,7 +192,7 @@
   gap:8px; width:100%;
 }
 .sp12-pad {
-  background:var(--sp-panel); border:2px solid var(--sp-border);
+  background:var(--sp-panel); border:2px solid #666;
   border-radius:3px; cursor:pointer; transition:all 0.07s;
   user-select:none; overflow:hidden; position:relative;
   aspect-ratio:1/1.1; display:flex; flex-direction:column;
