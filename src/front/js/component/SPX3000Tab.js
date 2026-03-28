@@ -250,6 +250,152 @@ const applyOutputSaturation = (ctx, buffer, drive = 1.8, warmth = 0.3) => {
   return out;
 };
 
+
+// =============================================================================
+// SP-1200 ENGINE — E-mu SP-1200 (1987) emulation
+// 26.04kHz resample, asymmetric E-mu 6364 chip saturation,
+// low-end emphasis, hard transient crush, 12kHz rolloff
+// =============================================================================
+
+// E-mu 6364 asymmetric nonlinear saturation
+// Asymmetric = even harmonics = analog warmth
+const emuSaturate = (x, drive = 1.4) => {
+  const d = x * drive;
+  if (d > 0) return d / (1 + 0.8  * d);        // soft positive knee
+  else       return d / (1 + 1.25 * Math.abs(d)); // harder negative knee
+};
+
+// SP-1200 resample: downsample to 26.04kHz then back up
+// This creates the characteristic aliasing artifacts
+const applySpResample = (ctx, buffer) => {
+  if (!buffer) return buffer;
+  const SP_RATE = 26040;
+  const srcRate = buffer.sampleRate;
+  const ratio   = SP_RATE / srcRate;           // downsample ratio ~0.59
+  const nc      = buffer.numberOfChannels;
+  const srcLen  = buffer.length;
+  const downLen = Math.floor(srcLen * ratio);
+  const out     = ctx.createBuffer(nc, srcLen, srcRate);
+
+  for (let ch = 0; ch < nc; ch++) {
+    const src = buffer.getChannelData(ch);
+    const dst = out.getChannelData(ch);
+
+    // Downsample (nearest neighbor — no anti-alias filter, authentic to hardware)
+    const down = new Float32Array(downLen);
+    for (let i = 0; i < downLen; i++) {
+      down[i] = src[Math.floor(i / ratio)];
+    }
+
+    // Upsample back (linear interp)
+    for (let i = 0; i < srcLen; i++) {
+      const pos  = i * ratio;
+      const idx  = Math.floor(pos);
+      const frac = pos - idx;
+      const a    = down[Math.min(idx,     downLen - 1)];
+      const b    = down[Math.min(idx + 1, downLen - 1)];
+      dst[i]     = a + frac * (b - a);
+    }
+  }
+  return out;
+};
+
+// SP-1200 12-bit quantization — harsher dither than MPC3000
+const applySp12bit = (ctx, buffer) => {
+  if (!buffer) return buffer;
+  const STEPS     = 4096;
+  const NOISE     = 0.00035;   // harsher noise floor than MPC3000 (0.00018)
+  const nc        = buffer.numberOfChannels;
+  const len       = buffer.length;
+  const out       = ctx.createBuffer(nc, len, buffer.sampleRate);
+  for (let ch = 0; ch < nc; ch++) {
+    const src = buffer.getChannelData(ch);
+    const dst = out.getChannelData(ch);
+    for (let i = 0; i < len; i++) {
+      // Quantize
+      const q = Math.round(src[i] * STEPS) / STEPS;
+      // Asymmetric dither — not white noise, biased slightly positive (E-mu characteristic)
+      const dither = (Math.random() - 0.48) * NOISE;
+      dst[i] = q + dither;
+    }
+  }
+  return out;
+};
+
+// SP-1200 12kHz rolloff (vs MPC3000's 17.5kHz)
+const applySpRolloff = (ctx, buffer) => {
+  if (!buffer) return buffer;
+  const SP_ROLLOFF = 12000;
+  const rc  = 1.0 / (2 * Math.PI * SP_ROLLOFF);
+  const dt  = 1.0 / buffer.sampleRate;
+  const a   = dt / (rc + dt);
+  const nc  = buffer.numberOfChannels;
+  const len = buffer.length;
+  const out = ctx.createBuffer(nc, len, buffer.sampleRate);
+  for (let ch = 0; ch < nc; ch++) {
+    const src = buffer.getChannelData(ch);
+    const dst = out.getChannelData(ch);
+    let prev = 0;
+    for (let i = 0; i < len; i++) {
+      prev   = a * src[i] + (1 - a) * prev;
+      dst[i] = prev;
+    }
+  }
+  return out;
+};
+
+// SP-1200 low-end emphasis — ~200Hz boost, makes kicks hit harder
+// Plus transient crush on attack
+const applySpLowEnd = (ctx, buffer, emphasis = 0.45) => {
+  if (!buffer) return buffer;
+  const nc  = buffer.numberOfChannels;
+  const len = buffer.length;
+  const out = ctx.createBuffer(nc, len, buffer.sampleRate);
+  const sr  = buffer.sampleRate;
+
+  // Low-shelf boost coefficients (~180Hz)
+  const f0   = 180;
+  const wc   = 2 * Math.PI * f0 / sr;
+  const a    = wc / (1 + wc);
+
+  for (let ch = 0; ch < nc; ch++) {
+    const src = buffer.getChannelData(ch);
+    const dst = out.getChannelData(ch);
+    let lp = 0;
+    let envelope = 0;
+
+    for (let i = 0; i < len; i++) {
+      // Low-pass to isolate lows
+      lp = lp + a * (src[i] - lp);
+
+      // Transient crush — fast attack envelope follower
+      const abs = Math.abs(src[i]);
+      envelope  = abs > envelope
+        ? envelope + 0.3  * (abs - envelope)   // fast attack
+        : envelope + 0.002 * (abs - envelope);  // slow release
+
+      // Hard clip transients slightly (E-mu chip behavior)
+      const crushed = src[i] / (1 + 0.6 * envelope);
+
+      // Mix in low-end boost + E-mu asymmetric saturation
+      const boosted = crushed + lp * emphasis;
+      dst[i] = emuSaturate(boosted, 1.3);
+    }
+  }
+  return out;
+};
+
+// Full SP-1200 chain: resample → 12bit → rolloff → low-end + saturation
+const applySp1200Chain = (ctx, buffer) => {
+  if (!buffer) return buffer;
+  let buf = buffer;
+  buf = applySpResample(ctx, buf);
+  buf = applySp12bit(ctx, buf);
+  buf = applySpRolloff(ctx, buf);
+  buf = applySpLowEnd(ctx, buf);
+  return buf;
+};
+
 // =============================================================================
 // ZERO-CROSSING SNAP (same as main SamplerBeatMaker)
 // =============================================================================
@@ -314,6 +460,7 @@ const SPX3000Tab = ({
   const [dacEnabled, setDacEnabled]     = useState(true);   // global 12-bit on/off
   const [rolloffEnabled, setRolloffEnabled] = useState(true);
   const [saturationEnabled, setSaturationEnabled] = useState(true);
+  const [machineMode, setMachineMode]     = useState("mpc3000"); // "mpc3000" | "sp1200"
   const [satDrive, setSatDrive]   = useState(1.8);
   const [satWarmth, setSatWarmth] = useState(0.3);
   const [linnEnabled, setLinnEnabled]   = useState(true);
@@ -419,7 +566,7 @@ const SPX3000Tab = ({
   // =============================================================================
 
   const getProcessedBuffer = useCallback(async (bank, padIdx) => {
-    const cacheKey = `${bank}_${padIdx}_${dacEnabled ? 1 : 0}_${rolloffEnabled ? 1 : 0}_${saturationEnabled ? 1 : 0}_${satDrive}_${satWarmth}`;
+    const cacheKey = `${bank}_${padIdx}_${machineMode}_${dacEnabled ? 1 : 0}_${rolloffEnabled ? 1 : 0}_${saturationEnabled ? 1 : 0}_${satDrive}_${satWarmth}`;
     if (dacCache.current[cacheKey]) return dacCache.current[cacheKey];
     const pad = banksRef.current[bank][padIdx];
     if (!pad?.buffer) return null;
@@ -1129,9 +1276,13 @@ const SPX3000Tab = ({
           const src  = oc.createBufferSource();
           const gain = oc.createGain();
           let buf = pad.buffer;
-          if (rolloffEnabled) buf = applyDacRolloff(oc, buf);
-          if (dacEnabled && pad.dacOn) buf = applyDac12bit(oc, buf);
-          if (saturationEnabled) buf = applyOutputSaturation(oc, buf, satDrive, satWarmth);
+          if (machineMode === 'sp1200') {
+            buf = applySp1200Chain(oc, buf);
+          } else {
+            if (rolloffEnabled) buf = applyDacRolloff(oc, buf);
+            if (dacEnabled && pad.dacOn) buf = applyDac12bit(oc, buf);
+            if (saturationEnabled) buf = applyOutputSaturation(oc, buf, satDrive, satWarmth);
+          }
           src.buffer = buf;
           gain.gain.value = (pad.volume / 100) * velNorm;
           src.connect(gain); gain.connect(mg);
@@ -1520,7 +1671,8 @@ const SPX3000Tab = ({
               <input type="range" min={0} max={300} value={noiseAmt} onChange={e => setNoiseAmt(+e.target.value)} />
               <span>{noiseAmt}%</span>
             </div>
-          </div>
+            </div>
+        </div>
         </div>
       )}
 
