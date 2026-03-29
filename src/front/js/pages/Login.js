@@ -5,6 +5,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 const Login = () => {
   const { store, actions } = useContext(Context);
   const [email, setEmail] = useState('');
+  const [status, setStatus] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
