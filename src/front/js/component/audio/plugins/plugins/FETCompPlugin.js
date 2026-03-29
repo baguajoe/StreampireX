@@ -206,7 +206,7 @@ export const createGatePlugin = (context, p = {}) => {
       open = false;
       output.gain.setTargetAtTime(0, context.currentTime, release / 1000);
     }
-  }, 25);
+  }, 5); // SPX upgraded ballistics
 
   input.connect(detector);
   input.connect(output);
@@ -248,7 +248,7 @@ export const createExpanderPlugin = (context, p = {}) => {
     } else {
       output.gain.setTargetAtTime(1, context.currentTime, 0.01);
     }
-  }, 25);
+  }, 5); // SPX upgraded ballistics
 
   input.connect(detector);
   input.connect(output);

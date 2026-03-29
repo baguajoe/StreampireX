@@ -18,11 +18,36 @@ export const createPlateReverbPlugin = (context, p = {}) => {
 
   for (let ch = 0; ch < 2; ch++) {
     const data = ir.getChannelData(ch);
-    // Plate: immediate dense attack, fast early reflections
+    // Plate: Dattorro-style diffusion network with tank delays
+    const apDelays = [142, 107, 379, 277].map(n => new Float32Array(n));
+    const tankDelays = [672, 908, 1800, 2656].map(n => new Float32Array(n));
+    const apIdx = new Int32Array(4), tankIdx = new Int32Array(4);
+    const decayCoeff = Math.exp(-Math.log(1000) / (len * 0.5));
+    let tankFB = 0;
     for (let i = 0; i < len; i++) {
-      const env = Math.exp(-i / (len * 0.4));
-      const dense = Math.sin(i * 0.1) * 0.3; // plate resonance
-      data[i] = ((Math.random() * 2 - 1) + dense) * env;
+      const t = i / sr;
+      const env = Math.exp(-t / (p.decay ?? 2.0)) * (1 - Math.exp(-t * 40));
+      const src = (Math.random() * 2 - 1) * env * (ch === 0 ? 1 : -0.98);
+      // Allpass diffusion input
+      let sig = src;
+      for (let a = 0; a < 4; a++) {
+        const apIn = sig;
+        const apDel = apDelays[a][apIdx[a]];
+        const apOut = -0.75 * apIn + apDel;
+        apDelays[a][apIdx[a]] = apIn + 0.75 * apOut;
+        apIdx[a] = (apIdx[a] + 1) % apDelays[a].length;
+        sig = apOut;
+      }
+      // Tank
+      sig += tankFB * decayCoeff;
+      let tankOut = 0;
+      for (let tk = 0; tk < 4; tk++) {
+        tankOut += tankDelays[tk][tankIdx[tk]] * (tk % 2 === 0 ? 0.6 : 0.5);
+        tankDelays[tk][tankIdx[tk]] = sig;
+        tankIdx[tk] = (tankIdx[tk] + 1) % tankDelays[tk].length;
+      }
+      tankFB = tankOut;
+      data[i] = tankOut * 0.4;
     }
   }
   convolver.buffer = ir;

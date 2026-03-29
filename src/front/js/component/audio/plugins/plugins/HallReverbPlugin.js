@@ -17,15 +17,39 @@ export const createHallReverbPlugin = (context, p = {}) => {
   const len     = Math.floor(sr * decay);
   const ir      = context.createBuffer(2, len, sr);
 
-  // Generate hall impulse response
+  // Schroeder FDN Hall IR — diffusion network with prime-length comb filters
+  const primes = [1129, 1327, 1559, 1747, 1979, 2111, 2333, 2557];
   for (let ch = 0; ch < 2; ch++) {
     const data = ir.getChannelData(ch);
+    // Multi-tap comb filter network
+    const combs = primes.slice(0, 6).map(p => new Float32Array(p));
+    const combGains = [0.742, 0.733, 0.715, 0.697, 0.678, 0.655];
+    const allpass1 = new Float32Array(347), allpass2 = new Float32Array(113);
+    let ap1Idx = 0, ap2Idx = 0;
+    const combIdx = new Int32Array(6);
+    const buildUp = Math.floor(sr * 0.04);
     for (let i = 0; i < len; i++) {
-      // Hall: longer initial build, smooth decay
-      const env = i < sr * 0.05
-        ? i / (sr * 0.05)
-        : Math.pow(1 - (i - sr * 0.05) / (len - sr * 0.05), 1.5);
-      data[i] = (Math.random() * 2 - 1) * env;
+      const env = i < buildUp
+        ? (i / buildUp) * Math.exp(-i / (len * 0.02))
+        : Math.exp(-i / (len * 0.35)) * (1 + 0.3 * Math.sin(i * 0.0003 * (ch + 1)));
+      // Different stereo diffusion per channel
+      const noise = (Math.random() * 2 - 1) * env * (ch === 0 ? 1 : 0.97);
+      // Comb filter sum
+      let combSum = 0;
+      for (let c2 = 0; c2 < 6; c2++) {
+        combSum += combs[c2][combIdx[c2]] * combGains[c2];
+        combs[c2][combIdx[c2]] = noise + combSum * 0.1;
+        combIdx[c2] = (combIdx[c2] + 1) % combs[c2].length;
+      }
+      // Allpass diffusion
+      const ap1In = combSum;
+      const ap1Out = -0.7 * ap1In + allpass1[ap1Idx] + 0.7 * (allpass1[ap1Idx] || 0);
+      allpass1[ap1Idx] = ap1In + 0.7 * ap1Out;
+      ap1Idx = (ap1Idx + 1) % allpass1.length;
+      const ap2Out = -0.7 * ap1Out + allpass2[ap2Idx];
+      allpass2[ap2Idx] = ap1Out + 0.7 * ap2Out;
+      ap2Idx = (ap2Idx + 1) % allpass2.length;
+      data[i] = ap2Out * 0.5;
     }
   }
   convolver.buffer = ir;

@@ -3,6 +3,8 @@
 // =============================================================================
 
 export const createRoomReverbPlugin = (context, p = {}) => {
+  // Early reflection delays (ms) — small room geometry
+  const ER_DELAYS = [5,11,17,23,31,37,43,51,67,79].map(ms => Math.floor(ms/1000 * (context.sampleRate||48000)));
   const input=context.createGain(), output=context.createGain();
   const convolver=context.createConvolver();
   const dryGain=context.createGain(), wetGain=context.createGain();
