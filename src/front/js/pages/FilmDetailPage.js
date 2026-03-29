@@ -162,7 +162,7 @@ const FilmDetailPage = () => {
       const data = await res.json();
       if (data.checkout_url) window.location.href = data.checkout_url;
     } catch (e) {
-      alert("Purchase failed. Please try again.");
+      setError("Purchase failed. Please try again.");
     } finally {
       setPurchasing(false);
     }
