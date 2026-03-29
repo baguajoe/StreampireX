@@ -188,12 +188,52 @@ export function SourceMonitorPopup({ media, onClose, onAddToTimeline }) {
 // ═══════════════════════════════════════════════════════════
 // DUAL MONITORS (Source + Program)
 // ═══════════════════════════════════════════════════════════
+// Broadcast safe zone overlay
+function BroadcastSafeOverlay({ show, type = 'both' }) {
+  if (!show) return null;
+  return (
+    <div style={{ position:'absolute', inset:0, pointerEvents:'none', zIndex:10 }}>
+      {/* Action safe — 90% */}
+      {(type === 'both' || type === 'action') && (
+        <div style={{
+          position:'absolute',
+          top:'5%', left:'5%', right:'5%', bottom:'5%',
+          border:'1px solid rgba(255,165,0,0.6)',
+          boxShadow:'inset 0 0 0 1px rgba(255,165,0,0.3)',
+        }}>
+          <span style={{position:'absolute',top:2,left:4,fontSize:8,color:'rgba(255,165,0,0.8)',
+            fontFamily:'monospace',background:'rgba(0,0,0,0.5)',padding:'0 3px'}}>ACTION SAFE</span>
+        </div>
+      )}
+      {/* Title safe — 80% */}
+      {(type === 'both' || type === 'title') && (
+        <div style={{
+          position:'absolute',
+          top:'10%', left:'10%', right:'10%', bottom:'10%',
+          border:'1px solid rgba(0,255,200,0.6)',
+          boxShadow:'inset 0 0 0 1px rgba(0,255,200,0.3)',
+        }}>
+          <span style={{position:'absolute',top:2,left:4,fontSize:8,color:'rgba(0,255,200,0.8)',
+            fontFamily:'monospace',background:'rgba(0,0,0,0.5)',padding:'0 3px'}}>TITLE SAFE</span>
+        </div>
+      )}
+      {/* Center crosshair */}
+      <div style={{position:'absolute',top:'50%',left:0,right:0,height:'1px',
+        background:'rgba(255,255,255,0.15)',transform:'translateY(-0.5px)'}}/>
+      <div style={{position:'absolute',left:'50%',top:0,bottom:0,width:'1px',
+        background:'rgba(255,255,255,0.15)',transform:'translateX(-0.5px)'}}/>
+    </div>
+  );
+}
+
 export default function VideoEditorMonitors({
   tracks, currentTime, isPlaying, programMuted, setProgramMuted,
   sourceMedia, setSourceMedia, showSourceMon, setShowSourceMon,
   addClipToTrack, formatTime,
 }) {
   const programVideoRef = useRef(null);
+  const [showSafeZones, setShowSafeZones] = useState(false);
+  const [safeZoneType, setSafeZoneType] = useState('both');
 
   // Find active clip at current playhead
   const activeClip = tracks

@@ -434,6 +434,9 @@ import { useTierAccess } from './hooks/useTierAccess';
 import { useFFmpeg } from './hooks/useFFmpeg';
 import { KEYFRAME_PROPERTIES, INTERPOLATION_TYPES, DEFAULT_KEYFRAME_VALUE_BY_PROPERTY } from '../keyframes/engine/keyframeTypes';
 import VideoEditorEffectsPanel from './VideoEditorEffectsPanel';
+import VideoEditorLeftPanel from './videoeditor/VideoEditorLeftPanel';
+import VideoEditorRightPanel from './videoeditor/VideoEditorRightPanel';
+import VideoEditorMonitors from './videoeditor/VideoEditorMonitors';
 
 
 // Backend URL configuration
@@ -2610,6 +2613,7 @@ TIMELINE
 
   const [showMediaBrowser, setShowMediaBrowser] = useState(false);
   const [showSourceMonitor, setShowSourceMonitor] = useState(false);
+  const [sourceMedia, setSourceMedia] = useState(null);
   const [showMediaBin, setShowMediaBin] = useState(true); // Media Bin visible by default
   const [mediaBinView, setMediaBinView] = useState('grid'); // 'grid' or 'list'
   const [mediaSearchTerm, setMediaSearchTerm] = useState('');
@@ -4885,8 +4889,43 @@ TIMELINE
 
       {/* Main Editor Layout */}
       <div className="editor-main-layout">
-        {/* Left Panel - Tools & Effects */}
-        <div className="editor-left-panel">
+        {/* Left Panel - Vertical Tools + Media + Effects + Transitions */}
+        <VideoEditorLeftPanel
+          selectedTool={selectedTool}
+          setSelectedTool={setSelectedTool}
+          mediaLibrary={mediaLibrary}
+          uploading={uploading}
+          importFiles={() => fileInputRef.current?.click()}
+          fileInputRef={fileInputRef}
+          sourceMedia={sourceMedia}
+          setSourceMedia={setSourceMedia}
+          setShowSourceMon={setShowSourceMonitor}
+          selectedClip={selectedClip}
+          applyEffectToClip={(clipId, effectId, val) => applyEffect(clipId, effectId, val ?? 50)}
+          draggedEffect={draggedEffect}
+          setDraggedEffect={setDraggedEffect}
+          draggedTransition={draggedTransition}
+          setDraggedTransition={setDraggedTransition}
+          selectedTransType={selectedTransitionType}
+          setSelectedTransType={setSelectedTransitionType}
+          addClipToTrack={(media, trackIdx) => {
+            const ti = trackIdx ?? 0;
+            if (!tracks[ti]) return;
+            const newClip = {
+              id: Date.now(),
+              name: media.name,
+              url: media.url,
+              type: media.type,
+              startTime: tracks[ti].clips.reduce((max, c) => Math.max(max, c.startTime + c.duration), 0),
+              duration: media.duration || 5,
+              effects: [],
+            };
+            setTracks(prev => prev.map((t, i) => i === ti ? { ...t, clips: [...t.clips, newClip] } : t));
+          }}
+          tracks={tracks}
+        />
+        {/* Left Panel - Tools & Effects (legacy inline — hidden) */}
+        <div className="editor-left-panel" style={{display:'none'}}>
           {/* STICKY IMPORT MEDIA - Always visible at top */}
           <div style={{
             padding: '16px',
@@ -5625,8 +5664,35 @@ TIMELINE
 
         {/* Center Panel - Preview */}
         <div className="editor-center-panel">
-          {/* SOURCE MONITOR & PROGRAM MONITOR */}
-          <div className="preview-area-container">
+          {/* SOURCE MONITOR & PROGRAM MONITOR — inline via VideoEditorMonitors */}
+          <VideoEditorMonitors
+            tracks={tracks}
+            currentTime={currentTime}
+            isPlaying={isPlaying}
+            programMuted={programMonitorMuted}
+            setProgramMuted={setProgramMonitorMuted}
+            sourceMedia={sourceMedia}
+            setSourceMedia={setSourceMedia}
+            showSourceMon={showSourceMonitor}
+            setShowSourceMon={setShowSourceMonitor}
+            addClipToTrack={(media, trackIdx) => {
+              const ti = trackIdx ?? 0;
+              if (!tracks[ti]) return;
+              const newClip = {
+                id: Date.now(),
+                name: media.name,
+                url: media.url,
+                type: media.type,
+                startTime: tracks[ti].clips.reduce((max, c) => Math.max(max, c.startTime + c.duration), 0),
+                duration: media.duration || 5,
+                effects: [],
+              };
+              setTracks(prev => prev.map((t, i) => i === ti ? { ...t, clips: [...t.clips, newClip] } : t));
+            }}
+            formatTime={formatTime}
+          />
+          {/* Legacy inline monitors — hidden */}
+          <div className="preview-area-container" style={{display:'none'}}>
             <div className="preview-area">
               <div className="preview-container">
                 <div className="monitor-header" style={{
@@ -7414,6 +7480,27 @@ TIMELINE
             </div>
           </div>
         </div>
+        {/* Right Panel — Inspector, Effects, Transitions */}
+        <VideoEditorRightPanel
+          selectedClip={selectedClip}
+          selectedTransition={selectedTransition}
+          applyEffectToClip={(clipId, effectId, val) => applyEffect(clipId, effectId, val ?? 50)}
+          removeEffectFromClip={(clipId, effectId) => removeEffect(clipId, effectId)}
+          toggleEffect={(clipId, effectId) => toggleEffect(clipId, effectId)}
+          updateEffectValue={(clipId, effectId, val) => {
+            setTracks(prev => prev.map(t => ({
+              ...t,
+              clips: t.clips.map(c => c.id !== clipId ? c : {
+                ...c,
+                effects: (c.effects||[]).map(e => e.id === effectId ? { ...e, value: val } : e)
+              })
+            })));
+          }}
+          updateCompositing={(clipId, prop, val) => updateCompositing(clipId, prop, val)}
+          setSelectedTransition={setSelectedTransition}
+          tracks={tracks}
+          setTracks={setTracks}
+        />
         <VideoEditorEffectsPanel
           selectedClip={selectedClip}
           onApplyEffect={(clipId, effectId, val) => applyEffect(clipId, effectId, val)}

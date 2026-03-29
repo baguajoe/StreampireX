@@ -256,14 +256,14 @@ export default function VideoEditorTimeline({
     <div className="spx-timeline-area">
       {/* ── Controls bar ───────────────────────────────── */}
       <div className="spx-timeline-controls">
-        <button className="spx-zoom-btn" onClick={() => {}}>−</button>
+        <button className="spx-zoom-btn" onClick={() => onZoom && onZoom(-0.25)}>−</button>
         <span className="spx-zoom-label">{Math.round(zoom*100)}%</span>
-        <button className="spx-zoom-btn" onClick={() => {}}>+</button>
+        <button className="spx-zoom-btn" onClick={() => onZoom && onZoom(0.25)}>+</button>
         <div className="spx-toolbar-sep" />
-        <button className={`spx-tl-opt-btn ${snapOn ? 'active' : ''}`} onClick={() => {}}>
+        <button className={`spx-tl-opt-btn ${snapOn ? 'active' : ''}`} onClick={() => onToggleSnap && onToggleSnap()}>
           Snap {snapOn ? 'ON' : 'OFF'}
         </button>
-        <button className={`spx-tl-opt-btn ${showWaveforms ? 'active' : ''}`} onClick={() => {}}>
+        <button className={`spx-tl-opt-btn ${showWaveforms ? 'active' : ''}`} onClick={() => onToggleWaveforms && onToggleWaveforms()}}>
           Waveforms
         </button>
         <button className="spx-tl-opt-btn" onClick={() => addTrack('video')}>+ Video</button>
