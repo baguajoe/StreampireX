@@ -1782,7 +1782,7 @@ export default function NodeCompositorPage() {
         }
         menus={[
           { label: "File", items: [
-            { label: "New Composite", action: () => { if(window.confirm("Clear?")){ setNodes([]); setEdges([]); localStorage.removeItem(COMP_KEY); } } },
+            { label: "New Composite", action: () => { setNodes([]); setEdges([]); localStorage.removeItem(COMP_KEY); setStatus("New composite created"); } },
             { label: "Save to Cloud ☁", shortcut: "Ctrl+Shift+S", action: async () => {
               try {
                 const r = await saveToCloud("compositor", projectName, {nodes, edges, name: projectName});
