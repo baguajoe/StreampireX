@@ -569,6 +569,7 @@ from api.suno_gap_routes import suno_gap_bp
 from api.rss_routes import rss_bp
 from api.plugin_marketplace_routes import plugin_marketplace_bp
 from api.payout_routes import payout_bp
+from api.score_routes import score_bp
 # from api.routes.render_routes import render_api  # disabled: routes/ folder conflicts with routes.py
 
 
@@ -592,6 +593,8 @@ app.register_blueprint(advanced_ai_bp)
 app.register_blueprint(audio_bp)
 app.register_blueprint(music_upload_bp)
 # app.register_blueprint(printful_bp)  # duplicate removed
+app.register_blueprint(score_bp)
+
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3001))
     
