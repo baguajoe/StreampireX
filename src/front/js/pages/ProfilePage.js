@@ -1307,7 +1307,7 @@ const ProfilePage = () => {
                 setIsFollowing(false);
                 setShowBlockModal(false);
                 setShowMoreMenu(false);
-                alert(`Blocked ${user.display_name || user.username}`);
+                setProfileStatus(`Blocked ${user.display_name || user.username}`);
             } else {
                 const data = await response.json();
                 setProfileStatus(data.error || 'Failed to block user');
@@ -1340,7 +1340,7 @@ const ProfilePage = () => {
             if (response.ok) {
                 setIsBlocked(false);
                 setShowMoreMenu(false);
-                alert(`Unblocked ${user.display_name || user.username}`);
+                setProfileStatus(`Unblocked ${user.display_name || user.username}`);
             } else {
                 const data = await response.json();
                 setProfileStatus(data.error || 'Failed to unblock user');
