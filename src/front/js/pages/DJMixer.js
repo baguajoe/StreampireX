@@ -157,6 +157,54 @@ async function detectBPM(buffer) {
   } catch { return null; }
 }
 
+// ── Key Detection via Chromagram ──
+async function detectKey(buffer) {
+  try {
+    const sr = buffer.sampleRate;
+    const off = new OfflineAudioContext(1, buffer.length, sr);
+    const src = off.createBufferSource(); src.buffer = buffer;
+    src.connect(off.destination); src.start(0);
+    const r = await off.startRendering();
+    const data = r.getChannelData(0);
+    // Sample every 4096 frames
+    const fftSize = 4096;
+    const chroma = new Float32Array(12).fill(0);
+    const noteFreqs = [16.35,17.32,18.35,19.45,20.6,21.83,23.12,24.5,25.96,27.5,29.14,30.87];
+    // Build chromagram from energy at note frequencies
+    for (let oct = 1; oct <= 6; oct++) {
+      for (let n = 0; n < 12; n++) {
+        const freq = noteFreqs[n] * Math.pow(2, oct);
+        if (freq > sr / 2) continue;
+        // Goertzel algorithm for single frequency energy
+        const k = Math.round((fftSize * freq) / sr);
+        const omega = (2 * Math.PI * k) / fftSize;
+        const cos2 = 2 * Math.cos(omega);
+        let q1 = 0, q2 = 0;
+        const step = Math.floor(data.length / fftSize);
+        const chunk = step > 0 ? data.slice(0, fftSize) : data;
+        for (let i = 0; i < chunk.length; i++) {
+          const q0 = chunk[i] + cos2 * q1 - q2;
+          q2 = q1; q1 = q0;
+        }
+        chroma[n] += q1 * q1 + q2 * q2 - q1 * q2 * cos2;
+      }
+    }
+    // Match against major/minor profiles (Krumhansl-Schmuckler)
+    const major = [6.35,2.23,3.48,2.33,4.38,4.09,2.52,5.19,2.39,3.66,2.29,2.88];
+    const minor = [6.33,2.68,3.52,5.38,2.6,3.53,2.54,4.75,3.98,2.69,3.34,3.17];
+    const notes = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    let bestScore = -Infinity, bestKey = 'C', bestMode = 'maj';
+    for (let shift = 0; shift < 12; shift++) {
+      const shifted = [...chroma.slice(shift), ...chroma.slice(0, shift)];
+      const scoreM = major.reduce((s, v, i) => s + v * shifted[i], 0);
+      const scoreMn = minor.reduce((s, v, i) => s + v * shifted[i], 0);
+      if (scoreM > bestScore) { bestScore = scoreM; bestKey = notes[shift]; bestMode = 'maj'; }
+      if (scoreMn > bestScore) { bestScore = scoreMn; bestKey = notes[shift]; bestMode = 'min'; }
+    }
+    return bestKey + ' ' + bestMode;
+  } catch { return null; }
+}
+
 // ── Technics 1200 Canvas Component ──
 const Turntable = React.memo(({ playing, progress, color, label }) => {
   const cvs = useRef(null);
@@ -453,7 +501,7 @@ class Deck {
     this.fxDry.connect(out);this.fxWet.connect(out);
     this._out=out;
   }
-  async loadBuffer(ab){this.buffer=await getCtx().decodeAudioData(ab);this.pauseOffset=0;this.bpm=await detectBPM(this.buffer);return this.bpm;}
+  async loadBuffer(ab){this.buffer=await getCtx().decodeAudioData(ab);this.pauseOffset=0;this.bpm=await detectBPM(this.buffer);this.detectedKey=await detectKey(this.buffer);return {bpm:this.bpm,key:this.detectedKey};}
   async loadURL(url){const r=await fetch(url);return this.loadBuffer(await r.arrayBuffer());}
   play(off){
     if(!this.buffer)return;const c=getCtx();
