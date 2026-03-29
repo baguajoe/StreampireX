@@ -368,7 +368,6 @@ app.register_blueprint(printful_bp, url_prefix='/api/printful')
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)
 register_screening_events(socketio)
-register_radio_socketio(socketio)
 app.socketio = socketio
 
 # ✅ Register podcast socket events AFTER socketio is created
