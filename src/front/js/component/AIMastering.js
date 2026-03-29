@@ -862,6 +862,16 @@ const AIMastering = () => {
                       </span>
                     </div>
                     {getStatusBadge(track.status)}
+                    <button
+                      onClick={(e) => deleteTrack(track.id, e)}
+                      title="Delete"
+                      style={{
+                        marginLeft:8, background:'transparent', border:'none',
+                        color:'#f85149', cursor:'pointer', fontSize:14,
+                        padding:'2px 6px', borderRadius:4, flexShrink:0,
+                        lineHeight:1,
+                      }}
+                    >✕</button>
                   </div>
                 ))
               )}
