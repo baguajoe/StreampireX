@@ -5595,6 +5595,59 @@ const RecordingStudio = ({ user }) => {
                 })}
               </div>
             ))}
+            {/* ── PLUGIN LIBRARY — 106 legacy plugins ── */}
+            <div style={{ borderTop: "2px solid #1a2a3a", margin: "6px 0 2px", padding: "4px 10px 2px" }}>
+              <div style={{ fontSize: "0.55rem", color: "#ff9800", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>
+                🎛 Plugin Library — 106 Plugins
+              </div>
+            </div>
+            {(() => {
+              const CATS = ["dynamics","eq","reverb","delay","modulation","filter","distortion","pitch","vocal","spatial","utility","mastering","restoration","creative"];
+              const CAT_ICONS = { dynamics:"🎚",eq:"📊",reverb:"🌊",delay:"⏱",modulation:"🌀",filter:"🔊",distortion:"🔥",pitch:"🎵",vocal:"🎤",spatial:"🔭",utility:"🔧",mastering:"💿",restoration:"🛠",creative:"✨" };
+              try {
+                const { getAllPlugins } = require('../component/audio/plugins/registry') || {};
+                const allPlugins = getAllPlugins ? getAllPlugins() : [];
+                return CATS.map(cat => {
+                  const catPlugins = allPlugins.filter(p => p.category === cat);
+                  if (!catPlugins.length) return null;
+                  return (
+                    <div key={cat}>
+                      <div style={{ padding: "5px 10px 2px", fontSize: "0.52rem", color: "#ff9800", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        {CAT_ICONS[cat] || "🎛"} {cat}
+                      </div>
+                      {catPlugins.map(plug => {
+                        const alreadyLoaded = tracks[insertPickerState?.trackIndex]?.effects?.[plug.id]?.enabled;
+                        return (
+                          <div
+                            key={plug.id}
+                            style={{
+                              padding: "3px 14px 3px 20px", fontSize: "0.68rem",
+                              color: alreadyLoaded ? "#5a7088" : "#ffcc88",
+                              cursor: alreadyLoaded ? "default" : "pointer",
+                              display: "flex", alignItems: "center", gap: 6,
+                            }}
+                            onMouseEnter={(e) => { if (!alreadyLoaded) e.currentTarget.style.background = "rgba(255,152,0,0.08)"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                            onClick={() => {
+                              if (alreadyLoaded || insertPickerState === null) return;
+                              updateEffect(insertPickerState.trackIndex, plug.id, "enabled", true);
+                              updateEffect(insertPickerState.trackIndex, plug.id, "name", plug.name);
+                              updateEffect(insertPickerState.trackIndex, plug.id, "libPlugin", true);
+                              setActiveEffectsTrack(insertPickerState.trackIndex);
+                              setInsertPickerState(null);
+                              setStatus(`${plug.name} added — Track ${insertPickerState.trackIndex + 1}`);
+                            }}
+                          >
+                            <span style={{ fontSize: 8, background: "#ff9800", color: "#000", borderRadius: 2, padding: "1px 3px", fontWeight: 800 }}>LIB</span>
+                            {alreadyLoaded ? `✓ ${plug.name}` : plug.name}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                });
+              } catch(e) { return null; }
+            })()}
             <div style={{ borderTop: "1px solid #0f1820", margin: "4px 0" }} />
             <div
               style={{ padding: "4px 14px", fontSize: "0.65rem", color: "#e53935", cursor: "pointer" }}
