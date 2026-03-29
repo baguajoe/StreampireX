@@ -28,6 +28,7 @@ const GamersChatroomPage = () => {
   // EXISTING CHAT STATE
   // ========================
   const [messages, setMessages] = useState([]);
+  const [status, setStatus] = useState('');
   const [newMessage, setNewMessage] = useState("");
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [activeGames, setActiveGames] = useState([]);
@@ -622,12 +623,12 @@ const GamersChatroomPage = () => {
 
   const sendGameInvite = () => {
     if (!inviteData.gameName.trim()) {
-      alert("Please enter a game name");
+      setStatus("Please enter a game name");
       return;
     }
 
     if (!inviteData.inviteCode.trim() && !inviteData.inviteLink.trim()) {
-      alert("Please enter an invite code or link");
+      setStatus("Please enter an invite code or link");
       return;
     }
 

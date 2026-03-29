@@ -16,6 +16,7 @@ const GamerProfilePage = () => {
   const { store } = useContext(Context);
   const navigate = useNavigate();
   const [isGamerMode, setIsGamerMode] = useState(true);
+  const [status, setStatus] = useState('');
   const [profile, setProfile] = useState({});
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -232,7 +233,7 @@ const GamerProfilePage = () => {
 
   const connectSteamAccount = async () => {
     if (!steamId || steamId.trim() === '') {
-      alert('Please enter your Steam ID');
+      setStatus('Please enter your Steam ID');
       return;
     }
 
@@ -252,16 +253,16 @@ const GamerProfilePage = () => {
       const data = await response.json();
 
       if (response.ok) {
-        alert('Steam account connected successfully!');
+        setStatus('Steam account connected successfully!');
         setShowSteamModal(false);
         setSteamId('');
         await loadSteamData();
       } else {
-        alert(`Error: ${data.error || 'Failed to connect Steam account'}`);
+        setStatus(`Error: ${data.error || 'Failed to connect Steam account'}`);
       }
     } catch (error) {
       console.error('Error connecting Steam:', error);
-      alert('Failed to connect Steam account. Please try again.');
+      setStatus('Failed to connect Steam account. Please try again.');
     } finally {
       setSteamLoading(false);
     }
@@ -282,15 +283,15 @@ const GamerProfilePage = () => {
       });
 
       if (response.ok) {
-        alert('Steam account disconnected');
+        setStatus('Steam account disconnected');
         setSteamConnected(false);
         setSteamData(null);
       } else {
-        alert('Failed to disconnect Steam account');
+        setStatus('Failed to disconnect Steam account');
       }
     } catch (error) {
       console.error('Error disconnecting Steam:', error);
-      alert('Failed to disconnect Steam account');
+      setStatus('Failed to disconnect Steam account');
     }
   };
 
@@ -298,10 +299,10 @@ const GamerProfilePage = () => {
     try {
       setSyncing(true);
       await loadSteamData();
-      alert('Steam data refreshed!');
+      setStatus('Steam data refreshed!');
     } catch (error) {
       console.error('Error syncing Steam:', error);
-      alert('Failed to refresh Steam data');
+      setStatus('Failed to refresh Steam data');
     } finally {
       setSyncing(false);
     }
@@ -385,7 +386,7 @@ const GamerProfilePage = () => {
         current_game: currentGames[0] || null
       });
 
-      alert("Profile saved successfully!");
+      setStatus("Profile saved successfully!");
       setIsEditing(false);
       loadVideoRoomStatus();
     } catch (error) {
@@ -398,7 +399,7 @@ const GamerProfilePage = () => {
         streamingStatus, streamingPlatform, languages, gamerBio, gamingStats
       };
       localStorage.setItem(`gamer_profile_${userId}`, JSON.stringify(localData));
-      alert("Profile saved locally. Backend save failed.");
+      setStatus("Profile saved locally. Backend save failed.");
       setIsEditing(false);
     }
   };
