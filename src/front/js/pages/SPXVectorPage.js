@@ -159,6 +159,7 @@ export default function SPXVectorPage() {
   const [showPatterns,   setShowPatterns]   = useState(false);
   // ── SVG → 3D Extrude (Session 1) ─────────────────────────────────────────
   const [extrudeOpen,     setExtrudeOpen]     = useState(false);
+  const [vectorTab, setVectorTab] = useState("design");
   // ── Sessions 2+3 additions ────────────────────────────────────────────────
   const [depthMode,       setDepthMode]       = useState('flat'); // flat|midas
   const [depthMapUrl,     setDepthMapUrl]     = useState(null);
@@ -715,8 +716,8 @@ export default function SPXVectorPage() {
       });
       const data = await res.json();
       if (data.url) setAiFillResult(data.url);
-      else alert('AI Fill: '+(data.error||'unknown'));
-    } catch(err){alert('AI Fill: '+err.message);}
+      else setStatus('AI Fill error: '+(data.error||'unknown'));
+    } catch(err){ setStatus('AI Fill: '+err.message); }
     setAiFillLoading(false);
   };
   const acceptAiFillVec = () => {
@@ -950,7 +951,7 @@ export default function SPXVectorPage() {
       projectName: project.name,
     };
     localStorage.setItem('spx_vector_to_3d', JSON.stringify(payload));
-    alert('3D mesh sent to Node Compositor. Open the compositor and import from Vector.');
+    setStatus('3D mesh sent to Node Compositor. Open the compositor and import from Vector.');
     setExtrudeOpen(false);
   };
 
@@ -968,6 +969,22 @@ export default function SPXVectorPage() {
     const cam = extrudeCameraRef.current; if (!cam) return;
     cam.position.z = Math.max(0.5, Math.min(10, cam.position.z + e.deltaY * 0.005));
   };
+
+  React.useEffect(() => {
+    if (vectorTab !== '3d') return;
+    if (!extrudeOpen) setExtrudeOpen(true);
+    const t = setTimeout(() => {
+      try {
+        initExtrudeScene();
+        buildExtrudeMesh();
+      } catch (err) {
+        console.warn('[SPXVector] auto-open 3D tab failed:', err);
+      }
+    }, 80);
+    return () => clearTimeout(t);
+  }, [vectorTab]);
+
+
 
 
   // ── Session 2: MiDaS AI Depth ────────────────────────────────────────────
@@ -1009,10 +1026,10 @@ export default function SPXVectorPage() {
         // Apply depth map to extrude mesh
         await applyDepthMapToMesh(data.url);
       } else {
-        alert('MiDaS error: ' + (data.error||'unknown'));
+        setStatus('MiDaS error: ' + (data.error||'unknown'));
       }
     } catch(e) {
-      alert('Depth error: ' + e.message);
+      setStatus('Depth error: ' + e.message);
     }
     setDepthLoading(false);
   };
@@ -1112,7 +1129,7 @@ export default function SPXVectorPage() {
             URL.revokeObjectURL(url);
           }, (err)=>{ throw err; }, {binary:true});
         } catch(e) {
-          alert('GLB export: ' + e.message);
+          setStatus('GLB export: ' + e.message);
         }
       } else if (format === 'obj') {
         try {
@@ -1128,11 +1145,11 @@ export default function SPXVectorPage() {
           link.href = url; link.click();
           URL.revokeObjectURL(url);
         } catch(e) {
-          alert('OBJ export: ' + e.message);
+          setStatus('OBJ export: ' + e.message);
         }
       }
     } catch(e) {
-      alert('Export error: ' + e.message);
+      setStatus('Export error: ' + e.message);
     }
     setExportLoading(false);
   };
@@ -1850,9 +1867,67 @@ export default function SPXVectorPage() {
         </div>
       )}
 
+      
+      {/* ── Vector Workspace Tabs ─────────────────────────────────────────── */}
+      <div className="spx-vector-workspace-tabs" style={{
+        display:'flex',
+        alignItems:'center',
+        gap:8,
+        padding:'10px 14px',
+        borderBottom:'1px solid #1f2937',
+        background:'linear-gradient(180deg,#11161d,#0d1117)'
+      }}>
+        {[
+          ['design','Design'],
+          ['paths','Paths'],
+          ['3d','3D Extrude'],
+          ['materials','Materials'],
+          ['export','Export']
+        ].map(([id,label])=>(
+          <button
+            key={id}
+            onClick={()=>setVectorTab(id)}
+            style={{
+              border:'1px solid ' + (vectorTab===id ? '#FF6600' : '#2a3441'),
+              background: vectorTab===id ? 'rgba(255,102,0,0.14)' : '#151b23',
+              color: vectorTab===id ? '#FF6600' : '#c9d1d9',
+              borderRadius:8,
+              padding:'7px 12px',
+              fontSize:12,
+              fontWeight:700,
+              cursor:'pointer',
+              fontFamily:'JetBrains Mono, monospace',
+              letterSpacing:'0.02em'
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Active Workspace Label ───────────────────────────────────────── */}
+      <div style={{
+        display:'flex',
+        alignItems:'center',
+        justifyContent:'space-between',
+        padding:'8px 14px 0 14px',
+        color:'#8b949e',
+        fontSize:11,
+        fontFamily:'JetBrains Mono, monospace'
+      }}>
+        <div>
+          {vectorTab==='design' && 'Design workspace — shapes, layout, composition'}
+          {vectorTab==='paths' && 'Paths workspace — anchors, curves, SVG structure'}
+          {vectorTab==='3d' && '3D workspace — extrude, depth, bevel, preview'}
+          {vectorTab==='materials' && 'Materials workspace — shaders, finish, surface look'}
+          {vectorTab==='export' && 'Export workspace — SVG, assets, downstream handoff'}
+        </div>
+      </div>
+
+
       {/* ── SVG → 3D Extrude button ──────────────────────────────────────── */}
       <button title="Extrude to 3D"
-        onClick={()=>{ setExtrudeOpen(true); setTimeout(()=>{ initExtrudeScene(); buildExtrudeMesh(); },80); }}
+        onClick={()=>{ setVectorTab('3d'); setExtrudeOpen(true); setTimeout(()=>{ initExtrudeScene(); buildExtrudeMesh(); },80); }}
         style={{position:'fixed',bottom:80,right:24,zIndex:1000,width:48,height:48,borderRadius:'50%',
           background:'#0d1117',border:'2px solid #FF6600',color:'#FF6600',
           fontSize:16,cursor:'pointer',boxShadow:'0 4px 16px rgba(255,102,0,0.3)',fontWeight:700}}>
