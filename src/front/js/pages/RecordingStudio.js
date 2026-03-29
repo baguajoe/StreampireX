@@ -654,6 +654,10 @@ const RecordingStudio = ({ user }) => {
   const [analogSubview, setAnalogSubview] = React.useState("ampsim");
   const [trackConsoleChar, setTrackConsoleChar] = React.useState({}); // {trackId: 'ssl4ke'}
   const [masterConsoleChar, setMasterConsoleChar] = React.useState('none');
+  const trackConsoleCharRef = React.useRef({});
+  const masterConsoleCharRef = React.useRef('none');
+  React.useEffect(() => { trackConsoleCharRef.current = trackConsoleChar; }, [trackConsoleChar]);
+  React.useEffect(() => { masterConsoleCharRef.current = masterConsoleChar; }, [masterConsoleChar]);
   const [latencyMs, setLatencyMs] = React.useState(0);
   const [monitoringEnabled, setMonitoringEnabled] = React.useState(false);
   const [latencyCompMs, setLatencyCompMs] = React.useState(0);
@@ -817,12 +821,17 @@ const RecordingStudio = ({ user }) => {
     panNode.connect(fader);
     fader.connect(meter);
 
+    // ── Console character (analog board emulation) ──
+    const boardId = trackConsoleChar[track.id] || 'none';
+    const consoleOut = ctx.createGain();
+    const consoleNodes = applyConsoleCharacter(ctx, meter, consoleOut, boardId);
+
     // ── Bus routing ──
     const busTrack = track.busTarget
       ? tracks.find(t => t.id === track.busTarget) : null;
     const busNodes = busTrack ? trackNodesRef.current.get(busTrack.id) : null;
     const dest = (busNodes && busNodes.input) ? busNodes.input : masterGainRef.current;
-    meter.connect(dest);
+    consoleOut.connect(dest);
 
     // ── Sends (reverb/delay) parallel ──
     buildSends(ctx, track, fader, dest);
@@ -865,7 +874,11 @@ const RecordingStudio = ({ user }) => {
     let last = preGain;
     fxNodes.forEach(n => { last.connect(n); last = n; });
     last.connect(panNode); panNode.connect(fader);
-    fader.connect(meter); meter.connect(masterGainRef.current);
+    fader.connect(meter);
+    // Console character on bus
+    const busConsoleOut = ctx.createGain();
+    applyConsoleCharacter(ctx, meter, busConsoleOut, trackConsoleChar[busTrack?.id] || 'none');
+    busConsoleOut.connect(masterGainRef.current);
     input.connect(preGain);
     const nodes = { input, preGain, panNode, fader, meter, fxNodes, isBus: true };
     trackNodesRef.current.set(busTrack.id, nodes);
@@ -962,7 +975,14 @@ const RecordingStudio = ({ user }) => {
 
       // Chain: masterGain → masterPan → splitter → L/R analysers
       //                                → destination
+      // Master bus console character — insert between masterGain and masterPan
+    const masterConsoleOutNode = ctx.createGain();
+    applyConsoleCharacter(ctx, masterGainRef.current, masterConsoleOutNode, masterConsoleChar || 'none');
+    masterConsoleOutNode.connect(masterPanRef.current);
+    // Keep direct connection as fallback if no board selected
+    if (!masterConsoleChar || masterConsoleChar === 'none') {
       masterGainRef.current.connect(masterPanRef.current);
+    }
       masterPanRef.current.connect(splitter);
       splitter.connect(masterAnalyserLRef.current, 0);
       splitter.connect(masterAnalyserRRef.current, 1);
