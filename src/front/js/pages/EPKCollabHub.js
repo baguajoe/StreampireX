@@ -1339,8 +1339,8 @@ const MediaUploadField = ({ label, field, currentUrl, onUploaded, previewClass, 
       });
       const data = await res.json();
       if (res.ok && data.url) { onUploaded(data.url); }
-      else { alert(data.error || 'Upload failed'); }
-    } catch (err) { alert('Upload error: ' + err.message); }
+      else { console.error(data.error || 'Upload failed'); }
+    } catch (err) { console.error('Upload error: ' + err.message); }
     finally { setUploading(false); if (fileRef.current) fileRef.current.value = ''; }
   };
 
@@ -1449,8 +1449,8 @@ const FeaturedMediaUploader = ({ backend, onUploaded }) => {
           type: data.file_type || 'other',
           ext: data.ext || '',
         });
-      } else { alert(data.error || 'Upload failed'); }
-    } catch (err) { alert('Upload error: ' + err.message); }
+      } else { console.error(data.error || 'Upload failed'); }
+    } catch (err) { console.error('Upload error: ' + err.message); }
     finally { setUploading(false); if (fileRef.current) fileRef.current.value = ''; }
   };
 

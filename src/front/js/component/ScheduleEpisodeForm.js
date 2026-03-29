@@ -15,7 +15,7 @@ const ScheduleEpisodeForm = ({ episodeId, podcastId }) => {
         });
 
         const data = await res.json();
-        if (res.ok) setStatus("✅ Scheduled!"); else alert("❌ " + data.error);
+        if (res.ok) setStatus("✅ Scheduled!"); else setStatus("❌ " + data.error);
     };
 
     return (

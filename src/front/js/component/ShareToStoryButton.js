@@ -67,7 +67,7 @@ const ShareToStoryButton = ({
           onShared(data.story);
         }
       } else {
-        alert(data.error || 'Failed to share to story');
+        setStatus(data.error || 'Failed to share to story');
       }
     } catch (error) {
       console.error('Share error:', error);

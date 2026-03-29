@@ -138,7 +138,7 @@ const PricingPlans = () => {
       if (response.ok && data.checkout_url) {
         window.location.href = data.checkout_url;
       } else if (response.ok) {
-        alert('✅ ' + (data.message || 'Subscription updated!'));
+        console.warn('✅ ' + (data.message || 'Subscription updated!'));
         window.location.reload();
       } else if (data.error && (data.error.toLowerCase().includes('active') || data.error.toLowerCase().includes('already'))) {
         if (isDistribution) {
@@ -147,7 +147,7 @@ const PricingPlans = () => {
           navigate('/dashboard');
         }
       } else {
-        alert('❌ ' + (data.error || 'Subscription failed'));
+        console.warn('❌ ' + (data.error || 'Subscription failed'));
       }
     } catch (error) {
       console.error('Subscription error:', error);

@@ -111,7 +111,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
                 setSearchResults([]);
                 console.warn('Friend added to inner circle!');
             } else {
-                alert(data.error || 'Failed to add to inner circle');
+                console.warn(data.error || 'Failed to add to inner circle');
             }
         } catch (error) {
             console.error('Error adding to inner circle:', error);
@@ -144,7 +144,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
                 console.warn('Friend removed from inner circle');
             } else {
                 const data = await response.json();
-                alert(data.error || 'Failed to remove from inner circle');
+                console.warn(data.error || 'Failed to remove from inner circle');
             }
         } catch (error) {
             console.error('Error removing from inner circle:', error);

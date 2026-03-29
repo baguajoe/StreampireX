@@ -1900,7 +1900,7 @@ const VideoEditorComponent = () => {
         setCurrentTime(0);
         console.log('✅ New project created:', title);
       } catch (error) {
-        alert('Failed to create project: ' + error.message);
+        console.error('Failed to create project: ' + error.message);
       }
     }
   };
@@ -1946,7 +1946,7 @@ const VideoEditorComponent = () => {
         setProject(prev => ({ ...prev, title: loaded.title }));
         console.warn(`✅ Loaded: ${loaded.title}`);
       }
-    } catch(e) { alert('Failed to load: ' + e.message); }
+    } catch(e) { console.error('Failed to load: ' + e.message); }
   };
 
   const handleSave = async () => {
@@ -1982,7 +1982,7 @@ const VideoEditorComponent = () => {
         console.warn('✅ Project saved!');
       }
     } catch (error) {
-      alert('Failed to save: ' + error.message);
+      console.error('Failed to save: ' + error.message);
     }
   };
 
@@ -1997,9 +1997,9 @@ const VideoEditorComponent = () => {
         };
         await projectManager.saveProjectAs(newTitle);
         setProject(prev => ({ ...prev, title: newTitle }));
-        alert('✅ Saved as: ' + newTitle);
+        console.error('✅ Saved as: ' + newTitle);
       } catch (error) {
-        alert('Failed to save: ' + error.message);
+        console.error('Failed to save: ' + error.message);
       }
     }
   };
@@ -4219,9 +4219,9 @@ TIMELINE
       if (result.code === 0) {
         console.warn(`✅ Exported to: ${savePath}`);
       } else {
-        alert('Export failed: ' + result.stderr?.slice(-200));
+        console.error('Export failed: ' + result.stderr?.slice(-200));
       }
-    } catch(e) { alert('Native export error: ' + e.message); }
+    } catch(e) { console.error('Native export error: ' + e.message); }
   };
 
   // SAVE PROJECT HANDLER (NEW)
@@ -8002,7 +8002,7 @@ TIMELINE
                       body:JSON.stringify({public_id:pubId,effect_id:'chromaKey',intensity:chromaKeySettings.tolerance||30,color:chromaKeySettings.color||'#00ff00'})
                     });
                     if(r.ok){const d=await r.json();if(d.processed_url){setTracks(p=>p.map(t=>({...t,clips:t.clips.map(c=>c.id===selectedClip.id?{...c,previewUrl:d.processed_url}:c)})));console.warn('✅ Chroma key applied!');}}
-                  }catch(e){alert('Chroma key failed: '+e.message);}
+                  }catch(e){console.error('Chroma key failed: '+e.message);}
                 }} style={{marginTop:10,width:'100%',padding:'8px',background:'rgba(0,255,100,0.1)',border:'1px solid rgba(0,255,100,0.3)',borderRadius:6,color:'#00ff64',fontSize:11,fontWeight:700,cursor:'pointer'}}>
                   Apply Chroma Key
                 </button>
@@ -8084,7 +8084,7 @@ TIMELINE
                   console.warn(`✅ Generated ${newCaptions.length} caption segments`);
                 } catch(err) {
                   console.error('Whisper error:', err);
-                  alert('Transcription failed: ' + err.message);
+                  console.error('Transcription failed: ' + err.message);
                 }
               }}
               style={{width:'100%',padding:'9px',background:'rgba(191,90,242,0.1)',border:'1px solid rgba(191,90,242,0.3)',borderRadius:6,color:'#bf5af2',fontSize:12,fontWeight:700,cursor:'pointer'}}>

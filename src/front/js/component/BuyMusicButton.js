@@ -17,7 +17,7 @@ const BuyMusicButton = ({ musicId, price }) => {
     if (res.ok) {
       setStatus("✅ Purchase Successful!");
     } else {
-      alert("❌ Error: " + data.error);
+      console.warn("❌ Error: " + data.error);
     }
   };
 

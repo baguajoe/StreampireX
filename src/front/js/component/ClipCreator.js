@@ -25,7 +25,7 @@ export default function ClipCreator({ sourceUrl, sourceTitle, contentType = 'tra
         setResult(d.clip);
         onClipCreated && onClipCreated(d.clip);
       } else {
-        alert(d.error || 'Clip creation failed');
+        setStatus(d.error || 'Clip creation failed');
       }
     } catch (e) {
       setStatus('Error creating clip');

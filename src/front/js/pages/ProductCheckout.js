@@ -24,7 +24,7 @@ export default function ProductCheckout() {
     });
 
     if (result.error) {
-      alert("Payment failed: " + result.error.message);
+      console.error("Payment failed: " + result.error.message);
     } else {
       setStatus("✅ Payment successful!");
     }

@@ -35,7 +35,7 @@ const AvatarCreation = () => {
       setAvatarUrl(response.data.avatar_url);  // Assuming the backend returns the avatar URL
       navigate("/create-avatar");
     } catch (error) {
-      alert("Error creating avatar:", error);
+      console.warn("Error creating avatar:", error);
     } finally {
       setIsLoading(false);
     }

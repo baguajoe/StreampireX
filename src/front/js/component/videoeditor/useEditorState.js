@@ -315,7 +315,7 @@ export function useEditorState() {
       });
       if (r.ok) console.warn('✅ Project saved!');
       else console.warn('Save failed');
-    } catch (e) { alert('Save failed: ' + e.message); }
+    } catch (e) { console.error('Save failed: ' + e.message); }
   }, [tracks, projectTitle, frameRate]);
 
   // ── Export ───────────────────────────────────────────────

@@ -144,7 +144,7 @@ export function FanSubscribeWidget({ creatorId, creatorName }) {
     });
     const d = await res.json();
     if (d.success) setSuccess(`Subscribed to ${tier.name}!`);
-    else alert(d.error || 'Subscription failed');
+    else setStatus(d.error || 'Subscription failed');
   };
 
   if (loading) return null;
