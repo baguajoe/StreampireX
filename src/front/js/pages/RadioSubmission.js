@@ -2,6 +2,7 @@ import { useState } from "react";
 
 const RadioSubmission = () => {
     const [trackId, setTrackId] = useState("");
+  const [status, setStatus] = useState('');
     const [stationName, setStationName] = useState("");
 
     const submitTrack = async () => {
@@ -14,7 +15,7 @@ const RadioSubmission = () => {
             body: JSON.stringify({ track_id: trackId, station_name: stationName })
         });
         const data = await response.json();
-        alert(data.message);
+        setStatus(data.message);
     };
 
     return (

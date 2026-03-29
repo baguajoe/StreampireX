@@ -10,6 +10,7 @@ const PodcastDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [podcast, setPodcast] = useState(null);
+  const [status, setStatus] = useState('');
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -172,7 +173,7 @@ const PodcastDetailPage = () => {
                 onClick={() => {
                   const rssUrl = `${process.env.REACT_APP_BACKEND_URL}/api/podcast/${id}/feed.xml`;
                   navigator.clipboard.writeText(rssUrl).then(() => {
-                    alert("✅ RSS feed URL copied!\n\n" + rssUrl + "\n\nPaste this into Spotify, Apple Podcasts, Google Podcasts, or any podcast app.");
+                    setStatus("✅ RSS feed URL copied to clipboard!");
                   }).catch(() => {
                     prompt("Copy your RSS feed URL:", rssUrl);
                   });

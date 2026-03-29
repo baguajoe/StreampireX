@@ -7,6 +7,7 @@ const RadioSchedule = () => {
   const navigate = useNavigate();
   
   const [schedule, setSchedule] = useState([]);
+  const [status, setStatus] = useState('');
   const [station, setStation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [newSlot, setNewSlot] = useState({
@@ -64,7 +65,7 @@ const RadioSchedule = () => {
 
   const addScheduleSlot = async () => {
     if (!newSlot.show_name || !newSlot.dj_name) {
-      alert('Please fill in all fields');
+      setStatus('Please fill in all fields');
       return;
     }
 
@@ -80,7 +81,7 @@ const RadioSchedule = () => {
       });
       
       if (response.ok) {
-        alert('✅ Schedule slot added!');
+        setStatus('✅ Schedule slot added!');
         fetchSchedule();
         setNewSlot({
           day: 'Monday',
@@ -91,11 +92,11 @@ const RadioSchedule = () => {
         });
       } else {
         const error = await response.json();
-        alert(`❌ Error: ${error.error}`);
+        setStatus(`❌ Error: ${error.error}`);
       }
     } catch (error) {
       console.error('Error adding schedule slot:', error);
-      alert('Failed to add schedule slot');
+      setStatus('Failed to add schedule slot');
     }
   };
 
@@ -112,12 +113,12 @@ const RadioSchedule = () => {
       });
       
       if (response.ok) {
-        alert('✅ Schedule slot deleted');
+        setStatus('✅ Schedule slot deleted');
         fetchSchedule();
       }
     } catch (error) {
       console.error('Error deleting schedule slot:', error);
-      alert('Failed to delete schedule slot');
+      setStatus('Failed to delete schedule slot');
     }
   };
 
