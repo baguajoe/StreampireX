@@ -1049,7 +1049,7 @@ const RadioStationDetailPage = () => {
                     </Link>
 
                     <Link
-                      to={`/radio/${id}/schedule`}
+                      to={`/radio-station/${id}/schedule`}
                       className="btn btn-primary schedule-btn"
                     >
                       📅 Manage Schedule

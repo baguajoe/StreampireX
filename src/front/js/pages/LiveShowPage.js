@@ -244,7 +244,7 @@ const LiveShowPage = () => {
               <h4>📅 Upcoming Shows</h4>
               <p className="text-muted">Check the full schedule to see what's coming up!</p>
               <a
-                href={`/radio/${id}/schedule`}
+                href={`/radio-station/${id}/schedule`}
                 className="btn btn-outline-primary btn-sm"
               >
                 View Full Schedule
