@@ -17,6 +17,104 @@ import { createDelayPlugin } from './plugins/DelayPlugin';
 import { createLimiterPlugin } from './plugins/LimiterPlugin';
 import { createDeEsserPlugin } from './plugins/DeEsserPlugin';
 import { createSaturationPlugin } from './plugins/SaturationPlugin';
+import { createAICompressorPlugin } from './plugins/AICompressorPlugin';
+import { createAIDeRoomPlugin } from './plugins/AIDeRoomPlugin';
+import { createAIEQMatchPlugin } from './plugins/AIEQMatchPlugin';
+import { createAINoiseReducePlugin } from './plugins/AINoiseReducePlugin';
+import { createAIVocalCleanPlugin } from './plugins/AIVocalCleanPlugin';
+import { createAirEQPlugin } from './plugins/AirEQPlugin';
+import { createAmpSimPlugin } from './plugins/AmpSimPlugin';
+import { createAutoFilterPlugin } from './plugins/AutoFilterPlugin';
+import { createAutoPanPlugin } from './plugins/AutoPanPlugin';
+import { createAutoTunePlugin } from './plugins/AutoTunePlugin';
+import { createBassEnhancerPlugin } from './plugins/BassEnhancerPlugin';
+import { createBitDepthPlugin } from './plugins/BitDepthPlugin';
+import { createBitcrusherPlugin } from './plugins/BitcrusherPlugin';
+import { createBreathGatePlugin } from './plugins/BreathGatePlugin';
+import { createBrickwallLimiterPlugin } from './plugins/BrickwallLimiterPlugin';
+import { createCassettePlugin } from './plugins/CassettePlugin';
+import { createChamberReverbPlugin } from './plugins/ChamberReverbPlugin';
+import { createChannelStripPlugin } from './plugins/ChannelStripPlugin';
+import { createChoirPlugin } from './plugins/ChoirPlugin';
+import { createChorusPlugin } from './plugins/ChorusPlugin';
+import { createCombFilterPlugin } from './plugins/CombFilterPlugin';
+import { createConvolutionShaperPlugin } from './plugins/ConvolutionShaperPlugin';
+import { createDCFilterPlugin } from './plugins/DCFilterPlugin';
+import { createDottedEighthDelayPlugin } from './plugins/DottedEighthDelayPlugin';
+import { createDrumBusPlugin } from './plugins/DrumBusPlugin';
+import { createDustScratchPlugin } from './plugins/DustScratchPlugin';
+import { createDynamicEQPlugin } from './plugins/DynamicEQPlugin';
+import { createEnvelopeFilterPlugin } from './plugins/EnvelopeFilterPlugin';
+import { createExpanderPlugin } from './plugins/ExpanderPlugin';
+import { createFETCompPlugin } from './plugins/FETCompPlugin';
+import { createFlangerPlugin } from './plugins/FlangerPlugin';
+import { createFrequencyShifterPlugin } from './plugins/FrequencyShifterPlugin';
+import { createFuzzPlugin } from './plugins/FuzzPlugin';
+import { createGatePlugin } from './plugins/GatePlugin';
+import { createGatedReverbPlugin } from './plugins/GatedReverbPlugin';
+import { createGranularFreezePlugin } from './plugins/GranularFreezePlugin';
+import { createGraphicEQPlugin } from './plugins/GraphicEQPlugin';
+import { createHaasEffectPlugin } from './plugins/HaasEffectPlugin';
+import { createHallReverbPlugin } from './plugins/HallReverbPlugin';
+import { createHarmonicExciterPlugin } from './plugins/HarmonicExciterPlugin';
+import { createHarmonizerPlugin } from './plugins/HarmonizerPlugin';
+import { createHiHatShimmerPlugin } from './plugins/HiHatShimmerPlugin';
+import { createKickEnhancerPlugin } from './plugins/KickEnhancerPlugin';
+import { createLinearPhaseEQPlugin } from './plugins/LinearPhaseEQPlugin';
+import { createLooperPlugin } from './plugins/LooperPlugin';
+import { createLoudnessMaximizerPlugin } from './plugins/LoudnessMaximizerPlugin';
+import { createMasteringEQPlugin } from './plugins/MasteringEQPlugin';
+import { createMidSideBalancePlugin } from './plugins/MidSideBalancePlugin';
+import { createMidSideEQPlugin } from './plugins/MidSideEQPlugin';
+import { createMidSideProcessorPlugin } from './plugins/MidSideProcessorPlugin';
+import { createMonoMakerPlugin } from './plugins/MonoMakerPlugin';
+import { createMultibandCompPlugin } from './plugins/MultibandCompPlugin';
+import { createMultitapDelayPlugin } from './plugins/MultitapDelayPlugin';
+import { createNotchEQPlugin } from './plugins/NotchEQPlugin';
+import { createOctaverPlugin } from './plugins/OctaverPlugin';
+import { createOpticalCompPlugin } from './plugins/OpticalCompPlugin';
+import { createOverdrivePlugin } from './plugins/OverdrivePlugin';
+import { createParallelCompPlugin } from './plugins/ParallelCompPlugin';
+import { createPhaseFlipPlugin } from './plugins/PhaseFlipPlugin';
+import { createPhaserPlugin } from './plugins/PhaserPlugin';
+import { createPhonePlugin } from './plugins/PhonePlugin';
+import { createPingPongDelayPlugin } from './plugins/PingPongDelayPlugin';
+import { createPitchShifterPlugin } from './plugins/PitchShifterPlugin';
+import { createPlateReverbPlugin } from './plugins/PlateReverbPlugin';
+import { createPresenceEQPlugin } from './plugins/PresenceEQPlugin';
+import { createRadioPlugin } from './plugins/RadioPlugin';
+import { createResonatorPlugin } from './plugins/ResonatorPlugin';
+import { createReverseReverbPlugin } from './plugins/ReverseReverbPlugin';
+import { createRingModPlugin } from './plugins/RingModPlugin';
+import { createRoomReverbPlugin } from './plugins/RoomReverbPlugin';
+import { createRotaryPlugin } from './plugins/RotaryPlugin';
+import { createSampleRateReducerPlugin } from './plugins/SampleRateReducerPlugin';
+import { createShimmerReverbPlugin } from './plugins/ShimmerReverbPlugin';
+import { createSlapbackDelayPlugin } from './plugins/SlapbackDelayPlugin';
+import { createSnareEnhancerPlugin } from './plugins/SnareEnhancerPlugin';
+import { createSpectralGatePlugin } from './plugins/SpectralGatePlugin';
+import { createSpringReverbPlugin } from './plugins/SpringReverbPlugin';
+import { createStepFilterPlugin } from './plugins/StepFilterPlugin';
+import { createStereoEnhancerPlugin } from './plugins/StereoEnhancerPlugin';
+import { createStereoWidenerPlugin } from './plugins/StereoWidenerPlugin';
+import { createSubHarmonizerPlugin } from './plugins/SubHarmonizerPlugin';
+import { createTapeDelayPlugin } from './plugins/TapeDelayPlugin';
+import { createTapeWarmthPlugin } from './plugins/TapeWarmthPlugin';
+import { createTiltEQPlugin } from './plugins/TiltEQPlugin';
+import { createTransientDesignerPlugin } from './plugins/TransientDesignerPlugin';
+import { createTremoloPlugin } from './plugins/TremoloPlugin';
+import { createTubeCompPlugin } from './plugins/TubeCompPlugin';
+import { createTubeSaturatorPlugin } from './plugins/TubeSaturatorPlugin';
+import { createVCACompPlugin } from './plugins/VCACompPlugin';
+import { createVibratoPlugin } from './plugins/VibratoPlugin';
+import { createVinylSimPlugin } from './plugins/VinylSimPlugin';
+import { createVocalCompPlugin } from './plugins/VocalCompPlugin';
+import { createVocalDoublerPlugin } from './plugins/VocalDoublerPlugin';
+import { createVocalEnhancerPlugin } from './plugins/VocalEnhancerPlugin';
+import { createVowelFilterPlugin } from './plugins/VowelFilterPlugin';
+import { createWahWahPlugin } from './plugins/WahWahPlugin';
+import { createWaveshaperPlugin } from './plugins/WaveshaperPlugin';
+import { createWowFlutterPlugin } from './plugins/WowFlutterPlugin';
 
 let _nextId = 1;
 const _loadedWorklets = new Set();
@@ -31,6 +129,111 @@ const PLUGIN_FACTORIES = {
   limiter:    createLimiterPlugin,
   deesser:    createDeEsserPlugin,
   saturation: createSaturationPlugin,
+  ai_compressor:       createAICompressorPlugin,
+  ai_de_room:       createAIDeRoomPlugin,
+  aieq_match:       createAIEQMatchPlugin,
+  ai_noise_reduce:       createAINoiseReducePlugin,
+  ai_vocal_clean:       createAIVocalCleanPlugin,
+  air_eq:       createAirEQPlugin,
+  amp_sim:       createAmpSimPlugin,
+  auto_filter:       createAutoFilterPlugin,
+  auto_pan:       createAutoPanPlugin,
+  auto_tune:       createAutoTunePlugin,
+  bass_enhancer:       createBassEnhancerPlugin,
+  bit_depth:       createBitDepthPlugin,
+  bitcrusher:       createBitcrusherPlugin,
+  breath_gate:       createBreathGatePlugin,
+  brickwall_limiter:       createBrickwallLimiterPlugin,
+  cassette:       createCassettePlugin,
+  chamber_reverb:       createChamberReverbPlugin,
+  channel_strip:       createChannelStripPlugin,
+  choir:       createChoirPlugin,
+  chorus:       createChorusPlugin,
+  comb_filter:       createCombFilterPlugin,
+  convolution_shaper:       createConvolutionShaperPlugin,
+  dc_filter:       createDCFilterPlugin,
+  de_esser:       createDeEsserPlugin,
+  delay:       createDelayPlugin,
+  dotted_eighth_delay:       createDottedEighthDelayPlugin,
+  drum_bus:       createDrumBusPlugin,
+  dust_scratch:       createDustScratchPlugin,
+  dynamic_eq:       createDynamicEQPlugin,
+  eq3_band:       createEQ3BandPlugin,
+  envelope_filter:       createEnvelopeFilterPlugin,
+  expander:       createExpanderPlugin,
+  fet_comp:       createFETCompPlugin,
+  flanger:       createFlangerPlugin,
+  frequency_shifter:       createFrequencyShifterPlugin,
+  fuzz:       createFuzzPlugin,
+  gain:       createGainPlugin,
+  gate:       createGatePlugin,
+  gated_reverb:       createGatedReverbPlugin,
+  granular_freeze:       createGranularFreezePlugin,
+  graphic_eq:       createGraphicEQPlugin,
+  haas_effect:       createHaasEffectPlugin,
+  hall_reverb:       createHallReverbPlugin,
+  harmonic_exciter:       createHarmonicExciterPlugin,
+  harmonizer:       createHarmonizerPlugin,
+  hi_hat_shimmer:       createHiHatShimmerPlugin,
+  kick_enhancer:       createKickEnhancerPlugin,
+  limiter:       createLimiterPlugin,
+  linear_phase_eq:       createLinearPhaseEQPlugin,
+  looper:       createLooperPlugin,
+  loudness_maximizer:       createLoudnessMaximizerPlugin,
+  mastering_eq:       createMasteringEQPlugin,
+  mid_side_balance:       createMidSideBalancePlugin,
+  mid_side_eq:       createMidSideEQPlugin,
+  mid_side_processor:       createMidSideProcessorPlugin,
+  mono_maker:       createMonoMakerPlugin,
+  multiband_comp:       createMultibandCompPlugin,
+  multitap_delay:       createMultitapDelayPlugin,
+  notch_eq:       createNotchEQPlugin,
+  octaver:       createOctaverPlugin,
+  optical_comp:       createOpticalCompPlugin,
+  overdrive:       createOverdrivePlugin,
+  parallel_comp:       createParallelCompPlugin,
+  phase_flip:       createPhaseFlipPlugin,
+  phaser:       createPhaserPlugin,
+  phone:       createPhonePlugin,
+  ping_pong_delay:       createPingPongDelayPlugin,
+  pitch_shifter:       createPitchShifterPlugin,
+  plate_reverb:       createPlateReverbPlugin,
+  presence_eq:       createPresenceEQPlugin,
+  radio:       createRadioPlugin,
+  resonator:       createResonatorPlugin,
+  reverb:       createReverbPlugin,
+  reverse_reverb:       createReverseReverbPlugin,
+  ring_mod:       createRingModPlugin,
+  room_reverb:       createRoomReverbPlugin,
+  rotary:       createRotaryPlugin,
+  sample_rate_reducer:       createSampleRateReducerPlugin,
+  saturation:       createSaturationPlugin,
+  shimmer_reverb:       createShimmerReverbPlugin,
+  slapback_delay:       createSlapbackDelayPlugin,
+  snare_enhancer:       createSnareEnhancerPlugin,
+  spectral_gate:       createSpectralGatePlugin,
+  spring_reverb:       createSpringReverbPlugin,
+  step_filter:       createStepFilterPlugin,
+  stereo_enhancer:       createStereoEnhancerPlugin,
+  stereo_widener:       createStereoWidenerPlugin,
+  sub_harmonizer:       createSubHarmonizerPlugin,
+  tape_delay:       createTapeDelayPlugin,
+  tape_warmth:       createTapeWarmthPlugin,
+  tilt_eq:       createTiltEQPlugin,
+  transient_designer:       createTransientDesignerPlugin,
+  tremolo:       createTremoloPlugin,
+  tube_comp:       createTubeCompPlugin,
+  tube_saturator:       createTubeSaturatorPlugin,
+  vca_comp:       createVCACompPlugin,
+  vibrato:       createVibratoPlugin,
+  vinyl_sim:       createVinylSimPlugin,
+  vocal_comp:       createVocalCompPlugin,
+  vocal_doubler:       createVocalDoublerPlugin,
+  vocal_enhancer:       createVocalEnhancerPlugin,
+  vowel_filter:       createVowelFilterPlugin,
+  wah_wah:       createWahWahPlugin,
+  waveshaper:       createWaveshaperPlugin,
+  wow_flutter:       createWowFlutterPlugin,
 };
 
 class PluginHost {

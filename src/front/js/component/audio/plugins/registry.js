@@ -1822,3 +1822,5 @@ export const getPlugin = (id) => pluginRegistry[id] || null;
 export const getAllPlugins = () => Object.values(pluginRegistry);
 export const getPluginsByCategory = (cat) => getAllPlugins().filter(p => p.category === cat);
 export const CATEGORIES = ['dynamics','eq','reverb','delay','modulation','filter','distortion','pitch','vocal','spatial','utility','mastering','restoration','creative'];
+export const getCategories = () => [...new Set(getAllPlugins().map(p => p.category))].sort();
+export const getPluginDef = (id) => pluginRegistry[id] || null;
