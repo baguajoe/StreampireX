@@ -89,8 +89,8 @@ function SPXMenuDropdown({ label, items }) {
       });
       const data = await res.json();
       if (data.url) setAiFillResult(data.url);
-      else alert('AI Fill: ' + (data.error||'unknown'));
-    } catch(err) { alert('AI Fill: ' + err.message); }
+      else setStatus('AI Fill error: ' + (data.error||'unknown'));
+    } catch(err) { setStatus('AI Fill: ' + err.message); }
     setAiFillLoading(false);
   };
   const acceptAiFill = () => {
@@ -526,13 +526,12 @@ export default function SPXCanvasPage() {
         </div>
 
         {/* ── Canvas Center ── */}
-        <div style={S.center} ref={stageRef}
+        <div ref={stageRef}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerLeave={onPointerUp}
-          style={{touchAction:'none'}}
-          style={{...S.center, cursor:
+          style={{...S.center, touchAction:'none', cursor:
             activeTool==='move'?'default':activeTool==='zoom_in'?'zoom-in':
             activeTool==='zoom_out'?'zoom-out':activeTool==='hand'?'grab':
             activeTool==='eyedropper'?'crosshair':activeTool==='crop'?'crosshair':'crosshair'
