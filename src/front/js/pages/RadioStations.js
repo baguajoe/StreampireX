@@ -90,7 +90,7 @@ const RadioStations = () => {
                 <p className="offline">🔴 Offline</p>
               )}
               <Link
-                to={`/radio-stations/${station.id}`}
+                to={`/radio-station/${station.id}`}
                 className="view-details"
               >
                 View Details →
