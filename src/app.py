@@ -51,6 +51,8 @@ from flask.cli import with_appcontext
 from api.ai_mastering import ai_mastering_bp
 from api.ai_mastering_phase3 import ai_mastering_phase3_bp
 from api.ai_radio_dj import ai_radio_dj_bp
+from api.radio_live_routes import radio_live_bp
+from api.radio_signaling import register_radio_socketio
 from api.ai_content_routes import ai_content_bp
 from api.recording_studio_routes import recording_studio_bp
 from api.beat_store_routes import beat_store_bp
@@ -328,6 +330,7 @@ app.register_blueprint(notifications_bp)
 app.register_blueprint(ai_mastering_bp)
 app.register_blueprint(ai_mastering_phase3_bp)
 app.register_blueprint(ai_radio_dj_bp)
+app.register_blueprint(radio_live_bp)
 app.register_blueprint(ai_content_bp)
 app.register_blueprint(recording_studio_bp)
 app.register_blueprint(ai_mix_assistant_bp)

@@ -1,3 +1,6 @@
+import RadioLiveStudio from './RadioLiveStudio';
+import RadioLiveViewer from './RadioLiveViewer';
+import PlayMixSubmissionForm from './PlayMixSubmissionForm';
 // src/front/js/component/RadioStationDetailPage.js - Enhanced with comprehensive audio error handling
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
@@ -32,6 +35,8 @@ const RadioStationDetailPage = () => {
 
   // Audio state
   const [isPlaying, setIsPlaying] = useState(false);
+  const [studioOpen, setStudioOpen] = useState(false);
+  const [showSubmitForm, setShowSubmitForm] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
   const [audioReady, setAudioReady] = useState(false);
   const [audioError, setAudioError] = useState(null);
@@ -1266,7 +1271,14 @@ const RadioStationDetailPage = () => {
           </div>
 
           {/* Additional features */}
-          {type !== 'static' && station.submission_guidelines && (
+          {type !== 'static' && station.submission_guidelines}
+            <button onClick={() => setShowSubmitForm(true)} style={{
+              display:'inline-block', marginTop:8, padding:'8px 18px',
+              background:'#00ffc822', border:'1px solid #00ffc8',
+              borderRadius:4, color:'#00ffc8', cursor:'pointer',
+              fontWeight:700, fontSize:12
+            }}>+ Add Track to PlayMix</button>
+            {station.submission_guidelines && (
             <div className="detail-section">
               <h3>Submission Guidelines</h3>
               <p>{station.submission_guidelines}</p>
