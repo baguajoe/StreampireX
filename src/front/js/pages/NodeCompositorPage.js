@@ -782,7 +782,7 @@ export default function NodeCompositorPage() {
       objects: scene3DObjects.length,
     };
     localStorage.setItem('spx_3d_export', JSON.stringify(payload));
-    alert('3D scene queued for Video Editor timeline. Open Video Editor to import.');
+    setStatus('3D scene queued for Video Editor timeline. Open Video Editor to import.');
   };
 
 
@@ -847,7 +847,7 @@ export default function NodeCompositorPage() {
         const loader = new FBXLoader();
         loader.load(url, onLoad, undefined, onError);
       } else {
-        alert(`Unsupported format: .${ext}. Use GLB, GLTF, OBJ, or FBX.`);
+        setStatus(`Unsupported format: .${ext}. Use GLB, GLTF, OBJ, or FBX.`);
         setImportingModel(false);
         URL.revokeObjectURL(url);
       }
@@ -949,7 +949,7 @@ export default function NodeCompositorPage() {
     const objId = shaderTarget || selected3DId;
     if (!objId) return;
     const glsl = generateGLSL();
-    if (!glsl) { alert('Add an Output node first'); return; }
+    if (!glsl) { setStatus('Add an Output node first'); return; }
     const mesh = threeObjectsRef.current[objId];
     if (!mesh) return;
     const mat = new THREE.ShaderMaterial({
@@ -1072,7 +1072,7 @@ export default function NodeCompositorPage() {
   const convertToSkinnedMesh = (objId) => {
     const scene = threeSceneRef.current;
     const mesh = threeObjectsRef.current[objId];
-    if (!mesh || !mesh.isMesh) { alert('Select a mesh object first'); return; }
+    if (!mesh || !mesh.isMesh) { setStatus('Select a mesh object first'); return; }
     if (mesh.isSkinnedMesh) { console.log('Already a SkinnedMesh'); return; }
 
     // Build skeleton from rig bones
@@ -1317,7 +1317,7 @@ export default function NodeCompositorPage() {
       setText3DPanelOpen(false);
     } catch(e) {
       console.error('3D Text error:', e);
-      alert('Could not load font. Check network connection.');
+      setStatus('Could not load font. Check network connection.');
     }
     setText3DLoading(false);
   };
@@ -1507,6 +1507,11 @@ export default function NodeCompositorPage() {
   }
   const duration = 10;
   const [projectName, setProjectName] = React.useState("Untitled Composite");
+  const [status,        setStatus]       = React.useState('');
+  const [showShortcuts, setShowShortcuts] = React.useState(false);
+  const [showNodeRef,   setShowNodeRef]   = React.useState(false);
+  const [cloudProjects, setCloudProjects] = React.useState([]);
+  const [showCloudLoad, setShowCloudLoad] = React.useState(false);
   // ── Blender Lite 3D Viewport (Sessions 6+7) ───────────────────────────────
   const threeCanvasRef   = useRef ? React.useRef(null) : React.useRef(null);
   const threeSceneRef    = React.useRef(null);
@@ -1781,22 +1786,21 @@ export default function NodeCompositorPage() {
             { label: "Save to Cloud ☁", shortcut: "Ctrl+Shift+S", action: async () => {
               try {
                 const r = await saveToCloud("compositor", projectName, {nodes, edges, name: projectName});
-                alert("✅ Saved to cloud: " + r.name);
-              } catch(e) { alert("Cloud save failed: " + e.message); }
+                setStatus("✅ Saved to cloud: " + r.name);
+              } catch(e) { setStatus("Cloud save failed: " + e.message); }
             } },
             { label: "Open from Cloud ☁", action: async () => {
               try {
                 const projects = await listCloudProjects("compositor");
-                if (!projects.length) { alert("No saved projects found."); return; }
-                const names = projects.map((p,i) => i+1+". "+p.name+" ("+new Date(p.modified).toLocaleDateString()+")").join("\n");
-                const choice = prompt("Choose project:\n"+names+"\nEnter number:");
-                const idx = parseInt(choice)-1;
-                if (isNaN(idx)||idx<0||idx>=projects.length) return;
-                const payload = await loadFromCloud(projects[idx].key);
-                if (payload) { alert("✅ Loaded: "+projects[idx].name); }
-              } catch(e) { alert("Load failed: "+e.message); }
+                if (!projects.length) { setStatus("No saved projects found."); return; }
+                setCloudProjects(projects);
+                setShowCloudLoad(true);
+                return;
+                const payload = null; // handled by modal
+                if (payload) { setStatus("✅ Loaded: "+projects[idx].name); }
+              } catch(e) { setStatus("Load failed: "+e.message); }
             } },
-            { label: "Save", shortcut: "Ctrl+S", action: () => { try { localStorage.setItem(COMP_KEY, JSON.stringify({nodes,edges,name:projectName,savedAt:Date.now()})); alert("Saved!"); } catch(e){} } },
+            { label: "Save", shortcut: "Ctrl+S", action: () => { try { localStorage.setItem(COMP_KEY, JSON.stringify({nodes,edges,name:projectName,savedAt:Date.now()})); setStatus("✅ Saved locally"); } catch(e){ setStatus("Save failed"); } } },
             "---",
             { label: "Export PNG",  action: () => {} },
             { label: "Export EXR",  action: () => {} },
@@ -1841,8 +1845,8 @@ export default function NodeCompositorPage() {
             { label: "Output: EXR",    action: () => {} },
           ]},
           { label: "Help", items: [
-            { label: "Node Reference", action: () => alert("Connect nodes by dragging from output dot to input dot. Output node is required for render.") },
-            { label: "Shortcuts",      action: () => alert("Ctrl+Z=Undo  Del=Delete node  Ctrl+S=Save") },
+            { label: "Node Reference", action: () => setShowNodeRef(true) },
+            { label: "Shortcuts",      action: () => setShowShortcuts(true) },
           ]},
         ]}
       />
