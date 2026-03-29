@@ -19,7 +19,6 @@ import DrumDesigner from './DrumDesigner';
 import InstrumentBuilder from './InstrumentBuilder';
 import SPX3000Tab from './SPX3000Tab';
 import SP1200Tab from './SP1200Tab';
-import TripleSamplerTab from './TripleSamplerTab';
 import StutterEngine from './StutterEngine';
 
 // =============================================================================
@@ -2814,7 +2813,6 @@ const SamplerBeatMaker = ({
           { id: 'drumdesign', label: '🥁 Drum Design', title: 'Drum Synthesis Designer' },
           { id: 'instrument', label: '🎸 Instrument', title: 'Custom Instrument Builder' },
           { id: 'stutter',    label: '⚡ Stutter',    title: 'Beat-Synced Stutter / Glitch FX — Gross Beat style' },
-          { id: 'triple',     label: '🎚️ All 3',     title: 'SP-1200 + SPX3000 + Digital — unified 3-engine sampler with master clock' },
         ].map(tab => (
           <button
             key={tab.id}
@@ -2996,27 +2994,12 @@ const SamplerBeatMaker = ({
         )}
 
         {/* ── SPX3000 TAB ── */}
-        {activeTab === 'triple' && (
-          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <TripleSamplerTab
-              onExport={onExport}
-              onSendToArrange={onSendToArrange}
-              sp1200Pads={null}
-              spx3000Pads={null}
-              digitalPads={pads}
-            />
-          </div>
-        )}
-
         {activeTab === 'spx3000' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             <SPX3000Tab
               onExport={onExport}
               onSendToArrange={onSendToArrange}
               isEmbedded={true}
-              onSendToTriple={(padIdx, buffer, name) => {
-                setActiveTab('triple');
-              }}
             />
           </div>
         )}
@@ -3028,9 +3011,6 @@ const SamplerBeatMaker = ({
               onExport={onExport}
               onSendToArrange={onSendToArrange}
               isEmbedded={true}
-              onSendToTriple={(padIdx, buffer, name) => {
-                setActiveTab('triple');
-              }}
             />
           </div>
         )}
