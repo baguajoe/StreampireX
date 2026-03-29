@@ -19,6 +19,7 @@ import DrumDesigner from './DrumDesigner';
 import InstrumentBuilder from './InstrumentBuilder';
 import SPX3000Tab from './SPX3000Tab';
 import SP1200Tab from './SP1200Tab';
+import StutterEngine from './StutterEngine';
 
 // =============================================================================
 // CONSTANTS
@@ -2811,6 +2812,7 @@ const SamplerBeatMaker = ({
           { id: 'synth', label: '🎛️ Synth', title: 'Subtractive Synthesizer' },
           { id: 'drumdesign', label: '🥁 Drum Design', title: 'Drum Synthesis Designer' },
           { id: 'instrument', label: '🎸 Instrument', title: 'Custom Instrument Builder' },
+          { id: 'stutter',    label: '⚡ Stutter',    title: 'Beat-Synced Stutter / Glitch FX — Gross Beat style' },
         ].map(tab => (
           <button
             key={tab.id}
@@ -4145,6 +4147,19 @@ const SamplerBeatMaker = ({
           <div className="slice-seq-hint">Click to cycle slices · Right-click to clear · Auto Fill = sequential · 🎲 = random arrangement</div>
         </div>
       )}
+
+        {/* ── STUTTER TAB ── */}
+        {activeTab === 'stutter' && (
+          <StutterEngine
+            audioContext={ctxRef.current}
+            audioBuffer={pads[selectedPad || 0]?.buffer || null}
+            outputNode={ctxRef.current?.destination}
+            bpm={bpm}
+            trackName={pads[selectedPad || 0]?.name || 'Select a Pad'}
+            onClose={() => setActiveTab('beats')}
+            isEmbedded={true}
+          />
+        )}
     </div>
   );
 };

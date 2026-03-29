@@ -5,6 +5,8 @@
 // ============================================================
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { PultecForgeUI, DynamicEQUI, GraphicEQUI, TiltEQUI, BaxandallEQUI, EQ_FX_ADDITIONS } from './SPXPlugins_EQ';
+import { VocoderSPXUI, GranularFreezeUI, NoiseReductionUI, RingModUI, FormantFilterUI, SpectrumAnalyzerUI, CREATIVE_FX_ADDITIONS } from './SPXPlugins_Creative';
 
 // ─── UTILITY ────────────────────────────────────────────────
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -1477,6 +1479,17 @@ export const ALL_FX_EXTENDED = [
   { key: "vortexMod",       name: "VortexMod",     type: "filter",     component: "VortexModUI" },
   { key: "gainRider",       name: "GainRider",     type: "comp",       component: "GainRiderUI" },
   { key: "harmonicSum",     name: "HarmonicSum",   type: "distortion", component: "HarmonicSumUI" },
+  { key: "pultecForge",    name: "PultecForge",    type: "eq",         component: "PultecForgeUI"    },
+  { key: "dynamicEQ",      name: "DynamicEQ",      type: "eq",         component: "DynamicEQUI"      },
+  { key: "graphicEQ",      name: "GraphicEQ",      type: "eq",         component: "GraphicEQUI"      },
+  { key: "tiltEQ",         name: "TiltEQ",         type: "eq",         component: "TiltEQUI"         },
+  { key: "baxandallEQ",    name: "BaxandallEQ",    type: "eq",         component: "BaxandallEQUI"    },
+  { key: "vocoderSPX",     name: "VocoderSPX",     type: "filter",     component: "VocoderSPXUI"     },
+  { key: "granularFreeze", name: "GranularFreeze", type: "reverb",     component: "GranularFreezeUI" },
+  { key: "noiseReduction", name: "NoiseRedux",     type: "filter",     component: "NoiseReductionUI" },
+  { key: "ringMod",        name: "RingMod",        type: "distortion", component: "RingModUI"        },
+  { key: "formantFilter",  name: "FormantFilter",  type: "filter",     component: "FormantFilterUI"  },
+  { key: "spectrumAnalyzer", name: "SpectrumAnalyzer", type: "eq",     component: "SpectrumAnalyzerUI" },
 ];
 
 // ═══════════════════════════════════════════════════════════════

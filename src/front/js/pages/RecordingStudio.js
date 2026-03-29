@@ -5513,6 +5513,27 @@ const RecordingStudio = ({ user }) => {
                   { key: "harmonicSum",     name: "HarmonicSum"     },
                 ],
               },
+              {
+                cat: "SPX EQ Suite",
+                items: [
+                  { key: "pultecForge",   name: "PultecForge"  },
+                  { key: "dynamicEQ",     name: "DynamicEQ"    },
+                  { key: "graphicEQ",     name: "GraphicEQ"    },
+                  { key: "tiltEQ",        name: "TiltEQ"       },
+                  { key: "baxandallEQ",   name: "BaxandallEQ"  },
+                ],
+              },
+              {
+                cat: "SPX Creative",
+                items: [
+                  { key: "vocoderSPX",     name: "VocoderSPX"     },
+                  { key: "granularFreeze", name: "GranularFreeze" },
+                  { key: "noiseReduction", name: "NoiseRedux"     },
+                  { key: "ringMod",        name: "RingMod"        },
+                  { key: "formantFilter",  name: "FormantFilter"  },
+                  { key: "spectrumAnalyzer",name:"SpectrumAnalyzer"},
+                ],
+              },
             ].map((group) => (
               <div key={group.cat}>
                 <div
