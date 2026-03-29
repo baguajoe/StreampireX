@@ -250,7 +250,7 @@ export default function VideoEditorMonitors({
     const el = programVideoRef.current;
     if (!el || !activeClip || activeClip.type !== 'video') return;
     const clipOffset = currentTime - activeClip.startTime;
-    if (Math.abs(el.currentTime - clipOffset) > 0.05) el.currentTime = clipOffset; // SPX: tight sync 50ms
+    if (Math.abs(el.currentTime - clipOffset) > 0.5) el.currentTime = clipOffset;
     if (isPlaying && el.paused)  el.play().catch(() => {});
     if (!isPlaying && !el.paused) el.pause();
   }, [isPlaying, currentTime, activeClip]);
@@ -405,15 +405,7 @@ export default function VideoEditorMonitors({
             )}
           </div>
           <div className="spx-monitor-footer">
-            <span className="spx-monitor-timecode" title="SMPTE Timecode">
-            {(() => {
-              const fr = 24;
-              const totalFrames = Math.floor(currentTime * fr);
-              const ff = totalFrames % fr;
-              const ts = Math.floor(totalFrames / fr);
-              return `${String(Math.floor(ts/3600)).padStart(2,'0')}:${String(Math.floor(ts/60)%60).padStart(2,'0')}:${String(ts%60).padStart(2,'0')}:${String(ff).padStart(2,'0')}`;
-            })()}
-          </span>
+            <span className="spx-monitor-timecode">{formatTime(currentTime)}</span>
             {sourceMedia && (
               <button className="spx-tbtn active" style={{ marginLeft:'auto', fontSize:10, padding:'2px 8px' }}
                 onClick={() => setShowSourceMon(true)}>
