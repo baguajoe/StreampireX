@@ -143,6 +143,7 @@ function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
 
 
   return (
+<>
 <div className="spx-menu-bar">
       {menus.map(menu => (
         <MenuDropdown key={menu.label} label={menu.label} items={menu.items} />
