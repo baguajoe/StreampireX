@@ -202,10 +202,10 @@ const DashboardRadio = ({ user }) => {
                   </div>
 
                   <div className="station-actions">
-                    <Link to={`/radio/station/${station.id}/station`} className="action-btn view">
+                    <Link to={`/radio-station/${station.id}`} className="action-btn view">
                       👁️
                     </Link>
-                    <Link to={`/radio/${station.id}/schedule`} className="action-btn">
+                    <Link to={`/radio-station/${station.id}/schedule`} className="action-btn">
                       📅
                     </Link>
                     <button
