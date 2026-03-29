@@ -67,6 +67,12 @@ export default function VideoEditorComponent() {
         setActiveMenu={e.setActiveMenu}
         formatTime={e.formatTime}
         userTier={userTier}
+        onLoadProject={e.loadProject}
+        onSaveProject={e.saveProject}
+        onCopyClip={e.copyClip}
+        onPasteClip={e.pasteClip}
+        onSpeedDialog={e.openSpeedDialog}
+        onReverseClip={e.reverseClip}
       />
 
       {/* ── Main body ──────────────────────────────────── */}
