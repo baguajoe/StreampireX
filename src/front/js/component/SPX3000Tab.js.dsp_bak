@@ -599,7 +599,6 @@ const SPX3000Tab = ({
     let buf = pad.buffer;
     // Apply rolloff first (before bit crush)
     if (rolloffEnabled) buf = applyDacRolloff(c, buf);
-    buf = applyTransformerColour(c, buf); // MPC3000 output transformer warmth
     // Apply 12-bit DAC
     if (dacEnabled && pad.dacOn) buf = applyDac12bit(c, buf);
     dacCache.current[cacheKey] = buf;

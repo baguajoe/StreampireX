@@ -479,13 +479,7 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
   }, [fx, buildFXChain]);
 
   // Note on
-  // Velocity curve: maps 0-1 linear velocity to exponential response
-  // Matches how real hardware responds — soft hits are much quieter
-  const velocityCurve = (v) => Math.pow(Math.max(0, Math.min(1, v)), 1.8);
-
   const noteOn = useCallback((midi, velocity = 0.8) => {
-    // Apply velocity curve for more natural dynamics
-    velocity = velocityCurve(velocity);
     const ctx = getCtx();
     if (!fxInputRef.current) buildFXChain(ctx);
     const dest = fxInputRef.current;

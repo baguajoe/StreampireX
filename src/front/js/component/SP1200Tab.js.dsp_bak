@@ -93,10 +93,7 @@ const applySpLowEnd = (ctx, buffer, emphasis = 0.45) => {
       lp = lp + a * (src[i] - lp);
       const abs = Math.abs(src[i]);
       env = abs > env ? env + 0.3 * (abs - env) : env + 0.002 * (abs - env);
-      // 60Hz transformer resonance — subtle but gives that SP1200 'weight'
-      // Models the output transformer's magnetic resonance characteristic
-      const xfmrRes = lp * 0.12 * Math.sin(2 * Math.PI * 60 * i / buffer.sampleRate);
-      dst[i] = emuSaturate(src[i] / (1 + 0.6 * env) + lp * emphasis + xfmrRes, 1.3);
+      dst[i] = emuSaturate(src[i] / (1 + 0.6 * env) + lp * emphasis, 1.3);
     }
   }
   return out;

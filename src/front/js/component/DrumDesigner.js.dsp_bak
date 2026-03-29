@@ -157,46 +157,6 @@ function synthDrum(ctx, type, params, dest) {
     wet.connect(ctx.destination);
   };
 
-  // ── CYMBAL — metallic FM synthesis (6 detuned square waves) ──────────────
-  if (type === 'cymbal') {
-    // Authentic cymbal: 6 square oscillators with irrational frequency ratios
-    // Models the inharmonic partials of real cymbal metal vibration
-    const RATIOS = [1.0, 1.4836, 1.7232, 2.0, 2.3637, 2.9274];
-    const baseFreq = params.tune ? 440 * Math.pow(2, params.tune/12) : 440;
-    const allOsc = ctx.createGain(); allOsc.gain.value = 1.0;
-    allOsc.connect(master);
-    RATIOS.forEach((r, idx) => {
-      const osc = ctx.createOscillator();
-      osc.type = 'square';
-      osc.frequency.value = baseFreq * r;
-      // Slight detune for each partial — models physical imperfections
-      osc.detune.value = (Math.random() - 0.5) * 8;
-      const partialGain = ctx.createGain();
-      partialGain.gain.setValueAtTime(0.15 / (idx + 1), now);
-      partialGain.gain.exponentialRampToValueAtTime(0.001, now + params.decay);
-      // Bandpass filter per partial — models cymbal shell resonance
-      const bp = ctx.createBiquadFilter();
-      bp.type = 'bandpass';
-      bp.frequency.value = baseFreq * r;
-      bp.Q.value = params.metallic * 8 + 1;
-      osc.connect(bp); bp.connect(partialGain); partialGain.connect(allOsc);
-      osc.start(now); osc.stop(now + params.decay + 0.05);
-    });
-    // Noise layer for the "shhh" component
-    const noiseLen = Math.ceil(ctx.sampleRate * params.decay);
-    const noiseBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
-    const nd = noiseBuf.getChannelData(0);
-    for (let i = 0; i < noiseLen; i++) nd[i] = (Math.random() * 2 - 1) * Math.exp(-i / (noiseLen * 0.4));
-    const noiseNode = ctx.createBufferSource();
-    noiseNode.buffer = noiseBuf;
-    const hpf = ctx.createBiquadFilter();
-    hpf.type = 'highpass'; hpf.frequency.value = params.brightness || 7000;
-    const noiseGain = ctx.createGain(); noiseGain.gain.value = 0.4;
-    noiseNode.connect(hpf); hpf.connect(noiseGain); noiseGain.connect(master);
-    noiseNode.start(now);
-    return;
-  }
-
   if (type === 'kick') {
     const osc = ctx.createOscillator(); osc.type = 'sine';
     osc.frequency.setValueAtTime(params.startFreq, now);

@@ -333,9 +333,6 @@ function useSynthEngine(preset) {
     } else { filt.connect(vg); }
 
     const oscsOut=[];
-    // Note: Web Audio OscillatorNode uses PolyBLEP anti-aliasing internally
-    // above Nyquist/4. For additional warmth we add subtle per-oscillator
-    // saturation via WaveShaper to model analog oscillator nonlinearity.
     p.oscs.forEach(osc => {
       if (!osc.on) return;
       const uv=Math.max(1,p.unison.voices);
