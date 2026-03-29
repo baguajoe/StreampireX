@@ -10,20 +10,6 @@ import { renderLayers } from "../utils/motionstudio/renderEngine";
 import { exportFrame, exportProject, exportVideo, importProject } from "../utils/export/exportEngine";
 import { saveToCloud, listCloudProjects, loadFromCloud, deleteCloudProject } from "../utils/cloudSave";
 import { ANIMATABLE_PROPS } from "../utils/motionstudio/keyframeEngine";
-import MotionToolbar from "../component/motionstudio/MotionToolbar";
-import MotionTimelinePanel from "../component/motionstudio/MotionTimelinePanel";
-import MotionLayerPanel from "../component/motionstudio/MotionLayerPanel";
-import MotionPropertyInspector from "../component/motionstudio/MotionPropertyInspector";
-import MotionPreviewStage from "../component/motionstudio/MotionPreviewStage";
-import MotionExportPanel from "../component/motionstudio/MotionExportPanel";
-import MotionCameraPanel from "../component/motionstudio/MotionCameraPanel";
-import MotionKeyframePanel from "../component/motionstudio/MotionKeyframePanel";
-import MotionPresetBrowser from "../component/motionstudio/MotionPresetBrowser";
-import MotionTemplatePanel from "../component/motionstudio/MotionTemplatePanel";
-import MotionPathPanel from "../component/motionstudio/MotionPathPanel";
-import MotionMaskEffectsPanel from "../component/motionstudio/MotionMaskEffectsPanel";
-import MotionGraphEditorV2 from "../component/motionstudio/MotionGraphEditorV2";
-import useMotionPresets from "../component/motionstudio/engine/useMotionPresets";
 
 // ─── Expressions Engine ───────────────────────────────────────────────────────
 const EXPR_LIBRARY = [
@@ -200,27 +186,6 @@ export default function MotionStudioPage() {
   const [showShortcuts,  setShowShortcuts]  = useState(false);
   const [cloudProjects,  setCloudProjects]  = useState([]);
   const [showCloudLoad,  setShowCloudLoad]  = useState(false);
-  const [showPresets,    setShowPresets]    = useState(false);
-  const [showTemplates,  setShowTemplates]  = useState(false);
-  const [showKeyframes,  setShowKeyframes]  = useState(false);
-  const [showCamera,     setShowCamera]     = useState(false);
-  const [showExportPnl,  setShowExportPnl]  = useState(false);
-  const [showGraphEditor,setShowGraphEditor]= useState(false);
-  const [showMaskFX,     setShowMaskFX]     = useState(false);
-  const [showPathPanel,  setShowPathPanel]  = useState(false);
-  const [showPreviewStg, setShowPreviewStg] = useState(false);
-  const [selectedTextPreset, setSelectedTextPreset] = useState('fade_in');
-  const [selectedLowerThird, setSelectedLowerThird] = useState('minimal');
-  const [cameraPreset,   setCameraPreset]   = useState('default');
-  const [loopRegion,     setLoopRegion]     = useState(null);
-  const [timelineZoom,   setTimelineZoom]   = useState(1);
-  const [exportSettings, setExportSettings] = useState({ name: 'export', format: 'webm', fps: 30 });
-  const selectedKeyframeRef = { current: null };
-  const CAMERA_PRESETS = [
-    { id:'default', name:'Default' }, { id:'dolly', name:'Dolly In' },
-    { id:'pan',     name:'Pan Right' }, { id:'tilt', name:'Tilt Up' },
-    { id:'zoom',    name:'Zoom Out' }, { id:'orbit', name:'Orbit' },
-  ];
 
   const { scrubTo } = usePlaybackEngine();
 
@@ -434,24 +399,6 @@ export default function MotionStudioPage() {
     const id = addLayer({ ...selectedLayer, name: selectedLayer.name + ' Copy', x:(selectedLayer.x||0)+20, y:(selectedLayer.y||0)+20 });
     setSelectedId(id);
   };
-
-  // ── Keyframe helpers ────────────────────────────────────────────────────
-  const addKeyframeToSelected = (prop, value) => {
-    if (!selectedId) return;
-    const layer = layers.find(l => l.id === selectedId);
-    if (!layer) return;
-    const kfs = { ...(layer.keyframes || {}), [prop]: [...(layer.keyframes?.[prop] || []), { time: timeline.currentTime, value }] };
-    updateLayer(selectedId, { keyframes: kfs });
-    setStatus(`Keyframe added: ${prop} = ${value} at ${timeline.currentTime.toFixed(2)}s`);
-  };
-  const removeKeyframeFromSelected = (prop, time) => {
-    if (!selectedId) return;
-    const layer = layers.find(l => l.id === selectedId);
-    if (!layer) return;
-    const kfs = { ...(layer.keyframes || {}), [prop]: (layer.keyframes?.[prop] || []).filter(k => k.time !== time) };
-    updateLayer(selectedId, { keyframes: kfs });
-  };
-  const addLowerThirdLayer = () => handleAddLayer("lower_third");
 
   const handleExportFrame = () => {
     if (canvasRef.current) exportFrame(canvasRef.current, projectName);

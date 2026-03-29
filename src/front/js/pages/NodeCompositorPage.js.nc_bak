@@ -227,49 +227,8 @@ import RotoTimelinePanel from "../component/nodecompositor/pro/RotoTimelinePanel
 import DependencyGraphPanel from "../component/nodecompositor/pro/DependencyGraphPanel";
 import { createGraphRunner } from "../utils/compositor/engine/graphRunner";
 import NodeEnginePanel from "../component/nodecompositor/pro/NodeEnginePanel";
-import NodeGraphCanvas from "../component/nodecompositor/NodeGraphCanvas";
-import NodeLibraryPanel from "../component/nodecompositor/NodeLibraryPanel";
-import NodeInspectorPanel from "../component/nodecompositor/NodeInspectorPanel";
-import NodeTimelinePanel from "../component/nodecompositor/NodeTimelinePanel";
-import VFXToolPanel from "../component/nodecompositor/VFXToolPanel";
-import AIAutoEditPanel from "../component/nodecompositor/AIAutoEditPanel";
-import BeatSyncPanel from "../component/nodecompositor/BeatSyncPanel";
-import RotoMaskPanel from "../component/nodecompositor/RotoMaskPanel";
-import TrackingToolPanel from "../component/nodecompositor/TrackingToolPanel";
-import Camera25DPanel from "../component/nodecompositor/Camera25DPanel";
-import MinimapPanel from "../component/nodecompositor/MinimapPanel";
-import NodeVFXPreviewPanel from "../component/nodecompositor/NodeVFXPreviewPanel";
-import VideoExportPanel from "../component/nodecompositor/VideoExportPanel";
 
 export default function NodeCompositorPage() {
-  const [ncNodes,          setNcNodes]          = React.useState([]);
-  const [ncEdges,          setNcEdges]          = React.useState([]);
-  const [ncSelectedNode,   setNcSelectedNode]   = React.useState(null);
-  const [ncCurrentTime,    setNcCurrentTime]    = React.useState(0);
-  const [ncIsPlaying,      setNcIsPlaying]      = React.useState(false);
-  const [ncDuration,       setNcDuration]       = React.useState(10);
-  const [vfxEnabled,       setVfxEnabled]       = React.useState(true);
-  const [shaderQuality,    setShaderQuality]    = React.useState('high');
-  const [globalEffects,    setGlobalEffects]    = React.useState([]);
-  const [showNodeLib,      setShowNodeLib]      = React.useState(false);
-  const [showNodeInspect,  setShowNodeInspect]  = React.useState(false);
-  const [showNodeTimeline, setShowNodeTimeline] = React.useState(false);
-  const [showVFXPanel,     setShowVFXPanel]     = React.useState(false);
-  const [showAIAutoEdit,   setShowAIAutoEdit]   = React.useState(false);
-  const [showBeatSync,     setShowBeatSync]     = React.useState(false);
-  const [showRotoMask,     setShowRotoMask]     = React.useState(false);
-  const [showTracking,     setShowTracking]     = React.useState(false);
-  const [showCamera25D,    setShowCamera25D]    = React.useState(false);
-  const [showMinimap,      setShowMinimap]      = React.useState(true);
-  const [showVFXPreview,   setShowVFXPreview]   = React.useState(false);
-  const [showVideoExport,  setShowVideoExport]  = React.useState(false);
-  const [showNodeCanvas,   setShowNodeCanvas]   = React.useState(false);
-  const addNcNode = React.useCallback((type) => {
-    const id = `node_${Date.now()}`;
-    const nodeType = type || { label:'New Node', inputs:[], outputs:[] };
-    setNcNodes(prev => [...prev, { id, x:200+prev.length*20, y:150+prev.length*20, width:180, ...nodeType }]);
-    setStatus?.(`Added node: ${nodeType.label||type}`);
-  }, []);
   const init3DScene = React.useCallback(() => {
     const canvas = threeCanvasRef.current;
     if (!canvas || threeRendererRef.current) return;
