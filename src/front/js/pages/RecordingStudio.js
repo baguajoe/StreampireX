@@ -72,6 +72,7 @@ import '../../styles/VoiceToMIDI.css';
 
 // ── Piano Roll / MIDI / Chord imports ──
 import PianoRoll from "../component/PianoRoll";
+import ScoreEditor from "../component/ScoreEditor";
 import ChordProgressionGenerator from "../component/ChordProgressionGenerator";
 
 // ── DAW Menu Bar ──
@@ -3705,6 +3706,11 @@ const RecordingStudio = ({ user }) => {
             </svg>{" "}
             Piano Roll
           </button>
+          <button
+            className={`daw-view-tab ${viewMode === 'score' ? 'active' : ''}`}
+            onClick={() => setViewMode('score')}
+            title="Score Editor — Notation, Video Scoring, MusicXML/PDF export"
+          >🎼 Score</button>
           <button
             className={`daw-view-tab ${viewMode === "piano" ? "active" : ""}`}
             onClick={() => setViewMode("piano")}
