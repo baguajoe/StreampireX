@@ -89,6 +89,7 @@ import InstrumentBuilder from "../component/InstrumentBuilder";
 
 // ── Plugin Rack System ──
 import UnifiedFXChain from '../component/UnifiedFXChain';
+import { SPXPluginHost, ALL_FX_EXTENDED } from '../component/SPXPlugins';
 import MasteringChain from '../component/MasteringChain';
 import LoopermanBrowser from '../component/LoopermanBrowser';
 
@@ -4250,26 +4251,7 @@ const RecordingStudio = ({ user }) => {
                     <div className="daw-ch-inserts">
                       <div className="daw-ch-inserts-label">Inserts</div>
                       {(() => {
-                        const ALL_FX = [
-                          { key: "eq", name: "EQ", type: "eq" },
-                          { key: "compressor", name: "Compressor", type: "comp" },
-                          { key: "gate", name: "Gate", type: "comp" },
-                          { key: "deesser", name: "De-Esser", type: "comp" },
-                          { key: "limiter", name: "Limiter", type: "limit" },
-                          { key: "reverb", name: "Reverb", type: "reverb" },
-                          { key: "delay", name: "Delay", type: "delay" },
-                          { key: "chorus", name: "Chorus", type: "reverb" },
-                          { key: "flanger", name: "Flanger", type: "reverb" },
-                          { key: "phaser", name: "Phaser", type: "filter" },
-                          { key: "tremolo", name: "Tremolo", type: "filter" },
-                          { key: "filter", name: "Filter", type: "filter" },
-                          { key: "distortion", name: "Distortion", type: "distortion" },
-                          { key: "bitcrusher", name: "Bit Crush", type: "distortion" },
-                          { key: "tapeSaturation", name: "Tape Sat", type: "distortion" },
-                          { key: "exciter", name: "Exciter", type: "distortion" },
-                          { key: "stereoWidener", name: "Stereo W", type: "reverb" },
-                          { key: "gainUtility", name: "Gain", type: "eq" },
-                        ];
+                        const ALL_FX = ALL_FX_EXTENDED;
                         const loaded = ALL_FX.filter((fx) => t.effects?.[fx.key]?.enabled);
                         return (
                           <>
@@ -5456,6 +5438,79 @@ const RecordingStudio = ({ user }) => {
                 items: [
                   { key: "filter", name: "Filter" },
                   { key: "gainUtility", name: "Gain Utility" },
+                ],
+              },
+              {
+                cat: "SPX Analog",
+                items: [
+                  { key: "tapeForge",    name: "TapeForge"    },
+                  { key: "valveGlow",    name: "ValveGlow"    },
+                  { key: "ironCore",     name: "IronCore"     },
+                  { key: "consoleSoul",  name: "ConsoleSoul"  },
+                ],
+              },
+              {
+                cat: "SPX Dynamics",
+                items: [
+                  { key: "brickWall",      name: "BrickWall"      },
+                  { key: "warmPress",      name: "WarmPress"      },
+                  { key: "glueBus",        name: "GlueBus"        },
+                  { key: "fetStrike",      name: "FETStrike"      },
+                  { key: "optoPress",      name: "OptoPress"      },
+                  { key: "parallelCrush",  name: "ParallelCrush"  },
+                  { key: "multiPress",     name: "MultiPress"     },
+                  { key: "transGate",      name: "TransGate"      },
+                ],
+              },
+              {
+                cat: "SPX EQ",
+                items: [
+                  { key: "ironBand",      name: "IronBand"      },
+                  { key: "spectraCurve",  name: "SpectraCurve"  },
+                ],
+              },
+              {
+                cat: "SPX Spatial",
+                items: [
+                  { key: "hallForgeS",     name: "HallForge I"    },
+                  { key: "hallForgeL",     name: "HallForge II"   },
+                  { key: "gateVerb",       name: "GateVerb"       },
+                  { key: "vintageAir",     name: "VintageAir"     },
+                  { key: "stochasticHall", name: "StochasticHall" },
+                  { key: "greatHall",      name: "GreatHall"      },
+                  { key: "plateForge",     name: "PlateForge"     },
+                  { key: "springBox",      name: "SpringBox"      },
+                  { key: "echoField",      name: "EchoField"      },
+                  { key: "stereoBloom",    name: "StereoBloom"    },
+                  { key: "pitchForge",     name: "PitchForge"     },
+                  { key: "dualDelay",      name: "DualDelay"      },
+                ],
+              },
+              {
+                cat: "SPX Vocal",
+                items: [
+                  { key: "pitchLock",      name: "PitchLock"      },
+                  { key: "voiceForge",     name: "VoiceForge"     },
+                  { key: "breathGate",     name: "BreathGate"     },
+                  { key: "sibilantCut",    name: "SibilantCut"    },
+                  { key: "phantomDouble",  name: "PhantomDouble"  },
+                  { key: "vocalSpace",     name: "VocalSpace"     },
+                ],
+              },
+              {
+                cat: "SPX Mastering",
+                items: [
+                  { key: "masterWall",      name: "MasterWall"      },
+                  { key: "stereoForge",     name: "StereoForge"     },
+                  { key: "loudnessMeter",   name: "LoudnessMeter"   },
+                  { key: "harmonicExcite",  name: "HarmonicExcite"  },
+                  { key: "vinylPress",      name: "VinylPress"      },
+                  { key: "ditherForge",     name: "DitherForge"     },
+                  { key: "dcBlock",         name: "DCBlock"         },
+                  { key: "spaceForge",      name: "SpaceForge"      },
+                  { key: "vortexMod",       name: "VortexMod"       },
+                  { key: "gainRider",       name: "GainRider"       },
+                  { key: "harmonicSum",     name: "HarmonicSum"     },
                 ],
               },
             ].map((group) => (
