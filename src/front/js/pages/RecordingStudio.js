@@ -1229,9 +1229,11 @@ const RecordingStudio = ({ user }) => {
   useEffect(() => {
     if (!audioCtxRef.current || !masterGainRef.current) return;
 
-    tracks.forEach((t) => {
-      ensureTrackGraph(t);
-    });
+    // Init bus/aux tracks first so audio tracks can route into them
+    tracks.filter(t => t.trackType === 'bus' || t.trackType === 'aux')
+      .forEach(t => ensureBusGraph(t));
+    tracks.filter(t => t.trackType !== 'bus' && t.trackType !== 'aux')
+      .forEach(t => ensureTrackGraph(t));
   }, [tracks]);
 
   const getReverbBuf = useCallback((ctx, decay = 2) => {
