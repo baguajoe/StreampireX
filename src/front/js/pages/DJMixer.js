@@ -332,7 +332,14 @@ const Turntable = React.memo(({ playing, progress, color, label }) => {
     };
 
     draw();
-    return () => cancelAnimationFrame(raf.current);
+    // Auto-clear status after 4 seconds
+  React.useEffect(() => {
+    if (!djStatus) return;
+    const t = setTimeout(() => setDjStatus(''), 4000);
+    return () => clearTimeout(t);
+  }, [djStatus]);
+
+  return () => cancelAnimationFrame(raf.current);
   }, [playing, progress, color, label]);
 
   return <canvas ref={cvs} width={260} height={260} style={{display:"block",borderRadius:"50%",margin:"0 auto"}} />;
@@ -578,6 +585,7 @@ const BeatJump=({deck})=>(
 export default function DJMixer(){
   const {store}=useContext(Context);
   const [rdy,setRdy]=useState(false);
+  const [djStatus,setDjStatus]=useState('');
   const [xf,setXf]=useState(0.5);
   const [mvol,setMvol]=useState(1);
   const [ds,setDs]=useState({
@@ -671,7 +679,7 @@ export default function DJMixer(){
       const name=url.split("/").pop().split("?")[0].replace(/\.[^.]+$/,"");
       upd(id,{loaded:true,bpm,key:null,title:name,artwork:null,audioType:"original",hotcues:[null,null,null,null]});
       setShowUrl(p=>({...p,[id]:false}));setUrlI(p=>({...p,[id]:""}));
-    }catch(e){alert("Failed to load");}
+    }catch(e){setDjStatus("Failed to load: "+e.message);}
     setLdDeck(null);
   };
 
@@ -708,9 +716,9 @@ export default function DJMixer(){
       const{upload_url,public_url}=await pr.json();
       await fetch(upload_url,{method:"PUT",body:recBlob,headers:{"Content-Type":"audio/webm"}});
       const sv=await fetch(`${BACKEND}/api/audio/upload`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({title:mixTitle||`DJ Mix ${new Date().toLocaleDateString()}`,file_url:public_url,audio_type:"mix",is_public:false})});
-      if(sv.ok){alert("✅ Mix saved!");setSaveModal(false);setMixTitle("");}
+      if(sv.ok){setDjStatus("✅ Mix saved!");setSaveModal(false);setMixTitle("");}
       else throw new Error("Save failed");
-    }catch(e){alert("Error: "+e.message);}
+    }catch(e){setDjStatus("Error: "+e.message);}
     setSaving(false);
   };
 
@@ -770,7 +778,7 @@ export default function DJMixer(){
         setStreamDests(p=>({...p,[destId]:true}));
       } catch(e) {
         console.error("Stream start error:", e);
-        alert("Could not start stream: " + e.message);
+        setDjStatus("Could not start stream: " + e.message);
       }
     }
   }, [streamDests, store]);
@@ -817,7 +825,7 @@ export default function DJMixer(){
     } catch(e){
       console.error("Stems error:",e);
       upd(id,{stemsLoading:false});
-      alert("Stem separation failed: "+e.message);
+      setDjStatus("Stem separation failed: "+e.message);
     }
   }, [ds, store]);
 
