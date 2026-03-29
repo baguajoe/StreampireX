@@ -656,6 +656,7 @@ const RecordingStudio = ({ user }) => {
   const [masterConsoleChar, setMasterConsoleChar] = React.useState('none');
   const trackConsoleCharRef = React.useRef({});
   const masterConsoleCharRef = React.useRef('none');
+  const masterConsoleOutRef  = React.useRef(null); // output of master console → mastering chain input
   React.useEffect(() => { trackConsoleCharRef.current = trackConsoleChar; }, [trackConsoleChar]);
   React.useEffect(() => { masterConsoleCharRef.current = masterConsoleChar; }, [masterConsoleChar]);
   const [latencyMs, setLatencyMs] = React.useState(0);
@@ -977,6 +978,7 @@ const RecordingStudio = ({ user }) => {
       //                                → destination
       // Master bus console character — insert between masterGain and masterPan
     const masterConsoleOutNode = ctx.createGain();
+    masterConsoleOutRef.current = masterConsoleOutNode;
     applyConsoleCharacter(ctx, masterGainRef.current, masterConsoleOutNode, masterConsoleChar || 'none');
     masterConsoleOutNode.connect(masterPanRef.current);
     // Keep direct connection as fallback if no board selected
@@ -5107,7 +5109,7 @@ const RecordingStudio = ({ user }) => {
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: '#06090f' }}>
             <MasteringChain
               audioContext={audioCtxRef.current}
-              inputNode={masterGainRef.current}
+              inputNode={masterConsoleOutRef.current || masterGainRef.current}
               outputNode={audioCtxRef.current?.destination}
               masterVolume={masterVolume}
               onClose={() => setViewMode('arrange')}
