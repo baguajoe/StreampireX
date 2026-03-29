@@ -798,28 +798,79 @@ const RecordingStudio = ({ user }) => {
       return trackNodesRef.current.get(track.id);
     }
 
-    // Create nodes
-    const input = ctx.createGain();
+    // ── Base nodes ──
+    const input   = ctx.createGain();
     const preGain = ctx.createGain();
     const panNode = ctx.createStereoPanner();
-    const fader = ctx.createGain();
-    const meter = ctx.createAnalyser();
+    const fader   = ctx.createGain();
+    const meter   = ctx.createAnalyser();
     meter.fftSize = 2048;
 
-    // Routing
-    input.connect(preGain);
-    preGain.connect(panNode);
+    // ── Live FX insert chain (preGain -> FX -> panNode) ──
+    const fxNodes = (track.effects && Object.keys(track.effects).length)
+      ? buildFxChain(ctx, track) : [];
+    let last = preGain;
+    fxNodes.forEach(n => { last.connect(n); last = n; });
+    last.connect(panNode);
     panNode.connect(fader);
     fader.connect(meter);
-    meter.connect(masterGainRef.current);
 
-    const nodes = { input, preGain, panNode, fader, meter };
+    // ── Bus routing ──
+    const busTrack = track.busTarget
+      ? tracks.find(t => t.id === track.busTarget) : null;
+    const busNodes = busTrack ? trackNodesRef.current.get(busTrack.id) : null;
+    const dest = (busNodes && busNodes.input) ? busNodes.input : masterGainRef.current;
+    meter.connect(dest);
+
+    // ── Sends (reverb/delay) parallel ──
+    buildSends(ctx, track, fader, dest);
+
+    input.connect(preGain);
+    const nodes = { input, preGain, panNode, fader, meter, fxNodes, dest };
     trackNodesRef.current.set(track.id, nodes);
-
     applyTrackToNodes(track, nodes);
-
     return nodes;
   };
+
+  const rebuildTrackGraph = (trackId) => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    const track = tracks.find(t => t.id === trackId);
+    if (!track) return;
+    const old = trackNodesRef.current.get(trackId);
+    if (old) {
+      ["input","preGain","panNode","fader","meter"].forEach(k => {
+        try { old[k].disconnect(); } catch(_) {}
+      });
+      (old.fxNodes || []).forEach(n => { try { n.disconnect(); } catch(_) {} });
+    }
+    trackNodesRef.current.delete(trackId);
+    ensureTrackGraph(track);
+  };
+
+  const ensureBusGraph = (busTrack) => {
+    const ctx = audioCtxRef.current;
+    if (!ctx || !masterGainRef.current) return null;
+    if (trackNodesRef.current.has(busTrack.id)) return trackNodesRef.current.get(busTrack.id);
+    const input   = ctx.createGain();
+    const preGain = ctx.createGain();
+    const panNode = ctx.createStereoPanner();
+    const fader   = ctx.createGain();
+    const meter   = ctx.createAnalyser();
+    meter.fftSize = 2048;
+    const fxNodes = (busTrack.effects && Object.keys(busTrack.effects).length)
+      ? buildFxChain(ctx, busTrack) : [];
+    let last = preGain;
+    fxNodes.forEach(n => { last.connect(n); last = n; });
+    last.connect(panNode); panNode.connect(fader);
+    fader.connect(meter); meter.connect(masterGainRef.current);
+    input.connect(preGain);
+    const nodes = { input, preGain, panNode, fader, meter, fxNodes, isBus: true };
+    trackNodesRef.current.set(busTrack.id, nodes);
+    applyTrackToNodes(busTrack, nodes);
+    return nodes;
+  };
+
 
   const applyTrackToNodes = (track, nodes) => {
     if (!audioCtxRef.current) return;
@@ -4766,7 +4817,7 @@ const RecordingStudio = ({ user }) => {
                     <div><h4 style={{color:'#e6edf3',fontWeight:800,margin:'0 0 4px'}}>📼 Tape Saturation</h4>
                     <p style={{color:'#8b949e',fontSize:12,margin:0}}>Analog warmth via waveshaper + lowpass filter</p></div>
                     <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}>
-                      <input type="checkbox" checked={tapeEnabled} onChange={e=>{setTapeEnabled(e.target.checked);setFx(f=>({...f,tapeSaturation:{...f.tapeSaturation,enabled:e.target.checked}}));rebuildFxChain();}}/>
+                      <input type="checkbox" checked={tapeEnabled} onChange={e=>{setTapeEnabled(e.target.checked);setFx(f=>({...f,tapeSaturation:{...f.tapeSaturation,enabled:e.target.checked}}));if (audioCtxRef.current) { tracks.forEach(t => { const nodes = trackNodesRef.current.get(t.id); if (nodes) { try { nodes.input.disconnect(); } catch(_){} trackNodesRef.current.delete(t.id); ensureTrackGraph(t); } }); }}}/>
                       <span style={{color:tapeEnabled?'#ff6600':'#4e6a82',fontWeight:700,fontSize:12}}>{tapeEnabled?'ON':'OFF'}</span>
                     </label>
                   </div>
