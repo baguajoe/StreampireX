@@ -52,10 +52,12 @@ const RadioStationDetailPage = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [needsGesture, setNeedsGesture] = useState(true);
 
-  const handleFirstPlay = useCallback(() => {
+  // handleFirstPlay is defined after handlePlayPause below
+  const handleFirstPlayRef = useRef(null);
+  const handleFirstPlay = useCallback((e) => {
     setNeedsGesture(false);
-    handlePlayPause();
-  }, [handlePlayPause]);
+    if (handleFirstPlayRef.current) handleFirstPlayRef.current();
+  }, []);
 
   // Refs
   const audioRef = useRef(null);
@@ -690,6 +692,9 @@ const RadioStationDetailPage = () => {
     }
   }, [station, isPlaying, getAudioUrl, setupAudioElement, type]);
 
+  // Wire handleFirstPlay ref now that handlePlayPause is defined
+  handleFirstPlayRef.current = handlePlayPause;
+
   // Volume control
   const handleVolumeChangeInput = useCallback((e) => {
     const newVolume = parseFloat(e.target.value);
@@ -1075,16 +1080,15 @@ const RadioStationDetailPage = () => {
 
             {/* Audio Player */}
             <div className="audio-player">
-              {station.stream_url && <audio
+              <audio
                 ref={audioRef}
                 preload="none"
                 crossOrigin="anonymous"
               >
-                {station.stream_url && <source src={station.stream_url} type="audio/mpeg" />}
-                {station.stream_url && <source src={station.stream_url} type="audio/ogg" />}
-                {station.stream_url && <source src={station.stream_url} type="audio/wav" />}
+                {getAudioUrl() && <source src={getAudioUrl()} type="audio/mpeg" />}
+                {getAudioUrl() && <source src={getAudioUrl()} type="audio/ogg" />}
                 Your browser does not support the audio element.
-              </audio>}
+              </audio>
 
               {/* Error Display */}
               {audioError && (
