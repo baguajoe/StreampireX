@@ -10,6 +10,52 @@ import VideoEditorRightPanel, {
 } from './VideoEditorRightPanel';
 import VideoEditorExportModal from './VideoEditorExportModal';
 
+function SpeedDialogContent({ clip, onApply, onClose }) {
+  const [speed, setSpeed] = React.useState(clip?.speed || 1);
+  const duration = (clip?.duration || 0) / speed;
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:12}}>
+      <div style={{display:'flex',alignItems:'center',gap:12}}>
+        <span style={{fontSize:11,color:'#8b949e',minWidth:60}}>SPEED</span>
+        <input type="range" min={0.1} max={4} step={0.05} value={speed}
+          onChange={ev => setSpeed(Number(ev.target.value))}
+          style={{flex:1,accentColor:'#00ffc8'}}/>
+        <span style={{fontSize:12,fontFamily:'Share Tech Mono,monospace',color:'#00ffc8',minWidth:40}}>
+          {speed.toFixed(2)}x
+        </span>
+      </div>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        {[0.25,0.5,0.75,1,1.5,2,4].map(s => (
+          <button key={s} onClick={() => setSpeed(s)}
+            style={{padding:'3px 8px',border:`1px solid ${speed===s?'#00ffc8':'#30363d'}`,
+              borderRadius:3,cursor:'pointer',
+              background:speed===s?'rgba(0,255,200,0.1)':'#0d1117',
+              color:speed===s?'#00ffc8':'#8b949e',
+              fontSize:10,fontFamily:'Share Tech Mono,monospace'}}>
+            {s}x
+          </button>
+        ))}
+      </div>
+      <div style={{fontSize:11,color:'#8b949e'}}>
+        New duration: <span style={{color:'#cdd9e5'}}>{duration.toFixed(2)}s</span>
+      </div>
+      <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:8}}>
+        <button onClick={onClose}
+          style={{padding:'6px 14px',border:'1px solid #30363d',borderRadius:4,
+            cursor:'pointer',background:'transparent',color:'#8b949e',fontSize:11}}>
+          Cancel
+        </button>
+        <button onClick={() => onApply(speed)}
+          style={{padding:'6px 14px',border:'1px solid #00ffc8',borderRadius:4,
+            cursor:'pointer',background:'rgba(0,255,200,0.1)',color:'#00ffc8',
+            fontSize:11,fontWeight:700}}>
+          Apply
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function VideoEditorComponent() {
   const e = useEditorState();
   const [programMuted, setProgramMuted] = useState(false);
