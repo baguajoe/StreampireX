@@ -84,7 +84,7 @@ const AlwaysVisibleInstallButton = () => {
 
   const tryEdgeInstall = () => {
     // For Edge users - guide them to the menu
-    alert('In Edge: Click the menu (⋮) → Apps → "Install StreamPireX"');
+    console.warn('In Edge: Click the menu (⋮) → Apps → "Install StreamPireX"');
   };
 
   const getInstallInstructions = () => {

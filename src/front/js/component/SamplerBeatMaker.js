@@ -733,7 +733,7 @@ const SamplerBeatMaker = ({
       rec.start(); setMicRec(true);
     } catch (e) {
       console.error('Mic error:', e);
-      alert('Could not access microphone. Check browser permissions.');
+      console.error('Could not access microphone. Check browser permissions.');
       setMicRec(false); setMicPad(null); setMicCount(0);
     }
   }, [initCtx, selIn, loadSample]);

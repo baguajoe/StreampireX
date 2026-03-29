@@ -90,7 +90,7 @@ const MENUS = (p) => ({
     items: [
       { label: 'Keyboard Shortcuts', shortcut: 'Ctrl+/', action: p.onShowShortcuts },
       { type: 'sep' },
-      { label: 'About StreamPireX Editor', action: () => alert('StreamPireX Video Editor\nVersion 2.0\nBuilt for creators.') },
+      { label: 'About StreamPireX Editor', action: () => console.info('StreamPireX Video Editor v2.0') },
     ]
   }
 });
@@ -118,7 +118,7 @@ export default function VideoEditorToolbar({
 
   const menuProps = {
     onNew:              () => { if (window.confirm('Start new project? Unsaved changes will be lost.')) window.location.reload(); },
-    onOpen:             () => { const inp = document.createElement("input"); inp.type="file"; inp.accept=".spxproj,.json"; inp.onchange=e=>{if(e.target.files[0]){const r=new FileReader();r.onload=ev=>{try{const p=JSON.parse(ev.target.result);if(onLoadProject)onLoadProject(p);}catch(e){alert("Invalid project file");}}; r.readAsText(e.target.files[0]);}}; inp.click(); },
+    onOpen:             () => { const inp = document.createElement("input"); inp.type="file"; inp.accept=".spxproj,.json"; inp.onchange=e=>{if(e.target.files[0]){const r=new FileReader();r.onload=ev=>{try{const p=JSON.parse(ev.target.result);if(onLoadProject)onLoadProject(p);}catch(e){console.error("Invalid project file",e);}}; r.readAsText(e.target.files[0]);}}; inp.click(); },
     onSave:             saveProject,
     onSaveAs:           () => { if(onSaveProject){const data=onSaveProject();const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="project.spxproj";a.click();} },
     onImport:           () => fileInputRef.current?.click(),
@@ -138,7 +138,7 @@ export default function VideoEditorToolbar({
     onSpeed:            () => { if(onSpeedDialog) onSpeedDialog(); },
     onReverse:          () => { if(onReverseClip) onReverseClip(); },
     onAddTrack:         addTrack,
-    onApplyTransition:  () => alert('Apply default transition between adjacent clips'),
+    onApplyTransition:  () => { if(onApplyTransition) onApplyTransition(); },
     onSeek:             seek,
     duration,
     onAddMarker:        () => addMarker(),
@@ -151,24 +151,7 @@ export default function VideoEditorToolbar({
     onToggleColor:  () => setShowColor(v => !v),
     onToggleMixer:  () => setShowMixer(v => !v),
     onToggleScopes: () => setShowScopes(v => !v),
-    onShowShortcuts: () => alert(`KEYBOARD SHORTCUTS
-━━━━━━━━━━━━━━━━━━
-Space       Play / Pause
-Home / End  Go to start / end
-← →         Frame step
-Shift+← →  Jump 1 second
-Ctrl+Z/Y    Undo / Redo
-Ctrl+S      Save
-Ctrl+E      Export
-Ctrl+K      Split clip at playhead
-Ctrl+I      Import media
-Q / W       Trim In / Out
-M           Add marker
-Delete      Delete selected clip
-V           Select tool
-C           Razor tool
-H           Hand tool
-Escape      Deselect`),
+    onShowShortcuts: () => { if(onShowShortcuts) onShowShortcuts(); },
   };
 
   const menus = MENUS(menuProps);

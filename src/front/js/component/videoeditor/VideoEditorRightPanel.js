@@ -110,7 +110,7 @@ export function VideoEditorColorPanel({ selectedClip, applyEffectToClip, onClose
   const lutCats = [...new Set(LUT_PRESETS.map(l=>l.cat))];
 
   const applyGrade = () => {
-    if (!selectedClip) { alert('Select a clip first'); return; }
+    if (!selectedClip) { console.warn('Select a clip first'); return; }
     applyEffectToClip(selectedClip.id, 'brightness',  Math.round(50 + (gain.brightness||0)*50));
     applyEffectToClip(selectedClip.id, 'contrast',    Math.round(con/2));
     applyEffectToClip(selectedClip.id, 'saturation',  Math.round(sat/2));
@@ -118,7 +118,7 @@ export function VideoEditorColorPanel({ selectedClip, applyEffectToClip, onClose
   };
 
   const applyLUT = (lut) => {
-    if (!selectedClip) { alert('Select a clip first'); return; }
+    if (!selectedClip) { console.warn('Select a clip first'); return; }
     setSat(lut.sat); setCon(lut.con); setTemp(lut.temp); setTint(lut.tint);
     setActiveLUT(lut.name);
     applyEffectToClip(selectedClip.id, 'saturation', Math.round(lut.sat/2));

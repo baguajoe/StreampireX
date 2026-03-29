@@ -206,7 +206,7 @@ export default function VideoEditorExportModal({ tracks, project, frameRate, onC
                   Preview
                 </button>
                 <button className="spx-btn-cancel"
-                  onClick={() => { navigator.clipboard.writeText(exportUrl); alert('URL copied!'); }}>
+                  onClick={() => { navigator.clipboard.writeText(exportUrl); console.warn('URL copied!'); }}>
                   Copy URL
                 </button>
                 <button className="spx-btn-cancel" onClick={onClose}>Close</button>

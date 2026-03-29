@@ -7,7 +7,7 @@ export default function VideoExportPanel({ nodes = [], edges = [], currentTime =
 
   const handleExport = () => {
     console.log("🎬 Export requested", { format, resolution, fps, nodes, edges, currentTime });
-    alert(`Export queued: ${format.toUpperCase()} • ${resolution} • ${fps}fps`);
+    console.warn(`Export queued: ${format.toUpperCase()} • ${resolution} • ${fps}fps`);
   };
 
   return (

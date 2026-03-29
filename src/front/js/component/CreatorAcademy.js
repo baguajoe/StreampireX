@@ -274,7 +274,7 @@ export default function CreatorAcademy() {
 
   const handleStartLesson = (course, lessonIndex) => {
     // In real app: track progress via /api/academy/progress
-    alert(`Starting: "${course.lessons[lessonIndex]}"\n\nIn production this opens the video player / lesson viewer.`);
+    console.warn(`Starting: "${course.lessons[lessonIndex]}"\n\nIn production this opens the video player / lesson viewer.`);
     setCourses(prev => prev.map(c =>
       c.id === course.id ? { ...c, progress: Math.max(c.progress, Math.round(((lessonIndex + 1) / c.lessonCount) * 100)) } : c
     ));

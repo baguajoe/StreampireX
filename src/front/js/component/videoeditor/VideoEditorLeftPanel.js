@@ -298,7 +298,7 @@ export default function VideoEditorLeftPanel({
                         onDragEnd={e => { e.currentTarget.style.opacity='1'; setDraggedEffect(null); }}
                         onClick={() => {
                           if (selectedClip) applyEffectToClip(selectedClip.id, eff.id, 50);
-                          else alert('Select a clip first');
+                          else console.warn('Select a clip first');
                         }}
                         title={selectedClip ? `Apply ${eff.name} to "${selectedClip.title}"` : 'Select a clip first'}>
                         <Icon size={12} />
@@ -329,7 +329,7 @@ export default function VideoEditorLeftPanel({
                         onDragEnd={e => { e.currentTarget.style.opacity='1'; setDraggedEffect(null); }}
                         onClick={() => {
                           if (selectedClip) applyEffectToClip(selectedClip.id, eff.id, 50);
-                          else alert('Select a clip first');
+                          else console.warn('Select a clip first');
                         }}>
                         <Icon size={12} />
                         <span style={{ flex:1 }}>{eff.name}</span>

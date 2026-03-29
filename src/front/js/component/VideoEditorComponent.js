@@ -1919,7 +1919,7 @@ const VideoEditorComponent = () => {
       } else {
         projects = await projectManager.getAllProjects();
       }
-      if (projects.length === 0) { alert('No saved projects found.'); return; }
+      if (projects.length === 0) { console.warn('No saved projects found.'); return; }
       const list = projects.map((p, i) => `${i + 1}. ${p.title || p.name}`).join('\n');
       const choice = prompt(`Select a project:\n${list}`);
       if (!choice) return;
@@ -1935,7 +1935,7 @@ const VideoEditorComponent = () => {
         const timeline = typeof loaded.timeline_data === 'string' ? JSON.parse(loaded.timeline_data) : loaded.timeline_data;
         if (timeline?.tracks) { setTracks(timeline.tracks); }
         setProject(prev => ({ ...prev, title: loaded.title, id: loaded.id }));
-        alert(`✅ Loaded: ${loaded.title}`);
+        console.warn(`✅ Loaded: ${loaded.title}`);
       } else {
         // Fallback to projectManager
         const loaded = await projectManager.loadProject(proj.id);
@@ -1944,7 +1944,7 @@ const VideoEditorComponent = () => {
           if (tl?.tracks) setTracks(tl.tracks);
         }
         setProject(prev => ({ ...prev, title: loaded.title }));
-        alert(`✅ Loaded: ${loaded.title}`);
+        console.warn(`✅ Loaded: ${loaded.title}`);
       }
     } catch(e) { alert('Failed to load: ' + e.message); }
   };
@@ -1966,7 +1966,7 @@ const VideoEditorComponent = () => {
       if (r.ok) {
         const data = await r.json();
         if (data.project_id) setProject(prev => ({ ...prev, id: data.project_id }));
-        alert('✅ Project saved!');
+        console.warn('✅ Project saved!');
       } else {
         // Fallback to projectManager
         if (projectManager.currentProject?.id) {
@@ -1979,7 +1979,7 @@ const VideoEditorComponent = () => {
             setProject(prev => ({ ...prev, title }));
           }
         }
-        alert('✅ Project saved!');
+        console.warn('✅ Project saved!');
       }
     } catch (error) {
       alert('Failed to save: ' + error.message);
@@ -2038,16 +2038,16 @@ const VideoEditorComponent = () => {
   const handleCopy = () => {
     if (selectedClip) {
       clipboard.copy(selectedClip, 'clip');
-      alert(`📋 Copied "${selectedClip.title}"`);
+      console.warn(`📋 Copied "${selectedClip.title}"`);
     } else if (selectedTransition) {
       clipboard.copy(selectedTransition, 'transition');
-      alert('📋 Copied transition');
+      console.warn('📋 Copied transition');
     }
   };
 
   const handlePaste = () => {
     if (!clipboard.hasData) {
-      alert('Nothing to paste. Copy or cut something first.');
+      console.warn('Nothing to paste. Copy or cut something first.');
       return;
     }
 
@@ -2154,7 +2154,7 @@ const VideoEditorComponent = () => {
           console.log(`✂️ Split clip at ${currentTime.toFixed(2)}s`);
         }
       } else {
-        alert('No clip at playhead position. Move playhead over a clip to split it.');
+        console.warn('No clip at playhead position. Move playhead over a clip to split it.');
       }
     } else {
       // Split selected clip at playhead
@@ -2181,7 +2181,7 @@ const VideoEditorComponent = () => {
           }
         }
       } else {
-        alert('Playhead must be within the selected clip to split it.');
+        console.warn('Playhead must be within the selected clip to split it.');
       }
     }
   };
@@ -2218,11 +2218,11 @@ const VideoEditorComponent = () => {
   };
 
   const handleSpeedDuration = async () => {
-    if (!selectedClip) { alert('Select a clip first'); return; }
+    if (!selectedClip) { console.warn('Select a clip first'); return; }
     const speed = prompt('Enter speed multiplier (0.1 - 10):', selectedClip.speed || '1');
     if (!speed) return;
     const speedVal = parseFloat(speed);
-    if (speedVal < 0.1 || speedVal > 10) { alert('Speed must be between 0.1 and 10'); return; }
+    if (speedVal < 0.1 || speedVal > 10) { console.warn('Speed must be between 0.1 and 10'); return; }
     const modified = clipOps.changeSpeed(selectedClip, speedVal);
     setTracks(prevTracks => prevTracks.map(track => ({
       ...track,
@@ -2263,7 +2263,7 @@ const VideoEditorComponent = () => {
 
   const handleReverseClip = () => {
     if (!selectedClip) {
-      alert('Select a clip first');
+      console.warn('Select a clip first');
       return;
     }
     const reversed = clipOps.reverseClip(selectedClip);
@@ -2300,7 +2300,7 @@ const VideoEditorComponent = () => {
   const handleDeleteEmptyTracks = () => {
     const emptyTracks = tracks.filter(t => t.clips.length === 0);
     if (emptyTracks.length === 0) {
-      alert('No empty tracks to delete');
+      console.warn('No empty tracks to delete');
       return;
     }
 
@@ -2333,7 +2333,7 @@ const VideoEditorComponent = () => {
     });
 
     if (pairs.length === 0) {
-      alert('No adjacent clips found. Place clips next to each other to add transitions.');
+      console.warn('No adjacent clips found. Place clips next to each other to add transitions.');
       return;
     }
 
@@ -2378,7 +2378,7 @@ const VideoEditorComponent = () => {
       markersHook.deleteMarker(closest.id);
       console.log('🚩 Deleted marker');
     } else {
-      alert('No marker near playhead');
+      console.warn('No marker near playhead');
     }
   };
 
@@ -2392,11 +2392,11 @@ const VideoEditorComponent = () => {
   const handleZoomIn = () => setZoom(Math.min(5, zoom + 0.2));
   const handleZoomOut = () => setZoom(Math.max(0.1, zoom - 0.2));
   const handleFitToWindow = () => setZoom(1);
-  const handleFullScreen = () => alert('Full screen preview - Coming soon!');
+  const handleFullScreen = () => console.warn('Full screen preview - Coming soon!');
 
   // --- HELP MENU ---
   const showKeyboardShortcuts = () => {
-    alert(`
+    console.warn(`
 KEYBOARD SHORTCUTS
 ==================
 FILE
@@ -3265,7 +3265,7 @@ TIMELINE
           }
         }));
 
-        alert(`Failed to apply ${effectId}: ${error.message}`);
+        console.warn(`Failed to apply ${effectId}: ${error.message}`);
         return;
       }
     } else {
@@ -3349,7 +3349,7 @@ TIMELINE
       console.log(`✅ Applied ${effectId} to video clip ${clipId} with intensity ${value}%`);
       } catch (error) {
         console.error('Video effect application error:', error);
-        alert(`Failed to apply ${effectId}: ${error.message}`);
+        console.warn(`Failed to apply ${effectId}: ${error.message}`);
       } finally {
         setActiveEffects(prev => ({
           ...prev,
@@ -3696,7 +3696,7 @@ TIMELINE
     ));
 
     console.log(`✅ Added ${transitionName} between "${clip1.title}" and "${clip2.title}"`);
-    alert(`✅ Added "${transitionName}" transition between "${clip1.title}" and "${clip2.title}"!`);
+    console.warn(`✅ Added "${transitionName}" transition between "${clip1.title}" and "${clip2.title}"!`);
   };
 
   // Find adjacent clips that can have transitions
@@ -4173,14 +4173,14 @@ TIMELINE
   const handleExport = () => {
     const totalClips = tracks.reduce((sum, track) => sum + track.clips.length, 0);
     if (totalClips === 0) {
-      alert('Please add some media to the timeline before exporting.');
+      console.warn('Please add some media to the timeline before exporting.');
       return;
     }
     // Allow export with local files OR cloud files
     const hasLocalClips = tracks.some(t => t.clips.some(c => c._localFile));
     const hasCloudClips = tracks.some(t => t.clips.some(c => c.cloudinary_public_id || c.r2_key));
     if (!hasLocalClips && !hasCloudClips) {
-      alert('Please add media to the timeline before exporting.');
+      console.warn('Please add media to the timeline before exporting.');
       return;
     }
     // If in Electron, offer native export
@@ -4204,7 +4204,7 @@ TIMELINE
         .flatMap(t => t.clips)
         .filter(c => c._localPath)
         .sort((a,b) => a.startTime - b.startTime);
-      if (videoClips.length === 0) { alert('No local clips to export'); return; }
+      if (videoClips.length === 0) { console.warn('No local clips to export'); return; }
       const listPath = savePath.replace('.mp4', '_list.txt');
       const listContent = videoClips.map(c => `file '${c._localPath}'`).join('\n');
       await electronFS.saveExport(new Blob([listContent], {type:'text/plain'}), listPath);
@@ -4217,7 +4217,7 @@ TIMELINE
         savePath
       ]);
       if (result.code === 0) {
-        alert(`✅ Exported to: ${savePath}`);
+        console.warn(`✅ Exported to: ${savePath}`);
       } else {
         alert('Export failed: ' + result.stderr?.slice(-200));
       }
@@ -4248,11 +4248,11 @@ TIMELINE
 
       if (result.success) {
         console.log('✅ Project saved successfully');
-        alert('Project saved!');
+        console.warn('Project saved!');
       }
     } catch (error) {
       console.error('Save error:', error);
-      alert(`Failed to save: ${error.message}`);
+      console.warn(`Failed to save: ${error.message}`);
     }
   };
 
@@ -4403,7 +4403,7 @@ TIMELINE
         { label: 'Import Media', shortcut: 'Ctrl+I', action: () => fileInputRef.current?.click() },
         { label: 'Export', shortcut: 'Ctrl+E', action: () => setShowExportModal(true) },
         { type: 'separator' },
-        { label: 'Project Settings', action: () => alert('Project Settings - Coming Soon') },
+        { label: 'Project Settings', action: () => console.warn('Project Settings - Coming Soon') },
         { label: 'Close Project', action: () => window.history.back() }
       ]
     },
@@ -4432,8 +4432,8 @@ TIMELINE
         { label: 'Speed/Duration...', action: handleSpeedDuration, disabled: !selectedClip },
         { label: 'Reverse Clip', action: handleReverseClip, disabled: !selectedClip },
         { type: 'separator' },
-        { label: 'Nest Clip', action: () => alert('Nest - Coming Soon'), disabled: !selectedClip },
-        { label: 'Unlink Audio/Video', action: () => alert('Unlink - Coming Soon'), disabled: !selectedClip }
+        { label: 'Nest Clip', action: () => console.warn('Nest - Coming Soon'), disabled: !selectedClip },
+        { label: 'Unlink Audio/Video', action: () => console.warn('Unlink - Coming Soon'), disabled: !selectedClip }
       ]
     },
     sequence: {
@@ -4443,7 +4443,7 @@ TIMELINE
         { label: 'Delete Empty Tracks', action: handleDeleteEmptyTracks },
         { type: 'separator' },
         { label: 'Apply Default Transition', shortcut: 'Ctrl+D', action: handleApplyDefaultTransition },
-        { label: 'Render In to Out', shortcut: 'Enter', action: () => alert('Render - Coming Soon') },
+        { label: 'Render In to Out', shortcut: 'Enter', action: () => console.warn('Render - Coming Soon') },
         { type: 'separator' },
         { label: 'Go to In Point', shortcut: 'Shift+I', action: () => setCurrentTime(0) },
         { label: 'Go to Out Point', shortcut: 'Shift+O', action: () => setCurrentTime(duration) }
@@ -4508,7 +4508,7 @@ TIMELINE
         { label: 'Keyboard Shortcuts', shortcut: 'Ctrl+/', action: showKeyboardShortcuts },
         { label: 'Documentation', action: () => window.open('https://docs.streampirex.com/video-editor', '_blank') },
         { type: 'separator' },
-        { label: 'About StreamPireX Editor', action: () => alert('StreamPireX Video Editor\nVersion 1.0.0\n\nProfessional video editing for creators.') }
+        { label: 'About StreamPireX Editor', action: () => console.warn('StreamPireX Video Editor\nVersion 1.0.0\n\nProfessional video editing for creators.') }
       ]
     }
   };
@@ -5101,9 +5101,9 @@ TIMELINE
                                 if (selectedClip) {
                                   console.log(`🎨 Click apply ${effect.name} to ${selectedClip.title}`);
                                   applyEffect(selectedClip.id, effect.id, 50);
-                                  alert(`✅ Applied "${effect.name}" to "${selectedClip.title}"!\n\nNote: The effect is saved to the clip. It will be applied during export.`);
+                                  console.warn(`✅ Applied "${effect.name}" to "${selectedClip.title}"!\n\nNote: The effect is saved to the clip. It will be applied during export.`);
                                 } else {
-                                  alert('Please select a clip on the timeline first!');
+                                  console.warn('Please select a clip on the timeline first!');
                                 }
                               }}
                               title={selectedClip ? `Click to apply ${effect.name} to "${selectedClip.title}"` : `Select a clip first`}
@@ -5141,7 +5141,7 @@ TIMELINE
                               if (selectedClip) {
                                 applyEffect(selectedClip.id, effect.id, 60);
                               } else {
-                                alert('Please select a clip on the timeline first!');
+                                console.warn('Please select a clip on the timeline first!');
                               }
                             }}
                             title={selectedClip ? `Click to apply ${effect.name} to "${selectedClip.title}"` : `Select a clip first`}
@@ -5184,7 +5184,7 @@ TIMELINE
                                   console.log(`🎨 Click apply ${effect.name} to ${selectedClip.title}`);
                                   applyEffect(selectedClip.id, effect.id, 50);
                                 } else {
-                                  alert('Please select a clip on the timeline first!');
+                                  console.warn('Please select a clip on the timeline first!');
                                 }
                               }}
                               title={selectedClip ? `Click to apply ${effect.name} to "${selectedClip.title}"` : `Drag to a clip or select a clip first`}
@@ -7989,19 +7989,19 @@ TIMELINE
                       const blob = await ffmpeg.chromaKey(localFile, colorHex, (chromaKeySettings.similarity||30)/100, (chromaKeySettings.blend||10)/100);
                       const url = URL.createObjectURL(blob);
                       setTracks(p=>p.map(t=>({...t,clips:t.clips.map(c=>c.id===selectedClip.id?{...c,previewUrl:url}:c)})));
-                      alert('✅ Chroma key applied locally!');
+                      console.warn('✅ Chroma key applied locally!');
                       return;
                     }catch(e){console.warn('Local chroma key failed:',e.message);}
                   }
                   const pubId = selectedClip.cloudinary_public_id || selectedClip.r2_key;
-                  if(!pubId){alert('Upload clip first');return;}
+                  if(!pubId){console.warn('Upload clip first');return;}
                   try{
                     const token=localStorage.getItem('jwt-token')||localStorage.getItem('token');
                     const r=await fetch(`${backendURL}/api/video-editor/apply-effect`,{
                       method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
                       body:JSON.stringify({public_id:pubId,effect_id:'chromaKey',intensity:chromaKeySettings.tolerance||30,color:chromaKeySettings.color||'#00ff00'})
                     });
-                    if(r.ok){const d=await r.json();if(d.processed_url){setTracks(p=>p.map(t=>({...t,clips:t.clips.map(c=>c.id===selectedClip.id?{...c,previewUrl:d.processed_url}:c)})));alert('✅ Chroma key applied!');}}
+                    if(r.ok){const d=await r.json();if(d.processed_url){setTracks(p=>p.map(t=>({...t,clips:t.clips.map(c=>c.id===selectedClip.id?{...c,previewUrl:d.processed_url}:c)})));console.warn('✅ Chroma key applied!');}}
                   }catch(e){alert('Chroma key failed: '+e.message);}
                 }} style={{marginTop:10,width:'100%',padding:'8px',background:'rgba(0,255,100,0.1)',border:'1px solid rgba(0,255,100,0.3)',borderRadius:6,color:'#00ff64',fontSize:11,fontWeight:700,cursor:'pointer'}}>
                   Apply Chroma Key
@@ -8063,9 +8063,9 @@ TIMELINE
             </div>
             <button
               onClick={async () => {
-                if (!selectedClip) { alert('Select a clip first'); return; }
+                if (!selectedClip) { console.warn('Select a clip first'); return; }
                 const url = selectedClip.mediaUrl || selectedClip.r2_url || selectedClip.url;
-                if (!url) { alert('Clip has no media URL'); return; }
+                if (!url) { console.warn('Clip has no media URL'); return; }
                 try {
                   const token = localStorage.getItem('jwt-token') || localStorage.getItem('token');
                   const res = await fetch(`${backendURL}/api/video-editor/transcribe`, {
@@ -8081,7 +8081,7 @@ TIMELINE
                     startTime: selectedClip.startTime + seg.start
                   }));
                   setCaptions(prev => [...prev, ...newCaptions]);
-                  alert(`✅ Generated ${newCaptions.length} caption segments`);
+                  console.warn(`✅ Generated ${newCaptions.length} caption segments`);
                 } catch(err) {
                   console.error('Whisper error:', err);
                   alert('Transcription failed: ' + err.message);

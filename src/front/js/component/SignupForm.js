@@ -278,7 +278,7 @@ const SignupForm = () => {
             const data = await actions.signup(submitData);
 
             if (data.message) {
-                alert("Account created successfully! Please check your email for verification.");
+                setSuccess("Account created successfully! Please check your email for verification.");
                 navigate("/login");
             } else {
                 setErrors({ submit: data.error || "Signup failed" });

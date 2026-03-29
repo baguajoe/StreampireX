@@ -7,7 +7,7 @@ export default function BeatSyncPanel({ nodes = [], currentTime = 0 }) {
 
   const handleAnalyze = () => {
     console.log("🥁 Beat sync analyze", { bpm, offsetMs, snapStrength, nodes, currentTime });
-    alert(`Beat sync ready • BPM ${bpm} • Offset ${offsetMs}ms`);
+    console.warn(`Beat sync ready • BPM ${bpm} • Offset ${offsetMs}ms`);
   };
 
   return (

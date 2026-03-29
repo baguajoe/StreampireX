@@ -23,10 +23,10 @@ const Login = () => {
         sessionStorage.setItem("spx_dev_mode", "true");
       }
 
-      alert("Login successful!");
+      setStatus("Login successful!");
       navigate(redirectTarget);
     } else {
-      alert('Login failed: ' + (data?.error || "Unknown error"));
+      setStatus('Login failed: ' + (data?.error || "Unknown error"));
     }
   };
 

@@ -185,17 +185,17 @@ const MyVideoChannel = () => {
       if (response.ok) {
         const data = await response.json();
         setChannelData(data.channel);
-        alert('Channel created successfully!');
+        console.warn('Channel created successfully!');
       }
     } catch (error) {
       console.error('Error creating channel:', error);
-      alert('Failed to create channel');
+      console.warn('Failed to create channel');
     }
   };
 
   const handleSubscribe = async () => {
     // Implement subscription logic
-    alert('Subscribe feature coming soon!');
+    console.warn('Subscribe feature coming soon!');
   };
 
   const formatCount = (count) => {

@@ -313,8 +313,8 @@ export function useEditorState() {
         method: 'POST', headers: authHeaders(),
         body: JSON.stringify({ title: projectTitle, timeline: { tracks }, settings: { frameRate } })
       });
-      if (r.ok) alert('✅ Project saved!');
-      else alert('Save failed');
+      if (r.ok) console.warn('✅ Project saved!');
+      else console.warn('Save failed');
     } catch (e) { alert('Save failed: ' + e.message); }
   }, [tracks, projectTitle, frameRate]);
 

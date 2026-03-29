@@ -41,19 +41,19 @@ const ProductUploadForm = ({ onUpload }) => {
 
   const validateForm = () => {
     if (!formData.title.trim()) {
-      alert("Please enter a product title");
+      console.warn("Please enter a product title");
       return false;
     }
     if (!formData.price || parseFloat(formData.price) <= 0) {
-      alert("Please enter a valid price");
+      console.warn("Please enter a valid price");
       return false;
     }
     if (!formData.is_digital && (!formData.stock || parseInt(formData.stock) <= 0)) {
-      alert("Please enter valid stock quantity for physical products");
+      console.warn("Please enter valid stock quantity for physical products");
       return false;
     }
     if (formData.is_digital && !digitalFile) {
-      alert("Please upload a file for digital products");
+      console.warn("Please upload a file for digital products");
       return false;
     }
     return true;
@@ -113,15 +113,15 @@ const ProductUploadForm = ({ onUpload }) => {
       const result = await res.json();
 
       if (res.ok) {
-        alert("✅ Product uploaded successfully!");
+        console.warn("✅ Product uploaded successfully!");
         resetForm();
         if (onUpload) onUpload(); // Refresh parent component
       } else {
-        alert(`❌ Error: ${result.error || "Upload failed"}`);
+        console.warn(`❌ Error: ${result.error || "Upload failed"}`);
       }
     } catch (err) {
       console.error("Upload error:", err);
-      alert("❌ Upload failed. Please check your connection and try again.");
+      console.warn("❌ Upload failed. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }

@@ -8,7 +8,7 @@ export default function AIAutoEditPanel({ nodes = [], edges = [] }) {
 
   const handleGenerate = () => {
     console.log("🤖 AI auto edit", { mode, aggressiveness, addTransitions, cutSilence, nodes, edges });
-    alert(`AI Auto Edit prepared • ${mode} mode`);
+    console.warn(`AI Auto Edit prepared • ${mode} mode`);
   };
 
   return (

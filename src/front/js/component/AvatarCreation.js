@@ -20,7 +20,7 @@ const AvatarCreation = () => {
 
   // Handle avatar creation by sending the photo to the backend
   const handleAvatarCreation = async () => {
-    if (!photo) return alert("Please upload a photo!");
+    if (!photo) return console.warn("Please upload a photo!");
 
     setIsLoading(true);
 

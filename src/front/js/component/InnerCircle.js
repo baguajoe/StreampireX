@@ -87,7 +87,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) {
-                alert('Please log in to add friends to your inner circle');
+                console.warn('Please log in to add friends to your inner circle');
                 return;
             }
 
@@ -109,13 +109,13 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
                 await loadInnerCircle();
                 setSearchQuery('');
                 setSearchResults([]);
-                alert('Friend added to inner circle!');
+                console.warn('Friend added to inner circle!');
             } else {
                 alert(data.error || 'Failed to add to inner circle');
             }
         } catch (error) {
             console.error('Error adding to inner circle:', error);
-            alert('Error adding friend to inner circle');
+            console.warn('Error adding friend to inner circle');
         }
     };
 
@@ -125,7 +125,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) {
-                alert('Please log in to modify your inner circle');
+                console.warn('Please log in to modify your inner circle');
                 return;
             }
 
@@ -141,14 +141,14 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
 
             if (response.ok) {
                 await loadInnerCircle();
-                alert('Friend removed from inner circle');
+                console.warn('Friend removed from inner circle');
             } else {
                 const data = await response.json();
                 alert(data.error || 'Failed to remove from inner circle');
             }
         } catch (error) {
             console.error('Error removing from inner circle:', error);
-            alert('Error removing friend from inner circle');
+            console.warn('Error removing friend from inner circle');
         }
     };
 
@@ -156,7 +156,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) {
-                alert('Please log in to reorder your inner circle');
+                console.warn('Please log in to reorder your inner circle');
                 return;
             }
 
