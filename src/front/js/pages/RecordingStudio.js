@@ -5120,7 +5120,7 @@ const RecordingStudio = ({ user }) => {
                     <div><h4 style={{color:'#e6edf3',fontWeight:800,margin:'0 0 4px'}}>📼 Tape Saturation</h4>
                     <p style={{color:'#8b949e',fontSize:12,margin:0}}>Analog warmth via waveshaper + lowpass filter</p></div>
                     <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}>
-                      <input type="checkbox" checked={tapeEnabled} onChange={e=>{setTapeEnabled(e.target.checked);setFx(f=>({...f,tapeSaturation:{...f.tapeSaturation,enabled:e.target.checked}}));if (audioCtxRef.current) { tracks.forEach(t => { const nodes = trackNodesRef.current.get(t.id); if (nodes) { try { nodes.input.disconnect(); } catch(_){} trackNodesRef.current.delete(t.id); ensureTrackGraph(t); } }); }}}/>
+                      <input type="checkbox" checked={tapeEnabled} onChange={e=>{setTapeEnabled(e.target.checked);setFx(f=>({...f,tapeSaturation:{...f.tapeSaturation,enabled:e.target.checked}}));if (audioCtxRef.current) { tracks.forEach(t => { const old = trackNodesRef.current.get(t.id); if (old) { ['input','preGain','panNode','fader','meter'].forEach(k => { try { old[k].disconnect(); } catch(_){} }); (old.fxNodes||[]).forEach(n => { try { n.disconnect(); } catch(_){} }); } trackNodesRef.current.delete(t.id); ensureTrackGraph(t); }); }}}/>
                       <span style={{color:tapeEnabled?'#ff6600':'#4e6a82',fontWeight:700,fontSize:12}}>{tapeEnabled?'ON':'OFF'}</span>
                     </label>
                   </div>
@@ -5170,10 +5170,42 @@ const RecordingStudio = ({ user }) => {
               </div>
             )}
             {analogSubview==='console'&&(
-              <div style={{padding:16,textAlign:'center',color:'#4e6a82',fontSize:13,marginTop:40}}>
-                <div style={{fontSize:32,marginBottom:12}}>🎚️</div>
-                <p>Full mixing console available in the <button onClick={()=>setViewMode('console')} style={{background:'none',border:'none',color:'#00ffc8',cursor:'pointer',fontSize:13,fontWeight:700}}>Console tab →</button></p>
-                <p style={{fontSize:11,marginTop:8}}>Per-channel EQ · Compression · VU meters · Routing · Inserts</p>
+              <div style={{padding:16}}>
+                <div style={{fontSize:11,color:'#00ffc8',fontFamily:'Share Tech Mono,monospace',letterSpacing:1,marginBottom:12}}>
+                  CONSOLE CHARACTER — Applied to each track and master bus
+                </div>
+                <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}>
+                  {Object.entries(CONSOLE_BOARDS).map(([id,b]) => (
+                    <button key={id}
+                      onClick={() => {
+                        const newChar = {};
+                        tracks.forEach(t => { newChar[t.id] = id; });
+                        setTrackConsoleChar(newChar);
+                      }}
+                      style={{padding:'6px 12px',border:`1px solid ${b.color}`,borderRadius:4,
+                        cursor:'pointer',background: id==='none'?'#0d1117':`${b.color}22`,
+                        color:b.color,fontSize:11,fontFamily:'Share Tech Mono,monospace'}}>
+                      {b.name}
+                    </button>
+                  ))}
+                </div>
+                <div style={{fontSize:10,color:'#4e6a82',marginBottom:8}}>MASTER BUS</div>
+                <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}>
+                  {Object.entries(CONSOLE_BOARDS).map(([id,b]) => (
+                    <button key={id}
+                      onClick={() => setMasterConsoleChar(id)}
+                      style={{padding:'4px 10px',border:`1px solid ${masterConsoleChar===id?b.color:'#21262d'}`,
+                        borderRadius:4,cursor:'pointer',
+                        background:masterConsoleChar===id?`${b.color}22`:'#0d1117',
+                        color:masterConsoleChar===id?b.color:'#4e6a82',
+                        fontSize:10,fontFamily:'Share Tech Mono,monospace'}}>
+                      {b.name}
+                    </button>
+                  ))}
+                </div>
+                <div style={{fontSize:10,color:'#4e6a82',fontFamily:'Share Tech Mono,monospace'}}>
+                  Per-track: Use the Console tab dropdown on each channel strip
+                </div>
               </div>
             )}
             </div>

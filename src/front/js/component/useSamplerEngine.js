@@ -1032,9 +1032,36 @@ export default function useSamplerEngine(options = {}) {
   }, []);
 
   const startSong = useCallback(() => {
-    // Placeholder
-    setExportStatus('Song mode: coming soon');
-  }, []);
+    if (!songSeq || !songSeq.length) {
+      setExportStatus('No song sequence defined');
+      return;
+    }
+    let seqIdx = 0;
+    setExportStatus('Song mode: playing');
+    const playNext = () => {
+      if (seqIdx >= songSeq.length) {
+        setExportStatus('Song complete');
+        return;
+      }
+      const entry = songSeq[seqIdx];
+      const patIdx = typeof entry === 'number' ? entry : entry.patternIndex ?? 0;
+      const reps   = typeof entry === 'object' ? (entry.repeats ?? 1) : 1;
+      let rep = 0;
+      const playRep = () => {
+        if (rep >= reps) { seqIdx++; playNext(); return; }
+        rep++;
+        // Set current pattern and let sequencer run one cycle
+        if (setCurPatIdx) setCurPatIdx(patIdx);
+        const pat = patterns[patIdx];
+        if (!pat) { seqIdx++; playNext(); return; }
+        const stepsCount = pat.steps?.length || steps;
+        const durMs = (60000 / bpm) / 4 * stepsCount;
+        setTimeout(playRep, durMs);
+      };
+      playRep();
+    };
+    playNext();
+  }, [songSeq, patterns, steps, bpm, setCurPatIdx]);
 
   // ═══════════════════════════════════════════════════════════
   // CLIP LAUNCHER (placeholder stubs)
