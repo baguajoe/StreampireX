@@ -652,6 +652,8 @@ const RecordingStudio = ({ user }) => {
   const [midiEnabled, setMidiEnabled] = React.useState(false);
   const [wamPlugins, setWamPlugins] = React.useState([]);
   const [analogSubview, setAnalogSubview] = React.useState("ampsim");
+  const [trackConsoleChar, setTrackConsoleChar] = React.useState({}); // {trackId: 'ssl4ke'}
+  const [masterConsoleChar, setMasterConsoleChar] = React.useState('none');
   const [latencyMs, setLatencyMs] = React.useState(0);
   const [monitoringEnabled, setMonitoringEnabled] = React.useState(false);
   const [latencyCompMs, setLatencyCompMs] = React.useState(0);
@@ -1412,6 +1414,176 @@ const RecordingStudio = ({ user }) => {
   };
 
   // ── Effects chain builder ──
+  // ==========================================================================
+  // ANALOG CONSOLE CHARACTER ENGINE
+  // 8 classic mixing consoles — input transformer + EQ coloring + output stage
+  // ==========================================================================
+  const CONSOLE_BOARDS = {
+    none:     { name: 'Bypass',        color: '#555' },
+    ssl4ke:   { name: 'SSL 4000E',     color: '#e8a020' },
+    ssl4kg:   { name: 'SSL 4000G',     color: '#d4941c' },
+    neve8078: { name: 'Neve 8078',     color: '#4a9eff' },
+    neve1073: { name: 'Neve 1073',     color: '#3a7acc' },
+    api1604:  { name: 'API 1604',      color: '#00ffc8' },
+    tridentA: { name: 'Trident A',     color: '#a78bfa' },
+    studer900:{ name: 'Studer 900',    color: '#ff6b6b' },
+    mciJH636: { name: 'MCI JH-636',   color: '#ff8c42' },
+  };
+
+  const applyConsoleCharacter = (ctx, inputNode, outputNode, boardId) => {
+    if (!boardId || boardId === 'none') {
+      inputNode.connect(outputNode);
+      return [inputNode];
+    }
+    const nodes = [];
+
+    // ── Input transformer (frequency-dependent saturation) ──
+    const inputSat = ctx.createWaveShaper();
+    const inputHp  = ctx.createBiquadFilter();
+    inputHp.type   = 'highpass';
+
+    // ── EQ coloring (passive shelf characteristic per board) ──
+    const eqLo = ctx.createBiquadFilter();
+    const eqHi = ctx.createBiquadFilter();
+    eqLo.type  = 'lowshelf';
+    eqHi.type  = 'highshelf';
+
+    // ── Output transformer / op-amp stage ──
+    const outputSat = ctx.createWaveShaper();
+    const outputGain = ctx.createGain();
+
+    switch (boardId) {
+      case 'ssl4ke':
+        // SSL 4000E — aggressive, punchy, bright top, fast transients
+        // Input: tight transformer, minimal low end coloring
+        inputHp.frequency.value = 18;
+        inputHp.Q.value = 0.5;
+        buildSatCurve(inputSat, 1.2, false); // symmetric, clean
+        // EQ: slight low-mid scoop (200Hz), air boost (10kHz)
+        eqLo.frequency.value = 200; eqLo.gain.value = -0.8;
+        eqHi.frequency.value = 10000; eqHi.gain.value = 1.2;
+        // Output: IC op-amp, clean with slight odd harmonics
+        buildSatCurve(outputSat, 1.1, false);
+        outputGain.gain.value = 0.98;
+        break;
+
+      case 'ssl4kg':
+        // SSL 4000G — smoother than E, more refined
+        inputHp.frequency.value = 15;
+        inputHp.Q.value = 0.4;
+        buildSatCurve(inputSat, 1.1, false);
+        eqLo.frequency.value = 160; eqLo.gain.value = -0.5;
+        eqHi.frequency.value = 12000; eqHi.gain.value = 0.8;
+        buildSatCurve(outputSat, 1.05, false);
+        outputGain.gain.value = 0.99;
+        break;
+
+      case 'neve8078':
+        // Neve 8078 — thick transformer warmth, low-mid richness, smooth highs
+        // Input: large iron transformer, heavy low-mid color
+        inputHp.frequency.value = 30;
+        inputHp.Q.value = 0.7;
+        buildSatCurve(inputSat, 1.6, true); // asymmetric = even harmonics = warmth
+        // EQ: low-mid boost (250Hz), gentle high rolloff
+        eqLo.frequency.value = 250; eqLo.gain.value = 1.5;
+        eqHi.frequency.value = 8000; eqHi.gain.value = -0.5;
+        buildSatCurve(outputSat, 1.4, true);
+        outputGain.gain.value = 0.95;
+        break;
+
+      case 'neve1073':
+        // Neve 1073 — even richer than 8078, the classic preamp character
+        inputHp.frequency.value = 50;
+        inputHp.Q.value = 0.8;
+        buildSatCurve(inputSat, 1.8, true);
+        eqLo.frequency.value = 300; eqLo.gain.value = 2.0;
+        eqHi.frequency.value = 6000; eqHi.gain.value = -0.8;
+        buildSatCurve(outputSat, 1.6, true);
+        outputGain.gain.value = 0.93;
+        break;
+
+      case 'api1604':
+        // API 1604 — fast, punchy, aggressive mids, fast transient response
+        inputHp.frequency.value = 20;
+        inputHp.Q.value = 0.6;
+        buildSatCurve(inputSat, 1.3, false);
+        eqLo.frequency.value = 100; eqLo.gain.value = 0.5;
+        eqHi.frequency.value = 5000; eqHi.gain.value = 1.0;
+        buildSatCurve(outputSat, 1.25, false);
+        outputGain.gain.value = 0.97;
+        break;
+
+      case 'tridentA':
+        // Trident A-Range — smooth, open, vintage British warmth
+        inputHp.frequency.value = 25;
+        inputHp.Q.value = 0.5;
+        buildSatCurve(inputSat, 1.4, true);
+        eqLo.frequency.value = 180; eqLo.gain.value = 1.0;
+        eqHi.frequency.value = 9000; eqHi.gain.value = 0.6;
+        buildSatCurve(outputSat, 1.3, true);
+        outputGain.gain.value = 0.96;
+        break;
+
+      case 'studer900':
+        // Studer 900 — European precision, tight low end, clinical
+        inputHp.frequency.value = 22;
+        inputHp.Q.value = 0.4;
+        buildSatCurve(inputSat, 1.05, false);
+        eqLo.frequency.value = 120; eqLo.gain.value = -0.3;
+        eqHi.frequency.value = 15000; eqHi.gain.value = 0.3;
+        buildSatCurve(outputSat, 1.02, false);
+        outputGain.gain.value = 1.0;
+        break;
+
+      case 'mciJH636':
+        // MCI JH-636 — Thriller board, warm with fast transients
+        inputHp.frequency.value = 28;
+        inputHp.Q.value = 0.6;
+        buildSatCurve(inputSat, 1.5, true);
+        eqLo.frequency.value = 220; eqLo.gain.value = 1.2;
+        eqHi.frequency.value = 7500; eqHi.gain.value = 0.8;
+        buildSatCurve(outputSat, 1.35, true);
+        outputGain.gain.value = 0.96;
+        break;
+
+      default:
+        inputNode.connect(outputNode);
+        return [inputNode];
+    }
+
+    // Connect chain: input → inputHp → inputSat → eqLo → eqHi → outputSat → outputGain → output
+    inputNode.connect(inputHp);
+    inputHp.connect(inputSat);
+    inputSat.connect(eqLo);
+    eqLo.connect(eqHi);
+    eqHi.connect(outputSat);
+    outputSat.connect(outputGain);
+    outputGain.connect(outputNode);
+
+    nodes.push(inputHp, inputSat, eqLo, eqHi, outputSat, outputGain);
+    return nodes;
+  };
+
+  // Build waveshaper curve — asymmetric for even harmonics (analog warmth)
+  const buildSatCurve = (wsNode, drive = 1.2, asymmetric = false) => {
+    const N = 44100;
+    const curve = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      const x = (i * 2) / N - 1;
+      if (asymmetric) {
+        // Asymmetric: positive clips softer, negative harder = even harmonics
+        curve[i] = x > 0
+          ? x / (1 + drive * 0.8 * Math.abs(x))
+          : x / (1 + drive * 1.2 * Math.abs(x));
+      } else {
+        // Symmetric: tanh-style soft clip = odd harmonics
+        curve[i] = Math.tanh(x * drive) / Math.tanh(drive);
+      }
+    }
+    wsNode.curve = curve;
+    wsNode.oversample = '4x';
+  };
+
   const buildFxChain = (ctx, track) => {
     const nodes = [];
     const fx = track.effects;
@@ -3861,6 +4033,21 @@ const RecordingStudio = ({ user }) => {
                         onClick={() => setSelectedTrack(i)}
                       >
                         <div className="daw-ch-name">
+                        <div style={{ padding: '2px 4px', borderBottom: '1px solid #1e2030' }}>
+                          <select
+                            style={{ width: '100%', background: '#0d1117', border: '1px solid #21262d',
+                              color: (CONSOLE_BOARDS[trackConsoleChar[t.id]||'none']||{color:'#555'}).color,
+                              borderRadius: 3, fontSize: 9, padding: '1px 2px',
+                              fontFamily: 'Share Tech Mono, monospace' }}
+                            value={trackConsoleChar[t.id] || 'none'}
+                            onChange={e => setTrackConsoleChar(prev => ({ ...prev, [t.id]: e.target.value }))}
+                            title="Console character"
+                          >
+                            {Object.entries(CONSOLE_BOARDS).map(([id, b]) => (
+                              <option key={id} value={id}>{b.name}</option>
+                            ))}
+                          </select>
+                        </div>
                           <span style={{ fontSize: 11, fontWeight: 700, color: t.color || '#cdd9e5', letterSpacing: '0.04em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {t.name || `Track ${i + 1}`}
                           </span>
@@ -3899,6 +4086,21 @@ const RecordingStudio = ({ user }) => {
                   <div className="daw-channel master-channel daw-master">
                     <div className="daw-ch-name">
                       <span style={{ fontSize: 11, fontWeight: 800, color: '#ff8a3d', letterSpacing: '0.08em' }}>MASTER</span>
+                    <div style={{ padding: '2px 4px', borderBottom: '1px solid #1e2030' }}>
+                      <select
+                        style={{ width: '100%', background: '#0d1117', border: '1px solid #21262d',
+                          color: (CONSOLE_BOARDS[masterConsoleChar]||{color:'#555'}).color,
+                          borderRadius: 3, fontSize: 9, padding: '1px 2px',
+                          fontFamily: 'Share Tech Mono, monospace' }}
+                        value={masterConsoleChar}
+                        onChange={e => setMasterConsoleChar(e.target.value)}
+                        title="Master bus console character"
+                      >
+                        {Object.entries(CONSOLE_BOARDS).map(([id, b]) => (
+                          <option key={id} value={id}>{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
                     </div>
                     <div className="daw-ch-fader-area">
                       <input
