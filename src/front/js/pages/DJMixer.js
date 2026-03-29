@@ -215,258 +215,169 @@ const Turntable = React.memo(({ playing, progress, color, label }) => {
     const c = cvs.current; if (!c) return;
     const ctx = c.getContext("2d");
     const W = c.width, H = c.height;
+    const PR = 124, cx = 148, cy = 150;
 
     const draw = () => {
-      ctx.clearRect(0, 0, W, H);
+      ctx.clearRect(0,0,W,H);
 
-      // ── Plinth (rectangular body of turntable) ──
-      const plinthGrad = ctx.createLinearGradient(0, 0, 0, H);
-      plinthGrad.addColorStop(0, "#2a2a2a");
-      plinthGrad.addColorStop(0.5, "#1a1a1a");
-      plinthGrad.addColorStop(1, "#0d0d0d");
-      ctx.fillStyle = plinthGrad;
-      ctx.beginPath();
-      ctx.roundRect(0, 0, W, H, 10);
-      ctx.fill();
+      // Plinth
+      const bg = ctx.createLinearGradient(0,0,0,H);
+      bg.addColorStop(0,"#2a2a2a"); bg.addColorStop(1,"#101010");
+      ctx.fillStyle=bg; ctx.beginPath(); ctx.roundRect(0,0,W,H,8); ctx.fill();
+      ctx.strokeStyle="#3a3a3a"; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.roundRect(1,1,W-2,H-2,8); ctx.stroke();
 
-      // Plinth border highlight
-      ctx.strokeStyle = "#444";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.roundRect(1, 1, W-2, H-2, 10);
-      ctx.stroke();
+      // Chrome outer ring
+      const ring=ctx.createRadialGradient(cx,cy,PR-10,cx,cy,PR+6);
+      ring.addColorStop(0,"#555"); ring.addColorStop(0.3,"#aaa");
+      ring.addColorStop(0.7,"#777"); ring.addColorStop(1,"#333");
+      ctx.fillStyle=ring; ctx.beginPath(); ctx.arc(cx,cy,PR+6,0,Math.PI*2); ctx.fill();
 
-      // ── Platter position: left-center ──
-      const PR = H * 0.43; // platter radius
-      const cx = PR + 18, cy = H * 0.5;
-
-      // Outer platter ring (chrome)
-      const outerRing = ctx.createRadialGradient(cx,cy,PR*0.85,cx,cy,PR);
-      outerRing.addColorStop(0, "#555");
-      outerRing.addColorStop(0.4, "#888");
-      outerRing.addColorStop(0.7, "#666");
-      outerRing.addColorStop(1, "#333");
-      ctx.fillStyle = outerRing;
-      ctx.beginPath(); ctx.arc(cx, cy, PR, 0, Math.PI*2); ctx.fill();
-
-      // ── Rotating platter ──
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(rot.current);
-
-      // Black rubber mat
-      const matGrad = ctx.createRadialGradient(0,0,0,0,0,PR*0.9);
-      matGrad.addColorStop(0, "#1c1c1c");
-      matGrad.addColorStop(0.6, "#111");
-      matGrad.addColorStop(1, "#080808");
-      ctx.fillStyle = matGrad;
-      ctx.beginPath(); ctx.arc(0, 0, PR*0.9, 0, Math.PI*2); ctx.fill();
-
-      // Vinyl grooves
-      for (let r = PR*0.18; r < PR*0.87; r += 3.5) {
-        const alpha = 0.04 + (r/(PR*0.87))*0.06;
-        ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
-        ctx.lineWidth = 0.5;
-        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.stroke();
+      // Strobe dots
+      for (let i=0;i<80;i++) {
+        const a=(i/80)*Math.PI*2, sr=PR+3;
+        const blink=Math.sin(Date.now()*0.015+i*0.4)>0.7;
+        ctx.fillStyle=blink?"rgba(255,255,255,0.95)":"rgba(0,0,0,0.4)";
+        ctx.beginPath(); ctx.arc(cx+Math.cos(a)*sr,cy+Math.sin(a)*sr,1,0,Math.PI*2); ctx.fill();
       }
 
-      // Strobe dots ring
-      const nDots = 60;
-      for (let i = 0; i < nDots; i++) {
-        const a = (i / nDots) * Math.PI * 2;
-        const sr = PR * 0.875;
-        const blink = Math.sin(Date.now()*0.015 + i*0.42) > 0.65;
-        ctx.fillStyle = blink ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.08)";
-        ctx.beginPath();
-        ctx.arc(Math.cos(a)*sr, Math.sin(a)*sr, 1.2, 0, Math.PI*2);
-        ctx.fill();
+      // Rotating platter
+      ctx.save(); ctx.translate(cx,cy); ctx.rotate(rot.current);
+      const mat=ctx.createRadialGradient(0,0,0,0,0,PR);
+      mat.addColorStop(0,"#1e1e1e"); mat.addColorStop(0.85,"#131313"); mat.addColorStop(1,"#0a0a0a");
+      ctx.fillStyle=mat; ctx.beginPath(); ctx.arc(0,0,PR,0,Math.PI*2); ctx.fill();
+      for (let r=PR*0.18;r<PR*0.96;r+=2.8) {
+        ctx.strokeStyle=`rgba(255,255,255,${0.025+r/PR*0.04})`;
+        ctx.lineWidth=0.5; ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.stroke();
       }
-
-      // Record label
-      const labelGrad = ctx.createRadialGradient(0,0,0,0,0,PR*0.19);
-      labelGrad.addColorStop(0, color+"cc");
-      labelGrad.addColorStop(0.6, color+"55");
-      labelGrad.addColorStop(1, "#111");
-      ctx.fillStyle = labelGrad;
-      ctx.beginPath(); ctx.arc(0, 0, PR*0.19, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = color+"44"; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(0, 0, PR*0.19, 0, Math.PI*2); ctx.stroke();
-
-      ctx.fillStyle = "#fff";
-      ctx.font = `bold ${PR*0.07}px JetBrains Mono, monospace`;
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText("SPX", 0, -PR*0.05);
-      ctx.font = `${PR*0.055}px JetBrains Mono, monospace`;
-      ctx.fillStyle = color;
-      ctx.fillText(label, 0, PR*0.07);
-
-      // Center spindle
-      ctx.fillStyle = "#777";
-      ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = "#bbb";
-      ctx.beginPath(); ctx.arc(0, 0, 2, 0, Math.PI*2); ctx.fill();
-
+      // Label
+      const lg=ctx.createRadialGradient(0,0,0,0,0,PR*0.21);
+      lg.addColorStop(0,color+"dd"); lg.addColorStop(0.6,color+"55"); lg.addColorStop(1,"#111");
+      ctx.fillStyle=lg; ctx.beginPath(); ctx.arc(0,0,PR*0.21,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle=color+"44"; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.arc(0,0,PR*0.21,0,Math.PI*2); ctx.stroke();
+      ctx.fillStyle="#fff"; ctx.font=`bold ${PR*0.075}px JetBrains Mono,monospace`;
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      ctx.fillText("SPX",0,-PR*0.06);
+      ctx.font=`${PR*0.058}px JetBrains Mono,monospace`; ctx.fillStyle=color;
+      ctx.fillText(label,0,PR*0.075);
+      ctx.fillStyle="#888"; ctx.beginPath(); ctx.arc(0,0,4,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle="#ccc"; ctx.beginPath(); ctx.arc(0,0,2,0,Math.PI*2); ctx.fill();
       ctx.restore();
 
-      // ── Platter chrome outer ring detail ──
-      ctx.strokeStyle = "rgba(255,255,255,0.08)";
-      ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(cx, cy, PR*0.92, 0, Math.PI*2); ctx.stroke();
-
-      // ── Start/Stop button (bottom left of plinth) ──
-      const btnX = cx - PR*0.6, btnY = H*0.85;
-      ctx.fillStyle = playing ? "#222" : "#1a1a1a";
-      ctx.beginPath(); ctx.arc(btnX, btnY, 14, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = playing ? "#ff4444" : "#555";
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(btnX, btnY, 14, 0, Math.PI*2); ctx.stroke();
-      // LED indicator
-      ctx.fillStyle = playing ? "#ff4444" : "#333";
-      ctx.shadowColor = playing ? "#ff4444" : "transparent";
-      ctx.shadowBlur = playing ? 10 : 0;
-      ctx.beginPath(); ctx.arc(btnX, btnY, 6, 0, Math.PI*2); ctx.fill();
-      ctx.shadowBlur = 0;
-
-      // 33/45 RPM selector
-      const rpmX = btnX + 40, rpmY = btnY;
-      ctx.fillStyle = "#333";
-      ctx.beginPath(); ctx.roundRect(rpmX-2, rpmY-10, 28, 20, 4); ctx.fill();
-      ctx.font = "8px JetBrains Mono, monospace";
-      ctx.fillStyle = "#888"; ctx.textAlign = "left";
-      ctx.fillText("33", rpmX+1, rpmY-2);
-      ctx.fillText("45", rpmX+1, rpmY+8);
-
-      // ── Tone Arm: proper Technics S-arm ──
-      ctx.save();
-
-      // Pivot: upper right area of plinth
-      const pivotX = W*0.85, pivotY = H*0.2;
-
-      // Arm rest post (when not playing)
-      const restX = W*0.93, restY = H*0.55;
-      ctx.fillStyle = "#555";
-      ctx.beginPath(); ctx.arc(restX, restY, 5, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = "#888";
-      ctx.beginPath(); ctx.arc(restX, restY, 3, 0, Math.PI*2); ctx.fill();
-
-      // Arm angle: sweeps from ~-2.2 (near rest) to ~-1.7 (end of record)
-      const armAngle = -2.2 + progress * 0.52;
-
-      // Counterweight rod + weight
-      const cwDist = PR * 0.55;
-      const cwX = pivotX - Math.cos(armAngle) * cwDist;
-      const cwY = pivotY - Math.sin(armAngle) * cwDist;
-      ctx.strokeStyle = "#666"; ctx.lineWidth = 5; ctx.lineCap = "round";
-      ctx.beginPath(); ctx.moveTo(pivotX, pivotY); ctx.lineTo(cwX, cwY); ctx.stroke();
-      // CW cylinder
-      ctx.fillStyle = "#3a3a3a";
-      ctx.beginPath(); ctx.arc(cwX, cwY, 10, 0, Math.PI*2); ctx.fill();
-      const cwGrad = ctx.createRadialGradient(cwX-3,cwY-3,1,cwX,cwY,10);
-      cwGrad.addColorStop(0,"#aaa"); cwGrad.addColorStop(1,"#444");
-      ctx.fillStyle = cwGrad;
-      ctx.beginPath(); ctx.arc(cwX, cwY, 10, 0, Math.PI*2); ctx.fill();
-
-      // Pivot bearing
-      const pivGrad = ctx.createRadialGradient(pivotX-3,pivotY-3,1,pivotX,pivotY,13);
-      pivGrad.addColorStop(0,"#ccc"); pivGrad.addColorStop(0.5,"#666"); pivGrad.addColorStop(1,"#222");
-      ctx.fillStyle="#1a1a1a"; ctx.beginPath(); ctx.arc(pivotX,pivotY,14,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle=pivGrad; ctx.beginPath(); ctx.arc(pivotX,pivotY,11,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle="#ddd"; ctx.beginPath(); ctx.arc(pivotX,pivotY,4,0,Math.PI*2); ctx.fill();
-
-      // ── S-shaped arm tube ──
-      const armLen = PR * 1.55;
-      const tipX = pivotX + Math.cos(armAngle) * armLen;
-      const tipY = pivotY + Math.sin(armAngle) * armLen;
-
-      // Perpendicular for S-bend
-      const px = -Math.sin(armAngle), py = Math.cos(armAngle);
-      const bend = PR * 0.28;
-
-      // Two bezier segments for S-shape
-      const midX = pivotX + Math.cos(armAngle)*armLen*0.5;
-      const midY = pivotY + Math.sin(armAngle)*armLen*0.5;
-      const cp1x = pivotX + Math.cos(armAngle)*armLen*0.25 + px*bend;
-      const cp1y = pivotY + Math.sin(armAngle)*armLen*0.25 + py*bend;
-      const cp2x = midX - px*bend*0.3;
-      const cp2y = midY - py*bend*0.3;
-      const cp3x = midX + px*bend*0.1;
-      const cp3y = midY + py*bend*0.1;
-      const cp4x = tipX - Math.cos(armAngle)*armLen*0.1 - px*bend*0.15;
-      const cp4y = tipY - Math.sin(armAngle)*armLen*0.1 - py*bend*0.15;
-
-      // Shadow
-      ctx.strokeStyle="rgba(0,0,0,0.7)"; ctx.lineWidth=8; ctx.lineCap="round";
-      ctx.beginPath(); ctx.moveTo(pivotX+1,pivotY+2);
-      ctx.bezierCurveTo(cp1x+1,cp1y+2,cp2x+1,cp2y+2,midX+1,midY+2);
-      ctx.bezierCurveTo(cp3x+1,cp3y+2,cp4x+1,cp4y+2,tipX+1,tipY+2);
-      ctx.stroke();
-
-      // Arm tube — chrome gradient
-      const armGrad = ctx.createLinearGradient(pivotX,pivotY,tipX,tipY);
-      armGrad.addColorStop(0,"#777");
-      armGrad.addColorStop(0.3,"#ccc");
-      armGrad.addColorStop(0.6,"#aaa");
-      armGrad.addColorStop(1,"#888");
-      ctx.strokeStyle = armGrad; ctx.lineWidth = 6;
-      ctx.beginPath(); ctx.moveTo(pivotX,pivotY);
-      ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,midX,midY);
-      ctx.bezierCurveTo(cp3x,cp3y,cp4x,cp4y,tipX,tipY);
-      ctx.stroke();
-
-      // Highlight
-      ctx.strokeStyle="rgba(255,255,255,0.3)"; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(pivotX,pivotY);
-      ctx.bezierCurveTo(cp1x+px,cp1y+py,cp2x+px,cp2y+py,midX,midY);
-      ctx.bezierCurveTo(cp3x+px,cp3y+py,cp4x+px,cp4y+py,tipX,tipY);
-      ctx.stroke();
-
-      // ── Headshell ──
-      const hsAngle = armAngle + 0.25;
-      const hsLen = PR * 0.22;
-      const hsX = tipX + Math.cos(hsAngle)*hsLen;
-      const hsY = tipY + Math.sin(hsAngle)*hsLen;
-
-      // Headshell connector
-      ctx.strokeStyle="#888"; ctx.lineWidth=5;
-      ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(hsX,hsY); ctx.stroke();
-
-      // Headshell body
-      ctx.save();
-      ctx.translate(hsX, hsY);
-      ctx.rotate(hsAngle);
-      ctx.fillStyle="#3a3a3a";
-      ctx.beginPath(); ctx.roundRect(-4,-5,22,10,3); ctx.fill();
-      ctx.fillStyle="#555";
-      ctx.beginPath(); ctx.roundRect(-3,-4,20,8,2); ctx.fill();
-      // Cartridge
-      ctx.fillStyle="#222";
-      ctx.beginPath(); ctx.roundRect(10,-3,8,6,1); ctx.fill();
-      ctx.restore();
-
-      // Stylus cantilever + tip
-      const needleAngle = hsAngle;
-      const nBaseX = hsX + Math.cos(needleAngle)*16;
-      const nBaseY = hsY + Math.sin(needleAngle)*16;
-      const nTipX = hsX + Math.cos(needleAngle)*26;
-      const nTipY = hsY + Math.sin(needleAngle)*26;
+      // Pitch fader (right of platter, like real Technics)
+      const fx=cx+PR+38, fy=H*0.18, fh=H*0.64;
+      ctx.fillStyle="#111"; ctx.beginPath(); ctx.roundRect(fx-4,fy,8,fh,4); ctx.fill();
+      ctx.strokeStyle="#333"; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.roundRect(fx-4,fy,8,fh,4); ctx.stroke();
+      ctx.strokeStyle="#444"; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(fx-8,fy+fh/2); ctx.lineTo(fx+8,fy+fh/2); ctx.stroke();
+      const faderY=fy+fh/2;
+      ctx.fillStyle="#666"; ctx.beginPath(); ctx.roundRect(fx-9,faderY-7,18,14,3); ctx.fill();
+      ctx.fillStyle="#999"; ctx.beginPath(); ctx.roundRect(fx-8,faderY-6,16,12,2); ctx.fill();
       ctx.strokeStyle="#bbb"; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.moveTo(nBaseX,nBaseY); ctx.lineTo(nTipX,nTipY); ctx.stroke();
-      ctx.shadowColor=color; ctx.shadowBlur=12;
-      ctx.fillStyle=color;
-      ctx.beginPath(); ctx.arc(nTipX,nTipY,2.5,0,Math.PI*2); ctx.fill();
-      ctx.shadowBlur=0;
+      ctx.beginPath(); ctx.moveTo(fx-5,faderY); ctx.lineTo(fx+5,faderY); ctx.stroke();
+      ctx.fillStyle="#555"; ctx.font="8px JetBrains Mono,monospace"; ctx.textAlign="center";
+      ctx.fillText("+",fx,fy-5); ctx.fillText("-",fx,fy+fh+11);
 
+      // Start/Stop button
+      const btnX=cx-PR*0.55, btnY=H*0.84;
+      ctx.fillStyle="#1a1a1a"; ctx.beginPath(); ctx.arc(btnX,btnY,16,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle=playing?"#ff4444":"#444"; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(btnX,btnY,16,0,Math.PI*2); ctx.stroke();
+      ctx.fillStyle=playing?"#ff4444":"#333";
+      ctx.shadowColor=playing?"#ff4444":"transparent"; ctx.shadowBlur=playing?12:0;
+      ctx.beginPath(); ctx.arc(btnX,btnY,8,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0;
+      const rpmX=btnX+42;
+      ctx.fillStyle="#222"; ctx.beginPath(); ctx.roundRect(rpmX,btnY-10,30,20,4); ctx.fill();
+      ctx.font="7px JetBrains Mono,monospace"; ctx.fillStyle="#777"; ctx.textAlign="left";
+      ctx.fillText("33",rpmX+3,btnY-1); ctx.fillText("45",rpmX+7,btnY+9);
+
+      // Tone arm
+      ctx.save();
+      const pivotX=W-72, pivotY=52;
+      const armAngle=-2.0+progress*0.45;
+
+      // Counterweight
+      const cwLen=50;
+      const cwX=pivotX-Math.cos(armAngle)*cwLen;
+      const cwY=pivotY-Math.sin(armAngle)*cwLen;
+      ctx.strokeStyle="#666"; ctx.lineWidth=5; ctx.lineCap="round";
+      ctx.beginPath(); ctx.moveTo(pivotX,pivotY); ctx.lineTo(cwX,cwY); ctx.stroke();
+      const cwg=ctx.createRadialGradient(cwX-3,cwY-3,1,cwX,cwY,11);
+      cwg.addColorStop(0,"#ccc"); cwg.addColorStop(0.5,"#777"); cwg.addColorStop(1,"#333");
+      ctx.fillStyle=cwg; ctx.beginPath(); ctx.arc(cwX,cwY,11,0,Math.PI*2); ctx.fill();
+
+      // Pivot
+      const pvg=ctx.createRadialGradient(pivotX-3,pivotY-3,1,pivotX,pivotY,12);
+      pvg.addColorStop(0,"#ddd"); pvg.addColorStop(0.5,"#888"); pvg.addColorStop(1,"#222");
+      ctx.fillStyle="#111"; ctx.beginPath(); ctx.arc(pivotX,pivotY,14,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=pvg; ctx.beginPath(); ctx.arc(pivotX,pivotY,11,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle="#eee"; ctx.beginPath(); ctx.arc(pivotX,pivotY,4,0,Math.PI*2); ctx.fill();
+
+      // S-arm
+      const armLen=180;
+      const tipX=pivotX+Math.cos(armAngle)*armLen;
+      const tipY=pivotY+Math.sin(armAngle)*armLen;
+      const px=-Math.sin(armAngle), py=Math.cos(armAngle);
+      const sBend=36;
+      const m2x=pivotX+Math.cos(armAngle)*armLen*0.65;
+      const m2y=pivotY+Math.sin(armAngle)*armLen*0.65;
+      const cp1x=pivotX+Math.cos(armAngle)*armLen*0.35+px*sBend;
+      const cp1y=pivotY+Math.sin(armAngle)*armLen*0.35+py*sBend;
+      const cp2x=m2x+px*sBend*0.2, cp2y=m2y+py*sBend*0.2;
+      const cp3x=m2x-px*sBend*0.4, cp3y=m2y-py*sBend*0.4;
+      const cp4x=tipX-px*sBend*0.1, cp4y=tipY-py*sBend*0.1;
+
+      ctx.strokeStyle="rgba(0,0,0,0.6)"; ctx.lineWidth=9; ctx.lineCap="round";
+      ctx.beginPath(); ctx.moveTo(pivotX+1,pivotY+2);
+      ctx.bezierCurveTo(cp1x+1,cp1y+2,cp2x+1,cp2y+2,m2x+1,m2y+2);
+      ctx.bezierCurveTo(cp3x+1,cp3y+2,cp4x+1,cp4y+2,tipX+1,tipY+2); ctx.stroke();
+
+      const ag=ctx.createLinearGradient(pivotX,pivotY,tipX,tipY);
+      ag.addColorStop(0,"#888"); ag.addColorStop(0.3,"#ddd");
+      ag.addColorStop(0.6,"#bbb"); ag.addColorStop(1,"#999");
+      ctx.strokeStyle=ag; ctx.lineWidth=6;
+      ctx.beginPath(); ctx.moveTo(pivotX,pivotY);
+      ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,m2x,m2y);
+      ctx.bezierCurveTo(cp3x,cp3y,cp4x,cp4y,tipX,tipY); ctx.stroke();
+
+      ctx.strokeStyle="rgba(255,255,255,0.28)"; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(pivotX,pivotY);
+      ctx.bezierCurveTo(cp1x+px,cp1y+py,cp2x+px,cp2y+py,m2x,m2y);
+      ctx.bezierCurveTo(cp3x+px,cp3y+py,cp4x+px,cp4y+py,tipX,tipY); ctx.stroke();
+
+      // Headshell
+      const hsAngle=armAngle+0.22, hsLen=30;
+      const hsX=tipX+Math.cos(hsAngle)*hsLen;
+      const hsY=tipY+Math.sin(hsAngle)*hsLen;
+      ctx.strokeStyle="#aaa"; ctx.lineWidth=4; ctx.lineCap="round";
+      ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(hsX,hsY); ctx.stroke();
+      ctx.save(); ctx.translate(hsX,hsY); ctx.rotate(hsAngle);
+      ctx.fillStyle="#3a3a3a"; ctx.beginPath(); ctx.roundRect(-5,-5,24,10,3); ctx.fill();
+      ctx.fillStyle="#555"; ctx.beginPath(); ctx.roundRect(-4,-4,22,8,2); ctx.fill();
+      ctx.fillStyle="#222"; ctx.beginPath(); ctx.roundRect(14,-3,7,6,1); ctx.fill();
       ctx.restore();
 
-      if (playing) rot.current += 0.02;
-      raf.current = requestAnimationFrame(draw);
-    };
+      // Stylus
+      const nTX=hsX+Math.cos(hsAngle)*26, nTY=hsY+Math.sin(hsAngle)*26;
+      ctx.strokeStyle="#aaa"; ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.moveTo(hsX+Math.cos(hsAngle)*18,hsY+Math.sin(hsAngle)*18);
+      ctx.lineTo(nTX,nTY); ctx.stroke();
+      ctx.shadowColor=color; ctx.shadowBlur=14;
+      ctx.fillStyle=color; ctx.beginPath(); ctx.arc(nTX,nTY,2.5,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0;
+      ctx.restore();
 
+      if (playing) rot.current+=0.022;
+      raf.current=requestAnimationFrame(draw);
+    };
     draw();
-    return () => cancelAnimationFrame(raf.current);
+    return ()=>cancelAnimationFrame(raf.current);
   }, [playing, progress, color, label]);
 
-  return <canvas ref={cvs} width={500} height={280} style={{display:"block",width:"100%",height:"auto",borderRadius:"8px"}} />;
+  return <canvas ref={cvs} width={500} height={300} style={{display:"block",width:"100%",height:"auto",borderRadius:"8px"}} />;
 });
 
 // ── Waveform ──
@@ -764,8 +675,8 @@ export default function DJMixer(){
   useEffect(()=>{
     const token=store?.token||localStorage.getItem("token");if(!token)return;
     Promise.all([
-      fetch(`${BACKEND}/api/audio/my-tracks`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():[]).catch(()=>[]),
-      fetch(`${BACKEND}/api/beats/my-beats`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():[]).catch(()=>[]),
+      fetch(`${BACKEND}/api/audio/my-tracks`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json().then(d=>Array.isArray(d)?d:d.beats||d.data||[]):[]).catch(()=>[]),
+      fetch(`${BACKEND}/api/beats/my-beats`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json().then(d=>Array.isArray(d)?d:d.beats||d.data||[]):[]).catch(()=>[]),
     ]).then(([audio,beats])=>{
       const bm=(beats||[]).map(b=>({id:`beat_${b.id}`,title:b.title||"Beat",file_url:b.audio_url||b.file_url,audio_url:b.audio_url||b.file_url,audio_type:"beat",bpm:b.bpm,key:b.key,genre:b.genre,artwork_url:b.artwork_url||b.cover_art_url,source:"beat"}));
       const all=[...(audio||[]),...bm];const seen=new Set();
