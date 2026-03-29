@@ -365,9 +365,37 @@ const MagicClips = ({ episodeId, audioUrl, videoUrl, transcript, words, onClipCr
 
                                 <div className="clip-editor-body">
                                     <div className="clip-waveform-editor">
-                                        <div className="waveform-placeholder">
-                                            [Waveform with draggable boundaries]
-                                        </div>
+                                        <canvas
+                                            ref={(canvas) => {
+                                                if (!canvas || !selectedClip) return;
+                                                const ctx = canvas.getContext('2d');
+                                                const W = canvas.width = canvas.offsetWidth || 400;
+                                                const H = canvas.height = 60;
+                                                ctx.clearRect(0, 0, W, H);
+                                                ctx.fillStyle = '#0d1117';
+                                                ctx.fillRect(0, 0, W, H);
+                                                // Draw simulated waveform bars
+                                                const bars = 80;
+                                                const barW = W / bars;
+                                                for (let i = 0; i < bars; i++) {
+                                                    const h = (Math.sin(i * 0.4) * 0.4 + Math.random() * 0.6) * H * 0.8;
+                                                    const x = i * barW;
+                                                    const inRange = x >= (selectedClip.start / (selectedClip.duration || 60)) * W &&
+                                                                    x <= (selectedClip.end / (selectedClip.duration || 60)) * W;
+                                                    ctx.fillStyle = inRange ? '#00ffc8' : '#21262d';
+                                                    ctx.fillRect(x + 1, (H - h) / 2, barW - 2, h);
+                                                }
+                                                // Draw boundary markers
+                                                const startX = (selectedClip.start / (selectedClip.duration || 60)) * W;
+                                                const endX = (selectedClip.end / (selectedClip.duration || 60)) * W;
+                                                ctx.strokeStyle = '#FF6600';
+                                                ctx.lineWidth = 2;
+                                                ctx.beginPath(); ctx.moveTo(startX, 0); ctx.lineTo(startX, H); ctx.stroke();
+                                                ctx.strokeStyle = '#ff3b30';
+                                                ctx.beginPath(); ctx.moveTo(endX, 0); ctx.lineTo(endX, H); ctx.stroke();
+                                            }}
+                                            style={{ width:'100%', height:60, borderRadius:4, cursor:'crosshair' }}
+                                        />
                                         <div className="clip-time-adjust">
                                             <div className="time-field">
                                                 <label>Start</label>
@@ -1095,10 +1123,15 @@ const Teleprompter = ({ isVisible, onClose }) => {
                     />
                     <button
                         className="btn-load-script"
-                        onClick={() => {}}
+                        onClick={() => {
+                            if (scrollRef.current) scrollRef.current.scrollTop = 0;
+                            setIsScrolling(false);
+                            // Switch to scroll view by starting scroll
+                            setTimeout(() => startScroll(), 100);
+                        }}
                         disabled={!script}
                     >
-                        Load Script
+                        ▶ Load & Start Script
                     </button>
                 </div>
             ) : (
