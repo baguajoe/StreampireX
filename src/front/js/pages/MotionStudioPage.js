@@ -143,7 +143,7 @@ function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
 
 
   return (
-    <div className="spx-menu-bar">
+<div className="spx-menu-bar">
       {menus.map(menu => (
         <MenuDropdown key={menu.label} label={menu.label} items={menu.items} />
       ))}
@@ -156,13 +156,102 @@ function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
       <div style={{flex:1}}/>
       {rightContent}
     </div>
+
+      {/* ── Status bar ── */}
+      {status && (
+        <div style={{position:'fixed',bottom:16,left:'50%',transform:'translateX(-50%)',
+          background:'#1a1f2e',border:'1px solid #00ffc8',borderRadius:6,padding:'8px 20px',
+          color:'#00ffc8',fontSize:12,fontFamily:'Share Tech Mono,monospace',zIndex:9999,
+          boxShadow:'0 4px 20px rgba(0,255,200,0.2)'}}>
+          {status}
+          <button onClick={() => setStatus('')}
+            style={{marginLeft:12,background:'none',border:'none',color:'#4e6a82',cursor:'pointer',fontSize:14}}>×</button>
+        </div>
+      )}
+
+      {/* ── Cloud Load Modal ── */}
+      {showCloudLoad && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
+          display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={e => e.target===e.currentTarget && setShowCloudLoad(false)}>
+          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,
+            padding:24,minWidth:360,maxHeight:'70vh',overflowY:'auto'}}>
+            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
+              fontFamily:'Share Tech Mono,monospace'}}>OPEN FROM CLOUD ☁</div>
+            {cloudProjects.map((p, i) => (
+              <div key={i}
+                onClick={async () => {
+                  try {
+                    const payload = await loadFromCloud(p.key);
+                    if (payload) {
+                      if (payload.layers) setLayers(payload.layers);
+                      if (payload.name) setProjectName(payload.name);
+                      setStatus('✅ Loaded: ' + p.name);
+                    }
+                  } catch(e) { setStatus('Load failed: ' + e.message); }
+                  setShowCloudLoad(false);
+                }}
+                style={{padding:'10px 14px',margin:'4px 0',background:'#0d1117',
+                  border:'1px solid #21262d',borderRadius:4,cursor:'pointer',
+                  color:'#cdd9e5',fontSize:12,display:'flex',justifyContent:'space-between'}}>
+                <span>{p.name}</span>
+                <span style={{color:'#4e6a82',fontSize:10}}>
+                  {new Date(p.modified).toLocaleDateString()}
+                </span>
+              </div>
+            ))}
+            <button onClick={() => setShowCloudLoad(false)}
+              style={{marginTop:12,width:'100%',padding:'8px',background:'transparent',
+                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Keyboard Shortcuts Modal ── */}
+      {showShortcuts && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
+          display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={e => e.target===e.currentTarget && setShowShortcuts(false)}>
+          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,
+            padding:24,minWidth:320,color:'#cdd9e5'}}>
+            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
+              fontFamily:'Share Tech Mono,monospace'}}>KEYBOARD SHORTCUTS</div>
+            {[
+              ['Space',      'Play / Pause'],
+              ['V',          'Select tool'],
+              ['T',          'Text tool'],
+              ['U',          'Shape tool'],
+              ['R',          'Rotate'],
+              ['[ / ]',      'Zoom out / in'],
+              ['Ctrl+Z',     'Undo'],
+              ['Ctrl+D',     'Duplicate layer'],
+              ['Del',        'Delete layer'],
+              ['Home / End', 'Go to start / end'],
+            ].map(([key, desc]) => (
+              <div key={key} style={{display:'flex',justifyContent:'space-between',
+                padding:'5px 0',borderBottom:'1px solid #21262d',fontSize:12}}>
+                <span style={{fontFamily:'Share Tech Mono,monospace',color:'#00ffc8'}}>{key}</span>
+                <span style={{color:'#8b949e'}}>{desc}</span>
+              </div>
+            ))}
+            <button onClick={() => setShowShortcuts(false)}
+              style={{marginTop:16,width:'100%',padding:'8px',background:'transparent',
+                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
 function MenuDropdown({ label, items }) {
   const [open, setOpen] = React.useState(false);
   return (
-    <div className="spx-menu-item" onMouseLeave={() => setOpen(false)}>
+<div className="spx-menu-item" onMouseLeave={() => setOpen(false)}>
       <button className="spx-menu-btn" onMouseEnter={() => setOpen(true)} onClick={() => setOpen(o => !o)}>
         {label}
       </button>
@@ -176,6 +265,95 @@ function MenuDropdown({ label, items }) {
                 {item.shortcut && <span style={{color:"#4e6a82",fontSize:10,marginLeft:"auto"}}>{item.shortcut}</span>}
               </button>
           )}
+        </div>
+      )}
+    </div>
+
+      {/* ── Status bar ── */}
+      {status && (
+        <div style={{position:'fixed',bottom:16,left:'50%',transform:'translateX(-50%)',
+          background:'#1a1f2e',border:'1px solid #00ffc8',borderRadius:6,padding:'8px 20px',
+          color:'#00ffc8',fontSize:12,fontFamily:'Share Tech Mono,monospace',zIndex:9999,
+          boxShadow:'0 4px 20px rgba(0,255,200,0.2)'}}>
+          {status}
+          <button onClick={() => setStatus('')}
+            style={{marginLeft:12,background:'none',border:'none',color:'#4e6a82',cursor:'pointer',fontSize:14}}>×</button>
+        </div>
+      )}
+
+      {/* ── Cloud Load Modal ── */}
+      {showCloudLoad && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
+          display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={e => e.target===e.currentTarget && setShowCloudLoad(false)}>
+          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,
+            padding:24,minWidth:360,maxHeight:'70vh',overflowY:'auto'}}>
+            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
+              fontFamily:'Share Tech Mono,monospace'}}>OPEN FROM CLOUD ☁</div>
+            {cloudProjects.map((p, i) => (
+              <div key={i}
+                onClick={async () => {
+                  try {
+                    const payload = await loadFromCloud(p.key);
+                    if (payload) {
+                      if (payload.layers) setLayers(payload.layers);
+                      if (payload.name) setProjectName(payload.name);
+                      setStatus('✅ Loaded: ' + p.name);
+                    }
+                  } catch(e) { setStatus('Load failed: ' + e.message); }
+                  setShowCloudLoad(false);
+                }}
+                style={{padding:'10px 14px',margin:'4px 0',background:'#0d1117',
+                  border:'1px solid #21262d',borderRadius:4,cursor:'pointer',
+                  color:'#cdd9e5',fontSize:12,display:'flex',justifyContent:'space-between'}}>
+                <span>{p.name}</span>
+                <span style={{color:'#4e6a82',fontSize:10}}>
+                  {new Date(p.modified).toLocaleDateString()}
+                </span>
+              </div>
+            ))}
+            <button onClick={() => setShowCloudLoad(false)}
+              style={{marginTop:12,width:'100%',padding:'8px',background:'transparent',
+                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Keyboard Shortcuts Modal ── */}
+      {showShortcuts && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
+          display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={e => e.target===e.currentTarget && setShowShortcuts(false)}>
+          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,
+            padding:24,minWidth:320,color:'#cdd9e5'}}>
+            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
+              fontFamily:'Share Tech Mono,monospace'}}>KEYBOARD SHORTCUTS</div>
+            {[
+              ['Space',      'Play / Pause'],
+              ['V',          'Select tool'],
+              ['T',          'Text tool'],
+              ['U',          'Shape tool'],
+              ['R',          'Rotate'],
+              ['[ / ]',      'Zoom out / in'],
+              ['Ctrl+Z',     'Undo'],
+              ['Ctrl+D',     'Duplicate layer'],
+              ['Del',        'Delete layer'],
+              ['Home / End', 'Go to start / end'],
+            ].map(([key, desc]) => (
+              <div key={key} style={{display:'flex',justifyContent:'space-between',
+                padding:'5px 0',borderBottom:'1px solid #21262d',fontSize:12}}>
+                <span style={{fontFamily:'Share Tech Mono,monospace',color:'#00ffc8'}}>{key}</span>
+                <span style={{color:'#8b949e'}}>{desc}</span>
+              </div>
+            ))}
+            <button onClick={() => setShowShortcuts(false)}
+              style={{marginTop:16,width:'100%',padding:'8px',background:'transparent',
+                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
+              Close
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -253,6 +431,95 @@ function ExprPropRow({label, prop, layer, onOpenExpr, children}) {
         </div>
       )}
     </div>
+
+      {/* ── Status bar ── */}
+      {status && (
+        <div style={{position:'fixed',bottom:16,left:'50%',transform:'translateX(-50%)',
+          background:'#1a1f2e',border:'1px solid #00ffc8',borderRadius:6,padding:'8px 20px',
+          color:'#00ffc8',fontSize:12,fontFamily:'Share Tech Mono,monospace',zIndex:9999,
+          boxShadow:'0 4px 20px rgba(0,255,200,0.2)'}}>
+          {status}
+          <button onClick={() => setStatus('')}
+            style={{marginLeft:12,background:'none',border:'none',color:'#4e6a82',cursor:'pointer',fontSize:14}}>×</button>
+        </div>
+      )}
+
+      {/* ── Cloud Load Modal ── */}
+      {showCloudLoad && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
+          display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={e => e.target===e.currentTarget && setShowCloudLoad(false)}>
+          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,
+            padding:24,minWidth:360,maxHeight:'70vh',overflowY:'auto'}}>
+            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
+              fontFamily:'Share Tech Mono,monospace'}}>OPEN FROM CLOUD ☁</div>
+            {cloudProjects.map((p, i) => (
+              <div key={i}
+                onClick={async () => {
+                  try {
+                    const payload = await loadFromCloud(p.key);
+                    if (payload) {
+                      if (payload.layers) setLayers(payload.layers);
+                      if (payload.name) setProjectName(payload.name);
+                      setStatus('✅ Loaded: ' + p.name);
+                    }
+                  } catch(e) { setStatus('Load failed: ' + e.message); }
+                  setShowCloudLoad(false);
+                }}
+                style={{padding:'10px 14px',margin:'4px 0',background:'#0d1117',
+                  border:'1px solid #21262d',borderRadius:4,cursor:'pointer',
+                  color:'#cdd9e5',fontSize:12,display:'flex',justifyContent:'space-between'}}>
+                <span>{p.name}</span>
+                <span style={{color:'#4e6a82',fontSize:10}}>
+                  {new Date(p.modified).toLocaleDateString()}
+                </span>
+              </div>
+            ))}
+            <button onClick={() => setShowCloudLoad(false)}
+              style={{marginTop:12,width:'100%',padding:'8px',background:'transparent',
+                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Keyboard Shortcuts Modal ── */}
+      {showShortcuts && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
+          display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={e => e.target===e.currentTarget && setShowShortcuts(false)}>
+          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,
+            padding:24,minWidth:320,color:'#cdd9e5'}}>
+            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
+              fontFamily:'Share Tech Mono,monospace'}}>KEYBOARD SHORTCUTS</div>
+            {[
+              ['Space',      'Play / Pause'],
+              ['V',          'Select tool'],
+              ['T',          'Text tool'],
+              ['U',          'Shape tool'],
+              ['R',          'Rotate'],
+              ['[ / ]',      'Zoom out / in'],
+              ['Ctrl+Z',     'Undo'],
+              ['Ctrl+D',     'Duplicate layer'],
+              ['Del',        'Delete layer'],
+              ['Home / End', 'Go to start / end'],
+            ].map(([key, desc]) => (
+              <div key={key} style={{display:'flex',justifyContent:'space-between',
+                padding:'5px 0',borderBottom:'1px solid #21262d',fontSize:12}}>
+                <span style={{fontFamily:'Share Tech Mono,monospace',color:'#00ffc8'}}>{key}</span>
+                <span style={{color:'#8b949e'}}>{desc}</span>
+              </div>
+            ))}
+            <button onClick={() => setShowShortcuts(false)}
+              style={{marginTop:16,width:'100%',padding:'8px',background:'transparent',
+                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -314,6 +581,10 @@ export default function MotionStudioPage() {
   const [linkMode,       setLinkMode]       = useState(false);
   const [linkSource,     setLinkSource]     = useState(null); // {layerId, prop}
   const [propertyLinks,  setPropertyLinks]  = useState([]); // [{srcId,srcProp,dstId,dstProp,expr}]
+  const [status,         setStatus]         = useState('');
+  const [showShortcuts,  setShowShortcuts]  = useState(false);
+  const [cloudProjects,  setCloudProjects]  = useState([]);
+  const [showCloudLoad,  setShowCloudLoad]  = useState(false);
 
 
   const { scrubTo } = usePlaybackEngine();
@@ -442,6 +713,7 @@ export default function MotionStudioPage() {
   const scrubX = (timeline.duration > 0) ? (timeline.currentTime / timeline.duration) * timelineWidth : 0;
 
   return (
+    <>
     <div style={S.app}>
       <AppMenuBar
         projectName={projectName}
@@ -455,22 +727,18 @@ export default function MotionStudioPage() {
             { label: "Save to Cloud ☁", shortcut: "Ctrl+Shift+S", action: async () => {
               try {
                 const r = await saveToCloud("motion", projectName, {layers, timeline, name: projectName});
-                alert("✅ Saved to cloud: " + r.name);
-              } catch(e) { alert("Cloud save failed: " + e.message); }
+                setStatus("✅ Saved to cloud: " + r.name);
+              } catch(e) { setStatus("Cloud save failed: " + e.message); }
             } },
             { label: "Open from Cloud ☁", action: async () => {
               try {
                 const projects = await listCloudProjects("motion");
-                if (!projects.length) { alert("No saved projects found."); return; }
-                const names = projects.map((p,i) => i+1+". "+p.name+" ("+new Date(p.modified).toLocaleDateString()+")").join("\n");
-                const choice = prompt("Choose project:\n"+names+"\nEnter number:");
-                const idx = parseInt(choice)-1;
-                if (isNaN(idx)||idx<0||idx>=projects.length) return;
-                const payload = await loadFromCloud(projects[idx].key);
-                if (payload) { alert("✅ Loaded: "+projects[idx].name); }
-              } catch(e) { alert("Load failed: "+e.message); }
+                if (!projects.length) { setStatus("No saved projects found."); return; }
+                setCloudProjects(projects);
+                setShowCloudLoad(true);
+              } catch(e) { setStatus("Load failed: " + e.message); }
             } },
-            { label: "Save", shortcut: "Ctrl+S", action: () => { try { localStorage.setItem(MOTION_KEY, JSON.stringify({layers,timeline,name:projectName,savedAt:Date.now()})); } catch(e){} alert("Saved!"); } },
+            { label: "Save", shortcut: "Ctrl+S", action: () => { try { localStorage.setItem(MOTION_KEY, JSON.stringify({layers,timeline,name:projectName,savedAt:Date.now()})); setStatus("✅ Project saved locally"); } catch(e){ setStatus("Save failed"); } } },
             "---",
             { label: "Export Frame", action: handleExportFrame },
             { label: "Export Video (WebM)", action: handleExportVideo },
@@ -515,7 +783,7 @@ export default function MotionStudioPage() {
             { label: "Ease Bounce",  action: () => {} },
           ]},
           { label: "Help", items: [
-            { label: "Keyboard Shortcuts", action: () => alert("Space=Play  V=Select  T=Text  U=Shape  R=Rotate  [/]=Zoom  Ctrl+Z=Undo  Ctrl+D=Duplicate  Del=Delete") },
+            { label: "Keyboard Shortcuts", action: () => setShowShortcuts(true) },
             { label: "About SPX Motion",   action: () => {} },
           ]},
         ]}
@@ -986,6 +1254,7 @@ export default function MotionStudioPage() {
         style={{position:'fixed',bottom:80,right:24,zIndex:1000,width:44,height:44,borderRadius:'50%',
           background:'#1a1f2e',border:'2px solid #00ffc8',color:'#00ffc8',
           fontSize:16,cursor:'pointer',boxShadow:'0 4px 16px rgba(0,255,200,0.2)'}}>ƒ</button>
+    </>
 
   );
 }
