@@ -435,53 +435,6 @@ export default function SPXVectorPage() {
     setStatus(`Added ${ab.name}`);
   }, [artboards, project.width, project.height]);
 
-  // ─── Align & Distribute ──────────────────────────────────────────────────
-  const alignLayers = useCallback((alignment) => {
-    if(selectedIds.length < 2) return;
-    snapshot();
-    const sel = project.layers.filter(l=>selectedIds.includes(l.id));
-    const minX=Math.min(...sel.map(l=>l.x||0));
-    const minY=Math.min(...sel.map(l=>l.y||0));
-    const maxX=Math.max(...sel.map(l=>(l.x||0)+(l.width||100)));
-    const maxY=Math.max(...sel.map(l=>(l.y||0)+(l.height||100)));
-    const cX=(minX+maxX)/2, cY=(minY+maxY)/2;
-    sel.forEach(l=>{
-      let patch={};
-      if(alignment==='left')   patch={x:minX};
-      if(alignment==='right')  patch={x:maxX-(l.width||100)};
-      if(alignment==='top')    patch={y:minY};
-      if(alignment==='bottom') patch={y:maxY-(l.height||100)};
-      if(alignment==='centerH') patch={x:cX-(l.width||100)/2};
-      if(alignment==='centerV') patch={y:cY-(l.height||100)/2};
-      if(Object.keys(patch).length) updateLayer(l.id,patch);
-    });
-    setStatus(`Aligned: ${alignment}`);
-  },[selectedIds,project.layers,snapshot,updateLayer]);
-
-  const distributeLayersH = useCallback(()=>{
-    if(selectedIds.length<3) return;
-    snapshot();
-    const sel=[...project.layers.filter(l=>selectedIds.includes(l.id))].sort((a,b)=>(a.x||0)-(b.x||0));
-    const totalW=sel.reduce((s,l)=>s+(l.width||100),0);
-    const span=(sel[sel.length-1].x||0)+(sel[sel.length-1].width||100)-(sel[0].x||0);
-    const gap=(span-totalW)/(sel.length-1);
-    let x=sel[0].x||0;
-    sel.forEach(l=>{ updateLayer(l.id,{x}); x+=( l.width||100)+gap; });
-    setStatus('Distributed horizontally');
-  },[selectedIds,project.layers,snapshot,updateLayer]);
-
-  const distributeLayersV = useCallback(()=>{
-    if(selectedIds.length<3) return;
-    snapshot();
-    const sel=[...project.layers.filter(l=>selectedIds.includes(l.id))].sort((a,b)=>(a.y||0)-(b.y||0));
-    const totalH=sel.reduce((s,l)=>s+(l.height||100),0);
-    const span=(sel[sel.length-1].y||0)+(sel[sel.length-1].height||100)-(sel[0].y||0);
-    const gap=(span-totalH)/(sel.length-1);
-    let y=sel[0].y||0;
-    sel.forEach(l=>{ updateLayer(l.id,{y}); y+=(l.height||100)+gap; });
-    setStatus('Distributed vertically');
-  },[selectedIds,project.layers,snapshot,updateLayer]);
-
   // ─── SVG Point Helpers ────────────────────────────────────────────────────
   const getSVGPoint = useCallback((e)=>{
     const svg=svgRef.current; if(!svg)return{x:0,y:0};
@@ -519,37 +472,6 @@ export default function SPXVectorPage() {
     }
 
     if(activeTool==='zoom') setZoom(z=>e.altKey?Math.max(0.1,z/1.25):Math.min(16,z*1.25));
-
-    if(activeTool==='spiral') {
-      const turns = 3, segments = 60;
-      const anchors = [];
-      for(let i=0; i<=segments; i++) {
-        const t = i/segments;
-        const angle = t * turns * 2 * Math.PI;
-        const r = t * 80;
-        anchors.push({
-          x: snapped.x + r*Math.cos(angle),
-          y: snapped.y + r*Math.sin(angle),
-          inX: snapped.x + r*Math.cos(angle) - 10*Math.sin(angle),
-          inY: snapped.y + r*Math.sin(angle) + 10*Math.cos(angle),
-          outX: snapped.x + r*Math.cos(angle) + 10*Math.sin(angle),
-          outY: snapped.y + r*Math.sin(angle) - 10*Math.cos(angle),
-        });
-      }
-      addLayer('path', {anchors, closed:false, name:'Spiral'});
-      setStatus('Spiral added');
-    }
-
-    if(activeTool==='shear') {
-      if(!selectedLayer) { setStatus('Select a layer first, then shear'); return; }
-      snapshot();
-      const shearX = 0.3;
-      updateLayer(selectedId, {
-        shearX: (selectedLayer.shearX||0) + shearX,
-        transform: `skewX(${((selectedLayer.shearX||0)+shearX)*30})`,
-      });
-      setStatus('Shear applied (hold Shift for Y-axis)');
-    }
   },[activeTool,penPath,getSVGPoint,addLayer,snapToGrid,gridSize,fillColor]);
 
   const onSVGMouseMove = useCallback((e)=>{

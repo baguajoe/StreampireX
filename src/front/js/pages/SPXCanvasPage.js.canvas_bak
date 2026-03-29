@@ -4,12 +4,6 @@
 import { saveToCloud, listCloudProjects, loadFromCloud, deleteCloudProject } from "../utils/cloudSave";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { renderCanvas, hitTestLayers, exportCanvasPNG, exportCanvasJPG, exportCanvasWebP } from "../utils/spxcanvas/canvasEngine";
-import {
-  applyBrightnessContrast, applyHueSaturation, applyLevels, applyCurves,
-  applyColorBalance, applyVibrance, applySharpening, applyNoiseReduction,
-  applyExposure, applyPhotoFilter, applyDodge, applyBurn, applySmudge,
-  applyCloneStamp, applyHealing
-} from "../utils/spxcanvas/adjustments";
 import { drawSelectionMarquee, createRectSelection, createEllipseSelection, createLassoSelection, magicWandSelect } from "../utils/spxcanvas/selectionEngine";
 import "../../styles/SPXCanvas.css";
 
@@ -159,23 +153,6 @@ export default function SPXCanvasPage() {
   const [photoFilter,  setPhotoFilter]   = useState('warming');
   const [filterDensity,setFilterDensity] = useState(0.25);
   const [exposure,     setExposure]      = useState(0);
-  const [showAdjustPanel, setShowAdjustPanel] = useState(false);
-  const [brightness,   setBrightness]   = useState(0);
-  const [contrastAdj,  setContrastAdj]  = useState(1);
-  const [hue,          setHue]          = useState(0);
-  const [saturation,   setSaturation]   = useState(1);
-  const [lightness,    setLightness]    = useState(0);
-  const [vibrance,     setVibrance]     = useState(0);
-  const [inBlack,      setInBlack]      = useState(0);
-  const [inWhite,      setInWhite]      = useState(255);
-  const [gamma,        setGamma]        = useState(1);
-  const [showPhotoFilter, setShowPhotoFilter] = useState(false);
-  const [showCloudPanel,  setShowCloudPanel]  = useState(false);
-  const [cloudProjects,   setCloudProjects]   = useState([]);
-  const [cloneSource,     setCloneSource]     = useState(null);
-  const [retouchRadius,   setRetouchRadius]   = useState(20);
-  const [retouchStrength, setRetouchStrength] = useState(0.4);
-  const lastRetouchPt     = useRef(null);
   const [showGrid,     setShowGrid]     = useState(false);
   const [showRulers,   setShowRulers]   = useState(true);
   const [snapToGrid,   setSnapToGrid]   = useState(false);
@@ -311,41 +288,6 @@ export default function SPXCanvasPage() {
     };
   }, [zoom]);
 
-  // ─── Apply pixel adjustment to canvas ──────────────────────────────────────
-  const applyAdjustToCanvas = useCallback((fn) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    snapshot();
-    const ctx = canvas.getContext('2d');
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const result = fn(imgData);
-    ctx.putImageData(result, 0, 0);
-    setStatus('Adjustment applied');
-  }, [snapshot]);
-
-  // ─── Cloud save/load ────────────────────────────────────────────────────────
-  const handleCloudSave = useCallback(async () => {
-    try {
-      await saveToCloud(project);
-      setStatus('✓ Saved to cloud');
-    } catch(e) { setStatus('Cloud save failed: ' + e.message); }
-  }, [project]);
-
-  const handleCloudLoad = useCallback(async () => {
-    try {
-      const list = await listCloudProjects();
-      setCloudProjects(list || []);
-      setShowCloudPanel(true);
-    } catch(e) { setStatus('Cloud load failed: ' + e.message); }
-  }, []);
-
-  const loadCloudProject = useCallback(async (id) => {
-    try {
-      const loaded = await loadFromCloud(id);
-      if (loaded) { setProject(loaded); setShowCloudPanel(false); setStatus('✓ Project loaded'); }
-    } catch(e) { setStatus('Load failed: ' + e.message); }
-  }, []);
-
   // ── Drawing Tablet Support (Wacom, Huion, XP-Pen, Apple Pencil) ──
   const tabletPressure = useRef(1.0);
   const tabletTiltX = useRef(0);
@@ -416,39 +358,6 @@ export default function SPXCanvasPage() {
 
     if (activeTool==='crop') {
       setDragState({ kind:'crop', startX:pt.x, startY:pt.y });
-    }
-
-    if (activeTool==='magic_wand') {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const sel = magicWandSelect(imgData, Math.floor(pt.x), Math.floor(pt.y), canvas.width, 30);
-        setSelection(sel);
-        setStatus(`Magic Wand: selected region at (${Math.floor(pt.x)}, ${Math.floor(pt.y)})`);
-      }
-    }
-
-    if (activeTool==='eyedropper') {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        const px = ctx.getImageData(Math.floor(pt.x), Math.floor(pt.y), 1, 1).data;
-        const hex = '#' + [px[0],px[1],px[2]].map(v=>v.toString(16).padStart(2,'0')).join('');
-        setBrushColor(hex);
-        setStatus(`Eyedropper: picked ${hex}`);
-      }
-    }
-
-    if (activeTool==='heal' || activeTool==='clone' || activeTool==='dodge' || activeTool==='burn' || activeTool==='smudge') {
-      if (activeTool==='clone' && e.altKey) {
-        setCloneSource({ x: Math.floor(pt.x), y: Math.floor(pt.y) });
-        setStatus(`Clone source set at (${Math.floor(pt.x)}, ${Math.floor(pt.y)})`);
-        return;
-      }
-      lastRetouchPt.current = { x: Math.floor(pt.x), y: Math.floor(pt.y) };
-      setDragState({ kind:'retouch', tool: activeTool });
-      snapshot();
     }
   }, [activeTool, project, getCanvasPoint, addLayer, brushColor, brushSize, brushOpacity, brushHardness, snapshot, snapToGrid, gridSize]);
 
@@ -521,7 +430,7 @@ export default function SPXCanvasPage() {
       if (e.ctrlKey||e.metaKey) {
         if (e.key==='z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
         if (e.key==='d') { e.preventDefault(); duplicateLayer(); }
-        if (e.key==='a') { e.preventDefault(); setSelectedId(null); setSelection(createRectSelection(0,0,project.width,project.height)); setStatus('All selected'); }
+        if (e.key==='a') { e.preventDefault(); /* select all */ }
         if (e.key==='=') { e.preventDefault(); setZoom(z=>Math.min(8,z*1.25)); }
         if (e.key==='-') { e.preventDefault(); setZoom(z=>Math.max(0.1,z/1.25)); }
         if (e.key==='0') { e.preventDefault(); setZoom(1); }
