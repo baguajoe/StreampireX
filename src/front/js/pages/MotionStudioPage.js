@@ -246,6 +246,7 @@ function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
         </div>
       )}
     </div>
+</div>
   );
 }
 
