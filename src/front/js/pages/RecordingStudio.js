@@ -1020,14 +1020,16 @@ const RecordingStudio = ({ user }) => {
     const masterConsoleOutNode = ctx.createGain();
     masterConsoleOutRef.current = masterConsoleOutNode;
     applyConsoleCharacter(ctx, masterGainRef.current, masterConsoleOutNode, masterConsoleChar || 'none');
-    masterConsoleOutNode.connect(masterPanRef.current);
-    // Keep direct connection as fallback if no board selected
-    if (!masterConsoleChar || masterConsoleChar === 'none') {
+    // Console char → masterPan (exclusive routing)
+    if (masterConsoleChar && masterConsoleChar !== 'none') {
+      masterConsoleOutNode.connect(masterPanRef.current);
+    } else {
       masterGainRef.current.connect(masterPanRef.current);
     }
-      masterPanRef.current.connect(splitter);
-      splitter.connect(masterAnalyserLRef.current, 0);
-      splitter.connect(masterAnalyserRRef.current, 1);
+    // Meter splitter (analysers only — not in audio output path)
+    masterPanRef.current.connect(splitter);
+    splitter.connect(masterAnalyserLRef.current, 0);
+    splitter.connect(masterAnalyserRRef.current, 1);
       const monLo    = ctx.createBiquadFilter(); monLo.type = 'lowshelf';  monLo.frequency.value = 200;
     const monLoMid  = ctx.createBiquadFilter(); monLoMid.type = 'peaking'; monLoMid.frequency.value = 500;  monLoMid.Q.value = 1;
     const monHiMid  = ctx.createBiquadFilter(); monHiMid.type = 'peaking'; monHiMid.frequency.value = 3000; monHiMid.Q.value = 1;
