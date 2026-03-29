@@ -33,118 +33,8 @@ const MOTION_KEY = "spx_motion_project";
 
 // ── Shared Menu Bar Component ──
 function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
-  // ── Expression eval sandbox ───────────────────────────────────────────────────
-  const evalExpression = (expr, time, layer, allLayers) => {
-    try {
-      const wiggle = (freq, amp) => {
-        const seed = (layer.id||'').charCodeAt(0) || 1;
-        return (Math.sin(time * freq * Math.PI * 2 + seed) * amp);
-      };
-      const loopOut = (type='cycle') => {
-        const kfs = layer.keyframes || {};
-        return time; // simplified: return time, full impl cycles through keyframes
-      };
-      const loopIn = (type='cycle') => time;
-      const linear = (t, t1, t2, v1, v2) => {
-        if (t <= t1) return v1;
-        if (t >= t2) return v2;
-        return v1 + (v2 - v1) * ((t - t1) / (t2 - t1));
-      };
-      const ease = (t, t1, t2, v1, v2) => {
-        if (t <= t1) return v1;
-        if (t >= t2) return v2;
-        const p = (t - t1) / (t2 - t1);
-        const ep = p < 0.5 ? 2*p*p : -1+(4-2*p)*p;
-        return v1 + (v2 - v1) * ep;
-      };
-      const random = (min=0, max=1) => min + Math.random() * (max - min);
-      const thisLayer = layer;
-      const comp = { layers: allLayers, duration: 10 };
-      // eslint-disable-next-line no-new-func
-      const fn = new Function('time','thisLayer','wiggle','loopOut','loopIn','linear','ease','random','comp','Math',
-        `"use strict"; return (${expr});`);
-      return fn(time, thisLayer, wiggle, loopOut, loopIn, linear, ease, random, comp, Math);
-    } catch(e) {
-      return null;
-    }
-  };
-
-  const getLayerPropAtTime = (layer, prop, time, allLayers) => {
-    // Check property links first
-    const link = propertyLinks.find(l => l.dstId === layer.id && l.dstProp === prop);
-    if (link) {
-      const srcLayer = allLayers.find(l => l.id === link.srcId);
-      if (srcLayer) {
-        if (link.expr) return evalExpression(link.expr, time, srcLayer, allLayers);
-        return srcLayer[link.srcProp] ?? layer[prop];
-      }
-    }
-    // Check layer expression
-    const expr = layer.expressions?.[prop];
-    if (expr) {
-      const result = evalExpression(expr, time, layer, allLayers);
-      if (result !== null) return result;
-    }
-    return layer[prop];
-  };
-
-  const openExprPanel = (layerId, prop, currentExpr='') => {
-    setExprTarget({layerId, prop});
-    setExprText(currentExpr);
-    setExprError('');
-    setExprPanelOpen(true);
-  };
-
-  const saveExpression = () => {
-    if (!exprTarget) return;
-    // test eval
-    const layers = project?.layers || [];
-    const layer = layers.find(l => l.id === exprTarget.layerId);
-    if (layer) {
-      const result = evalExpression(exprText, 0, layer, layers);
-      if (result === null && exprText.trim()) {
-        setExprError('Expression error — check syntax');
-        return;
-      }
-    }
-    setExprError('');
-    setProject(p => ({
-      ...p,
-      layers: p.layers.map(l => l.id === exprTarget.layerId
-        ? {...l, expressions: {...(l.expressions||{}), [exprTarget.prop]: exprText || undefined}}
-        : l
-      )
-    }));
-    setExprPanelOpen(false);
-  };
-
-  const removeExpression = (layerId, prop) => {
-    setProject(p => ({
-      ...p,
-      layers: p.layers.map(l => {
-        if (l.id !== layerId) return l;
-        const expressions = {...(l.expressions||{})};
-        delete expressions[prop];
-        return {...l, expressions};
-      })
-    }));
-  };
-
-  const addPropertyLink = (srcId, srcProp, dstId, dstProp, expr='') => {
-    setPropertyLinks(pl => [
-      ...pl.filter(l => !(l.dstId===dstId && l.dstProp===dstProp)),
-      {srcId, srcProp, dstId, dstProp, expr}
-    ]);
-  };
-
-  const removePropertyLink = (dstId, dstProp) => {
-    setPropertyLinks(pl => pl.filter(l => !(l.dstId===dstId && l.dstProp===dstProp)));
-  };
-
-
   return (
-<div className="spx-motion-root" style={{display:'flex',flexDirection:'column',height:'100%'}}>
-<div className="spx-menu-bar">
+    <div className="spx-menu-bar">
       {menus.map(menu => (
         <MenuDropdown key={menu.label} label={menu.label} items={menu.items} />
       ))}
@@ -157,103 +47,13 @@ function AppMenuBar({ menus, projectName, setProjectName, rightContent }) {
       <div style={{flex:1}}/>
       {rightContent}
     </div>
-
-      {/* ── Status bar ── */}
-      {status && (
-        <div style={{position:'fixed',bottom:16,left:'50%',transform:'translateX(-50%)',
-          background:'#1a1f2e',border:'1px solid #00ffc8',borderRadius:6,padding:'8px 20px',
-          color:'#00ffc8',fontSize:12,fontFamily:'Share Tech Mono,monospace',zIndex:9999,
-          boxShadow:'0 4px 20px rgba(0,255,200,0.2)'}}>
-          {status}
-          <button onClick={() => setStatus('')}
-            style={{marginLeft:12,background:'none',border:'none',color:'#4e6a82',cursor:'pointer',fontSize:14}}>×</button>
-        </div>
-      )}
-
-      {/* ── Cloud Load Modal ── */}
-      {showCloudLoad && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
-          display:'flex',alignItems:'center',justifyContent:'center'}}
-          onClick={e => e.target===e.currentTarget && setShowCloudLoad(false)}>
-          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,
-            padding:24,minWidth:360,maxHeight:'70vh',overflowY:'auto'}}>
-            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
-              fontFamily:'Share Tech Mono,monospace'}}>OPEN FROM CLOUD ☁</div>
-            {cloudProjects.map((p, i) => (
-              <div key={i}
-                onClick={async () => {
-                  try {
-                    const payload = await loadFromCloud(p.key);
-                    if (payload) {
-                      if (payload.layers) setLayers(payload.layers);
-                      if (payload.name) setProjectName(payload.name);
-                      setStatus('✅ Loaded: ' + p.name);
-                    }
-                  } catch(e) { setStatus('Load failed: ' + e.message); }
-                  setShowCloudLoad(false);
-                }}
-                style={{padding:'10px 14px',margin:'4px 0',background:'#0d1117',
-                  border:'1px solid #21262d',borderRadius:4,cursor:'pointer',
-                  color:'#cdd9e5',fontSize:12,display:'flex',justifyContent:'space-between'}}>
-                <span>{p.name}</span>
-                <span style={{color:'#4e6a82',fontSize:10}}>
-                  {new Date(p.modified).toLocaleDateString()}
-                </span>
-              </div>
-            ))}
-            <button onClick={() => setShowCloudLoad(false)}
-              style={{marginTop:12,width:'100%',padding:'8px',background:'transparent',
-                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Keyboard Shortcuts Modal ── */}
-      {showShortcuts && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
-          display:'flex',alignItems:'center',justifyContent:'center'}}
-          onClick={e => e.target===e.currentTarget && setShowShortcuts(false)}>
-          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,
-            padding:24,minWidth:320,color:'#cdd9e5'}}>
-            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
-              fontFamily:'Share Tech Mono,monospace'}}>KEYBOARD SHORTCUTS</div>
-            {[
-              ['Space',      'Play / Pause'],
-              ['V',          'Select tool'],
-              ['T',          'Text tool'],
-              ['U',          'Shape tool'],
-              ['R',          'Rotate'],
-              ['[ / ]',      'Zoom out / in'],
-              ['Ctrl+Z',     'Undo'],
-              ['Ctrl+D',     'Duplicate layer'],
-              ['Del',        'Delete layer'],
-              ['Home / End', 'Go to start / end'],
-            ].map(([key, desc]) => (
-              <div key={key} style={{display:'flex',justifyContent:'space-between',
-                padding:'5px 0',borderBottom:'1px solid #21262d',fontSize:12}}>
-                <span style={{fontFamily:'Share Tech Mono,monospace',color:'#00ffc8'}}>{key}</span>
-                <span style={{color:'#8b949e'}}>{desc}</span>
-              </div>
-            ))}
-            <button onClick={() => setShowShortcuts(false)}
-              style={{marginTop:16,width:'100%',padding:'8px',background:'transparent',
-                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-</div>
   );
 }
 
 function MenuDropdown({ label, items }) {
   const [open, setOpen] = React.useState(false);
   return (
-<div className="spx-menu-item" onMouseLeave={() => setOpen(false)}>
+    <div className="spx-menu-item" onMouseLeave={() => setOpen(false)}>
       <button className="spx-menu-btn" onMouseEnter={() => setOpen(true)} onClick={() => setOpen(o => !o)}>
         {label}
       </button>
@@ -270,98 +70,8 @@ function MenuDropdown({ label, items }) {
         </div>
       )}
     </div>
-
-      {/* ── Status bar ── */}
-      {status && (
-        <div style={{position:'fixed',bottom:16,left:'50%',transform:'translateX(-50%)',
-          background:'#1a1f2e',border:'1px solid #00ffc8',borderRadius:6,padding:'8px 20px',
-          color:'#00ffc8',fontSize:12,fontFamily:'Share Tech Mono,monospace',zIndex:9999,
-          boxShadow:'0 4px 20px rgba(0,255,200,0.2)'}}>
-          {status}
-          <button onClick={() => setStatus('')}
-            style={{marginLeft:12,background:'none',border:'none',color:'#4e6a82',cursor:'pointer',fontSize:14}}>×</button>
-        </div>
-      )}
-
-      {/* ── Cloud Load Modal ── */}
-      {showCloudLoad && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
-          display:'flex',alignItems:'center',justifyContent:'center'}}
-          onClick={e => e.target===e.currentTarget && setShowCloudLoad(false)}>
-          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,
-            padding:24,minWidth:360,maxHeight:'70vh',overflowY:'auto'}}>
-            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
-              fontFamily:'Share Tech Mono,monospace'}}>OPEN FROM CLOUD ☁</div>
-            {cloudProjects.map((p, i) => (
-              <div key={i}
-                onClick={async () => {
-                  try {
-                    const payload = await loadFromCloud(p.key);
-                    if (payload) {
-                      if (payload.layers) setLayers(payload.layers);
-                      if (payload.name) setProjectName(payload.name);
-                      setStatus('✅ Loaded: ' + p.name);
-                    }
-                  } catch(e) { setStatus('Load failed: ' + e.message); }
-                  setShowCloudLoad(false);
-                }}
-                style={{padding:'10px 14px',margin:'4px 0',background:'#0d1117',
-                  border:'1px solid #21262d',borderRadius:4,cursor:'pointer',
-                  color:'#cdd9e5',fontSize:12,display:'flex',justifyContent:'space-between'}}>
-                <span>{p.name}</span>
-                <span style={{color:'#4e6a82',fontSize:10}}>
-                  {new Date(p.modified).toLocaleDateString()}
-                </span>
-              </div>
-            ))}
-            <button onClick={() => setShowCloudLoad(false)}
-              style={{marginTop:12,width:'100%',padding:'8px',background:'transparent',
-                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Keyboard Shortcuts Modal ── */}
-      {showShortcuts && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
-          display:'flex',alignItems:'center',justifyContent:'center'}}
-          onClick={e => e.target===e.currentTarget && setShowShortcuts(false)}>
-          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,
-            padding:24,minWidth:320,color:'#cdd9e5'}}>
-            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
-              fontFamily:'Share Tech Mono,monospace'}}>KEYBOARD SHORTCUTS</div>
-            {[
-              ['Space',      'Play / Pause'],
-              ['V',          'Select tool'],
-              ['T',          'Text tool'],
-              ['U',          'Shape tool'],
-              ['R',          'Rotate'],
-              ['[ / ]',      'Zoom out / in'],
-              ['Ctrl+Z',     'Undo'],
-              ['Ctrl+D',     'Duplicate layer'],
-              ['Del',        'Delete layer'],
-              ['Home / End', 'Go to start / end'],
-            ].map(([key, desc]) => (
-              <div key={key} style={{display:'flex',justifyContent:'space-between',
-                padding:'5px 0',borderBottom:'1px solid #21262d',fontSize:12}}>
-                <span style={{fontFamily:'Share Tech Mono,monospace',color:'#00ffc8'}}>{key}</span>
-                <span style={{color:'#8b949e'}}>{desc}</span>
-              </div>
-            ))}
-            <button onClick={() => setShowShortcuts(false)}
-              style={{marginTop:16,width:'100%',padding:'8px',background:'transparent',
-                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
   );
 }
-
 
 const S = {
   app:     { display:'flex', flexDirection:'column', height:'100vh', background:'#0d1117', color:'#dde6ef', fontFamily:"'JetBrains Mono',monospace", fontSize:12, overflow:'hidden' },
@@ -409,7 +119,6 @@ const LAYER_TYPES = [
 
 const BLEND_MODES = ['source-over','multiply','screen','overlay','darken','lighten','color-dodge','color-burn','difference','exclusion'];
 
-
 // Expression-aware property row component
 function ExprPropRow({label, prop, layer, onOpenExpr, children}) {
   const hasExpr = !!(layer?.expressions?.[prop]);
@@ -430,95 +139,6 @@ function ExprPropRow({label, prop, layer, onOpenExpr, children}) {
         <div style={{color:'#00ffc8',fontSize:9,fontFamily:'JetBrains Mono',opacity:0.7,
           whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
           ƒ {layer.expressions[prop]}
-        </div>
-      )}
-    </div>
-
-      {/* ── Status bar ── */}
-      {status && (
-        <div style={{position:'fixed',bottom:16,left:'50%',transform:'translateX(-50%)',
-          background:'#1a1f2e',border:'1px solid #00ffc8',borderRadius:6,padding:'8px 20px',
-          color:'#00ffc8',fontSize:12,fontFamily:'Share Tech Mono,monospace',zIndex:9999,
-          boxShadow:'0 4px 20px rgba(0,255,200,0.2)'}}>
-          {status}
-          <button onClick={() => setStatus('')}
-            style={{marginLeft:12,background:'none',border:'none',color:'#4e6a82',cursor:'pointer',fontSize:14}}>×</button>
-        </div>
-      )}
-
-      {/* ── Cloud Load Modal ── */}
-      {showCloudLoad && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
-          display:'flex',alignItems:'center',justifyContent:'center'}}
-          onClick={e => e.target===e.currentTarget && setShowCloudLoad(false)}>
-          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,
-            padding:24,minWidth:360,maxHeight:'70vh',overflowY:'auto'}}>
-            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
-              fontFamily:'Share Tech Mono,monospace'}}>OPEN FROM CLOUD ☁</div>
-            {cloudProjects.map((p, i) => (
-              <div key={i}
-                onClick={async () => {
-                  try {
-                    const payload = await loadFromCloud(p.key);
-                    if (payload) {
-                      if (payload.layers) setLayers(payload.layers);
-                      if (payload.name) setProjectName(payload.name);
-                      setStatus('✅ Loaded: ' + p.name);
-                    }
-                  } catch(e) { setStatus('Load failed: ' + e.message); }
-                  setShowCloudLoad(false);
-                }}
-                style={{padding:'10px 14px',margin:'4px 0',background:'#0d1117',
-                  border:'1px solid #21262d',borderRadius:4,cursor:'pointer',
-                  color:'#cdd9e5',fontSize:12,display:'flex',justifyContent:'space-between'}}>
-                <span>{p.name}</span>
-                <span style={{color:'#4e6a82',fontSize:10}}>
-                  {new Date(p.modified).toLocaleDateString()}
-                </span>
-              </div>
-            ))}
-            <button onClick={() => setShowCloudLoad(false)}
-              style={{marginTop:12,width:'100%',padding:'8px',background:'transparent',
-                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Keyboard Shortcuts Modal ── */}
-      {showShortcuts && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
-          display:'flex',alignItems:'center',justifyContent:'center'}}
-          onClick={e => e.target===e.currentTarget && setShowShortcuts(false)}>
-          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,
-            padding:24,minWidth:320,color:'#cdd9e5'}}>
-            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
-              fontFamily:'Share Tech Mono,monospace'}}>KEYBOARD SHORTCUTS</div>
-            {[
-              ['Space',      'Play / Pause'],
-              ['V',          'Select tool'],
-              ['T',          'Text tool'],
-              ['U',          'Shape tool'],
-              ['R',          'Rotate'],
-              ['[ / ]',      'Zoom out / in'],
-              ['Ctrl+Z',     'Undo'],
-              ['Ctrl+D',     'Duplicate layer'],
-              ['Del',        'Delete layer'],
-              ['Home / End', 'Go to start / end'],
-            ].map(([key, desc]) => (
-              <div key={key} style={{display:'flex',justifyContent:'space-between',
-                padding:'5px 0',borderBottom:'1px solid #21262d',fontSize:12}}>
-                <span style={{fontFamily:'Share Tech Mono,monospace',color:'#00ffc8'}}>{key}</span>
-                <span style={{color:'#8b949e'}}>{desc}</span>
-              </div>
-            ))}
-            <button onClick={() => setShowShortcuts(false)}
-              style={{marginTop:16,width:'100%',padding:'8px',background:'transparent',
-                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
-              Close
-            </button>
-          </div>
         </div>
       )}
     </div>
@@ -548,6 +168,35 @@ export default function MotionStudioPage() {
 
   const [selectedId,   setSelectedId]   = useState(null);
   const [projectName,  setProjectName]  = useState("Untitled Project");
+  const [activeTool,   setActiveTool]   = useState('select');
+  const [activeTab,    setActiveTab]    = useState('layers');
+  const [activeRTab,   setActiveRTab]   = useState('props');
+  const [zoom,         setZoom]         = useState(1);
+  const [showGrid,     setShowGrid]     = useState(false);
+  const [exporting,    setExporting]    = useState(false);
+  const [exprPanelOpen,  setExprPanelOpen]  = useState(false);
+  const [exprTarget,     setExprTarget]     = useState(null);
+  const [exprText,       setExprText]       = useState('');
+  const [exprError,      setExprError]      = useState('');
+  const [exprLibOpen,    setExprLibOpen]    = useState(false);
+  const [linkMode,       setLinkMode]       = useState(false);
+  const [linkSource,     setLinkSource]     = useState(null);
+  const [propertyLinks,  setPropertyLinks]  = useState([]);
+  const [status,         setStatus]         = useState('');
+  const [showShortcuts,  setShowShortcuts]  = useState(false);
+  const [cloudProjects,  setCloudProjects]  = useState([]);
+  const [showCloudLoad,  setShowCloudLoad]  = useState(false);
+
+  const { scrubTo } = usePlaybackEngine();
+
+  const selectedLayer = layers.find(l => l.id === selectedId) || null;
+
+  // Auto-clear status
+  useEffect(() => {
+    if (!status) return;
+    const t = setTimeout(() => setStatus(''), 4000);
+    return () => clearTimeout(t);
+  }, [status]);
 
   // Auto-save
   React.useEffect(() => {
@@ -568,30 +217,102 @@ export default function MotionStudioPage() {
       }
     } catch(e) {}
   }, []);
-  const [activeTool,   setActiveTool]   = useState('select');
-  const [activeTab,    setActiveTab]    = useState('layers');
-  const [activeRTab,   setActiveRTab]   = useState('props');
-  const [zoom,         setZoom]         = useState(1);
-  const [showGrid,     setShowGrid]     = useState(false);
-  const [exporting,    setExporting]    = useState(false);
-  // ── Expressions Engine (Sessions 4+5) ────────────────────────────────────────
-  const [exprPanelOpen,  setExprPanelOpen]  = useState(false);
-  const [exprTarget,     setExprTarget]     = useState(null); // {layerId, prop}
-  const [exprText,       setExprText]       = useState('');
-  const [exprError,      setExprError]      = useState('');
-  const [exprLibOpen,    setExprLibOpen]    = useState(false);
-  const [linkMode,       setLinkMode]       = useState(false);
-  const [linkSource,     setLinkSource]     = useState(null); // {layerId, prop}
-  const [propertyLinks,  setPropertyLinks]  = useState([]); // [{srcId,srcProp,dstId,dstProp,expr}]
-  const [status,         setStatus]         = useState('');
-  const [showShortcuts,  setShowShortcuts]  = useState(false);
-  const [cloudProjects,  setCloudProjects]  = useState([]);
-  const [showCloudLoad,  setShowCloudLoad]  = useState(false);
 
+  // ── Expression eval sandbox ──
+  const evalExpression = (expr, time, layer, allLayers) => {
+    try {
+      const wiggle = (freq, amp) => {
+        const seed = (layer.id||'').charCodeAt(0) || 1;
+        return (Math.sin(time * freq * Math.PI * 2 + seed) * amp);
+      };
+      const loopOut = (type='cycle') => time;
+      const loopIn  = (type='cycle') => time;
+      const linear  = (t, t1, t2, v1, v2) => {
+        if (t <= t1) return v1;
+        if (t >= t2) return v2;
+        return v1 + (v2 - v1) * ((t - t1) / (t2 - t1));
+      };
+      const ease = (t, t1, t2, v1, v2) => {
+        if (t <= t1) return v1;
+        if (t >= t2) return v2;
+        const p = (t - t1) / (t2 - t1);
+        const ep = p < 0.5 ? 2*p*p : -1+(4-2*p)*p;
+        return v1 + (v2 - v1) * ep;
+      };
+      const random = (min=0, max=1) => min + Math.random() * (max - min);
+      const thisLayer = layer;
+      const comp = { layers: allLayers, duration: 10 };
+      // eslint-disable-next-line no-new-func
+      const fn = new Function('time','thisLayer','wiggle','loopOut','loopIn','linear','ease','random','comp','Math',
+        `"use strict"; return (${expr});`);
+      return fn(time, thisLayer, wiggle, loopOut, loopIn, linear, ease, random, comp, Math);
+    } catch(e) {
+      return null;
+    }
+  };
 
-  const { scrubTo } = usePlaybackEngine();
+  const getLayerPropAtTime = (layer, prop, time, allLayers) => {
+    const link = propertyLinks.find(l => l.dstId === layer.id && l.dstProp === prop);
+    if (link) {
+      const srcLayer = allLayers.find(l => l.id === link.srcId);
+      if (srcLayer) {
+        if (link.expr) return evalExpression(link.expr, time, srcLayer, allLayers);
+        return srcLayer[link.srcProp] ?? layer[prop];
+      }
+    }
+    const expr = layer.expressions?.[prop];
+    if (expr) {
+      const result = evalExpression(expr, time, layer, allLayers);
+      if (result !== null) return result;
+    }
+    return layer[prop];
+  };
 
-  const selectedLayer = layers.find(l => l.id === selectedId) || null;
+  const openExprPanel = (layerId, prop, currentExpr='') => {
+    setExprTarget({layerId, prop});
+    setExprText(currentExpr);
+    setExprError('');
+    setExprPanelOpen(true);
+  };
+
+  const saveExpression = () => {
+    if (!exprTarget) return;
+    const allLayers = layers;
+    const layer = allLayers.find(l => l.id === exprTarget.layerId);
+    if (layer) {
+      const result = evalExpression(exprText, 0, layer, allLayers);
+      if (result === null && exprText.trim()) {
+        setExprError('Expression error — check syntax');
+        return;
+      }
+    }
+    setExprError('');
+    setLayers(layers.map(l => l.id === exprTarget.layerId
+      ? {...l, expressions: {...(l.expressions||{}), [exprTarget.prop]: exprText || undefined}}
+      : l
+    ));
+    setExprPanelOpen(false);
+  };
+
+  const removeExpression = (layerId, prop) => {
+    setLayers(layers.map(l => {
+      if (l.id !== layerId) return l;
+      const expressions = {...(l.expressions||{})};
+      delete expressions[prop];
+      return {...l, expressions};
+    }));
+  };
+
+  const addPropertyLink = (srcId, srcProp, dstId, dstProp, expr='') => {
+    setPropertyLinks(pl => [
+      ...pl.filter(l => !(l.dstId===dstId && l.dstProp===dstProp)),
+      {srcId, srcProp, dstId, dstProp, expr}
+    ]);
+  };
+
+  const removePropertyLink = (dstId, dstProp) => {
+    setPropertyLinks(pl => pl.filter(l => !(l.dstId===dstId && l.dstProp===dstProp)));
+  };
 
   // ─── Seed default layers ────────────────────────────────────────────────────
   useEffect(() => {
@@ -628,7 +349,6 @@ export default function MotionStudioPage() {
     ctx.lineWidth = 0.5;
     for (let x=0; x<W; x+=40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
     for (let y=0; y<H; y+=40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-    // Center cross
     ctx.strokeStyle = 'rgba(0,255,200,0.15)';
     ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2); ctx.stroke();
@@ -716,449 +436,438 @@ export default function MotionStudioPage() {
 
   return (
     <>
-    <div style={S.app}>
-      <AppMenuBar
-        projectName={projectName}
-        setProjectName={setProjectName}
-        rightContent={
-          <span style={{fontSize:10,color:"#4e6a82"}}>{layers.length} layers · {timeline.fps}fps</span>
-        }
-        menus={[
-          { label: "File", items: [
-            { label: "New Project", shortcut: "Ctrl+N", action: () => { if(window.confirm("Clear project?")) { setLayers([]); setProjectName("Untitled Project"); localStorage.removeItem(MOTION_KEY); } } },
-            { label: "Save to Cloud ☁", shortcut: "Ctrl+Shift+S", action: async () => {
-              try {
-                const r = await saveToCloud("motion", projectName, {layers, timeline, name: projectName});
-                setStatus("✅ Saved to cloud: " + r.name);
-              } catch(e) { setStatus("Cloud save failed: " + e.message); }
-            } },
-            { label: "Open from Cloud ☁", action: async () => {
-              try {
-                const projects = await listCloudProjects("motion");
-                if (!projects.length) { setStatus("No saved projects found."); return; }
-                setCloudProjects(projects);
-                setShowCloudLoad(true);
-              } catch(e) { setStatus("Load failed: " + e.message); }
-            } },
-            { label: "Save", shortcut: "Ctrl+S", action: () => { try { localStorage.setItem(MOTION_KEY, JSON.stringify({layers,timeline,name:projectName,savedAt:Date.now()})); setStatus("✅ Project saved locally"); } catch(e){ setStatus("Save failed"); } } },
-            "---",
-            { label: "Export Frame", action: handleExportFrame },
-            { label: "Export Video (WebM)", action: handleExportVideo },
-            { label: "Export Project (.spx)", action: handleExportProject },
-            "---",
-            { label: "Open Project (.spx)", action: () => fileInputRef.current?.click() },
-          ]},
-          { label: "Edit", items: [
-            { label: "Undo", shortcut: "Ctrl+Z", action: undo },
-            { label: "Redo", shortcut: "Ctrl+Shift+Z", action: redo },
-            "---",
-            { label: "Duplicate Layer", shortcut: "Ctrl+D", action: handleDuplicate },
-            { label: "Delete Layer", shortcut: "Del", action: () => selectedId && removeLayer(selectedId) },
-            { label: "Select All", shortcut: "Ctrl+A", action: () => {} },
-          ]},
-          { label: "View", items: [
-            { label: "Zoom In",  shortcut: "]", action: () => setZoom(z => Math.min(4, z+0.25)) },
-            { label: "Zoom Out", shortcut: "[", action: () => setZoom(z => Math.max(0.1, z-0.25)) },
-            { label: "Zoom 100%", shortcut: "1", action: () => setZoom(1) },
-            { label: "Zoom Fit",  shortcut: "0", action: () => setZoom(1) },
-            "---",
-            { label: showGrid ? "Hide Grid" : "Show Grid", action: () => setShowGrid(g => !g) },
-          ]},
-          { label: "Layer", items: [
-            { label: "Add Text",      action: () => handleAddLayer("text") },
-            { label: "Add Shape",     action: () => handleAddLayer("shape") },
-            { label: "Add Image",     action: () => handleAddLayer("image") },
-            { label: "Add Video",     action: () => handleAddLayer("video") },
-            { label: "Add Particles", action: () => handleAddLayer("particles") },
-            { label: "Add Gradient",  action: () => handleAddLayer("gradient") },
-            "---",
-            { label: "Move Up",   action: () => {} },
-            { label: "Move Down", action: () => {} },
-          ]},
-          { label: "Animation", items: [
-            { label: "Play/Pause",   shortcut: "Space", action: togglePlay },
-            { label: "Go to Start",  shortcut: "Home",  action: () => setTime(0) },
-            { label: "Go to End",    shortcut: "End",   action: () => setTime(timeline.duration) },
-            "---",
-            { label: "Add Keyframe", shortcut: "K", action: () => {} },
-            { label: "Ease In Out",  action: () => {} },
-            { label: "Ease Bounce",  action: () => {} },
-          ]},
-          { label: "Help", items: [
-            { label: "Keyboard Shortcuts", action: () => setShowShortcuts(true) },
-            { label: "About SPX Motion",   action: () => {} },
-          ]},
-        ]}
-      />
-      {/* ── Top Bar ── */}
-      <div style={S.topbar}>
-        <span style={{color:'#00ffc8',fontWeight:700,marginRight:8,fontSize:13}}>✨ SPX Motion</span>
-        <input value={projectName} onChange={e=>setProjectName(e.target.value)}
-          style={{...S.input, width:160, background:'transparent', border:'none', color:'#dde6ef', fontWeight:700}} />
-        <div style={{width:1,height:20,background:'#21262d',margin:'0 4px'}}/>
-        <button style={S.btn(false)} onClick={undo} title="Ctrl+Z">↩</button>
-        <button style={S.btn(false)} onClick={redo} title="Ctrl+Shift+Z">↪</button>
-        <div style={{width:1,height:20,background:'#21262d',margin:'0 4px'}}/>
-        <button style={S.btn(timeline.playing)} onClick={togglePlay} title="Space">
-          {timeline.playing ? '⏸ Pause' : '▶ Play'}
-        </button>
-        <button style={S.btn(false)} onClick={()=>setTime(0)}>⏮</button>
-        <button style={S.btn(false)} onClick={()=>setTime(timeline.duration)}>⏭</button>
-        <span style={{color:'#00ffc8',fontFamily:'monospace',fontSize:12,margin:'0 8px'}}>
-          {formatTime(timeline.currentTime)}
-        </span>
-        <span style={{color:'#8b949e',fontSize:10}}>/ {formatTime(timeline.duration)}</span>
-        <div style={{width:1,height:20,background:'#21262d',margin:'0 4px'}}/>
-        <button style={S.btn(showGrid)} onClick={()=>setShowGrid(g=>!g)}>⊞ Grid</button>
-        <span style={{color:'#8b949e',fontSize:10}}>Zoom:</span>
-        <button style={S.btn(false)} onClick={()=>setZoom(z=>Math.max(0.1,z-0.25))}>−</button>
-        <span style={{color:'#00ffc8',width:36,textAlign:'center',fontSize:11}}>{Math.round(zoom*100)}%</span>
-        <button style={S.btn(false)} onClick={()=>setZoom(z=>Math.min(4,z+0.25))}>+</button>
-        <button style={S.btn(false)} onClick={()=>setZoom(1)}>1:1</button>
-        <div style={{flex:1}}/>
-        <button style={S.btn(false)} onClick={handleExportFrame}>📷 Frame</button>
-        <button style={{...S.btn(false), background:exporting?'#21262d':'#ff6600', color:exporting?'#8b949e':'#fff'}}
-          onClick={handleExportVideo} disabled={exporting}>
-          {exporting ? '⏳ Exporting...' : '🎬 Export Video'}
-        </button>
-        <button style={S.btn(false)} onClick={handleExportProject}>💾 Save</button>
-        <button style={S.btn(false)} onClick={()=>fileInputRef.current?.click()}>📂 Open</button>
-        <input ref={fileInputRef} type="file" accept=".spx,.json" style={{display:'none'}} onChange={handleImport}/>
-      </div>
+      <div style={S.app}>
+        <AppMenuBar
+          projectName={projectName}
+          setProjectName={setProjectName}
+          rightContent={
+            <span style={{fontSize:10,color:"#4e6a82"}}>{layers.length} layers · {timeline.fps}fps</span>
+          }
+          menus={[
+            { label: "File", items: [
+              { label: "New Project", shortcut: "Ctrl+N", action: () => { if(window.confirm("Clear project?")) { setLayers([]); setProjectName("Untitled Project"); localStorage.removeItem(MOTION_KEY); } } },
+              { label: "Save to Cloud ☁", shortcut: "Ctrl+Shift+S", action: async () => {
+                try {
+                  const r = await saveToCloud("motion", projectName, {layers, timeline, name: projectName});
+                  setStatus("✅ Saved to cloud: " + r.name);
+                } catch(e) { setStatus("Cloud save failed: " + e.message); }
+              } },
+              { label: "Open from Cloud ☁", action: async () => {
+                try {
+                  const projects = await listCloudProjects("motion");
+                  if (!projects.length) { setStatus("No saved projects found."); return; }
+                  setCloudProjects(projects);
+                  setShowCloudLoad(true);
+                } catch(e) { setStatus("Load failed: " + e.message); }
+              } },
+              { label: "Save", shortcut: "Ctrl+S", action: () => { try { localStorage.setItem(MOTION_KEY, JSON.stringify({layers,timeline,name:projectName,savedAt:Date.now()})); setStatus("✅ Project saved locally"); } catch(e){ setStatus("Save failed"); } } },
+              "---",
+              { label: "Export Frame", action: handleExportFrame },
+              { label: "Export Video (WebM)", action: handleExportVideo },
+              { label: "Export Project (.spx)", action: handleExportProject },
+              "---",
+              { label: "Open Project (.spx)", action: () => fileInputRef.current?.click() },
+            ]},
+            { label: "Edit", items: [
+              { label: "Undo", shortcut: "Ctrl+Z", action: undo },
+              { label: "Redo", shortcut: "Ctrl+Shift+Z", action: redo },
+              "---",
+              { label: "Duplicate Layer", shortcut: "Ctrl+D", action: handleDuplicate },
+              { label: "Delete Layer", shortcut: "Del", action: () => selectedId && removeLayer(selectedId) },
+              { label: "Select All", shortcut: "Ctrl+A", action: () => {} },
+            ]},
+            { label: "View", items: [
+              { label: "Zoom In",  shortcut: "]", action: () => setZoom(z => Math.min(4, z+0.25)) },
+              { label: "Zoom Out", shortcut: "[", action: () => setZoom(z => Math.max(0.1, z-0.25)) },
+              { label: "Zoom 100%", shortcut: "1", action: () => setZoom(1) },
+              { label: "Zoom Fit",  shortcut: "0", action: () => setZoom(1) },
+              "---",
+              { label: showGrid ? "Hide Grid" : "Show Grid", action: () => setShowGrid(g => !g) },
+            ]},
+            { label: "Layer", items: [
+              { label: "Add Text",      action: () => handleAddLayer("text") },
+              { label: "Add Shape",     action: () => handleAddLayer("shape") },
+              { label: "Add Image",     action: () => handleAddLayer("image") },
+              { label: "Add Video",     action: () => handleAddLayer("video") },
+              { label: "Add Particles", action: () => handleAddLayer("particles") },
+              { label: "Add Gradient",  action: () => handleAddLayer("gradient") },
+              "---",
+              { label: "Move Up",   action: () => {} },
+              { label: "Move Down", action: () => {} },
+            ]},
+            { label: "Animation", items: [
+              { label: "Play/Pause",   shortcut: "Space", action: togglePlay },
+              { label: "Go to Start",  shortcut: "Home",  action: () => setTime(0) },
+              { label: "Go to End",    shortcut: "End",   action: () => setTime(timeline.duration) },
+              "---",
+              { label: "Add Keyframe", shortcut: "K", action: () => {} },
+              { label: "Ease In Out",  action: () => {} },
+              { label: "Ease Bounce",  action: () => {} },
+            ]},
+            { label: "Help", items: [
+              { label: "Keyboard Shortcuts", action: () => setShowShortcuts(true) },
+              { label: "About SPX Motion",   action: () => {} },
+            ]},
+          ]}
+        />
 
-      <div style={S.body}>
-        {/* ── Left Toolbar (AE-style) ── */}
-        <div style={S.toolbar}>
-          {TOOLS.map(tool => (
-            <button key={tool.id} style={S.toolBtn(activeTool===tool.id)} title={tool.label}
-              onClick={()=>setActiveTool(tool.id)}>{tool.icon}</button>
-          ))}
-          <div style={{flex:1}}/>
-          <div style={{width:28,height:1,background:'#21262d',margin:'4px 0'}}/>
-          <div style={{width:22,height:22,background:'#00ffc8',borderRadius:3,cursor:'pointer'}} title="Foreground color"/>
-        </div>
-
-        {/* ── Left Panel ── */}
-        <div style={S.left}>
-          {/* Layer types */}
-          <div style={S.panel}>
-            <div style={S.label}>Add Layer</div>
-            <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-              {LAYER_TYPES.map(lt => (
-                <button key={lt.type} title={lt.label} onClick={()=>handleAddLayer(lt.type)}
-                  style={{...S.btn(false),padding:'4px 6px',fontSize:13}}>{lt.icon}</button>
-              ))}
-            </div>
-          </div>
-
-          {/* Layer list */}
-          <div style={{...S.panel, flex:1, overflowY:'auto'}}>
-            <div style={S.label}>Layers ({layers.length})</div>
-            {[...layers].reverse().map(layer => (
-              <div key={layer.id} style={S.layerRow(selectedId===layer.id)}
-                onClick={()=>setSelectedId(layer.id)}>
-                <span style={{fontSize:11,opacity:0.5}}>
-                  {layer.type==='text'?'T':layer.type==='shape'?'▭':layer.type==='particles'?'✨':'🖼'}
-                </span>
-                <span style={{flex:1,fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',
-                  color: selectedId===layer.id ? '#00ffc8' : '#dde6ef'}}>
-                  {layer.name || layer.type}
-                </span>
-                <button onClick={e=>{e.stopPropagation();updateLayer(layer.id,{visible:!layer.visible})}}
-                  style={{...S.btn(false),padding:'1px 3px',opacity:layer.visible?1:0.3,fontSize:11}}>👁</button>
-                <button onClick={e=>{e.stopPropagation();removeLayer(layer.id);if(selectedId===layer.id)setSelectedId(null)}}
-                  style={{...S.btn(false),padding:'1px 3px',color:'#f85149',fontSize:11}}>✕</button>
-              </div>
-            ))}
-          </div>
-
-          {/* Layer order controls */}
-          {selectedId && (
-            <div style={{display:'flex',gap:4,padding:'6px 8px',borderTop:'1px solid #21262d'}}>
-              <button style={S.btn(false)} onClick={handleDuplicate}>⊕ Dupe</button>
-              <button style={S.btn(false)} onClick={()=>removeLayer(selectedId)||setSelectedId(null)}>🗑</button>
-            </div>
-          )}
-        </div>
-
-        {/* ── Canvas Center ── */}
-        <div style={S.center}>
-          <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',padding:16}}>
-            <div style={{transform:`scale(${zoom})`,transformOrigin:'center center',display:'inline-block',
-              boxShadow:'0 0 40px rgba(0,0,0,0.8)'}}>
-              <canvas ref={canvasRef} width={1280} height={720}
-                style={{display:'block',background:'#000'}}/>
-            </div>
-          </div>
-
-          {/* Status bar */}
-          <div style={{background:'#161b22',borderTop:'1px solid #21262d',padding:'2px 12px',
-            display:'flex',gap:20,fontSize:10,color:'#8b949e',flexShrink:0}}>
-            <span>1280×720</span>
-            <span>{timeline.fps} fps</span>
-            <span>Tool: {activeTool}</span>
-            <span>Layers: {layers.length}</span>
-            <span>{timeline.playing ? '▶ Playing' : '⏸ Paused'}</span>
-            {selectedLayer && <span style={{color:'#00ffc8'}}>Selected: {selectedLayer.name}</span>}
-          </div>
-        </div>
-
-        {/* ── Right Panel ── */}
-        <div style={S.right}>
-          <div style={{display:'flex',borderBottom:'1px solid #21262d'}}>
-            {['props','effects','keyframes'].map(tab => (
-              <button key={tab} onClick={()=>setActiveRTab(tab)} style={{
-                flex:1,padding:'6px 4px',border:'none',cursor:'pointer',fontSize:9,fontWeight:700,textTransform:'uppercase',
-                background:activeRTab===tab?'#0d1117':'transparent',
-                color:activeRTab===tab?'#00ffc8':'#8b949e',
-                borderBottom:activeRTab===tab?'2px solid #00ffc8':'2px solid transparent',
-              }}>{tab}</button>
-            ))}
-          </div>
-
-          {/* Props */}
-          {activeRTab==='props' && selectedLayer && (
-            <div style={{padding:10,display:'flex',flexDirection:'column',gap:6}}>
-              <div style={S.label}>Transform</div>
-              {[['X','x'],['Y','y'],['W','width'],['H','height']].map(([lbl,key]) => (
-                selectedLayer[key] !== undefined && (
-                  <div key={key} style={{display:'flex',alignItems:'center',gap:6}}>
-                    <span style={{color:'#8b949e',width:16,fontSize:10}}>{lbl}</span>
-                    <input type="number" style={S.input} value={Math.round(selectedLayer[key]||0)}
-                      onChange={e=>updateLayer(selectedId,{[key]:Number(e.target.value)})}/>
-                  </div>
-                )
-              ))}
-              <div style={{display:'flex',alignItems:'center',gap:6}}>
-                <span style={{color:'#8b949e',width:16,fontSize:10}}>°</span>
-                <input type="range" min={-180} max={180} value={selectedLayer.rotation||0}
-                  onChange={e=>updateLayer(selectedId,{rotation:Number(e.target.value)})} style={{flex:1}}/>
-                <span style={{color:'#00ffc8',fontSize:10,width:30}}>{selectedLayer.rotation||0}°</span>
-              </div>
-              <div style={{display:'flex',alignItems:'center',gap:6}}>
-                <span style={{color:'#8b949e',width:16,fontSize:10}}>α</span>
-                <input type="range" min={0} max={1} step={0.01} value={selectedLayer.opacity??1}
-                  onChange={e=>updateLayer(selectedId,{opacity:Number(e.target.value)})} style={{flex:1}}/>
-                <span style={{color:'#00ffc8',fontSize:10,width:30}}>{Math.round((selectedLayer.opacity??1)*100)}%</span>
-              </div>
-
-              <div style={S.label}>Blend Mode</div>
-              <select style={S.input} value={selectedLayer.blendMode||'source-over'}
-                onChange={e=>updateLayer(selectedId,{blendMode:e.target.value})}>
-                {BLEND_MODES.map(m=><option key={m}>{m}</option>)}
-              </select>
-
-              <div style={S.label}>Color</div>
-              <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                <input type="color" value={selectedLayer.color||'#00ffc8'}
-                  onChange={e=>updateLayer(selectedId,{color:e.target.value})}
-                  style={{width:36,height:26,border:'none',borderRadius:3,cursor:'pointer'}}/>
-                <input style={{...S.input,flex:1}} value={selectedLayer.color||'#00ffc8'}
-                  onChange={e=>updateLayer(selectedId,{color:e.target.value})}/>
-              </div>
-
-              {selectedLayer.type==='text' && (
-                <>
-                  <div style={S.label}>Text</div>
-                  <textarea style={{...S.input,height:50,resize:'vertical'}} value={selectedLayer.text||''}
-                    onChange={e=>updateLayer(selectedId,{text:e.target.value})}/>
-                  <div style={{display:'flex',gap:6}}>
-                    <input type="number" style={{...S.input,width:55}} value={selectedLayer.fontSize||42}
-                      onChange={e=>updateLayer(selectedId,{fontSize:Number(e.target.value)})} placeholder="Size"/>
-                    <select style={S.input} value={selectedLayer.textAlign||'left'}
-                      onChange={e=>updateLayer(selectedId,{textAlign:e.target.value})}>
-                      {['left','center','right'].map(a=><option key={a}>{a}</option>)}
-                    </select>
-                  </div>
-                  <div style={{display:'flex',alignItems:'center',gap:6}}>
-                    <input type="checkbox" checked={selectedLayer.glow||false}
-                      onChange={e=>updateLayer(selectedId,{glow:e.target.checked})}/>
-                    <span style={{color:'#8b949e',fontSize:10}}>Glow</span>
-                    {selectedLayer.glow && (
-                      <input type="range" min={0} max={1} step={0.05} value={selectedLayer.glowStrength||0.5}
-                        onChange={e=>updateLayer(selectedId,{glowStrength:Number(e.target.value)})} style={{flex:1}}/>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {selectedLayer.type==='shape' && (
-                <>
-                  <div style={S.label}>Shape</div>
-                  <select style={S.input} value={selectedLayer.shape||'rect'}
-                    onChange={e=>updateLayer(selectedId,{shape:e.target.value})}>
-                    {['rect','circle','triangle','star','polygon','line'].map(s=><option key={s}>{s}</option>)}
-                  </select>
-                  <div style={{display:'flex',alignItems:'center',gap:6}}>
-                    <input type="checkbox" checked={selectedLayer.animate||false}
-                      onChange={e=>updateLayer(selectedId,{animate:e.target.checked})}/>
-                    <span style={{color:'#8b949e',fontSize:10}}>Animate</span>
-                  </div>
-                </>
-              )}
-
-              {selectedLayer.type==='particles' && (
-                <>
-                  <div style={S.label}>Particles</div>
-                  {[['Rate','emitRate',1,20],['Speed','speed',0.1,10,0.1],['Gravity','gravity',0,1,0.01],['Size','particleSize',1,30]].map(([lbl,key,mn,mx,st=1])=>(
-                    <div key={key} style={{display:'flex',alignItems:'center',gap:6}}>
-                      <span style={{color:'#8b949e',fontSize:10,width:50}}>{lbl}</span>
-                      <input type="range" min={mn} max={mx} step={st} value={selectedLayer[key]??mn}
-                        onChange={e=>updateLayer(selectedId,{[key]:Number(e.target.value)})} style={{flex:1}}/>
-                      <span style={{color:'#00ffc8',fontSize:10,width:25}}>{selectedLayer[key]??mn}</span>
-                    </div>
-                  ))}
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Effects */}
-          {activeRTab==='effects' && selectedLayer && (
-            <div style={{padding:10,display:'flex',flexDirection:'column',gap:6}}>
-              <div style={S.label}>Effects</div>
-              {[
-                {type:'blur',label:'Blur',min:0,max:50,default:4},
-                {type:'brightness',label:'Brightness',min:0,max:3,step:0.05,default:1},
-                {type:'contrast',label:'Contrast',min:0,max:3,step:0.05,default:1},
-                {type:'saturate',label:'Saturation',min:0,max:3,step:0.05,default:1},
-                {type:'hue',label:'Hue Rotate',min:-180,max:180,default:0},
-                {type:'grayscale',label:'Grayscale',min:0,max:1,step:0.01,default:0},
-              ].map(fx => {
-                const existing = (selectedLayer.effects||[]).find(e=>e.type===fx.type);
-                return (
-                  <div key={fx.type} style={{display:'flex',alignItems:'center',gap:6}}>
-                    <input type="checkbox" checked={!!existing&&existing.enabled!==false}
-                      onChange={e=>{
-                        const effects=[...(selectedLayer.effects||[])].filter(ef=>ef.type!==fx.type);
-                        if(e.target.checked) effects.push({type:fx.type,value:fx.default,enabled:true});
-                        updateLayer(selectedId,{effects});
-                      }}/>
-                    <span style={{color:'#8b949e',width:70,fontSize:10}}>{fx.label}</span>
-                    {existing&&(
-                      <input type="range" min={fx.min} max={fx.max} step={fx.step||1}
-                        value={existing.value||fx.default}
-                        onChange={e=>{
-                          const effects=(selectedLayer.effects||[]).map(ef=>ef.type===fx.type?{...ef,value:Number(e.target.value)}:ef);
-                          updateLayer(selectedId,{effects});
-                        }} style={{flex:1}}/>
-                    )}
-                    {existing&&<span style={{color:'#00ffc8',fontSize:10,width:28}}>{Number(existing.value||fx.default).toFixed(1)}</span>}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Keyframes */}
-          {activeRTab==='keyframes' && selectedLayer && (
-            <div style={{padding:10,display:'flex',flexDirection:'column',gap:6}}>
-              <div style={S.label}>Keyframes at {timeline.currentTime.toFixed(2)}s</div>
-              {Object.entries(ANIMATABLE_PROPS).slice(0,8).map(([prop,meta]) => {
-                const kfs = selectedLayer.keyframes?.[prop] || [];
-                const hasKf = kfs.some(k=>Math.abs(k.time-timeline.currentTime)<0.05);
-                return (
-                  <div key={prop} style={{display:'flex',alignItems:'center',gap:6}}>
-                    <button onClick={()=>{
-                      if(hasKf) {
-                        const newKfs={...selectedLayer.keyframes};
-                        newKfs[prop]=(newKfs[prop]||[]).filter(k=>Math.abs(k.time-timeline.currentTime)>=0.05);
-                        updateLayer(selectedId,{keyframes:newKfs});
-                      } else {
-                        const val=selectedLayer[prop]??meta.default;
-                        const newKfs={...selectedLayer.keyframes};
-                        newKfs[prop]=[...(newKfs[prop]||[]),{time:timeline.currentTime,value:val,easing:'easeInOut'}];
-                        newKfs[prop].sort((a,b)=>a.time-b.time);
-                        updateLayer(selectedId,{keyframes:newKfs});
-                      }
-                    }} style={{...S.btn(hasKf),padding:'2px 5px',fontSize:11}}>◆</button>
-                    <span style={{color:'#8b949e',fontSize:10,flex:1}}>{meta.label}</span>
-                    <span style={{color:'#00ffc8',fontSize:10,width:20}}>{kfs.length}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Timeline settings */}
-          <div style={{...S.panel,borderTop:'1px solid #21262d',marginTop:'auto'}}>
-            <div style={S.label}>Timeline</div>
-            <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:4}}>
-              <span style={{color:'#8b949e',fontSize:10,width:50}}>Duration</span>
-              <input type="number" style={{...S.input,width:60}} value={timeline.duration}
-                onChange={e=>setDuration(Number(e.target.value))} min={1} max={300}/>
-              <span style={{color:'#8b949e',fontSize:10}}>s</span>
-            </div>
-            <div style={{display:'flex',gap:6,alignItems:'center'}}>
-              <span style={{color:'#8b949e',fontSize:10,width:50}}>FPS</span>
-              <select style={S.input} value={timeline.fps} onChange={e=>setFPS(Number(e.target.value))}>
-                {[12,24,25,30,48,60].map(f=><option key={f}>{f}</option>)}
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Bottom Timeline ── */}
-      <div style={S.bottom}>
-        <div style={{display:'flex',alignItems:'center',gap:8,padding:'4px 12px',borderBottom:'1px solid #21262d',height:28}}>
-          <span style={{color:'#8b949e',fontSize:10}}>Timeline</span>
-          <span style={{color:'#00ffc8',fontFamily:'monospace',fontSize:11}}>{formatTime(timeline.currentTime)}</span>
-          <div style={{flex:1}}/>
+        {/* ── Top Bar ── */}
+        <div style={S.topbar}>
+          <span style={{color:'#00ffc8',fontWeight:700,marginRight:8,fontSize:13}}>✨ SPX Motion</span>
+          <input value={projectName} onChange={e=>setProjectName(e.target.value)}
+            style={{...S.input, width:160, background:'transparent', border:'none', color:'#dde6ef', fontWeight:700}} />
+          <div style={{width:1,height:20,background:'#21262d',margin:'0 4px'}}/>
+          <button style={S.btn(false)} onClick={undo} title="Ctrl+Z">↩</button>
+          <button style={S.btn(false)} onClick={redo} title="Ctrl+Shift+Z">↪</button>
+          <div style={{width:1,height:20,background:'#21262d',margin:'0 4px'}}/>
+          <button style={S.btn(timeline.playing)} onClick={togglePlay} title="Space">
+            {timeline.playing ? '⏸ Pause' : '▶ Play'}
+          </button>
           <button style={S.btn(false)} onClick={()=>setTime(0)}>⏮</button>
-          <button style={S.btn(timeline.playing)} onClick={togglePlay}>{timeline.playing?'⏸':'▶'}</button>
           <button style={S.btn(false)} onClick={()=>setTime(timeline.duration)}>⏭</button>
+          <span style={{color:'#00ffc8',fontFamily:'monospace',fontSize:12,margin:'0 8px'}}>
+            {formatTime(timeline.currentTime)}
+          </span>
+          <span style={{color:'#8b949e',fontSize:10}}>/ {formatTime(timeline.duration)}</span>
+          <div style={{width:1,height:20,background:'#21262d',margin:'0 4px'}}/>
+          <button style={S.btn(showGrid)} onClick={()=>setShowGrid(g=>!g)}>⊞ Grid</button>
+          <span style={{color:'#8b949e',fontSize:10}}>Zoom:</span>
+          <button style={S.btn(false)} onClick={()=>setZoom(z=>Math.max(0.1,z-0.25))}>−</button>
+          <span style={{color:'#00ffc8',width:36,textAlign:'center',fontSize:11}}>{Math.round(zoom*100)}%</span>
+          <button style={S.btn(false)} onClick={()=>setZoom(z=>Math.min(4,z+0.25))}>+</button>
+          <button style={S.btn(false)} onClick={()=>setZoom(1)}>1:1</button>
+          <div style={{flex:1}}/>
+          <button style={S.btn(false)} onClick={handleExportFrame}>📷 Frame</button>
+          <button style={{...S.btn(false), background:exporting?'#21262d':'#ff6600', color:exporting?'#8b949e':'#fff'}}
+            onClick={handleExportVideo} disabled={exporting}>
+            {exporting ? '⏳ Exporting...' : '🎬 Export Video'}
+          </button>
+          <button style={S.btn(false)} onClick={handleExportProject}>💾 Save</button>
+          <button style={S.btn(false)} onClick={()=>fileInputRef.current?.click()}>📂 Open</button>
+          <input ref={fileInputRef} type="file" accept=".spx,.json" style={{display:'none'}} onChange={handleImport}/>
         </div>
 
-        {/* Scrubber */}
-        <div style={{padding:'8px 12px'}}>
-          {/* Time ruler */}
-          <div style={{position:'relative',height:16,marginBottom:4}}>
-            <div style={{position:'absolute',left:0,right:0,top:8,height:1,background:'#21262d'}}/>
-            {Array.from({length:Math.ceil(timeline.duration)+1},(_,i)=>(
-              <div key={i} style={{position:'absolute',left:`${(i/timeline.duration)*100}%`,top:0,
-                display:'flex',flexDirection:'column',alignItems:'center',transform:'translateX(-50%)'}}>
-                <div style={{width:1,height:6,background:'#30363d'}}/>
-                <span style={{fontSize:8,color:'#8b949e',whiteSpace:'nowrap'}}>{i}s</span>
-              </div>
+        <div style={S.body}>
+          {/* ── Left Toolbar (AE-style) ── */}
+          <div style={S.toolbar}>
+            {TOOLS.map(tool => (
+              <button key={tool.id} style={S.toolBtn(activeTool===tool.id)} title={tool.label}
+                onClick={()=>setActiveTool(tool.id)}>{tool.icon}</button>
             ))}
-            {/* Playhead */}
-            <div style={{position:'absolute',left:`${(timeline.currentTime/timeline.duration)*100}%`,
-              top:-4,width:2,height:24,background:'#00ffc8',transform:'translateX(-50%)',
-              cursor:'ew-resize',zIndex:10}}/>
+            <div style={{flex:1}}/>
+            <div style={{width:28,height:1,background:'#21262d',margin:'4px 0'}}/>
+            <div style={{width:22,height:22,background:'#00ffc8',borderRadius:3,cursor:'pointer'}} title="Foreground color"/>
           </div>
 
-          {/* Layer tracks */}
-          <div style={{display:'flex',flexDirection:'column',gap:2,maxHeight:100,overflowY:'auto'}}>
-            {[...layers].reverse().map(layer => (
-              <div key={layer.id} style={{display:'flex',alignItems:'center',gap:6,height:18}}>
-                <span style={{fontSize:9,color:'#8b949e',width:80,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                  {layer.name||layer.type}
-                </span>
-                <div style={{flex:1,position:'relative',height:12,background:'#21262d',borderRadius:2}}>
-                  <div style={{position:'absolute',left:`${((layer.inPoint||0)/timeline.duration)*100}%`,
-                    width:`${(((layer.outPoint||timeline.duration)-(layer.inPoint||0))/timeline.duration)*100}%`,
-                    height:'100%',background:selectedId===layer.id?'#00ffc8':'#1f6feb',borderRadius:2,opacity:0.7}}/>
-                  {/* Keyframe diamonds */}
-                  {Object.values(layer.keyframes||{}).flat().map((kf,i)=>(
-                    <div key={i} style={{position:'absolute',left:`${(kf.time/timeline.duration)*100}%`,
-                      top:'50%',transform:'translate(-50%,-50%) rotate(45deg)',
-                      width:6,height:6,background:'#ffd700',border:'1px solid #000'}}/>
-                  ))}
+          {/* ── Left Panel ── */}
+          <div style={S.left}>
+            <div style={S.panel}>
+              <div style={S.label}>Add Layer</div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                {LAYER_TYPES.map(lt => (
+                  <button key={lt.type} title={lt.label} onClick={()=>handleAddLayer(lt.type)}
+                    style={{...S.btn(false),padding:'4px 6px',fontSize:13}}>{lt.icon}</button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{...S.panel, flex:1, overflowY:'auto'}}>
+              <div style={S.label}>Layers ({layers.length})</div>
+              {[...layers].reverse().map(layer => (
+                <div key={layer.id} style={S.layerRow(selectedId===layer.id)}
+                  onClick={()=>setSelectedId(layer.id)}>
+                  <span style={{fontSize:11,opacity:0.5}}>
+                    {layer.type==='text'?'T':layer.type==='shape'?'▭':layer.type==='particles'?'✨':'🖼'}
+                  </span>
+                  <span style={{flex:1,fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',
+                    color: selectedId===layer.id ? '#00ffc8' : '#dde6ef'}}>
+                    {layer.name || layer.type}
+                  </span>
+                  <button onClick={e=>{e.stopPropagation();updateLayer(layer.id,{visible:!layer.visible})}}
+                    style={{...S.btn(false),padding:'1px 3px',opacity:layer.visible?1:0.3,fontSize:11}}>👁</button>
+                  <button onClick={e=>{e.stopPropagation();removeLayer(layer.id);if(selectedId===layer.id)setSelectedId(null)}}
+                    style={{...S.btn(false),padding:'1px 3px',color:'#f85149',fontSize:11}}>✕</button>
                 </div>
+              ))}
+            </div>
+
+            {selectedId && (
+              <div style={{display:'flex',gap:4,padding:'6px 8px',borderTop:'1px solid #21262d'}}>
+                <button style={S.btn(false)} onClick={handleDuplicate}>⊕ Dupe</button>
+                <button style={S.btn(false)} onClick={()=>removeLayer(selectedId)||setSelectedId(null)}>🗑</button>
               </div>
-            ))}
+            )}
           </div>
 
-          {/* Scrub bar */}
-          <input type="range" min={0} max={timeline.duration} step={1/timeline.fps}
-            value={timeline.currentTime}
-            onChange={e=>scrubTo(Number(e.target.value))}
-            style={{width:'100%',marginTop:4,accentColor:'#00ffc8'}}/>
+          {/* ── Canvas Center ── */}
+          <div style={S.center}>
+            <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',padding:16}}>
+              <div style={{transform:`scale(${zoom})`,transformOrigin:'center center',display:'inline-block',
+                boxShadow:'0 0 40px rgba(0,0,0,0.8)'}}>
+                <canvas ref={canvasRef} width={1280} height={720}
+                  style={{display:'block',background:'#000'}}/>
+              </div>
+            </div>
+
+            <div style={{background:'#161b22',borderTop:'1px solid #21262d',padding:'2px 12px',
+              display:'flex',gap:20,fontSize:10,color:'#8b949e',flexShrink:0}}>
+              <span>1280×720</span>
+              <span>{timeline.fps} fps</span>
+              <span>Tool: {activeTool}</span>
+              <span>Layers: {layers.length}</span>
+              <span>{timeline.playing ? '▶ Playing' : '⏸ Paused'}</span>
+              {selectedLayer && <span style={{color:'#00ffc8'}}>Selected: {selectedLayer.name}</span>}
+              {status && <span style={{color:'#00ffc8',marginLeft:'auto'}}>{status}</span>}
+            </div>
+          </div>
+
+          {/* ── Right Panel ── */}
+          <div style={S.right}>
+            <div style={{display:'flex',borderBottom:'1px solid #21262d'}}>
+              {['props','effects','keyframes'].map(tab => (
+                <button key={tab} onClick={()=>setActiveRTab(tab)} style={{
+                  flex:1,padding:'6px 4px',border:'none',cursor:'pointer',fontSize:9,fontWeight:700,textTransform:'uppercase',
+                  background:activeRTab===tab?'#0d1117':'transparent',
+                  color:activeRTab===tab?'#00ffc8':'#8b949e',
+                  borderBottom:activeRTab===tab?'2px solid #00ffc8':'2px solid transparent',
+                }}>{tab}</button>
+              ))}
+            </div>
+
+            {activeRTab==='props' && selectedLayer && (
+              <div style={{padding:10,display:'flex',flexDirection:'column',gap:6}}>
+                <div style={S.label}>Transform</div>
+                {[['X','x'],['Y','y'],['W','width'],['H','height']].map(([lbl,key]) => (
+                  selectedLayer[key] !== undefined && (
+                    <div key={key} style={{display:'flex',alignItems:'center',gap:6}}>
+                      <span style={{color:'#8b949e',width:16,fontSize:10}}>{lbl}</span>
+                      <input type="number" style={S.input} value={Math.round(selectedLayer[key]||0)}
+                        onChange={e=>updateLayer(selectedId,{[key]:Number(e.target.value)})}/>
+                    </div>
+                  )
+                ))}
+                <div style={{display:'flex',alignItems:'center',gap:6}}>
+                  <span style={{color:'#8b949e',width:16,fontSize:10}}>°</span>
+                  <input type="range" min={-180} max={180} value={selectedLayer.rotation||0}
+                    onChange={e=>updateLayer(selectedId,{rotation:Number(e.target.value)})} style={{flex:1}}/>
+                  <span style={{color:'#00ffc8',fontSize:10,width:30}}>{selectedLayer.rotation||0}°</span>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:6}}>
+                  <span style={{color:'#8b949e',width:16,fontSize:10}}>α</span>
+                  <input type="range" min={0} max={1} step={0.01} value={selectedLayer.opacity??1}
+                    onChange={e=>updateLayer(selectedId,{opacity:Number(e.target.value)})} style={{flex:1}}/>
+                  <span style={{color:'#00ffc8',fontSize:10,width:30}}>{Math.round((selectedLayer.opacity??1)*100)}%</span>
+                </div>
+
+                <div style={S.label}>Blend Mode</div>
+                <select style={S.input} value={selectedLayer.blendMode||'source-over'}
+                  onChange={e=>updateLayer(selectedId,{blendMode:e.target.value})}>
+                  {BLEND_MODES.map(m=><option key={m}>{m}</option>)}
+                </select>
+
+                <div style={S.label}>Color</div>
+                <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                  <input type="color" value={selectedLayer.color||'#00ffc8'}
+                    onChange={e=>updateLayer(selectedId,{color:e.target.value})}
+                    style={{width:36,height:26,border:'none',borderRadius:3,cursor:'pointer'}}/>
+                  <input style={{...S.input,flex:1}} value={selectedLayer.color||'#00ffc8'}
+                    onChange={e=>updateLayer(selectedId,{color:e.target.value})}/>
+                </div>
+
+                {selectedLayer.type==='text' && (
+                  <>
+                    <div style={S.label}>Text</div>
+                    <textarea style={{...S.input,height:50,resize:'vertical'}} value={selectedLayer.text||''}
+                      onChange={e=>updateLayer(selectedId,{text:e.target.value})}/>
+                    <div style={{display:'flex',gap:6}}>
+                      <input type="number" style={{...S.input,width:55}} value={selectedLayer.fontSize||42}
+                        onChange={e=>updateLayer(selectedId,{fontSize:Number(e.target.value)})} placeholder="Size"/>
+                      <select style={S.input} value={selectedLayer.textAlign||'left'}
+                        onChange={e=>updateLayer(selectedId,{textAlign:e.target.value})}>
+                        {['left','center','right'].map(a=><option key={a}>{a}</option>)}
+                      </select>
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <input type="checkbox" checked={selectedLayer.glow||false}
+                        onChange={e=>updateLayer(selectedId,{glow:e.target.checked})}/>
+                      <span style={{color:'#8b949e',fontSize:10}}>Glow</span>
+                      {selectedLayer.glow && (
+                        <input type="range" min={0} max={1} step={0.05} value={selectedLayer.glowStrength||0.5}
+                          onChange={e=>updateLayer(selectedId,{glowStrength:Number(e.target.value)})} style={{flex:1}}/>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {selectedLayer.type==='shape' && (
+                  <>
+                    <div style={S.label}>Shape</div>
+                    <select style={S.input} value={selectedLayer.shape||'rect'}
+                      onChange={e=>updateLayer(selectedId,{shape:e.target.value})}>
+                      {['rect','circle','triangle','star','polygon','line'].map(s=><option key={s}>{s}</option>)}
+                    </select>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <input type="checkbox" checked={selectedLayer.animate||false}
+                        onChange={e=>updateLayer(selectedId,{animate:e.target.checked})}/>
+                      <span style={{color:'#8b949e',fontSize:10}}>Animate</span>
+                    </div>
+                  </>
+                )}
+
+                {selectedLayer.type==='particles' && (
+                  <>
+                    <div style={S.label}>Particles</div>
+                    {[['Rate','emitRate',1,20],['Speed','speed',0.1,10,0.1],['Gravity','gravity',0,1,0.01],['Size','particleSize',1,30]].map(([lbl,key,mn,mx,st=1])=>(
+                      <div key={key} style={{display:'flex',alignItems:'center',gap:6}}>
+                        <span style={{color:'#8b949e',fontSize:10,width:50}}>{lbl}</span>
+                        <input type="range" min={mn} max={mx} step={st} value={selectedLayer[key]??mn}
+                          onChange={e=>updateLayer(selectedId,{[key]:Number(e.target.value)})} style={{flex:1}}/>
+                        <span style={{color:'#00ffc8',fontSize:10,width:25}}>{selectedLayer[key]??mn}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+
+            {activeRTab==='effects' && selectedLayer && (
+              <div style={{padding:10,display:'flex',flexDirection:'column',gap:6}}>
+                <div style={S.label}>Effects</div>
+                {[
+                  {type:'blur',label:'Blur',min:0,max:50,default:4},
+                  {type:'brightness',label:'Brightness',min:0,max:3,step:0.05,default:1},
+                  {type:'contrast',label:'Contrast',min:0,max:3,step:0.05,default:1},
+                  {type:'saturate',label:'Saturation',min:0,max:3,step:0.05,default:1},
+                  {type:'hue',label:'Hue Rotate',min:-180,max:180,default:0},
+                  {type:'grayscale',label:'Grayscale',min:0,max:1,step:0.01,default:0},
+                ].map(fx => {
+                  const existing = (selectedLayer.effects||[]).find(e=>e.type===fx.type);
+                  return (
+                    <div key={fx.type} style={{display:'flex',alignItems:'center',gap:6}}>
+                      <input type="checkbox" checked={!!existing&&existing.enabled!==false}
+                        onChange={e=>{
+                          const effects=[...(selectedLayer.effects||[])].filter(ef=>ef.type!==fx.type);
+                          if(e.target.checked) effects.push({type:fx.type,value:fx.default,enabled:true});
+                          updateLayer(selectedId,{effects});
+                        }}/>
+                      <span style={{color:'#8b949e',width:70,fontSize:10}}>{fx.label}</span>
+                      {existing&&(
+                        <input type="range" min={fx.min} max={fx.max} step={fx.step||1}
+                          value={existing.value||fx.default}
+                          onChange={e=>{
+                            const effects=(selectedLayer.effects||[]).map(ef=>ef.type===fx.type?{...ef,value:Number(e.target.value)}:ef);
+                            updateLayer(selectedId,{effects});
+                          }} style={{flex:1}}/>
+                      )}
+                      {existing&&<span style={{color:'#00ffc8',fontSize:10,width:28}}>{Number(existing.value||fx.default).toFixed(1)}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {activeRTab==='keyframes' && selectedLayer && (
+              <div style={{padding:10,display:'flex',flexDirection:'column',gap:6}}>
+                <div style={S.label}>Keyframes at {timeline.currentTime.toFixed(2)}s</div>
+                {Object.entries(ANIMATABLE_PROPS).slice(0,8).map(([prop,meta]) => {
+                  const kfs = selectedLayer.keyframes?.[prop] || [];
+                  const hasKf = kfs.some(k=>Math.abs(k.time-timeline.currentTime)<0.05);
+                  return (
+                    <div key={prop} style={{display:'flex',alignItems:'center',gap:6}}>
+                      <button onClick={()=>{
+                        if(hasKf) {
+                          const newKfs={...selectedLayer.keyframes};
+                          newKfs[prop]=(newKfs[prop]||[]).filter(k=>Math.abs(k.time-timeline.currentTime)>=0.05);
+                          updateLayer(selectedId,{keyframes:newKfs});
+                        } else {
+                          const val=selectedLayer[prop]??meta.default;
+                          const newKfs={...selectedLayer.keyframes};
+                          newKfs[prop]=[...(newKfs[prop]||[]),{time:timeline.currentTime,value:val,easing:'easeInOut'}];
+                          newKfs[prop].sort((a,b)=>a.time-b.time);
+                          updateLayer(selectedId,{keyframes:newKfs});
+                        }
+                      }} style={{...S.btn(hasKf),padding:'2px 5px',fontSize:11}}>◆</button>
+                      <span style={{color:'#8b949e',fontSize:10,flex:1}}>{meta.label}</span>
+                      <span style={{color:'#00ffc8',fontSize:10,width:20}}>{kfs.length}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div style={{...S.panel,borderTop:'1px solid #21262d',marginTop:'auto'}}>
+              <div style={S.label}>Timeline</div>
+              <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:4}}>
+                <span style={{color:'#8b949e',fontSize:10,width:50}}>Duration</span>
+                <input type="number" style={{...S.input,width:60}} value={timeline.duration}
+                  onChange={e=>setDuration(Number(e.target.value))} min={1} max={300}/>
+                <span style={{color:'#8b949e',fontSize:10}}>s</span>
+              </div>
+              <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                <span style={{color:'#8b949e',fontSize:10,width:50}}>FPS</span>
+                <select style={S.input} value={timeline.fps} onChange={e=>setFPS(Number(e.target.value))}>
+                  {[12,24,25,30,48,60].map(f=><option key={f}>{f}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Bottom Timeline ── */}
+        <div style={S.bottom}>
+          <div style={{display:'flex',alignItems:'center',gap:8,padding:'4px 12px',borderBottom:'1px solid #21262d',height:28}}>
+            <span style={{color:'#8b949e',fontSize:10}}>Timeline</span>
+            <span style={{color:'#00ffc8',fontFamily:'monospace',fontSize:11}}>{formatTime(timeline.currentTime)}</span>
+            <div style={{flex:1}}/>
+            <button style={S.btn(false)} onClick={()=>setTime(0)}>⏮</button>
+            <button style={S.btn(timeline.playing)} onClick={togglePlay}>{timeline.playing?'⏸':'▶'}</button>
+            <button style={S.btn(false)} onClick={()=>setTime(timeline.duration)}>⏭</button>
+          </div>
+
+          <div style={{padding:'8px 12px'}}>
+            <div style={{position:'relative',height:16,marginBottom:4}}>
+              <div style={{position:'absolute',left:0,right:0,top:8,height:1,background:'#21262d'}}/>
+              {Array.from({length:Math.ceil(timeline.duration)+1},(_,i)=>(
+                <div key={i} style={{position:'absolute',left:`${(i/timeline.duration)*100}%`,top:0,
+                  display:'flex',flexDirection:'column',alignItems:'center',transform:'translateX(-50%)'}}>
+                  <div style={{width:1,height:6,background:'#30363d'}}/>
+                  <span style={{fontSize:8,color:'#8b949e',whiteSpace:'nowrap'}}>{i}s</span>
+                </div>
+              ))}
+              <div style={{position:'absolute',left:`${(timeline.currentTime/timeline.duration)*100}%`,
+                top:-4,width:2,height:24,background:'#00ffc8',transform:'translateX(-50%)',
+                cursor:'ew-resize',zIndex:10}}/>
+            </div>
+
+            <div style={{display:'flex',flexDirection:'column',gap:2,maxHeight:100,overflowY:'auto'}}>
+              {[...layers].reverse().map(layer => (
+                <div key={layer.id} style={{display:'flex',alignItems:'center',gap:6,height:18}}>
+                  <span style={{fontSize:9,color:'#8b949e',width:80,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                    {layer.name||layer.type}
+                  </span>
+                  <div style={{flex:1,position:'relative',height:12,background:'#21262d',borderRadius:2}}>
+                    <div style={{position:'absolute',left:`${((layer.inPoint||0)/timeline.duration)*100}%`,
+                      width:`${(((layer.outPoint||timeline.duration)-(layer.inPoint||0))/timeline.duration)*100}%`,
+                      height:'100%',background:selectedId===layer.id?'#00ffc8':'#1f6feb',borderRadius:2,opacity:0.7}}/>
+                    {Object.values(layer.keyframes||{}).flat().map((kf,i)=>(
+                      <div key={i} style={{position:'absolute',left:`${(kf.time/timeline.duration)*100}%`,
+                        top:'50%',transform:'translate(-50%,-50%) rotate(45deg)',
+                        width:6,height:6,background:'#ffd700',border:'1px solid #000'}}/>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <input type="range" min={0} max={timeline.duration} step={1/timeline.fps}
+              value={timeline.currentTime}
+              onChange={e=>scrubTo(Number(e.target.value))}
+              style={{width:'100%',marginTop:4,accentColor:'#00ffc8'}}/>
+          </div>
         </div>
       </div>
-    </div>
-      {/* ── Expression Editor Panel ─────────────────────────────────────── */}
+
+      {/* ── Expression Editor Panel ── */}
       {exprPanelOpen && exprTarget && (
         <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.88)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:8,padding:20,width:580,display:'flex',flexDirection:'column',gap:12}}>
@@ -1192,12 +901,10 @@ export default function MotionStudioPage() {
 
             {exprError && <div style={{color:'#ff4444',fontSize:11,fontFamily:'JetBrains Mono'}}>{exprError}</div>}
 
-            {/* Quick test */}
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
               <span style={{color:'#888',fontSize:11}}>Test at t=1:</span>
               <span style={{color:'#00ffc8',fontSize:11,fontFamily:'JetBrains Mono'}}>
                 {(() => {
-                  const layers = project?.layers||[];
                   const layer = layers.find(l=>l.id===exprTarget.layerId)||{};
                   const r = evalExpression(exprText, 1, layer, layers);
                   return r===null ? '⚠️ error' : String(typeof r==='number'?r.toFixed(3):r);
@@ -1221,7 +928,7 @@ export default function MotionStudioPage() {
         </div>
       )}
 
-      {/* ── Expression Library ───────────────────────────────────────────── */}
+      {/* ── Expression Library ── */}
       {exprLibOpen && (
         <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.88)',zIndex:10000,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:8,padding:20,width:520,maxHeight:'80vh',overflowY:'auto',display:'flex',flexDirection:'column',gap:10}}>
@@ -1251,12 +958,87 @@ export default function MotionStudioPage() {
         </div>
       )}
 
-      {/* ── Property Links Panel (floating button) ───────────────────────── */}
+      {/* ── Cloud Load Modal ── */}
+      {showCloudLoad && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
+          display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={e => e.target===e.currentTarget && setShowCloudLoad(false)}>
+          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,
+            padding:24,minWidth:360,maxHeight:'70vh',overflowY:'auto'}}>
+            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
+              fontFamily:'Share Tech Mono,monospace'}}>OPEN FROM CLOUD ☁</div>
+            {cloudProjects.map((p, i) => (
+              <div key={i}
+                onClick={async () => {
+                  try {
+                    const payload = await loadFromCloud(p.key);
+                    if (payload) {
+                      if (payload.layers) setLayers(payload.layers);
+                      if (payload.name) setProjectName(payload.name);
+                      setStatus('✅ Loaded: ' + p.name);
+                    }
+                  } catch(e) { setStatus('Load failed: ' + e.message); }
+                  setShowCloudLoad(false);
+                }}
+                style={{padding:'10px 14px',margin:'4px 0',background:'#0d1117',
+                  border:'1px solid #21262d',borderRadius:4,cursor:'pointer',
+                  color:'#cdd9e5',fontSize:12,display:'flex',justifyContent:'space-between'}}>
+                <span>{p.name}</span>
+                <span style={{color:'#4e6a82',fontSize:10}}>
+                  {new Date(p.modified).toLocaleDateString()}
+                </span>
+              </div>
+            ))}
+            <button onClick={() => setShowCloudLoad(false)}
+              style={{marginTop:12,width:'100%',padding:'8px',background:'transparent',
+                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Keyboard Shortcuts Modal ── */}
+      {showShortcuts && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
+          display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={e => e.target===e.currentTarget && setShowShortcuts(false)}>
+          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,
+            padding:24,minWidth:320,color:'#cdd9e5'}}>
+            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
+              fontFamily:'Share Tech Mono,monospace'}}>KEYBOARD SHORTCUTS</div>
+            {[
+              ['Space',      'Play / Pause'],
+              ['V',          'Select tool'],
+              ['T',          'Text tool'],
+              ['U',          'Shape tool'],
+              ['R',          'Rotate'],
+              ['[ / ]',      'Zoom out / in'],
+              ['Ctrl+Z',     'Undo'],
+              ['Ctrl+D',     'Duplicate layer'],
+              ['Del',        'Delete layer'],
+              ['Home / End', 'Go to start / end'],
+            ].map(([key, desc]) => (
+              <div key={key} style={{display:'flex',justifyContent:'space-between',
+                padding:'5px 0',borderBottom:'1px solid #21262d',fontSize:12}}>
+                <span style={{fontFamily:'Share Tech Mono,monospace',color:'#00ffc8'}}>{key}</span>
+                <span style={{color:'#8b949e'}}>{desc}</span>
+              </div>
+            ))}
+            <button onClick={() => setShowShortcuts(false)}
+              style={{marginTop:16,width:'100%',padding:'8px',background:'transparent',
+                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Property Links Panel (floating button) ── */}
       <button title="Expressions & Links" onClick={()=>setExprLibOpen(true)}
         style={{position:'fixed',bottom:80,right:24,zIndex:1000,width:44,height:44,borderRadius:'50%',
           background:'#1a1f2e',border:'2px solid #00ffc8',color:'#00ffc8',
           fontSize:16,cursor:'pointer',boxShadow:'0 4px 16px rgba(0,255,200,0.2)'}}>ƒ</button>
     </>
-
   );
 }
