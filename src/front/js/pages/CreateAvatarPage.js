@@ -7,6 +7,7 @@ import axios from "axios";
 const CreateAvatar = () => {
   const navigate = useNavigate();
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [status, setStatus] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [imageFile, setImageFile] = useState(null);
 
@@ -26,7 +27,7 @@ const CreateAvatar = () => {
 
   // Handle saving avatar to the user's profile
   const handleSaveAvatar = async () => {
-    if (!avatarUrl) return alert("No avatar to save!");
+    if (!avatarUrl) { setStatus("No avatar to save!"); return; };
 
     setIsSaving(true);
     try {
@@ -38,7 +39,7 @@ const CreateAvatar = () => {
       );
       navigate("/profile"); // Navigate to profile page after saving avatar
     } catch (error) {
-      alert("Error saving avatar:", error);
+      setStatus("Error saving avatar: " + error.message);
     } finally {
       setIsSaving(false);
     }
@@ -52,17 +53,17 @@ const CreateAvatar = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setAvatarUrl(null); // Clear the avatar URL from the state
-      alert("Avatar deleted successfully.");
+      setStatus("Avatar deleted successfully.");
       navigate("/profile"); // Redirect to profile page or another page
     } catch (error) {
-      alert("Error deleting avatar:", error);
+      setStatus("Error deleting avatar: " + error.message);
     }
   };
 
   // Handle avatar creation using Deep3D API
   const handleGenerateAvatar = async () => {
     if (!imageFile) {
-      return alert("Please upload an image first!");
+      setStatus("Please upload an image first!"); return;
     }
 
     const formData = new FormData();
@@ -79,7 +80,7 @@ const CreateAvatar = () => {
       setAvatarUrl(response.data.avatar_url);
       localStorage.setItem("avatar_url", response.data.avatar_url);
     } catch (error) {
-      alert("Error generating avatar:", error);
+      setStatus("Error generating avatar: " + error.message);
     }
   };
 

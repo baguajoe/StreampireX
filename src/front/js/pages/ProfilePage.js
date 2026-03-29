@@ -48,6 +48,7 @@ const SOCIAL_PLATFORMS = [
 // Enhanced InnerCircle component with Top 10 Users
 const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
     const [innerCircleMembers, setInnerCircleMembers] = useState([]);
+  const [profileStatus, setProfileStatus] = useState('');
     const [topUsers, setTopUsers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('circle');
@@ -123,7 +124,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
             const token = localStorage.getItem('token');
 
             if (!token) {
-                alert('Please log in to modify your inner circle');
+                setProfileStatus('Please log in to modify your inner circle');
                 return;
             }
 
@@ -138,14 +139,14 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
 
             if (response.ok) {
                 fetchInnerCircle();
-                alert('Added to Inner Circle!');
+                setProfileStatus('Added to Inner Circle!');
             } else {
                 const data = await response.json();
-                alert(data.error || 'Failed to add to inner circle');
+                setProfileStatus(data.error || 'Failed to add to inner circle');
             }
         } catch (error) {
             console.error('Error adding to inner circle:', error);
-            alert('Error adding to inner circle');
+            setProfileStatus('Error adding to inner circle');
         }
     }, [fetchInnerCircle]);
 
@@ -156,7 +157,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
             const token = localStorage.getItem('token');
 
             if (!token) {
-                alert('Please log in to modify your inner circle');
+                setProfileStatus('Please log in to modify your inner circle');
                 return;
             }
 
@@ -169,14 +170,14 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
 
             if (response.ok) {
                 fetchInnerCircle();
-                alert('Removed from inner circle');
+                setProfileStatus('Removed from inner circle');
             } else {
                 const data = await response.json();
-                alert(data.error || 'Failed to remove from inner circle');
+                setProfileStatus(data.error || 'Failed to remove from inner circle');
             }
         } catch (error) {
             console.error('Error removing from inner circle:', error);
-            alert('Error removing from inner circle');
+            setProfileStatus('Error removing from inner circle');
         }
     }, [fetchInnerCircle]);
 
@@ -1100,7 +1101,7 @@ const ProfilePage = () => {
     const handleSharePost = useCallback((postId) => {
         const postUrl = `${window.location.origin}/post/${postId}`;
         navigator.clipboard.writeText(postUrl).then(() => {
-            alert('Post link copied to clipboard!');
+            setProfileStatus('Post link copied to clipboard!');
         });
     }, []);
 
@@ -1113,7 +1114,7 @@ const ProfilePage = () => {
             const token = localStorage.getItem('token');
 
             if (!token) {
-                alert('Please log in to add to your inner circle');
+                setProfileStatus('Please log in to add to your inner circle');
                 return;
             }
 
@@ -1128,14 +1129,14 @@ const ProfilePage = () => {
 
             if (response.ok) {
                 setIsInCircle(true);
-                alert('Added to your Inner Circle!');
+                setProfileStatus('Added to your Inner Circle!');
             } else {
                 const data = await response.json();
-                alert(data.error || 'Failed to add to inner circle');
+                setProfileStatus(data.error || 'Failed to add to inner circle');
             }
         } catch (error) {
             console.error('Error adding to inner circle:', error);
-            alert('Error adding to inner circle');
+            setProfileStatus('Error adding to inner circle');
         } finally {
             setAddingToCircle(false);
         }
@@ -1160,10 +1161,10 @@ const ProfilePage = () => {
 
             if (response.ok) {
                 setIsInCircle(false);
-                alert('Removed from your Inner Circle');
+                setProfileStatus('Removed from your Inner Circle');
             } else {
                 const data = await response.json();
-                alert(data.error || 'Failed to remove from inner circle');
+                setProfileStatus(data.error || 'Failed to remove from inner circle');
             }
         } catch (error) {
             console.error('Error removing from inner circle:', error);
@@ -1244,7 +1245,7 @@ const ProfilePage = () => {
             const token = localStorage.getItem('token');
 
             if (!token) {
-                alert('Please log in to follow users');
+                setProfileStatus('Please log in to follow users');
                 return;
             }
 
@@ -1271,11 +1272,11 @@ const ProfilePage = () => {
                 }));
             } else {
                 const data = await response.json();
-                alert(data.error || 'Failed to update follow status');
+                setProfileStatus(data.error || 'Failed to update follow status');
             }
         } catch (error) {
             console.error('Error updating follow status:', error);
-            alert('Error updating follow status');
+            setProfileStatus('Error updating follow status');
         } finally {
             setFollowLoading(false);
         }
@@ -1289,7 +1290,7 @@ const ProfilePage = () => {
             const token = localStorage.getItem('token');
 
             if (!token) {
-                alert('Please log in to block users');
+                setProfileStatus('Please log in to block users');
                 return;
             }
 
@@ -1309,11 +1310,11 @@ const ProfilePage = () => {
                 alert(`Blocked ${user.display_name || user.username}`);
             } else {
                 const data = await response.json();
-                alert(data.error || 'Failed to block user');
+                setProfileStatus(data.error || 'Failed to block user');
             }
         } catch (error) {
             console.error('Error blocking user:', error);
-            alert('Error blocking user');
+            setProfileStatus('Error blocking user');
         }
     }, [profileUserId, isOwnProfile, user]);
 
@@ -1324,7 +1325,7 @@ const ProfilePage = () => {
             const token = localStorage.getItem('token');
 
             if (!token) {
-                alert('Please log in to unblock users');
+                setProfileStatus('Please log in to unblock users');
                 return;
             }
 
@@ -1342,11 +1343,11 @@ const ProfilePage = () => {
                 alert(`Unblocked ${user.display_name || user.username}`);
             } else {
                 const data = await response.json();
-                alert(data.error || 'Failed to unblock user');
+                setProfileStatus(data.error || 'Failed to unblock user');
             }
         } catch (error) {
             console.error('Error unblocking user:', error);
-            alert('Error unblocking user');
+            setProfileStatus('Error unblocking user');
         }
     }, [profileUserId, isOwnProfile, user]);
 
@@ -1497,7 +1498,7 @@ const ProfilePage = () => {
             });
         } else {
             navigator.clipboard.writeText(profileUrl).then(() => {
-                alert('Profile link copied to clipboard!');
+                setProfileStatus('Profile link copied to clipboard!');
             });
         }
     }, [user]);
@@ -2945,7 +2946,7 @@ const ProfilePage = () => {
                                 <button
                                     onClick={() => {
                                         navigator.clipboard.writeText(`${window.location.origin}/user/${effectiveUserId}`);
-                                        alert('Link copied to clipboard!');
+                                        setProfileStatus('Link copied to clipboard!');
                                     }}
                                 >
                                     Copy

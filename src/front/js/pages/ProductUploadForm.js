@@ -61,7 +61,7 @@ const ProductUploadForm = ({ onUpload, editMode = false }) => {
             }
         } catch (err) {
             console.error("Error fetching product:", err);
-            alert("Failed to load product for editing");
+            setError("Failed to load product for editing");
             navigate("/storefront");
         } finally {
             setLoading(false);
@@ -91,7 +91,7 @@ const ProductUploadForm = ({ onUpload, editMode = false }) => {
         if (file) {
             // Validate file size (10MB max)
             if (file.size > 10 * 1024 * 1024) {
-                alert("File size must be less than 10MB");
+                setError("File size must be less than 10MB");
                 return;
             }
 
@@ -189,10 +189,10 @@ const ProductUploadForm = ({ onUpload, editMode = false }) => {
                 const data = await response.json();
 
                 if (editMode) {
-                    alert("Product updated successfully!");
+                    setError("Product updated successfully!");
                     navigate("/storefront");
                 } else {
-                    alert("Product added successfully!");
+                    setError("Product added successfully!");
 
                     // Reset form
                     setFormData({
@@ -219,7 +219,7 @@ const ProductUploadForm = ({ onUpload, editMode = false }) => {
             }
         } catch (err) {
             console.error("Upload error:", err);
-            alert(`${editMode ? "Update" : "Upload"} failed: ${err.message}`);
+            setError(`${editMode ? "Update" : "Upload"} failed: ${err.message}`);
         } finally {
             setLoading(false);
         }
