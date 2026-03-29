@@ -9,12 +9,13 @@ const MerchCheckout = () => {
     zip: "",
     country: "US"
   });
+  const [status, setStatus] = useState('');
 
   const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert("Checkout flow starter page ready. Next step: connect Stripe + backend fulfillment.");
+    setStatus("Checkout flow starter page ready. Next step: connect Stripe + backend fulfillment.");
   };
 
   return (

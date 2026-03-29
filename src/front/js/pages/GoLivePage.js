@@ -319,7 +319,7 @@ const GoLivePage = () => {
                     socketRef.current.close();
                 }
                 
-                alert('Stream ended successfully!');
+                setError('Stream ended successfully!');
             }
         } catch (err) {
             console.error('Stop stream error:', err);
@@ -354,7 +354,7 @@ const GoLivePage = () => {
     const copyStreamLink = () => {
         const link = `${window.location.origin}/live-streams/${streamData?.id}`;
         navigator.clipboard.writeText(link);
-        alert('Stream link copied to clipboard!');
+        setError('Stream link copied to clipboard!');
     };
 
     // ============ LIVE POPUP COMPONENT ============

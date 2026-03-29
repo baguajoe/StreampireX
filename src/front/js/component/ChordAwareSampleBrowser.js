@@ -141,6 +141,7 @@ export default function ChordAwareSampleBrowser({
   onSampleDrop = () => {},
 }) {
   const [samples, setSamples] = useState(ALL_SAMPLES);
+  const [status, setStatus] = useState('');
   const [filtered, setFiltered] = useState(ALL_SAMPLES);
   const [search, setSearch] = useState('');
   const [filterKey, setFilterKey] = useState('auto'); // 'auto' = use projectKey
@@ -252,7 +253,7 @@ export default function ChordAwareSampleBrowser({
     if (!file) return;
     // In real implementation: analyze file with Web Audio API for BPM + key
     // Then filter samples by detected values
-    alert(`Analyzing: ${file.name}\n(BPM & key detection would run here — filter results accordingly)`);
+    setStatus(`Analyzing: ${file.name}\n(BPM & key detection would run here — filter results accordingly)`);
     setSearchWithSoundActive(false);
   }, []);
 

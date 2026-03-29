@@ -376,7 +376,7 @@ export default function AITextToSong() {
 
   const saveToDaw = (song) => {
     // In production: POST to /api/projects/import-audio or open in DAW
-    alert(`"${song.title}" added to your DAW library.\n\nIn production, this opens RecordingStudio with the track pre-loaded.`);
+    setError(`"${song.title}" added to your DAW library.\n\nIn production, this opens RecordingStudio with the track pre-loaded.`);
   };
 
   const extendSong = (song) => {

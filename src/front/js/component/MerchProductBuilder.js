@@ -42,7 +42,7 @@ export const MerchProductBuilder = () => {
     const publishProduct = () => {
         console.log("Publishing product:", product)
 
-        alert("Product published to your store!")
+        setStatus("Product published to your store!")
     }
 
     return (

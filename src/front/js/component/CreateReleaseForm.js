@@ -12,6 +12,7 @@ const CreateReleaseForm = () => {
     audioFile: null,
     termsAgreed: false
   });
+  const [status, setStatus] = useState('');
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
@@ -34,9 +35,9 @@ const CreateReleaseForm = () => {
     });
 
     if (res.ok) {
-      alert('Track submitted successfully!');
+      setStatus('Track submitted successfully!');
     } else {
-      alert('Submission failed.');
+      setStatus('Submission failed.');
     }
   };
 

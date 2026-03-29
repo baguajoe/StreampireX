@@ -35,6 +35,7 @@ const TeamRoomPage = () => {
 
   // --- Core UI State ---
   const [streams, setStreams] = useState([]);
+  const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [activeMode, setActiveMode] = useState("video-chat");
 
@@ -172,7 +173,7 @@ const TeamRoomPage = () => {
     // --- Kicked ---
     socket.on("kicked", (data) => {
       if (String(data.userId) === String(userId)) {
-        alert("You have been removed from the room by the host.");
+        setStatus("You have been removed from the room by the host.");
         handleLeaveCleanup();
       }
     });
@@ -528,11 +529,11 @@ const TeamRoomPage = () => {
       setConnectionStatus("error");
 
       if (error.name === "NotAllowedError") {
-        alert("Camera/microphone access denied. Please allow permissions and try again.");
+        setStatus("Camera/microphone access denied. Please allow permissions and try again.");
       } else if (error.name === "NotFoundError") {
-        alert("No camera/microphone found. Please connect a device and try again.");
+        setStatus("No camera/microphone found. Please connect a device and try again.");
       } else {
-        alert("Could not access camera/microphone. Please check your device settings.");
+        setStatus("Could not access camera/microphone. Please check your device settings.");
       }
     }
   };
@@ -543,7 +544,7 @@ const TeamRoomPage = () => {
   const joinRoom = async (targetRoomId = null) => {
     const rid = targetRoomId || roomId;
     if (!rid.trim()) {
-      alert("Please enter a room ID");
+      setStatus("Please enter a room ID");
       return;
     }
 
@@ -643,7 +644,7 @@ const TeamRoomPage = () => {
   // =====================================================
   const toggleVideo = () => {
     if (userRole === "viewer") {
-      alert("Viewers cannot enable video. Ask the host for participant access.");
+      setStatus("Viewers cannot enable video. Ask the host for participant access.");
       return;
     }
     if (localStreamRef.current) {
@@ -663,7 +664,7 @@ const TeamRoomPage = () => {
 
   const toggleAudio = () => {
     if (userRole === "viewer") {
-      alert("Viewers cannot enable audio. Ask the host for participant access.");
+      setStatus("Viewers cannot enable audio. Ask the host for participant access.");
       return;
     }
     if (localStreamRef.current) {
@@ -686,7 +687,7 @@ const TeamRoomPage = () => {
   // =====================================================
   const startScreenShare = async () => {
     if (userRole === "viewer") {
-      alert("Viewers cannot share screen.");
+      setStatus("Viewers cannot share screen.");
       return;
     }
     try {
@@ -718,7 +719,7 @@ const TeamRoomPage = () => {
     } catch (error) {
       console.error("Error starting screen share:", error);
       if (error.name === "NotAllowedError") {
-        alert("Screen sharing permission denied.");
+        setStatus("Screen sharing permission denied.");
       }
     }
   };

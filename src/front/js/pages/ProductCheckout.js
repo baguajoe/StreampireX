@@ -9,6 +9,7 @@ export default function ProductCheckout() {
   const stripe = useStripe();
   const elements = useElements();
   const [clientSecret, setClientSecret] = useState(null);
+  const [status, setStatus] = useState('');
 
   useEffect(() => {
     axios.post(`/api/products/${productId}/checkout`)
@@ -25,7 +26,7 @@ export default function ProductCheckout() {
     if (result.error) {
       alert("Payment failed: " + result.error.message);
     } else {
-      alert("✅ Payment successful!");
+      setStatus("✅ Payment successful!");
     }
   };
 

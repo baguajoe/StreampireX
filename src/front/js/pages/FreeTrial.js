@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 const FreeTrial = () => {
     const [trialInfo, setTrialInfo] = useState(null);
+  const [status, setStatus] = useState('');
     const navigate = useNavigate();
 
     const fetchTrialStatus = async () => {
@@ -26,7 +27,7 @@ const FreeTrial = () => {
         });
 
         const data = await res.json();
-        alert(data.message);
+        setStatus(data.message);
         fetchTrialStatus();
     };
 

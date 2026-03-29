@@ -9,7 +9,7 @@ const EpisodePage = ({ episode }) => {
             body: JSON.stringify({ episode_id: episode.id, stripe_token: token.id }),
         })
         .then(res => res.json())
-        .then(data => alert(data.message));
+        .then(data => setStatus(data.message));
     };
 
     return (

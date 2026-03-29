@@ -444,7 +444,7 @@ export default function AddVocalsToTrack() {
         {/* Result */}
         {result && (
           <ResultPlayer result={result}
-            onSaveToDaw={r => alert(`Sending "${r.title}" to DAW — in production this opens RecordingStudio with both tracks pre-loaded.`)} />
+            onSaveToDaw={r => setError(`Sending "${r.title}" to DAW — in production this opens RecordingStudio with both tracks pre-loaded.`)} />
         )}
       </div>
     </div>

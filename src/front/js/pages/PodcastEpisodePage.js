@@ -6,6 +6,7 @@ import TipJar from "../component/TipJar";
 const PodcastEpisodePage = () => {
   const { podcastId, episodeId } = useParams();
   const [episode, setEpisode] = useState(null);
+  const [status, setStatus] = useState('');
   const [podcast, setPodcast] = useState(null);
   const [hasAccess, setHasAccess] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -54,7 +55,7 @@ const PodcastEpisodePage = () => {
       window.location.href = res.data.checkout_url;
     } catch (err) {
       console.error("Purchase error:", err);
-      alert("Something went wrong while processing your payment.");
+      setStatus("Something went wrong while processing your payment.");
     }
   };
 

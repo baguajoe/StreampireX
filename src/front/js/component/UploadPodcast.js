@@ -2,6 +2,7 @@ import React, { useState } from "react";
 
 const UploadPodcast = () => {
   const [title, setTitle] = useState("");
+  const [status, setStatus] = useState('');
   const [description, setDescription] = useState("");
   const [audio, setAudio] = useState(null);
 
@@ -19,7 +20,7 @@ const UploadPodcast = () => {
 
     const data = await response.json();
     if (data.message) {
-      alert("Podcast uploaded successfully!");
+      setStatus("Podcast uploaded successfully!");
     }
   };
 

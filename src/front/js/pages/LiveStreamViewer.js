@@ -126,7 +126,7 @@ const LiveStreamViewer = () => {
         if (!chatInput.trim()) return;
         
         if (!store.user) {
-            alert('Please log in to chat');
+            setError('Please log in to chat');
             return;
         }
         
@@ -183,7 +183,7 @@ const LiveStreamViewer = () => {
 
     const shareStream = () => {
         navigator.clipboard.writeText(window.location.href);
-        alert('Stream link copied!');
+        setError('Stream link copied!');
     };
 
     if (loading) {

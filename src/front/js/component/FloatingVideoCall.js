@@ -42,6 +42,7 @@ const FloatingVideoCall = ({ currentUser }) => {
     remoteUser: null,
     roomId: null,
   });
+  const [status, setStatus] = useState('');
   
   // UI state
   const [isMinimized, setIsMinimized] = useState(false);
@@ -174,7 +175,7 @@ const FloatingVideoCall = ({ currentUser }) => {
       setConnectionStatus('error');
       
       if (error.name === 'NotAllowedError') {
-        alert('Camera/microphone access denied. Please allow access to make video calls.');
+        setStatus('Camera/microphone access denied. Please allow access to make video calls.');
       }
     }
   };

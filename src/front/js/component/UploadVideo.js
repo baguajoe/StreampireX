@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 const UploadVideo = ({ currentUser }) => {
   const [selectedFile, setSelectedFile] = useState(null);
+  const [status, setStatus] = useState('');
   const [uploadedVideos, setUploadedVideos] = useState([]);
   const [previewURL, setPreviewURL] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -30,7 +31,7 @@ const UploadVideo = ({ currentUser }) => {
       const role = currentUser?.role || 'Free';
 
       if ((role === 'Free' && duration > 120) || (role !== 'Free' && duration > 1200)) {
-        alert('⛔ Video too long for your subscription plan.');
+        setStatus('⛔ Video too long for your subscription plan.');
         setSelectedFile(null);
         setPreviewURL(null);
       } else {
@@ -43,7 +44,7 @@ const UploadVideo = ({ currentUser }) => {
   };
 
   const handleSubmit = async () => {
-    if (!selectedFile) return alert('No file selected.');
+    if (!selectedFile) return setStatus('No file selected.');
 
     const formData = new FormData();
     formData.append('video', selectedFile);
@@ -64,16 +65,16 @@ const UploadVideo = ({ currentUser }) => {
 
       const data = await res.json();
       if (res.ok) {
-        alert('✅ Uploaded!');
+        setStatus('✅ Uploaded!');
         setUploadedVideos((prev) => [data.video, ...prev]);
         setSelectedFile(null);
         setPreviewURL(null);
       } else {
-        alert(`⚠️ Upload failed: ${data.error}`);
+        setStatus(`⚠️ Upload failed: ${data.error}`);
       }
     } catch (err) {
       console.error(err);
-      alert('Something went wrong.');
+      setStatus('Something went wrong.');
     } finally {
       setUploading(false);
       setProgress(0);
@@ -95,7 +96,7 @@ const UploadVideo = ({ currentUser }) => {
         setUploadedVideos((prev) => prev.filter((v) => v.id !== videoId));
       } else {
         const data = await res.json();
-        alert(`Failed to delete: ${data.error}`);
+        setStatus(`Failed to delete: ${data.error}`);
       }
     } catch (err) {
       console.error(err);
@@ -115,7 +116,7 @@ const UploadVideo = ({ currentUser }) => {
 
       const data = await res.json();
       if (!res.ok) {
-        alert(`⚠️ Failed to update: ${data.error}`);
+        setStatus(`⚠️ Failed to update: ${data.error}`);
       }
     } catch (err) {
       console.error(err);

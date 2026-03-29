@@ -4,6 +4,7 @@ import React, { useState } from "react";
 
 const ScheduleStream = () => {
   const [title, setTitle] = useState("");
+  const [status, setStatus] = useState('');
   const [description, setDescription] = useState("");
   const [streamTime, setStreamTime] = useState("");
 
@@ -20,9 +21,9 @@ const ScheduleStream = () => {
 
     const data = await response.json();
     if (response.ok) {
-      alert("Stream Scheduled!");
+      setStatus("Stream Scheduled!");
     } else {
-      alert(data.message);
+      setStatus(data.message);
     }
   };
 

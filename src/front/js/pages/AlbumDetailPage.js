@@ -176,7 +176,7 @@ const AlbumDetailPage = () => {
       whatsapp: `https://wa.me/?text=${text} ${url}`,
       copy: () => {
         navigator.clipboard.writeText(window.location.href);
-        alert("Link copied to clipboard!");
+        setError("Link copied to clipboard!");
       }
     };
 
@@ -404,7 +404,7 @@ const AlbumDetailPage = () => {
                     onClick={(e) => {
                       e.stopPropagation();
                       // Add to playlist functionality
-                      alert("Add to playlist feature coming soon!");
+                      setError("Add to playlist feature coming soon!");
                     }}
                   >
                     ➕

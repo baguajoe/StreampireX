@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 
 const AddToAlbumModal = ({ show, onClose, trackId }) => {
   const [albums, setAlbums] = useState([]);
+  const [status, setStatus] = useState('');
   const [selectedAlbum, setSelectedAlbum] = useState("");
 
   useEffect(() => {
@@ -25,10 +26,10 @@ const AddToAlbumModal = ({ show, onClose, trackId }) => {
     });
     const data = await res.json();
     if (res.ok) {
-      alert("✅ Track added to album");
+      setStatus("✅ Track added to album");
       onClose();
     } else {
-      alert(`❌ ${data.error}`);
+      setStatus(`❌ ${data.error}`);
     }
   };
 

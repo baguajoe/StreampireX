@@ -391,7 +391,7 @@ export default function AddBeatToVocals() {
 
         {result && (
           <ResultPlayer result={result}
-            onSaveToDaw={r => alert(`"${r.title}" → DAW\n\nIn production opens RecordingStudio with both vocal and beat tracks loaded.`)} />
+            onSaveToDaw={r => setError(`"${r.title}" → DAW\n\nIn production opens RecordingStudio with both vocal and beat tracks loaded.`)} />
         )}
       </div>
     </div>

@@ -18,6 +18,7 @@ const ShareToStoryButton = ({
   className = ''
 }) => {
   const [isSharing, setIsSharing] = useState(false);
+  const [status, setStatus] = useState('');
   const [showCaptionModal, setShowCaptionModal] = useState(false);
   const [caption, setCaption] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
@@ -32,7 +33,7 @@ const ShareToStoryButton = ({
   const handleShare = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('Please log in to share to your story');
+      setStatus('Please log in to share to your story');
       return;
     }
 
@@ -70,7 +71,7 @@ const ShareToStoryButton = ({
       }
     } catch (error) {
       console.error('Share error:', error);
-      alert('Failed to share to story');
+      setStatus('Failed to share to story');
     } finally {
       setIsSharing(false);
     }

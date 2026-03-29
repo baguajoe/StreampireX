@@ -11,6 +11,7 @@ const hdrs  = () => ({ 'Content-Type': 'application/json', Authorization: `Beare
 export default function CollabFeed() {
   const { store } = useContext(Context);
   const [feed, setFeed]         = useState([]);
+  const [status, setStatus] = useState('');
   const [loading, setLoading]   = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [filterRole, setFilterRole] = useState('');
@@ -36,7 +37,7 @@ export default function CollabFeed() {
   useEffect(() => { fetchFeed(); }, [filterRole, filterGenre]);
 
   const handlePost = async () => {
-    if (!form.title) return alert('Title required');
+    if (!form.title) return setStatus('Title required');
     await fetch(`${BACKEND}/api/collab/post`, {
       method: 'POST', headers: hdrs(), body: JSON.stringify(form)
     });
@@ -52,7 +53,7 @@ export default function CollabFeed() {
     });
     setApplyModal(null);
     setApplyMsg('');
-    alert('Application sent!');
+    setStatus('Application sent!');
   };
 
   const S = {

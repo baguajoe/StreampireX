@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 
 const EditTrackForm = ({ trackId }) => {
   const [track, setTrack] = useState(null);
+  const [status, setStatus] = useState('');
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_BACKEND_URL}/api/track/${trackId}`, {
@@ -26,7 +27,7 @@ const EditTrackForm = ({ trackId }) => {
     });
 
     const data = await res.json();
-    alert(data.message);
+    setStatus(data.message);
   };
 
   if (!track) return <p>Loading...</p>;

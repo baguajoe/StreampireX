@@ -534,7 +534,7 @@ export default function HumToSong() {
         {isDone && result && (
           <SongResult
             result={result}
-            onToDaw={r => alert(`"${r.title}" → DAW\n\nIn production: opens RecordingStudio with your hum + generated beat on separate tracks.`)}
+            onToDaw={r => setError(`"${r.title}" → DAW\n\nIn production: opens RecordingStudio with your hum + generated beat on separate tracks.`)}
             onRecordAgain={resetToIdle}
           />
         )}

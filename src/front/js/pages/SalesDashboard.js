@@ -146,14 +146,14 @@ const SalesDashboard = () => {
             );
             
             if (response.ok) {
-                alert('Order marked as shipped!');
+                setError('Order marked as shipped!');
                 fetchOrders();
             } else {
-                alert('Failed to fulfill order. Please try again.');
+                setError('Failed to fulfill order. Please try again.');
             }
         } catch (err) {
             console.error("Error fulfilling order:", err);
-            alert('Error fulfilling order. Please try again.');
+            setError('Error fulfilling order. Please try again.');
         }
     };
 
@@ -538,7 +538,7 @@ const SalesDashboard = () => {
                                                 const tracking = document.getElementById(`tracking-${order.id}`).value;
                                                 const carrier = document.getElementById(`carrier-${order.id}`).value;
                                                 if (!tracking) {
-                                                    alert('Please enter a tracking number');
+                                                    setError('Please enter a tracking number');
                                                     return;
                                                 }
                                                 fulfillOrder(order.id, tracking, carrier);

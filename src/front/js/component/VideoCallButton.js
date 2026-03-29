@@ -9,11 +9,12 @@ const VideoCallButton = ({
   className = ''
 }) => {
   const [isRequesting, setIsRequesting] = useState(false);
+  const [status, setStatus] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   
   const handleStartCall = async () => {
     if (!targetUser?.id) {
-      alert('Unable to start call: User not found');
+      setStatus('Unable to start call: User not found');
       return;
     }
     
@@ -44,7 +45,7 @@ const VideoCallButton = ({
       
     } catch (error) {
       console.error('Error starting call:', error);
-      alert('Failed to start video call. Please try again.');
+      setStatus('Failed to start video call. Please try again.');
     } finally {
       setIsRequesting(false);
     }

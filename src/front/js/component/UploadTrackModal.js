@@ -8,6 +8,7 @@ const UploadTrackModal = ({ onClose, onUploadSuccess }) => {
     tags: "",
     isPublic: true
   });
+  const [status, setStatus] = useState('');
   const [audioFile, setAudioFile] = useState(null);
   const [artworkFile, setArtworkFile] = useState(null);
   const [audioPreview, setAudioPreview] = useState(null);
@@ -46,7 +47,7 @@ const UploadTrackModal = ({ onClose, onUploadSuccess }) => {
     e.preventDefault();
     
     if (!audioFile || !formData.title.trim()) {
-      alert("Please provide at least a title and audio file");
+      setStatus("Please provide at least a title and audio file");
       return;
     }
 
@@ -90,7 +91,7 @@ const UploadTrackModal = ({ onClose, onUploadSuccess }) => {
 
     } catch (error) {
       console.error("Upload error:", error);
-      alert("Upload failed. Please try again.");
+      setStatus("Upload failed. Please try again.");
       setUploading(false);
       setUploadProgress(0);
     }

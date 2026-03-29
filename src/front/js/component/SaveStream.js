@@ -14,7 +14,7 @@ const SaveStream = ({ streamId }) => {
     });
 
     const data = await response.json();
-    alert(data.message);
+    setStatus(data.message);
   };
 
   return (

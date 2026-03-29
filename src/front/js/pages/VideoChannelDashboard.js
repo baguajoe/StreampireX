@@ -207,13 +207,13 @@ const VideoChannelDashboard = () => {
       if (response.ok) {
         const data = await response.json();
         setChannelData(data.channel);
-        alert('Channel created successfully!');
+        setError('Channel created successfully!');
       } else {
         throw new Error('Failed to create channel');
       }
     } catch (error) {
       console.error('Error creating channel:', error);
-      alert('Failed to create channel');
+      setError('Failed to create channel');
     }
   };
 

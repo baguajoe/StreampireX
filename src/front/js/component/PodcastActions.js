@@ -11,7 +11,7 @@ const PodcastActions = ({ podcast }) => {
       body: JSON.stringify({ content_id: contentId, content_type: type })
     })
       .then(res => res.json())
-      .then(() => alert("Liked!"))
+      .then(() => setStatus("Liked!"))
       .catch(err => console.error("Error liking content:", err));
   };
 
@@ -25,7 +25,7 @@ const PodcastActions = ({ podcast }) => {
       body: JSON.stringify({ content_id: contentId, content_type: type })
     })
       .then(res => res.json())
-      .then(() => alert("Added to favorites!"))
+      .then(() => setStatus("Added to favorites!"))
       .catch(err => console.error("Error adding to favorites:", err));
   };
 

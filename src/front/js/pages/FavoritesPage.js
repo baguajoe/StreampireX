@@ -14,6 +14,7 @@ import campfire from "../../img/campfire.png";
 
 const FavoritesPage = () => {
   const [user, setUser] = useState({});
+  const [status, setStatus] = useState('');
   const [activeTab, setActiveTab] = useState("profiles");
   const [searchQuery, setSearchQuery] = useState("");
   const [videos, setVideos] = useState([]);
@@ -133,7 +134,7 @@ const FavoritesPage = () => {
       fileInput.value = '';
     } catch (err) {
       console.error("Video upload error:", err);
-      alert(`Video upload failed: ${err.message}`);
+      setStatus(`Video upload failed: ${err.message}`);
     } finally {
       fileInput.disabled = false;
     }
@@ -173,7 +174,7 @@ const FavoritesPage = () => {
       fileInput.value = '';
     } catch (err) {
       console.error("Image upload error:", err);
-      alert(`Image upload failed: ${err.message}`);
+      setStatus(`Image upload failed: ${err.message}`);
     } finally {
       fileInput.disabled = false;
     }
@@ -208,7 +209,7 @@ const FavoritesPage = () => {
       console.log(`${mediaType} updated successfully in backend`);
     } catch (err) {
       console.error(`Failed to update ${mediaType}:`, err);
-      alert(`Warning: File uploaded but failed to save to profile: ${err.message}`);
+      setStatus(`Warning: File uploaded but failed to save to profile: ${err.message}`);
     }
   };
 

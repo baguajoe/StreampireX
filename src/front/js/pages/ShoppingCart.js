@@ -5,6 +5,7 @@ import "../../styles/ShoppingCart.css"
 const ShoppingCart = () => {
     const navigate = useNavigate();
     const [cartItems, setCartItems] = useState([]);
+  const [status, setStatus] = useState('');
     const [loading, setLoading] = useState(false);
     const [total, setTotal] = useState(0);
 
@@ -76,7 +77,7 @@ const ShoppingCart = () => {
             }
         } catch (err) {
             console.error("Error adding to cart:", err);
-            alert("Failed to add item to cart");
+            setStatus("Failed to add item to cart");
         } finally {
             setLoading(false);
         }
@@ -110,7 +111,7 @@ const ShoppingCart = () => {
 
     const proceedToCheckout = () => {
         if (cartItems.length === 0) {
-            alert("Your cart is empty");
+            setStatus("Your cart is empty");
             return;
         }
         navigate("/checkout", { state: { cartItems } });
@@ -150,7 +151,7 @@ const ShoppingCart = () => {
 
         } catch (err) {
             console.error("Bulk checkout error:", err);
-            alert("Checkout failed. Please try again or checkout items individually.");
+            setStatus("Checkout failed. Please try again or checkout items individually.");
         } finally {
             setLoading(false);
         }

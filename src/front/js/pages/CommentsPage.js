@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 
 const CommentsPage = ({ contentId, contentType }) => {
   const [comments, setComments] = useState([]);
+  const [status, setStatus] = useState('');
   const [newComment, setNewComment] = useState("");
 
   useEffect(() => {
@@ -22,7 +23,7 @@ const CommentsPage = ({ contentId, contentType }) => {
     })
       .then((res) => res.json())
       .then((data) => {
-        alert(data.message);
+        setStatus(data.message);
         setComments([...comments, { text: newComment, created_at: new Date() }]);
         setNewComment("");
       })

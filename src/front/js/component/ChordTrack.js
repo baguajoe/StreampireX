@@ -117,6 +117,7 @@ function PianoPreview({ chordNotes = [], visible = false }) {
 // ---------------------------------------------------------------------------
 function ChordBlock({ chord, x, width, isSelected, onSelect, onDelete, onResize }) {
   const [hover, setHover] = useState(false);
+  const [status, setStatus] = useState('');
   const [showPiano, setShowPiano] = useState(false);
   const quality = QUALITIES.find(q => q.label === chord.quality) || QUALITIES[0];
   const midiNotes = chordToMidiNotes(chord.root, chord.quality);
@@ -282,7 +283,7 @@ export default function ChordTrack({
     // Simulate detected chord (replace with real detection)
     const detectedRoot = ROOTS[bar % ROOTS.length];
     const detectedQuality = QUALITIES[bar % QUALITIES.length].label;
-    alert(`Auto-detected: ${detectedRoot}${detectedQuality}\n(Real implementation uses Web Audio API chroma analysis)`);
+    setStatus(`Auto-detected: ${detectedRoot}${detectedQuality}\n(Real implementation uses Web Audio API chroma analysis)`);
     const newChord = {
       id: `chord-detected-${Date.now()}`,
       root: detectedRoot, quality: detectedQuality,

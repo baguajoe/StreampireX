@@ -2,6 +2,7 @@ import React, { useState } from "react";
 
 const EditAlbumForm = ({ album, onUpdateSuccess, onCancel }) => {
   const [title, setTitle] = useState(album.title);
+  const [status, setStatus] = useState('');
   const [description, setDescription] = useState(album.description || "");
   const [coverImage, setCoverImage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -31,7 +32,7 @@ const EditAlbumForm = ({ album, onUpdateSuccess, onCancel }) => {
 
       onUpdateSuccess(); // Refresh data
     } catch (err) {
-      alert("❌ Failed to update album");
+      setStatus("❌ Failed to update album");
     } finally {
       setLoading(false);
     }

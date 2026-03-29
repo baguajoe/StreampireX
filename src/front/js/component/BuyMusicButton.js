@@ -15,7 +15,7 @@ const BuyMusicButton = ({ musicId, price }) => {
 
     const data = await res.json();
     if (res.ok) {
-      alert("✅ Purchase Successful!");
+      setStatus("✅ Purchase Successful!");
     } else {
       alert("❌ Error: " + data.error);
     }

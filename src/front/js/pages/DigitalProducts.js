@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 
 const DigitalProducts = () => {
     const [products, setProducts] = useState([]);
+  const [status, setStatus] = useState('');
 
     useEffect(() => {
         fetch(`${process.env.REACT_APP_BACKEND_URL}/digital-products`)
@@ -16,7 +17,7 @@ const DigitalProducts = () => {
             headers: { Authorization: "Bearer " + token }
         });
 
-        if (!res.ok) return alert("You don't have access to download this.");
+        if (!res.ok) return setStatus("You don't have access to download this.");
 
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);

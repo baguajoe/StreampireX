@@ -98,11 +98,11 @@ const OrderHistoryPage = () => {
         window.URL.revokeObjectURL(url);
       } else {
         const errorData = await response.json();
-        alert(`Download failed: ${errorData.message || "Unknown error"}`);
+        setError(`Download failed: ${errorData.message || "Unknown error"}`);
       }
     } catch (err) {
       console.error("Download error:", err);
-      alert("Download failed. Please try again.");
+      setError("Download failed. Please try again.");
     } finally {
       setDownloadingId(null);
     }

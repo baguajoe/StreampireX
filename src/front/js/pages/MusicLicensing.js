@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 
 const MusicLicensing = () => {
   const [tracks, setTracks] = useState([]);
+  const [status, setStatus] = useState('');
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [price, setPrice] = useState("");
 
@@ -15,7 +16,7 @@ const MusicLicensing = () => {
   }, []);
 
   const handleSubmit = () => {
-    if (!selectedTrack || !price) return alert("Select a track and set a price!");
+    if (!selectedTrack || !price) return setStatus("Select a track and set a price!");
 
     fetch(process.env.REACT_APP_BACKEND_URL + "/api/licensing/submit", {
       method: "POST",
@@ -26,7 +27,7 @@ const MusicLicensing = () => {
       body: JSON.stringify({ track_id: selectedTrack, price }),
     })
       .then((res) => res.json())
-      .then(() => alert("Track submitted for licensing!"))
+      .then(() => setStatus("Track submitted for licensing!"))
       .catch((err) => console.error("Submission error:", err));
   };
 

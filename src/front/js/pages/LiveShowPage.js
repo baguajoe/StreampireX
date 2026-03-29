@@ -13,6 +13,7 @@ const LiveShowPage = () => {
   const isRadioMode = mode === 'radio';
 
   const [streamData, setStreamData] = useState(null);
+  const [status, setStatus] = useState('');
   const [radioStation, setRadioStation] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [user, setUser] = useState({});
@@ -105,7 +106,7 @@ const LiveShowPage = () => {
 
       if (response.ok) {
         setIsLive(true);
-        alert("🎙️ You're now live on air!");
+        setStatus("🎙️ You're now live on air!");
 
         // TODO: Connect stream to WebRTC or streaming server
         // This is where you'd integrate with your streaming infrastructure
@@ -114,7 +115,7 @@ const LiveShowPage = () => {
       }
     } catch (error) {
       console.error("Failed to start broadcast:", error);
-      alert("❌ Could not start broadcast. Please check microphone permissions.");
+      setStatus("❌ Could not start broadcast. Please check microphone permissions.");
     }
   };
 
@@ -135,7 +136,7 @@ const LiveShowPage = () => {
 
       if (response.ok) {
         setIsLive(false);
-        alert("📻 Broadcast ended");
+        setStatus("📻 Broadcast ended");
       }
     } catch (error) {
       console.error("Failed to stop broadcast:", error);

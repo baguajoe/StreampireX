@@ -24,6 +24,7 @@ export const StoryViewerModal = ({
   const navigate = useNavigate();
   const { store } = useContext(Context);
   const [currentUserIndex, setCurrentUserIndex] = useState(initialUserIndex);
+  const [status, setStatus] = useState('');
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -317,7 +318,7 @@ export const StoryViewerModal = ({
         body: JSON.stringify({ highlight_name: highlightName })
       });
 
-      alert('Added to highlights!');
+      setStatus('Added to highlights!');
       setShowOptions(false);
     } catch (error) {
       console.error('Error adding to highlights:', error);
@@ -941,7 +942,7 @@ const StoryViewer = () => {
         body: JSON.stringify({ highlight_name: highlightName })
       });
       
-      alert("Added to highlights!");
+      setStatus("Added to highlights!");
       setShowOptions(false);
     } catch (error) {
       console.error("Error adding to highlights:", error);

@@ -3,6 +3,7 @@ import React, { useState } from "react";
 
 const CreateEpisodeForm = ({ podcastId }) => {
   const [title, setTitle] = useState("");
+  const [status, setStatus] = useState('');
   const [description, setDescription] = useState("");
   const [audio, setAudio] = useState(null);
   const [video, setVideo] = useState(null);
@@ -29,7 +30,7 @@ const CreateEpisodeForm = ({ podcastId }) => {
     });
 
     const result = await response.json();
-    alert(result.message);
+    setStatus(result.message);
   };
 
   return (

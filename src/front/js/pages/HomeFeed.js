@@ -140,7 +140,7 @@ const HomeFeed = () => {
 
   const handleCreatePost = async () => {
     if (!postContent.trim()) {
-      alert("Please enter some content for your post");
+      setError("Please enter some content for your post");
       return;
     }
 
@@ -196,7 +196,7 @@ const HomeFeed = () => {
 
     } catch (error) {
       console.error('Error creating post:', error);
-      alert("Failed to create post. Please try again.");
+      setError("Failed to create post. Please try again.");
     }
   };
 
@@ -283,7 +283,7 @@ const HomeFeed = () => {
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
 
       if (!token) {
-        alert('Please log in to follow users');
+        setError('Please log in to follow users');
         return;
       }
 
@@ -309,12 +309,12 @@ const HomeFeed = () => {
           setSuggestedUsers(prev => prev.filter(u => u.id !== userId));
           setFollowSuccessMessage(`You were already following ${username || 'this user'}!`);
         } else {
-          alert(errorMessage);
+          setError(errorMessage);
         }
       }
     } catch (error) {
       console.error('Error following user:', error);
-      alert('Failed to follow user. Please try again.');
+      setError('Failed to follow user. Please try again.');
     } finally {
       // Clear loading state
       setFollowingUsers(prev => ({ ...prev, [userId]: false }));
@@ -325,12 +325,12 @@ const HomeFeed = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert("Image size should be less than 5MB");
+        setError("Image size should be less than 5MB");
         return;
       }
 
       if (!file.type.startsWith('image/')) {
-        alert("Please select a valid image file");
+        setError("Please select a valid image file");
         return;
       }
 
@@ -771,7 +771,7 @@ const HomeFeed = () => {
             {user ? (
               <UploadVideo
                 currentUser={user}
-                onUpload={() => alert("Video uploaded!")}
+                onUpload={() => setError("Video uploaded!")}
               />
             ) : (
               <p className="empty-text">Please log in to upload videos.</p>

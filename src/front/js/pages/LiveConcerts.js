@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 
 const LiveConcerts = () => {
   const [concerts, setConcerts] = useState([]);
+  const [status, setStatus] = useState('');
   const [newConcert, setNewConcert] = useState({ title: "", date: "", price: "" });
 
   useEffect(() => {
@@ -23,7 +24,7 @@ const LiveConcerts = () => {
       body: JSON.stringify(newConcert),
     })
       .then((res) => res.json())
-      .then(() => alert("Concert created!"))
+      .then(() => setStatus("Concert created!"))
       .catch((err) => console.error("Error creating concert:", err));
   };
 

@@ -2,16 +2,17 @@ import React, { useState } from "react";
 
 const PayoutRequest = ({ balance, method }) => {
   const [amount, setAmount] = useState("");
+  const [status, setStatus] = useState('');
   const [recipientId, setRecipientId] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
 
   const handleSendPayment = () => {
     if (!amount || parseFloat(amount) <= 0) {
-      return alert("Please enter a valid amount.");
+      return setStatus("Please enter a valid amount.");
     }
 
     if (!recipientId && !recipientEmail) {
-      return alert("Enter a recipient user ID or email.");
+      return setStatus("Enter a recipient user ID or email.");
     }
 
     const payload = {
@@ -30,7 +31,7 @@ const PayoutRequest = ({ balance, method }) => {
       body: JSON.stringify(payload),
     })
       .then((res) => res.json())
-      .then((data) => alert(data.message))
+      .then((data) => setStatus(data.message))
       .catch((err) => console.error("Payment failed:", err));
   };
 

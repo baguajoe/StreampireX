@@ -276,7 +276,7 @@ export const BrowseStemsPage = ({ onLoadToDAW }) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       if (data.checkout_url) window.location.href = data.checkout_url;
-    } catch (e) { alert(`⚠ ${e.message}`); }
+    } catch (e) { setStatus(`⚠ ${e.message}`); }
     finally { setPurchasing(null); }
   };
 

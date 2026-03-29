@@ -46,6 +46,7 @@ const formatTime = (s) => {
 // =============================================================================
 const WaveformComments = ({ audioUrl, contentId, contentType = 'track', currentUser }) => {
   const [comments, setComments]     = useState([]);
+  const [status, setStatus] = useState('');
   const [duration, setDuration]     = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying]   = useState(false);
@@ -207,7 +208,7 @@ const WaveformComments = ({ audioUrl, contentId, contentType = 'track', currentU
   // ── Submit comment ──
   const submitComment = async () => {
     if (!newCommentText.trim() || pendingTimestamp === null) return;
-    if (!getToken()) { alert('Sign in to comment'); return; }
+    if (!getToken()) { setStatus('Sign in to comment'); return; }
 
     const payload = {
       content_id: contentId,

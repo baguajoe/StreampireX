@@ -314,8 +314,8 @@ export default function SessionVersionControl({
       </div>
 
       {/* Alerts */}
-      {error && <div style={s.alert('error')}>⚠ {error}</div>}
-      {success && <div style={s.alert('success')}>✓ {success}</div>}
+      {error && <div style={s.setError('error')}>⚠ {error}</div>}
+      {success && <div style={s.setError('success')}>✓ {success}</div>}
 
       {/* Diff controls */}
       {snapshots.length >= 2 && (

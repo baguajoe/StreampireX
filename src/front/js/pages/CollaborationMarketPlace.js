@@ -2,6 +2,7 @@ import { useState } from "react";
 
 const CollaborationMarketplace = () => {
     const [role, setRole] = useState("");
+  const [status, setStatus] = useState('');
 
     const createListing = async () => {
         const response = await fetch("http://localhost:5000/api/collaboration", {
@@ -13,7 +14,7 @@ const CollaborationMarketplace = () => {
             body: JSON.stringify({ role })
         });
         const data = await response.json();
-        alert(data.message);
+        setStatus(data.message);
     };
 
     return (

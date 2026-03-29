@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 
 const ScheduleEpisodeForm = ({ episodeId, podcastId }) => {
     const [releaseTime, setReleaseTime] = useState("");
+  const [status, setStatus] = useState('');
 
     const handleSchedule = async () => {
         const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcast/${podcastId}/episode/schedule`, {
@@ -14,7 +15,7 @@ const ScheduleEpisodeForm = ({ episodeId, podcastId }) => {
         });
 
         const data = await res.json();
-        if (res.ok) alert("✅ Scheduled!"); else alert("❌ " + data.error);
+        if (res.ok) setStatus("✅ Scheduled!"); else alert("❌ " + data.error);
     };
 
     return (

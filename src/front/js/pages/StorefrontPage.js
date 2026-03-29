@@ -3,6 +3,7 @@ import "../../styles/StorefrontPage.css";
 
 const StorefrontPage = () => {
     const [products, setProducts] = useState([]);
+  const [status, setStatus] = useState('');
     const [newProduct, setNewProduct] = useState({
         title: "",
         description: "",
@@ -56,7 +57,7 @@ const StorefrontPage = () => {
         .then(res => res.json())
         .then(data => {
             setProducts([...products, data.product]);
-            alert("Product added successfully!");
+            setStatus("Product added successfully!");
         })
         .catch(err => console.error("Error adding product:", err));
     };

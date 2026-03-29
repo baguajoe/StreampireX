@@ -336,6 +336,7 @@ function PackDetail({ pack, onClose, onDownload, onPurchase, owned }) {
 // ---------------------------------------------------------------------------
 function UploadModal({ onClose, onSubmit }) {
   const [name, setName] = useState('');
+  const [status, setStatus] = useState('');
   const [description, setDescription] = useState('');
   const [genre, setGenre] = useState('Hip-Hop');
   const [price, setPrice] = useState('0');
@@ -468,7 +469,7 @@ export default function CreatorSampleMarketplace() {
 
   const handlePurchase = (pack) => {
     // In real app: Stripe checkout
-    alert(`Stripe checkout would open here for $${pack.price}\nPlatform fee: $${(pack.price * 0.1).toFixed(2)}\nCreator receives: $${(pack.price * 0.9).toFixed(2)}`);
+    setStatus(`Stripe checkout would open here for $${pack.price}\nPlatform fee: $${(pack.price * 0.1).toFixed(2)}\nCreator receives: $${(pack.price * 0.9).toFixed(2)}`);
     setLibrary(prev => [...new Set([...prev, pack.id])]);
     showNotif(`"${pack.name}" purchased and added to your library!`);
   };

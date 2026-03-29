@@ -182,7 +182,7 @@ const SettingsPage = () => {
       });
       localStorage.clear();
       sessionStorage.clear();
-      alert("Your account has been successfully deleted.");
+      setError("Your account has been successfully deleted.");
       window.location.href = "/";
     } catch (error) {
       setError(`Account deletion failed: ${error.message}`);
@@ -219,7 +219,7 @@ const SettingsPage = () => {
       const response = await fetch(`${backendUrl}/api/health`);
       const data = await response.json();
       if (response.ok) {
-        alert(`✅ Connection successful!\nStatus: ${data.status}`);
+        setError(`✅ Connection successful!\nStatus: ${data.status}`);
       } else {
         setError(`Connection test failed: ${data.message || 'Unknown error'}`);
       }

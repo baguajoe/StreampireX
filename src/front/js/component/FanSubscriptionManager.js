@@ -6,6 +6,7 @@ const hdrs = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer
 // ── Creator side: manage your tiers ──
 export function FanTierManager({ creatorId }) {
   const [tiers, setTiers]     = useState([]);
+  const [status, setStatus] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [fans, setFans]       = useState([]);
   const [form, setForm]       = useState({ name: 'Super Fan', price: 5, description: '', perks: '' });
@@ -136,7 +137,7 @@ export function FanSubscribeWidget({ creatorId, creatorName }) {
 
   const subscribe = async (tier) => {
     const token = localStorage.getItem('token');
-    if (!token) return alert('Please log in to subscribe');
+    if (!token) return setStatus('Please log in to subscribe');
     const res = await fetch(`${BACKEND}/api/fan-subs/subscribe`, {
       method: 'POST', headers: hdrs(),
       body: JSON.stringify({ tier_id: tier.id })

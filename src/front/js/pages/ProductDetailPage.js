@@ -50,7 +50,7 @@ const ProductDetailPage = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                alert(data.message);
+                setError(data.message);
 
                 // If digital product, show download link
                 if (data.download_link) {
@@ -61,11 +61,11 @@ const ProductDetailPage = () => {
                 navigate("/orders");
             } else {
                 const errorData = await response.json();
-                alert(`Purchase failed: ${errorData.error}`);
+                setError(`Purchase failed: ${errorData.error}`);
             }
         } catch (err) {
             console.error("Purchase error:", err);
-            alert("Purchase failed. Please try again.");
+            setError("Purchase failed. Please try again.");
         }
     };
 
@@ -85,11 +85,11 @@ const ProductDetailPage = () => {
                 window.location.href = data.checkout_url;
             } else {
                 const errorData = await response.json();
-                alert(`Checkout failed: ${errorData.error}`);
+                setError(`Checkout failed: ${errorData.error}`);
             }
         } catch (err) {
             console.error("Checkout error:", err);
-            alert("Checkout failed. Please try again.");
+            setError("Checkout failed. Please try again.");
         }
     };
 

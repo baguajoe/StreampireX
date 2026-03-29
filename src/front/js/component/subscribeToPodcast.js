@@ -9,6 +9,6 @@ const subscribeToPodcast = async (podcastId) => {
     });
   
     const data = await response.json();
-    alert(data.message);
+    setStatus(data.message);
   };
   

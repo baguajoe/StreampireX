@@ -6,6 +6,7 @@ import '../../styles/PricingPlans.css';
 const PricingPlans = () => {
   const { store } = useContext(Context);
   const [billingCycle, setBillingCycle] = useState('monthly');
+  const [status, setStatus] = useState('');
   const [showComparison, setShowComparison] = useState(false);
   const [currentPlan, setCurrentPlan] = useState(null);
   const [processing, setProcessing] = useState(null);
@@ -150,7 +151,7 @@ const PricingPlans = () => {
       }
     } catch (error) {
       console.error('Subscription error:', error);
-      alert('❌ Failed to process subscription');
+      setStatus('❌ Failed to process subscription');
     } finally {
       setProcessing(null);
     }

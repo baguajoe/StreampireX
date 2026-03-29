@@ -475,7 +475,7 @@ const ArtistDashboard = () => {
         setExplicit(false);
         fetchArtistData();
         fetchRecentActivity(); // Refresh activity after upload
-        alert("Track uploaded successfully!");
+        setError("Track uploaded successfully!");
       } else {
         setErrorMessage(data.error || "Upload failed.");
       }

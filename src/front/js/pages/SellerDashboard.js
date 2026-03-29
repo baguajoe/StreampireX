@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 
 const SellerDashboard = () => {
   const [orders, setOrders] = useState([]);
+  const [status, setStatus] = useState('');
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +40,7 @@ const SellerDashboard = () => {
     );
     
     if (response.ok) {
-      alert('Order marked as shipped!');
+      setStatus('Order marked as shipped!');
       fetchOrders();
     }
   };

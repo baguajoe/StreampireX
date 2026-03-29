@@ -253,7 +253,7 @@ const UserSearchProfilePage = () => {
         await navigator.share(shareData);
       } else {
         await navigator.clipboard.writeText(shareUrl);
-        alert("Profile link copied to clipboard!");
+        setError("Profile link copied to clipboard!");
       }
     } catch (err) {
       console.error("Share error:", err);

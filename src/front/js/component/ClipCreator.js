@@ -5,6 +5,7 @@ const hdrs = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer
 
 export default function ClipCreator({ sourceUrl, sourceTitle, contentType = 'track', sourceId, onClipCreated }) {
   const [start, setStart]       = useState(0);
+  const [status, setStatus] = useState('');
   const [duration, setDuration] = useState(30);
   const [title, setTitle]       = useState(sourceTitle ? `${sourceTitle} (clip)` : 'My Clip');
   const [loading, setLoading]   = useState(false);
@@ -12,7 +13,7 @@ export default function ClipCreator({ sourceUrl, sourceTitle, contentType = 'tra
   const [copied, setCopied]     = useState(false);
 
   const createClip = async () => {
-    if (!sourceUrl) return alert('No source audio URL');
+    if (!sourceUrl) return setStatus('No source audio URL');
     setLoading(true);
     try {
       const res = await fetch(`${BACKEND}/api/clips/create`, {
@@ -27,7 +28,7 @@ export default function ClipCreator({ sourceUrl, sourceTitle, contentType = 'tra
         alert(d.error || 'Clip creation failed');
       }
     } catch (e) {
-      alert('Error creating clip');
+      setStatus('Error creating clip');
     }
     setLoading(false);
   };

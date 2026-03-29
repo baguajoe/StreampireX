@@ -6,6 +6,7 @@ const CheckoutPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [cartItems, setCartItems] = useState([]);
+  const [status, setStatus] = useState('');
     const [loading, setLoading] = useState(false);
     const [user, setUser] = useState(null);
     const [isCartEmpty, setIsCartEmpty] = useState(false);
@@ -140,7 +141,7 @@ const CheckoutPage = () => {
 
         for (let field of requiredBillingFields) {
             if (!billingInfo[field]) {
-                alert(`Please fill in ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+                setStatus(`Please fill in ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
                 return false;
             }
         }
@@ -150,7 +151,7 @@ const CheckoutPage = () => {
             const requiredShippingFields = ['firstName', 'lastName', 'address', 'city', 'state', 'zipCode'];
             for (let field of requiredShippingFields) {
                 if (!shippingInfo[field]) {
-                    alert(`Please fill in shipping ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+                    setStatus(`Please fill in shipping ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
                     return false;
                 }
             }
@@ -196,7 +197,7 @@ const CheckoutPage = () => {
             }
         } catch (err) {
             console.error("Stripe checkout error:", err);
-            alert(`Checkout failed: ${err.message}`);
+            setStatus(`Checkout failed: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -235,12 +236,12 @@ const CheckoutPage = () => {
 
             // Clear cart and redirect to success page
             localStorage.removeItem("shopping_cart");
-            alert("Order completed successfully!");
+            setStatus("Order completed successfully!");
             navigate("/orders", { state: { newPurchases: purchases } });
 
         } catch (err) {
             console.error("Direct purchase error:", err);
-            alert(`Purchase failed: ${err.message}`);
+            setStatus(`Purchase failed: ${err.message}`);
         } finally {
             setLoading(false);
         }
