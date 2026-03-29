@@ -3,6 +3,43 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 const BACKEND = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 const authHeaders = () => {
   const t = localStorage.getItem('jwt-token') || localStorage.getItem('token') || '';
+  // ── Copy / Paste ────────────────────────────────────────
+  const clipboardRef = { current: null };
+  const copyClip = useCallback(() => {
+    if (selectedClip) clipboardRef.current = { ...selectedClip };
+  }, [selectedClip]);
+
+  const pasteClip = useCallback(() => {
+    const cb = clipboardRef.current;
+    if (!cb || !tracks.length) return;
+    const newClip = {
+      ...cb,
+      id: Date.now(),
+      startTime: cb.startTime + cb.duration + 0.1,
+    };
+    addClipToTrack(tracks[0].id, newClip);
+  }, [tracks, addClipToTrack]);
+
+  // ── Reverse clip ─────────────────────────────────────────
+  const reverseClip = useCallback(() => {
+    if (!selectedClip) return;
+    updateClip(selectedClip.id, { reversed: !selectedClip.reversed });
+  }, [selectedClip, updateClip]);
+
+  // ── Speed dialog ─────────────────────────────────────────
+  const [showSpeedDialog, setShowSpeedDialog] = useState(false);
+  const openSpeedDialog = useCallback(() => {
+    if (selectedClip) setShowSpeedDialog(true);
+  }, [selectedClip]);
+
+  // ── Load project ─────────────────────────────────────────
+  const loadProject = useCallback((projectData) => {
+    if (!projectData) return;
+    if (projectData.tracks) setTracks(projectData.tracks);
+    if (projectData.projectTitle) setProjectTitle(projectData.projectTitle);
+    if (projectData.markers) setMarkers(projectData.markers || []);
+  }, [setTracks, setProjectTitle]);
+
   return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` };
 };
 
@@ -367,5 +404,8 @@ export function useEditorState() {
     timelineRef, fileInputRef, programVideoRef,
     // api
     saveProject, exportVideo, snap, BACKEND, authHeaders,
+    // new actions
+    copyClip, pasteClip, reverseClip, openSpeedDialog, loadProject,
+    showSpeedDialog, setShowSpeedDialog,
   };
 }
