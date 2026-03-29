@@ -2961,5 +2961,111 @@ export default function NodeCompositorPage() {
         </div>
       )}
 
+  <>
+      {/* ── Status bar ── */}
+      {status && (
+        <div style={{position:'fixed',bottom:16,left:'50%',transform:'translateX(-50%)',
+          background:'#1a1f2e',border:'1px solid #00ffc8',borderRadius:6,padding:'8px 20px',
+          color:'#00ffc8',fontSize:12,fontFamily:'Share Tech Mono,monospace',zIndex:9999,
+          boxShadow:'0 4px 20px rgba(0,255,200,0.2)'}}>
+          {status}
+          <button onClick={()=>setStatus('')}
+            style={{marginLeft:12,background:'none',border:'none',color:'#4e6a82',cursor:'pointer'}}>×</button>
+        </div>
+      )}
+      {/* ── Cloud Load Modal ── */}
+      {showCloudLoad && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
+          display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={e=>e.target===e.currentTarget&&setShowCloudLoad(false)}>
+          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,
+            padding:24,minWidth:360,maxHeight:'70vh',overflowY:'auto'}}>
+            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
+              fontFamily:'Share Tech Mono,monospace'}}>OPEN FROM CLOUD ☁</div>
+            {cloudProjects.map((p,i)=>(
+              <div key={i} onClick={async()=>{
+                  try{const payload=await loadFromCloud(p.key);
+                    if(payload){if(payload.nodes)setNodes(payload.nodes);
+                      if(payload.edges)setEdges(payload.edges);
+                      if(payload.name)setProjectName(payload.name);
+                      setStatus('✅ Loaded: '+p.name);}
+                  }catch(e){setStatus('Load failed: '+e.message);}
+                  setShowCloudLoad(false);}}
+                style={{padding:'10px 14px',margin:'4px 0',background:'#0d1117',
+                  border:'1px solid #21262d',borderRadius:4,cursor:'pointer',
+                  color:'#cdd9e5',fontSize:12,display:'flex',justifyContent:'space-between'}}>
+                <span>{p.name}</span>
+                <span style={{color:'#4e6a82',fontSize:10}}>{new Date(p.modified).toLocaleDateString()}</span>
+              </div>
+            ))}
+            <button onClick={()=>setShowCloudLoad(false)}
+              style={{marginTop:12,width:'100%',padding:'8px',background:'transparent',
+                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+      {/* ── Shortcuts Modal ── */}
+      {showShortcuts && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
+          display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={e=>e.target===e.currentTarget&&setShowShortcuts(false)}>
+          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,padding:24,minWidth:320,color:'#cdd9e5'}}>
+            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
+              fontFamily:'Share Tech Mono,monospace'}}>KEYBOARD SHORTCUTS</div>
+            {[['Ctrl+Z','Undo'],['Del','Delete node'],['Ctrl+S','Save'],
+              ['Ctrl+D','Duplicate node'],['Space','Play/Pause'],['R','Render']]
+              .map(([k,d])=>(
+              <div key={k} style={{display:'flex',justifyContent:'space-between',
+                padding:'5px 0',borderBottom:'1px solid #21262d',fontSize:12}}>
+                <span style={{fontFamily:'Share Tech Mono,monospace',color:'#00ffc8'}}>{k}</span>
+                <span style={{color:'#8b949e'}}>{d}</span>
+              </div>
+            ))}
+            <button onClick={()=>setShowShortcuts(false)}
+              style={{marginTop:16,width:'100%',padding:'8px',background:'transparent',
+                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+      {/* ── Node Reference Modal ── */}
+      {showNodeRef && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,
+          display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={e=>e.target===e.currentTarget&&setShowNodeRef(false)}>
+          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,padding:24,minWidth:380,maxHeight:'80vh',overflowY:'auto',color:'#cdd9e5'}}>
+            <div style={{fontSize:13,fontWeight:700,color:'#00ffc8',marginBottom:16,
+              fontFamily:'Share Tech Mono,monospace'}}>NODE REFERENCE</div>
+            {[['Input','Source image, video, or color'],
+              ['Output','Final render — required'],
+              ['Blur','Gaussian blur with radius'],
+              ['Color Correct','Brightness/contrast/saturation/hue'],
+              ['Merge','Combine layers with blend modes'],
+              ['Mask','Alpha mask from shape or luma'],
+              ['Chroma Key','Green/blue screen removal'],
+              ['Transform','Position, scale, rotation'],
+              ['Glow','Bloom/glow effect'],
+              ['Sharpen','Unsharp mask'],
+              ['Text','Animated text overlay'],
+              ['Noise','Procedural noise generator'],
+            ].map(([n,d])=>(
+              <div key={n} style={{display:'flex',gap:12,padding:'6px 0',
+                borderBottom:'1px solid #21262d',fontSize:12}}>
+                <span style={{fontFamily:'Share Tech Mono,monospace',color:'#00ffc8',minWidth:110}}>{n}</span>
+                <span style={{color:'#8b949e'}}>{d}</span>
+              </div>
+            ))}
+            <button onClick={()=>setShowNodeRef(false)}
+              style={{marginTop:16,width:'100%',padding:'8px',background:'transparent',
+                border:'1px solid #30363d',borderRadius:4,color:'#8b949e',cursor:'pointer',fontSize:12}}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   </>);
 }
