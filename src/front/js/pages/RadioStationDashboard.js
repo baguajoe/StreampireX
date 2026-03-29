@@ -248,14 +248,14 @@ const RadioStationDashboard = () => {
                   {/* RENAMED: station-action-btn instead of action-btn */}
                   <div className="station-actions">
                     <Link 
-                      to={`/radio/station/${station.id}/station`} 
+                      to={`/radio-station/${station.id}`} 
                       className="station-action-btn view"
                       title="View Station"
                     >
                       👁️ View
                     </Link>
                     <Link 
-                      to={`/radio/${station.id}/schedule`} 
+                      to={`/radio-station/${station.id}/schedule`} 
                       className="station-action-btn schedule"
                       title="Manage Schedule"
                     >
