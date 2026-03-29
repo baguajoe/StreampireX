@@ -5534,6 +5534,26 @@ const RecordingStudio = ({ user }) => {
                   { key: "spectrumAnalyzer",name:"SpectrumAnalyzer"},
                 ],
               },
+              { cat:"SPX Producer", items:[
+                  {key:"tapeStop",name:"TapeStop"},{key:"transientShaper",name:"TransientShaper"},
+                  {key:"multibandSat",name:"MultibandSat"},{key:"stereoImager",name:"StereoImager"},
+                  {key:"enhancer808",name:"808Enhancer"},{key:"loFiCrusher",name:"LoFiCrusher"},
+                  {key:"infiniteReverb",name:"InfiniteReverb"},{key:"reverseDelay",name:"ReverseDelay"},
+                  {key:"chorusEnsemble",name:"ChorusEnsemble"},{key:"tempoDelay",name:"TempoDelay"},
+                  {key:"pitchRandomizer",name:"PitchRandomizer"},{key:"autoWah",name:"AutoWah"},
+                  {key:"drumEnhancer",name:"DrumEnhancer"},{key:"vocalSaturator",name:"VocalSaturator"},
+                  {key:"subOctaver",name:"SubOctaver"},{key:"freqShifter",name:"FreqShifter"},
+                  {key:"cabinetSim",name:"CabinetSim"},
+              ]},
+              { cat:"SPX Restoration", items:[
+                  {key:"declicker",name:"Declicker"},{key:"dehummer",name:"Dehummer"},
+                  {key:"dialogueIsolator",name:"DialogueIsolator"},
+              ]},
+              { cat:"SPX Metering", items:[
+                  {key:"gainStager",name:"GainStager"},{key:"goniometer",name:"Goniometer"},
+                  {key:"phaseScope",name:"PhaseScope"},{key:"midSideComp",name:"MidSideComp"},
+                  {key:"multibandLimiter",name:"MultibandLimiter"},
+              ]},
             ].map((group) => (
               <div key={group.cat}>
                 <div

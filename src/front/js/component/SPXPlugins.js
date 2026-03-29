@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { PultecForgeUI, DynamicEQUI, GraphicEQUI, TiltEQUI, BaxandallEQUI, EQ_FX_ADDITIONS } from './SPXPlugins_EQ';
 import { VocoderSPXUI, GranularFreezeUI, NoiseReductionUI, RingModUI, FormantFilterUI, SpectrumAnalyzerUI, CREATIVE_FX_ADDITIONS } from './SPXPlugins_Creative';
+import { TapeStopUI, TransientShaperUI, MultibandSatUI, StereoImagerUI, EnhancerSPX808UI, LoFiCrusherUI, InfiniteReverbUI, ReverseDelayUI, DeclickerUI, DehummmerUI, MidSideCompUI, SubOctaverUI, ChorusEnsembleUI, TempoDelayUI, PitchRandomizerUI, AutoWahUI, DrumEnhancerUI, VocalSaturatorUI, GainStagerUI, MultibandLimiterUI, GoniometerUI, PhaseScopeUI, DialogueIsolatorUI, CabinetSimUI, FreqShifterUI } from './SPXPlugins_SPX100';
 
 // ─── UTILITY ────────────────────────────────────────────────
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -1490,6 +1491,31 @@ export const ALL_FX_EXTENDED = [
   { key: "ringMod",        name: "RingMod",        type: "distortion", component: "RingModUI"        },
   { key: "formantFilter",  name: "FormantFilter",  type: "filter",     component: "FormantFilterUI"  },
   { key: "spectrumAnalyzer", name: "SpectrumAnalyzer", type: "eq",     component: "SpectrumAnalyzerUI" },
+  { key:"tapeStop",name:"TapeStop",type:"creative",component:"TapeStopUI" },
+  { key:"transientShaper",name:"TransientShaper",type:"comp",component:"TransientShaperUI" },
+  { key:"multibandSat",name:"MultibandSat",type:"distortion",component:"MultibandSatUI" },
+  { key:"stereoImager",name:"StereoImager",type:"reverb",component:"StereoImagerUI" },
+  { key:"enhancer808",name:"808Enhancer",type:"distortion",component:"EnhancerSPX808UI" },
+  { key:"loFiCrusher",name:"LoFiCrusher",type:"distortion",component:"LoFiCrusherUI" },
+  { key:"infiniteReverb",name:"InfiniteReverb",type:"reverb",component:"InfiniteReverbUI" },
+  { key:"reverseDelay",name:"ReverseDelay",type:"delay",component:"ReverseDelayUI" },
+  { key:"declicker",name:"Declicker",type:"filter",component:"DeclickerUI" },
+  { key:"dehummer",name:"Dehummer",type:"filter",component:"DehummmerUI" },
+  { key:"midSideComp",name:"MidSideComp",type:"comp",component:"MidSideCompUI" },
+  { key:"subOctaver",name:"SubOctaver",type:"filter",component:"SubOctaverUI" },
+  { key:"chorusEnsemble",name:"ChorusEnsemble",type:"reverb",component:"ChorusEnsembleUI" },
+  { key:"tempoDelay",name:"TempoDelay",type:"delay",component:"TempoDelayUI" },
+  { key:"pitchRandomizer",name:"PitchRandomizer",type:"filter",component:"PitchRandomizerUI" },
+  { key:"autoWah",name:"AutoWah",type:"filter",component:"AutoWahUI" },
+  { key:"drumEnhancer",name:"DrumEnhancer",type:"comp",component:"DrumEnhancerUI" },
+  { key:"vocalSaturator",name:"VocalSaturator",type:"distortion",component:"VocalSaturatorUI" },
+  { key:"gainStager",name:"GainStager",type:"eq",component:"GainStagerUI" },
+  { key:"multibandLimiter",name:"MultibandLimiter",type:"limit",component:"MultibandLimiterUI" },
+  { key:"goniometer",name:"Goniometer",type:"eq",component:"GoniometerUI" },
+  { key:"phaseScope",name:"PhaseScope",type:"eq",component:"PhaseScopeUI" },
+  { key:"dialogueIsolator",name:"DialogueIsolator",type:"filter",component:"DialogueIsolatorUI" },
+  { key:"cabinetSim",name:"CabinetSim",type:"distortion",component:"CabinetSimUI" },
+  { key:"freqShifter",name:"FreqShifter",type:"filter",component:"FreqShifterUI" },
 ];
 
 // ═══════════════════════════════════════════════════════════════
