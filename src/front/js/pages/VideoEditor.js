@@ -18,7 +18,12 @@ const VideoEditor = () => {
     <div className="video-editor-page">
       <VideoEditorComponent />
       {/* ── AI Video Tools: Auto-Captions, Silence Removal, AI Thumbnails ── */}
-      <AIVideoTools isEmbedded={true} />
+      <AIVideoTools
+        isEmbedded={true}
+        videoUrl={undefined}
+        onVideoUpdate={(url) => console.log('AI video update:', url)}
+        onCaptionsGenerated={(captions) => console.log('Captions:', captions)}
+      />
     </div>
   );
 };

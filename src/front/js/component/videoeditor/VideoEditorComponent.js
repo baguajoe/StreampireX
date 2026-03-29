@@ -75,6 +75,29 @@ export default function VideoEditorComponent() {
         onReverseClip={e.reverseClip}
       />
 
+      {/* ── Speed/Duration Dialog ── */}
+      {e.showSpeedDialog && e.selectedClip && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={e => e.target===e.currentTarget && e.setShowSpeedDialog(false)}>
+          <div style={{background:'#1a1f2e',border:'1px solid #30363d',borderRadius:8,padding:24,minWidth:320,color:'#cdd9e5'}}>
+            <div style={{fontSize:13,fontWeight:700,marginBottom:16,color:'#00ffc8',fontFamily:'Share Tech Mono,monospace'}}>
+              SPEED / DURATION — {e.selectedClip.name}
+            </div>
+            <SpeedDialogContent
+              clip={e.selectedClip}
+              onApply={(speed) => {
+                e.updateClip(e.selectedClip.id, {
+                  speed: speed,
+                  duration: e.selectedClip.duration / speed,
+                });
+                e.setShowSpeedDialog(false);
+              }}
+              onClose={() => e.setShowSpeedDialog(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* ── Main body ──────────────────────────────────── */}
       <div className="spx-body">
 

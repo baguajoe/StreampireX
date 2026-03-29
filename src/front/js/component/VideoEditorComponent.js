@@ -2073,8 +2073,32 @@ const VideoEditorComponent = () => {
         console.log(`📄 Pasted "${data.title}" at ${currentTime.toFixed(2)}s`);
       }
     } else if (type === 'transition') {
-      // TODO: Handle transition paste
-      console.log('Transition paste not yet implemented');
+      // Paste transition between selected clips
+      if (selectedClip) {
+        const trackWithClip = tracks.find(t => t.clips.some(c => c.id === selectedClip.id));
+        if (trackWithClip) {
+          const clip = trackWithClip.clips.find(c => c.id === selectedClip.id);
+          const nextClip = trackWithClip.clips
+            .filter(c => c.startTime >= clip.startTime + clip.duration)
+            .sort((a,b) => a.startTime - b.startTime)[0];
+          if (nextClip) {
+            const newTrans = {
+              id: Date.now(),
+              type: data.transitionType || 'crossDissolve',
+              startTime: clip.startTime + clip.duration - (data.duration || 1),
+              duration: data.duration || 1,
+              clipAId: clip.id,
+              clipBId: nextClip.id,
+            };
+            setTracks(prev => prev.map(t =>
+              t.id === trackWithClip.id
+                ? { ...t, transitions: [...(t.transitions || []), newTrans] }
+                : t
+            ));
+            console.log('✓ Transition pasted');
+          }
+        }
+      }
     }
   };
 
