@@ -656,8 +656,48 @@ const RecordingStudio = ({ user }) => {
   const [masterConsoleChar, setMasterConsoleChar] = React.useState('none');
   const trackConsoleCharRef = React.useRef({});
   const masterConsoleCharRef = React.useRef('none');
-  const masterConsoleOutRef  = React.useRef(null); // output of master console → mastering chain input
+  const masterConsoleOutRef  = React.useRef(null);
+  const [monitorSpeaker, setMonitorSpeaker] = React.useState('flat');
+  const monitorNodesRef = React.useRef(null);
+
+  const MONITOR_EQ = {
+    flat:       { name: 'Flat (Bypass)',        cat: 'bypass',   low: 0,    lowMid: 0,    highMid: 0,    high: 0,   gain: 0    },
+    genelec8030:{ name: 'Genelec 8030C',        cat: 'pro',      low: 0.5,  lowMid: 0,    highMid: 0.3,  high: 0.5, gain: 0    },
+    genelec1032:{ name: 'Genelec 1032A',        cat: 'pro',      low: 1.0,  lowMid: 0.5,  highMid: 0.5,  high: 0.8, gain: 0    },
+    ns10:       { name: 'Yamaha NS-10M',         cat: 'pro',      low: -3,   lowMid: 2,    highMid: 2.5,  high: -2,  gain: 1    },
+    auratone:   { name: 'Auratone 5C',           cat: 'pro',      low: -8,   lowMid: 4,    highMid: 3,    high: -6,  gain: 3    },
+    avantone:   { name: 'Avantone MixCube',      cat: 'pro',      low: -7,   lowMid: 3.5,  highMid: 2.5,  high: -5,  gain: 2.5  },
+    krk8:       { name: 'KRK Rokit 8 G4',        cat: 'pro',      low: 2,    lowMid: -1,   highMid: 1,    high: 1,   gain: -1   },
+    adamA7x:    { name: 'Adam Audio A7X',         cat: 'pro',      low: 0.5,  lowMid: 0,    highMid: 0.5,  high: 1.5, gain: 0    },
+    focalAlpha: { name: 'Focal Alpha 65',         cat: 'pro',      low: 1,    lowMid: -0.5, highMid: 0.3,  high: 0.8, gain: 0    },
+    dynaudio:   { name: 'Dynaudio BM5A',          cat: 'pro',      low: 0.8,  lowMid: 0.3,  highMid: 0.5,  high: 0.5, gain: 0    },
+    evenT20:    { name: 'Event 20/20bas',          cat: 'pro',      low: 1.5,  lowMid: 0,    highMid: 0.8,  high: 0.3, gain: 0    },
+    barefoot:   { name: 'Barefoot MicroMain27',   cat: 'pro',      low: 0.3,  lowMid: 0,    highMid: 0.2,  high: 0.5, gain: 0    },
+    mackie8:    { name: 'Mackie HR824',            cat: 'pro',      low: 1.2,  lowMid: -0.3, highMid: 0.5,  high: 0.5, gain: 0    },
+    jblLsr:     { name: 'JBL LSR 305',             cat: 'pro',      low: 1.0,  lowMid: -0.5, highMid: 0.8,  high: 1.0, gain: -0.5 },
+    augspurger: { name: 'Augspurger Studio',       cat: 'pro',      low: 1.5,  lowMid: 0.5,  highMid: 0.5,  high: 1.0, gain: -1   },
+    iphone:     { name: 'iPhone Speaker',          cat: 'consumer', low: -10,  lowMid: 3,    highMid: 5,    high: -4,  gain: 4    },
+    android:    { name: 'Android Phone',           cat: 'consumer', low: -9,   lowMid: 2.5,  highMid: 4.5,  high: -3,  gain: 3.5  },
+    laptop:     { name: 'Laptop Speakers',         cat: 'consumer', low: -12,  lowMid: 2,    highMid: 4,    high: -3,  gain: 5    },
+    earbuds:    { name: 'Earbuds',                 cat: 'consumer', low: -4,   lowMid: 1,    highMid: 3,    high: 2,   gain: 1    },
+    car:        { name: 'Car Stereo',              cat: 'consumer', low: 4,    lowMid: -2,   highMid: 2,    high: -1,  gain: -1   },
+    club:       { name: 'Club / PA System',        cat: 'consumer', low: 6,    lowMid: -1,   highMid: 0,    high: 2,   gain: -3   },
+    tv:         { name: 'TV Speakers',             cat: 'consumer', low: -6,   lowMid: 1,    highMid: 3,    high: -2,  gain: 2    },
+    bluetooth:  { name: 'Bluetooth Speaker',       cat: 'consumer', low: -2,   lowMid: 1,    highMid: 2,    high: -1,  gain: 1    },
+  };
   React.useEffect(() => { trackConsoleCharRef.current = trackConsoleChar; }, [trackConsoleChar]);
+
+  React.useEffect(() => {
+    const nodes = monitorNodesRef.current;
+    if (!nodes || !audioCtxRef.current) return;
+    const eq = MONITOR_EQ[monitorSpeaker] || MONITOR_EQ.flat;
+    const t  = audioCtxRef.current.currentTime;
+    nodes.lo.gain.setTargetAtTime(eq.low,     t, 0.02);
+    nodes.loMid.gain.setTargetAtTime(eq.lowMid,  t, 0.02);
+    nodes.hiMid.gain.setTargetAtTime(eq.highMid, t, 0.02);
+    nodes.hi.gain.setTargetAtTime(eq.high,    t, 0.02);
+    nodes.gain.gain.setTargetAtTime(Math.pow(10, (eq.gain || 0) / 20), t, 0.02);
+  }, [monitorSpeaker]);
   React.useEffect(() => { masterConsoleCharRef.current = masterConsoleChar; }, [masterConsoleChar]);
   const [latencyMs, setLatencyMs] = React.useState(0);
   const [monitoringEnabled, setMonitoringEnabled] = React.useState(false);
@@ -988,7 +1028,15 @@ const RecordingStudio = ({ user }) => {
       masterPanRef.current.connect(splitter);
       splitter.connect(masterAnalyserLRef.current, 0);
       splitter.connect(masterAnalyserRRef.current, 1);
-      masterPanRef.current.connect(audioCtxRef.current.destination);
+      const monLo    = ctx.createBiquadFilter(); monLo.type = 'lowshelf';  monLo.frequency.value = 200;
+    const monLoMid  = ctx.createBiquadFilter(); monLoMid.type = 'peaking'; monLoMid.frequency.value = 500;  monLoMid.Q.value = 1;
+    const monHiMid  = ctx.createBiquadFilter(); monHiMid.type = 'peaking'; monHiMid.frequency.value = 3000; monHiMid.Q.value = 1;
+    const monHi     = ctx.createBiquadFilter(); monHi.type = 'highshelf'; monHi.frequency.value = 8000;
+    const monGain   = ctx.createGain();
+    monLo.connect(monLoMid); monLoMid.connect(monHiMid); monHiMid.connect(monHi);
+    monHi.connect(monGain); monGain.connect(ctx.destination);
+    masterPanRef.current.connect(monLo);
+    monitorNodesRef.current = { lo: monLo, loMid: monLoMid, hiMid: monHiMid, hi: monHi, gain: monGain };
     }
     if (audioCtxRef.current.state === "suspended") audioCtxRef.current.resume();
 
@@ -3551,6 +3599,35 @@ const RecordingStudio = ({ user }) => {
             octave={instrumentEngine.keyboardOctave}
             onOctaveChange={instrumentEngine.setKeyboardOctave}
           />
+          {/* ── Monitor Speaker Simulator ── */}
+          <div style={{ display:'flex', alignItems:'center', gap:4, marginLeft:8,
+            background:'rgba(0,255,200,0.05)', border:'1px solid rgba(0,255,200,0.15)',
+            borderRadius:4, padding:'2px 6px' }}>
+            <span style={{ fontSize:9, color:'#00ffc8', fontFamily:'Share Tech Mono,monospace',
+              letterSpacing:1, whiteSpace:'nowrap' }}>🔊 MON</span>
+            <select
+              value={monitorSpeaker}
+              onChange={e => setMonitorSpeaker(e.target.value)}
+              style={{ background:'#0d1117', border:'none', color: monitorSpeaker === 'flat' ? '#444' :
+                MONITOR_EQ[monitorSpeaker]?.cat === 'pro' ? '#00ffc8' : '#ff8a3d',
+                fontSize:9, fontFamily:'Share Tech Mono,monospace', cursor:'pointer',
+                outline:'none', padding:'1px 2px', maxWidth:130 }}
+              title="Monitor speaker simulation">
+              <optgroup label="── Bypass ──">
+                <option value="flat">Flat (Bypass)</option>
+              </optgroup>
+              <optgroup label="── Pro Monitors ──">
+                {Object.entries(MONITOR_EQ).filter(([,v]) => v.cat === 'pro').map(([id, v]) => (
+                  <option key={id} value={id}>{v.name}</option>
+                ))}
+              </optgroup>
+              <optgroup label="── Consumer ──">
+                {Object.entries(MONITOR_EQ).filter(([,v]) => v.cat === 'consumer').map(([id, v]) => (
+                  <option key={id} value={id}>{v.name}</option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
         </div>
 
         {/* ═══ View Tabs ═══ */}
@@ -5103,7 +5180,7 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
         {viewMode === 'speakersim' && (
-          <SpeakerSimulator />
+          <SpeakerSimulator audioContext={audioCtxRef.current} inputNode={masterConsoleOutRef.current || masterGainRef.current} />
         )}
         {viewMode === 'mastering' && (
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: '#06090f' }}>
