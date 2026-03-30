@@ -178,6 +178,7 @@ import ShortFilmHub       from "./pages/ShortFilmHub";
 import ScreeningScheduler from "./pages/ScreeningScheduler";
 import FilmFestivalBoard  from "./pages/FilmFestivalBoard";
 import PluginStorePage from "./pages/PluginStorePage";
+import DigitalProducts from "./pages/DigitalProducts";
 import SellPluginPage from "./pages/SellPluginPage";
 import PluginDetailPage from "./pages/PluginDetailPage";
 
@@ -627,7 +628,6 @@ const AppShell = ({ user }) => {
 
                                 {/* ---------------- Fallback ---------------- */}
                                 <Route path="*" element={<Home />} />
-<Route path="/plugin-store" element={<PluginStorePage />} />
 <Route path="/sell-plugin" element={<SellPluginPage />} />
 <Route path="/plugins/:pluginId" element={<PluginDetailPage />} />
                             </Routes>
