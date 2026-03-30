@@ -87,6 +87,7 @@ import AIPromoGenerator from "./pages/AIPromoGenerator";
 import VideoUpload from "./pages/VideoUpload";
 import VideoDetails from "./component/VideoDetails";
 import ReelsFeed from "./pages/ReelsFeed";
+import ReelsPage  from "./pages/ReelsPage";
 import MyReels from "./pages/MyReels";
 import UploadReel from "./pages/UploadReel";
 import RadioStationDashboard from "./pages/RadioStationDashboard";
@@ -155,6 +156,9 @@ import SamplerBeatMaker from "./component/SamplerBeatMaker";
 
 import EditGamerProfilePage from "./pages/EditGamerProfilePage";
 import CreateTeamRoomPage from "./pages/CreateTeamRoomPage";
+import GamingHubPage    from "./pages/GamingHubPage";
+import TournamentPage   from "./pages/TournamentPage";
+import LeaderboardPage  from "./pages/LeaderboardPage";
 import ContentLibrary from "./pages/ContentLibrary";
 import StoryViewer from "./pages/StoryViewer";
 import StoryUpload from "./pages/StoryUpload";
@@ -605,6 +609,11 @@ const AppShell = ({ user }) => {
                                 <Route path="/team-room/:id" element={<TeamRoomPage />} />
                                 <Route path="/team-room/main" element={<TeamRoomPage />} />
                                 <Route path="/create-team-room" element={<CreateTeamRoomPage />} />
+                                <Route path="/gaming"          element={<GamingHubPage />} />
+                                <Route path="/tournaments"     element={<TournamentPage />} />
+                                <Route path="/leaderboards"    element={<LeaderboardPage />} />
+                                <Route path="/reel/:id"        element={<ReelsPage />} />
+                                <Route path="/tag/:hashtag"    element={<HomeFeed />} />
                                 <Route path="/gamer-profile/:id" element={<GamerProfilePage />} />
                                 <Route path="/edit-gamer-profile" element={<EditGamerProfilePage />} />
                                 <Route path="/gamers-chatroom" element={<GamersChatroomPage />} />

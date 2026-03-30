@@ -284,6 +284,9 @@ const Sidebar = ({ user }) => {
         <span className="sidebar-arrow" style={{ fontSize:'0.7rem' }}>{showGaming ? "▼" : "▶"}</span>
       </GamingSectionHeader>
       {showGaming && (<>
+        <GamingMenuItem to="/gaming" className={isActive("/gaming") ? "active" : ""}>
+          🎮 <span className="sidebar-label">Gaming Hub</span>
+        </GamingMenuItem>
         <GamingMenuItem to="/gamers-chatroom" className={isActive("/gamers-chatroom") ? "active" : ""}>
           💬 <span className="sidebar-label">Gamer Chatrooms</span>
           {gamingNotifications.chatrooms > 0 && <NotificationBadge>{gamingNotifications.chatrooms}</NotificationBadge>}
@@ -295,6 +298,15 @@ const Sidebar = ({ user }) => {
         <GamingMenuItem to="/team-room/main" className={isActive("/team-room") ? "active" : ""}>
           🧑‍🤝‍🧑 <span className="sidebar-label">Team Room</span>
           {gamingNotifications.teamRoom > 0 && <NotificationBadge>{gamingNotifications.teamRoom}</NotificationBadge>}
+        </GamingMenuItem>
+        <GamingMenuItem to="/tournaments" className={isActive("/tournaments") ? "active" : ""}>
+          🏆 <span className="sidebar-label">Tournaments</span>
+        </GamingMenuItem>
+        <GamingMenuItem to="/leaderboards" className={isActive("/leaderboards") ? "active" : ""}>
+          📊 <span className="sidebar-label">Leaderboards</span>
+        </GamingMenuItem>
+        <GamingMenuItem to="/create-team-room" className={isActive("/create-team-room") ? "active" : ""}>
+          ➕ <span className="sidebar-label">Create Team Room</span>
         </GamingMenuItem>
       </>)}
 
