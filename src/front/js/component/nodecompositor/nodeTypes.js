@@ -452,8 +452,7 @@ export const NODE_TYPES = {
     defaults: {
       name: "Output"
     }
-  }
-};
+  },
 
 
   lightWrap: {
