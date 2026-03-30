@@ -25,6 +25,7 @@ import ComparePage from "./pages/ComparePage";
 
 // --- App / Feature Pages ---
 import SellerDashboard from "./pages/SellerDashboard";
+import BecomeASeller from "./pages/BecomeASeller";
 import PodcastDashboard from "./pages/PodcastDashboard";
 import PodcastCreate from "./pages/PodcastCreate";
 import PodcastPage from "./pages/PodcastDetailPage";
@@ -456,6 +457,8 @@ const AppShell = ({ user }) => {
                                 <Route path="/my-radio-stations" element={<RadioStationDashboard />} />
                                 <Route path="/video-channel-dashboard" element={<VideoChannelDashboard />} />
                                 <Route path="/sales-dashboard" element={<SalesDashboard />} />
+                                <Route path="/seller-dashboard" element={<SellerDashboard />} />
+                                <Route path="/become-a-seller" element={<BecomeASeller />} />
                                 <Route path="/payout-dashboard" element={<PayoutDashboard />} />
                                 <Route path="/notifications" element={<NotificationsPage />} />
                                 <Route path="/settings" element={<SettingsPage />} />

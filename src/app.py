@@ -570,12 +570,14 @@ from api.rss_routes import rss_bp
 from api.plugin_marketplace_routes import plugin_marketplace_bp
 from api.payout_routes import payout_bp
 from api.score_routes import score_bp
+from api.seller_routes import seller_bp
 # from api.routes.render_routes import render_api  # disabled: routes/ folder conflicts with routes.py
 
 
 app.register_blueprint(marketplace_bp)
 app.register_blueprint(jam_tracks_bp)
 app.register_blueprint(collab_marketplace_bp)
+app.register_blueprint(seller_bp)
 app.register_blueprint(printful_oauth_bp)
 app.register_blueprint(printful_unified_bp, url_prefix="/api/merch")
 app.register_blueprint(reference_mastering_bp)

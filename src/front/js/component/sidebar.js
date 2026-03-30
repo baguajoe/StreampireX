@@ -454,6 +454,7 @@ const Sidebar = ({ user }) => {
         <MenuItem to="/seller-dashboard" className={isActive("/seller-dashboard") ? "active" : ""}>📊 <span className="sidebar-label">Seller Dashboard</span></MenuItem>
         <MenuItem to="/sales-dashboard" className={isActive("/sales-dashboard") ? "active" : ""}>📈 <span className="sidebar-label">Sales Analytics</span></MenuItem>
         <MenuItem to="/orders" className={isActive("/orders") ? "active" : ""}>📦 <span className="sidebar-label">Orders</span></MenuItem>
+        <MenuItem to="/become-a-seller" className={isActive("/become-a-seller") ? "active" : ""}>✨ <span className="sidebar-label">Become a Seller</span><MenuHint className="sidebar-hint">start selling</MenuHint></MenuItem>
       </>)}
 
       {/* #11 ACCOUNT */}
