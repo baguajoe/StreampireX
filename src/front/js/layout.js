@@ -178,6 +178,8 @@ import VirtualTheatreRoom from "./pages/VirtualTheatreRoom";
 import ShortFilmHub       from "./pages/ShortFilmHub";
 import ScreeningScheduler from "./pages/ScreeningScheduler";
 import FilmFestivalBoard  from "./pages/FilmFestivalBoard";
+import CoursePage         from "./pages/CoursePage";
+import FilmEarningsDashboard from "./pages/FilmEarningsDashboard";
 import PluginStorePage from "./pages/PluginStorePage";
 import DigitalProducts from "./pages/DigitalProducts";
 import SellPluginPage from "./pages/SellPluginPage";
@@ -628,6 +630,8 @@ const AppShell = ({ user }) => {
                                 <Route path="/short-films"          element={<ShortFilmHub />} />
                                 <Route path="/screening-scheduler"  element={<ScreeningScheduler />} />
                                 <Route path="/film-festival"        element={<FilmFestivalBoard />} />
+                                <Route path="/course/:id"           element={<CoursePage />} />
+                                <Route path="/film-earnings"        element={<FilmEarningsDashboard />} />
 
                                 {/* ---------------- Fallback ---------------- */}
                                 <Route path="*" element={<Home />} />

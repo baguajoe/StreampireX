@@ -390,6 +390,7 @@ const Sidebar = ({ user }) => {
         <FilmMenuItem to="/short-films" className={isActive("/short-films") ? "active" : ""}>⚡ <span className="sidebar-label">Short Films</span><MenuHint className="sidebar-hint">hot</MenuHint></FilmMenuItem>
         <FilmMenuItem to="/screening-scheduler" className={isActive("/screening-scheduler") ? "active" : ""}>🎟️ <span className="sidebar-label">Live Premiere</span></FilmMenuItem>
         <FilmMenuItem to="/film-festival" className={isActive("/film-festival") ? "active" : ""}>🏆 <span className="sidebar-label">Film Festival</span><MenuHint className="sidebar-hint">monthly</MenuHint></FilmMenuItem>
+        <FilmMenuItem to="/film-earnings" className={isActive("/film-earnings") ? "active" : ""}>💰 <span className="sidebar-label">Film Earnings</span></FilmMenuItem>
         <FilmMenuItem to="/video-series-builder" className={isActive("/video-series-builder") ? "active" : ""}>📺 <span className="sidebar-label">Video Series</span></FilmMenuItem>
       </>)}
 

@@ -1,6 +1,16 @@
 // =============================================================================
 // EPKCollabHub.js — EPK Builder + Collab Marketplace (Unified)
-// =============================================================================
+
+              <a
+                href="/ai-epk-writer"
+                style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'8px 18px',
+                  border:'1px solid rgba(0,255,200,0.4)', borderRadius:8,
+                  background:'rgba(0,255,200,0.08)', color:'#00ffc8',
+                  textDecoration:'none', fontSize:13, fontWeight:600,
+                  marginBottom:16, cursor:'pointer' }}
+              >
+                🤖 AI EPK Writer — Auto-generate your EPK
+              </a>// =============================================================================
 // Three-tab interface:
 //   1. MY EPK — Build/edit your Electronic Press Kit
 //   2. COLLAB BOARD — Browse & post collaboration requests
