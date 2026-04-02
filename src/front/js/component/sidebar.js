@@ -278,7 +278,31 @@ const Sidebar = ({ user }) => {
         <MenuItem to="/explore" className={isActive("/explore") ? "active" : ""}>🌐 <span className="sidebar-label">Explore</span></MenuItem>
       </>)}
 
-      {/* #3 GAMING */}
+      {/* #3 SPX SUITE */}
+      <SpxSectionHeader className="sidebar-section-header" onClick={() => setShowSpx(!showSpx)}>
+        🖥️ <span className="sidebar-section-text">SPX Suite</span>
+        <span className="sidebar-arrow" style={{ fontSize:'0.6rem', marginLeft:'auto' }}>{showSpx ? '▼' : '▶'}</span>
+      </SpxSectionHeader>
+      {showSpx && (<>
+        <SpxMenuItem to="/recording-studio" className={isActive("/recording-studio") ? "active" : ""}>
+          🎛️ <span className="sidebar-label">SPX Studio</span><MenuHint className="sidebar-hint">recording</MenuHint>
+        </SpxMenuItem>
+        <SpxMenuItem to="/video-editor" className={isActive("/video-editor") ? "active" : ""}>
+          🎬 <span className="sidebar-label">SPX Editor</span><MenuHint className="sidebar-hint">FREE</MenuHint>
+        </SpxMenuItem>
+        <SpxMenuItem to="/motion-studio" className={isActive("/motion-studio") ? "active" : ""}>✨ <span className="sidebar-label">SPX Motion</span></SpxMenuItem>
+        <SpxMenuItem to="/node-compositor" className={isActive("/node-compositor") ? "active" : ""}>🎛️ <span className="sidebar-label">SPX Compositor</span></SpxMenuItem>
+        <SpxMenuItem to="/spx-canvas" className={isActive("/spx-canvas") ? "active" : ""}>🎨 <span className="sidebar-label">SPX Canvas</span></SpxMenuItem>
+        <SpxMenuItem to="/spx-vector" className={isActive("/spx-vector") ? "active" : ""}>✒️ <span className="sidebar-label">SPX Vector</span></SpxMenuItem>
+        <SpxMenuItem to="/spx-mesh-editor" className={isActive("/spx-mesh-editor") ? "active" : ""}>🧊 <span className="sidebar-label">SPX 3D Mesh</span></SpxMenuItem>
+        <SpxMenuItem to="/spx-puppet" className={isActive("/spx-puppet") ? "active" : ""}>🎭 <span className="sidebar-label">SPX Puppet</span></SpxMenuItem>
+        <SpxMenuItem to="/spx-beat-lab" className={isActive("/spx-beat-lab") ? "active" : ""}>🥁 <span className="sidebar-label">SPX Beat Lab</span></SpxMenuItem>
+        <SpxMenuItem to="/podcast-studio" className={isActive("/podcast-studio") ? "active" : ""}>🎙️ <span className="sidebar-label">SPX Cast</span></SpxMenuItem>
+        <SpxMenuItem to="/dj-mixer" className={isActive("/dj-mixer") ? "active" : ""}>🎚️ <span className="sidebar-label">SPX DJ Mixer</span></SpxMenuItem>
+      </>)}
+
+
+      {/* #4 GAMING */}
       <GamingSectionHeader onClick={() => setShowGaming(!showGaming)}>
         <span>🎮 <span className="sidebar-label">Gaming</span><FreeBadge className="sidebar-label" style={{ marginLeft:'6px' }}>FREE</FreeBadge></span>
         <span className="sidebar-arrow" style={{ fontSize:'0.7rem' }}>{showGaming ? "▼" : "▶"}</span>
@@ -401,29 +425,6 @@ const Sidebar = ({ user }) => {
         <FilmMenuItem to="/film-festival" className={isActive("/film-festival") ? "active" : ""}>🏆 <span className="sidebar-label">Film Festival</span><MenuHint className="sidebar-hint">monthly</MenuHint></FilmMenuItem>
         <FilmMenuItem to="/film-earnings" className={isActive("/film-earnings") ? "active" : ""}>💰 <span className="sidebar-label">Film Earnings</span></FilmMenuItem>
         <FilmMenuItem to="/video-series-builder" className={isActive("/video-series-builder") ? "active" : ""}>📺 <span className="sidebar-label">Video Series</span></FilmMenuItem>
-      </>)}
-
-      {/* #8 SPX SUITE */}
-      <SpxSectionHeader className="sidebar-section-header" onClick={() => setShowSpx(!showSpx)}>
-        🖥️ <span className="sidebar-section-text">SPX Suite</span>
-        <span className="sidebar-arrow" style={{ fontSize:'0.6rem', marginLeft:'auto' }}>{showSpx ? '▼' : '▶'}</span>
-      </SpxSectionHeader>
-      {showSpx && (<>
-        <SpxMenuItem to="/recording-studio" className={isActive("/recording-studio") ? "active" : ""}>
-          🎛️ <span className="sidebar-label">SPX Studio</span><MenuHint className="sidebar-hint">recording</MenuHint>
-        </SpxMenuItem>
-        <SpxMenuItem to="/video-editor" className={isActive("/video-editor") ? "active" : ""}>
-          🎬 <span className="sidebar-label">SPX Editor</span><MenuHint className="sidebar-hint">FREE</MenuHint>
-        </SpxMenuItem>
-        <SpxMenuItem to="/motion-studio" className={isActive("/motion-studio") ? "active" : ""}>✨ <span className="sidebar-label">SPX Motion</span></SpxMenuItem>
-        <SpxMenuItem to="/node-compositor" className={isActive("/node-compositor") ? "active" : ""}>🎛️ <span className="sidebar-label">SPX Compositor</span></SpxMenuItem>
-        <SpxMenuItem to="/spx-canvas" className={isActive("/spx-canvas") ? "active" : ""}>🎨 <span className="sidebar-label">SPX Canvas</span></SpxMenuItem>
-        <SpxMenuItem to="/spx-vector" className={isActive("/spx-vector") ? "active" : ""}>✒️ <span className="sidebar-label">SPX Vector</span></SpxMenuItem>
-        <SpxMenuItem to="/spx-mesh-editor" className={isActive("/spx-mesh-editor") ? "active" : ""}>🧊 <span className="sidebar-label">SPX 3D Mesh</span></SpxMenuItem>
-        <SpxMenuItem to="/spx-puppet" className={isActive("/spx-puppet") ? "active" : ""}>🎭 <span className="sidebar-label">SPX Puppet</span></SpxMenuItem>
-        <SpxMenuItem to="/spx-beat-lab" className={isActive("/spx-beat-lab") ? "active" : ""}>🥁 <span className="sidebar-label">SPX Beat Lab</span></SpxMenuItem>
-        <SpxMenuItem to="/podcast-studio" className={isActive("/podcast-studio") ? "active" : ""}>🎙️ <span className="sidebar-label">SPX Cast</span></SpxMenuItem>
-        <SpxMenuItem to="/dj-mixer" className={isActive("/dj-mixer") ? "active" : ""}>🎚️ <span className="sidebar-label">SPX DJ Mixer</span></SpxMenuItem>
       </>)}
 
       {/* #9 CREATOR ACADEMY */}

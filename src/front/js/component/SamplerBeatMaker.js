@@ -2805,7 +2805,6 @@ const SamplerBeatMaker = ({
           { id: 'beats',       label: '🎹 SPX Beat Lab', title: 'Step Sequencer, Patterns, Song Mode' },
           { id: 'spx3000',     label: '🎛️ SPX3000',     title: 'SPX3000 — MPC3000 engine, 12-bit DAC, 4 banks, 96 PPQN' },
           { id: 'sp1200',      label: '🔴 SP-1200',      title: 'SP-1200 — E-mu 1987, 26kHz, asymmetric saturation, boom bap' },
-          { id: 'spx3200',     label: '🎹 SPX-3200',     title: 'SPX-3200 — Modern MPC workflow, 32/24/16-bit, virtual keyboard, chop engine' },
           { id: 'triple',      label: '🗡️ SPX Trident',       title: 'SP-1200 + SPX3000 + SPX-3200 — unified 3-engine sampler with master clock' },
           { id: 'sounds',      label: '🔊 Sounds',       title: 'Freesound Sample Browser — 500k+ free sounds' },
           { id: 'loops',       label: '🔁 Loops',        title: 'Looperman Loop Browser — 4M+ free loops' },
