@@ -3847,6 +3847,12 @@ const RecordingStudio = ({ user }) => {
           >
             🎛️ Analog Suite
           </button>
+          <button className={`daw-view-tab ${viewMode === 'looperman' ? 'active' : ''}`} onClick={() => setViewMode('looperman')} title="Looperman — Free loops & acapellas">
+            🎵 Loops
+          </button>
+          <button className={`daw-view-tab ${viewMode === 'freesound' ? 'active' : ''}`} onClick={() => setViewMode('freesound')} title="Freesound — Search & load free samples">
+            🔊 Sounds
+          </button>
         </div>
 
         {/* I/O & Status */}

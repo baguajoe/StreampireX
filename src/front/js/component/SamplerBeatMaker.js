@@ -6,6 +6,8 @@
 // mic/line-in sampling, MIDI controller support, sound library, export
 // =============================================================================
 
+import LoopermanBrowser from './LoopermanBrowser';
+import FreesoundBrowser from './FreesoundBrowser';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import '../../styles/SamplerBeatMaker.css';
 import '../../styles/BeatMakerTab.css';
@@ -142,52 +144,53 @@ const SYNTH_MAP = {
 };
 
 // Dr. Dre 2001 Kit — real samples from R2
-const R2_KIT_URLS = {
-  "Kick": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Kick/Kick%20-%20Forgot%20About%20Dre.wav",
-  "Kick 2": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Kick/Kick%20-%20Still%20D.R.E..wav",
-  "Kick Alt": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Kick/Kick%20-%20The%20Next%20Episode.wav",
-  "Snare": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Snare/Snare%20-%20Forgot%20About%20Dre.wav",
-  "Snare 2": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Snare/Snare%20-%20Still%20D.R.E..wav",
-  "Snare Alt": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Snare/Snare%20-%20The%20Next%20Episode.wav",
-  "Hi Hat": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Hi%20Hat/Hi%20Hat%20-%20Forgot%20About%20Dre.wav",
-  "Hi Hat 2": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Hi%20Hat/Hi%20Hat%20-%20Still%20D.R.E..wav",
-  "Hi Hat 3": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Hi%20Hat/Hi%20Hat%20-%20The%20Next%20Episode.wav",
-  "Open Hat": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Open%20Hat/OH%20-%20Still%20D.R.E..wav",
-  "Open Hat 2": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Open%20Hat/OH%20-%20The%20Next%20Episode.wav",
-  "Perc": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Perc/Perc%20-%20Forgot%20About%20Dre.wav",
-  "Perc 2": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Perc/Perc%20-%20Still%20D.R.E..wav",
-  "Perc 3": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Perc/Perc%20-%20The%20Next%20Episode.wav",
-  "Perc 4": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Perc/Perc%20-%20Bar%20One.wav",
-  "Snare 3": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Snare/Snare%20-%20Bang%20Bang.wav",
-};
+// R2_KIT_URLS — add your own cleared sample URLs here
+// Format: "Sample Name": "https://your-r2-bucket.r2.dev/path/to/sample.wav"
+const R2_KIT_URLS = {};
 
 const SOUND_LIBRARY = {
-  "West Coast Classic Kit": ["Hi Hat - Ackrite", "Hi Hat - Bang Bang", "Hi Hat - Bar One", "Kick - Ackrite", "Kick - Bang Bang 2", "Kick - Bang Bang", "OH - Still D.R.E.", "OH - The Next Episode", "Perc - Bar One", "Perc - Bitch Niggaz", "Perc - ED-Ucation", "Snare - Ackrite", "Snare - Bang Bang 2", "Snare - Bang Bang"],
-  "MPC Classic Kit": ["001 Hi Hat (1)", "002 Hi Hat (2)", "012 Kick (1)", "013 Kick (2)", "049 Clap Dry", "050 Snap Dry", "040 Sleigh Bell", "041 Open Hi Hat 1"],
-  "SUB 808 Kit": ["01_808", "10_808", "BBT_Sub_Bass", "BBT_Sub_Bass_OD_1", "BBT_Sub_Bass_OD_3", "BPM 140__SUB_BASS", "B_808's", "Bpm140_Dm__Sub", "Bpm140_Em_Sub3", "Bpm140_Em__Sub1", "Bpm140_Em__Sub2", "Bpm140_Em__Sub4", "DR-660 Kick43", "JSW_138__SUB_LINE", "PHA_140_E_Subloop_05", "PHA_140_E_Subloop_05 a"],
-  "90s R&B Kit": ["Clap (Jiggy", "Clap (So Is This One", "Clap (Thats Right", "Clap (This A Lil More 2000s Sounding But IDGAF", "Clap (This Was Live", "Clap (Why Is Like Every Clap On The Sub A Variation of The 808", "Hi-Hat (Coconut Oil", "Hi-Hat (Come With Me", "Hi-Hat (RnB Hats Sound Like Trash But When U Put Them In A Beat They Dope", "Hi-Hat (Shea Butter", "Kick (A Lot Of These Sound Similar But They Different", "Kick (Coconut Oil", "Kick (Cryin", "Kick (Kinda Distorted", "Kick (Soul", "Kick (Treat Ya Right"],
-  "Bass & 808 Pack": ["808 Slide", "Bass Zap", "Brass 808", "Buzzy Bass", "Dutty 808", "Envelope Bass", "Erosion 808", "Filter Driven Bass", "Nostril 808", "Panned Robot Reese", "Punchy 808", "Rekt 808", "Reverse Bass", "Screech Bass", "Slug Bass", "Tom 808"],
-  "Vintage Drum Breaks": ["Drum Break 100", "Drum Break 78", "Drum Break 79", "Drum Break 85", "Drum Break 86", "Drum Break 87", "Drum Break 88", "Drum Break 89", "Drum Break 93", "Drum Break 94", "Drum Break 95", "Drum Break 96", "Drum Break 97", "Drum Break 98", "Drum Break 99", "Drum Break ?"],
-  'Trap Kit': ["Kick", "Kick 2", "Kick Alt", "Snare", "Snare 2", "Snare Alt", "Hi Hat", "Hi Hat 2", "Hi Hat 3", "Open Hat", "Open Hat 2", "Perc", "Perc 2", "Perc 3", "Perc 4", "Snare 3"],
+  // ── 7 cleared generic kits — safe for commercial distribution ──
+  'SUB 808 Kit': [
+    '808 Sub 1', '808 Sub 2', '808 Sub 3', '808 Sub 4',
+    '808 OD 1', '808 OD 2', '808 Slide', '808 Long',
+    '808 Short', '808 Punch', '808 Boom', '808 Tone',
+    '808 Deep', '808 Mid', '808 High', '808 Clean',
+  ],
+  'Bass & 808 Pack': [
+    '808 Slide', 'Bass Zap', 'Brass 808', 'Buzzy Bass',
+    'Dutty 808', 'Envelope Bass', 'Erosion 808', 'Filter Driven Bass',
+    'Nostril 808', 'Panned Robot Reese', 'Punchy 808', 'Rekt 808',
+    'Reverse Bass', 'Screech Bass', 'Slug Bass', 'Tom 808',
+  ],
   'Boom Bap Kit': [
     'Kick Dusty', 'Snare Vinyl', 'HH Tight', 'Open Hat',
     'Shaker', 'Kick Alt', 'Snare Ghost', 'Ride',
+    'Clap Dry', 'Perc 1', 'Perc 2', 'Rim Shot',
+    'Crash', 'Tom Hi', 'Tom Low', 'Finger Snap',
   ],
   'R&B Kit': [
     'Kick Soft', 'Snare Brush', 'HH Light', 'Rim Click',
     'Fingersnap', 'Shaker', 'Tambourine', 'Clap Soft',
+    'Open Hat', 'Perc Soft', 'Tom Warm', 'Snap',
+    'Clap Layer', 'HH Open', 'Kick Alt', 'Snare Alt',
   ],
   'Lo-Fi Kit': [
     'Kick Muffled', 'Snare Tape', 'HH Dusty', 'Vinyl Crackle',
-    'Perc Warm', 'Rim Soft',
+    'Perc Warm', 'Rim Soft', 'Open Hat Lo', 'Clap Vintage',
+    'Shaker Lo', 'Tom Lo', 'Snap Warm', 'Perc 2',
+    'Kick Alt', 'Snare Alt', 'HH Alt', 'Crash Lo',
   ],
   'EDM Kit': [
     'Kick Big', 'Clap Layer', 'HH Sharp', 'Open Hat',
     'Crash', 'Snare Build', 'Riser', 'Impact',
+    'Kick Punch', 'Clap Dry', 'HH Closed', 'Cymbal',
+    'Tom Synth', 'Perc EDM', 'Snare Reverse', 'Kick Sub',
   ],
   'Afrobeats Kit': [
     'Kick Log', 'Snare Wire', 'Shaker', 'Bell',
     'Conga High', 'Conga Low', 'Guiro', 'Perc',
+    'Talking Drum', 'Djembe Hi', 'Djembe Low', 'Agogo',
+    'Cabasa', 'Cowbell', 'Clap Afro', 'Kick Alt',
   ],
 };
 
@@ -2815,6 +2818,8 @@ const SamplerBeatMaker = ({
           { id: 'instrument', label: '🎸 Instrument', title: 'Custom Instrument Builder' },
           { id: 'stutter',    label: '⚡ Stutter',    title: 'Beat-Synced Stutter / Glitch FX — Gross Beat style' },
           { id: 'triple',     label: '🎚️ All 3',     title: 'SP-1200 + SPX3000 + Digital — unified 3-engine sampler with master clock' },
+          { id: 'looperman',  label: '🎵 Loops',      title: 'Looperman — Free loops & acapellas' },
+          { id: 'freesound',  label: '🔊 Sounds',     title: 'Freesound — Search & load free samples onto pads' },
         ].map(tab => (
           <button
             key={tab.id}
@@ -3036,6 +3041,26 @@ const SamplerBeatMaker = ({
         )}
 
         {/* ── STEMS TAB ── */}
+        {activeTab === 'looperman' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <LoopermanBrowser
+              onLoadSample={(url, name) => {
+                const pi = selectedPad !== null ? selectedPad : 0;
+                loadSample(pi, url);
+              }}
+            />
+          </div>
+        )}
+        {activeTab === 'freesound' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <FreesoundBrowser
+              onLoadSample={(url, name, blob) => {
+                const pi = selectedPad !== null ? selectedPad : 0;
+                loadSample(pi, blob || url);
+              }}
+            />
+          </div>
+        )}
         {activeTab === 'stems' && (
           <StemSeparatorTab
             engine={{
