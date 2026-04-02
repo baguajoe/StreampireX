@@ -316,9 +316,7 @@ const Sidebar = ({ user }) => {
         <span className="sidebar-arrow" style={{ fontSize:'0.6rem', marginLeft:'auto' }}>{showMusic ? '▼' : '▶'}</span>
       </SectionHeader>
       {showMusic && (<>
-        <MenuItem to="/spx-beat-lab" className={isActive("/spx-beat-lab") ? "active" : ""}>
-          🥁 <span className="sidebar-label">SPX Beat Lab</span><MenuHint className="sidebar-hint">DAW</MenuHint>
-        </MenuItem>
+        <MenuItem to="/music-distribution" className={isActive("/music-distribution") ? "active" : ""}>🌍 <span className="sidebar-label">Music Distribution</span></MenuItem>
         <MenuItem to="/ai-mastering" className={isActive("/ai-mastering") ? "active" : ""}>🎚️ <span className="sidebar-label">AI Mastering</span></MenuItem>
         <MenuItem to="/ai-stem-separation" className={isActive("/ai-stem-separation") ? "active" : ""}>
           🎵 <span className="sidebar-label">Stem Separation</span><MenuHint className="sidebar-hint">FREE</MenuHint>
@@ -329,7 +327,6 @@ const Sidebar = ({ user }) => {
         <MenuItem to="/ai-text-to-song" className={isActive("/ai-text-to-song") ? "active" : ""}>
           🎵 <span className="sidebar-label">Text to Song</span><MenuHint className="sidebar-hint">AI</MenuHint>
         </MenuItem>
-        <MenuItem to="/music-distribution" className={isActive("/music-distribution") ? "active" : ""}>🌍 <span className="sidebar-label">Music Distribution</span></MenuItem>
         <MenuItem to="/epk-collab-hub" className={isActive("/epk-collab-hub") ? "active" : ""}>
           📋 <span className="sidebar-label">EPK & Collabs</span><MenuHint className="sidebar-hint">FREE</MenuHint>
         </MenuItem>
@@ -365,12 +362,12 @@ const Sidebar = ({ user }) => {
 
       {/* #5 PODCAST */}
       <PodcastSectionHeader className="sidebar-section-header" onClick={() => setShowPodcast(!showPodcast)}>
-        🎙️ <span class="sidebar-section-text">SPX Cast</span>
+        🎙️ <span className="sidebar-section-text">Podcast</span>
         <span className="sidebar-arrow" style={{ fontSize:'0.6rem', marginLeft:'auto' }}>{showPodcast ? '▼' : '▶'}</span>
       </PodcastSectionHeader>
       {showPodcast && (<>
+        <PodcastMenuItem to="/browse-podcast-categories" className={isActive("/browse-podcast-categories") ? "active" : ""}>🎧 <span className="sidebar-label">Browse Podcasts</span></PodcastMenuItem>
         <PodcastMenuItem to="/my-podcasts" className={isActive("/my-podcasts") ? "active" : ""}>🎙️ <span className="sidebar-label">My Podcasts</span></PodcastMenuItem>
-        <PodcastMenuItem to="/podcast-studio" className={isActive("/podcast-studio") ? "active" : ""}>🎙️ <span className="sidebar-label">SPX Cast</span></PodcastMenuItem>
         <PodcastMenuItem to="/voice-clone-services" className={isActive("/voice-clone-services") ? "active" : ""}>🎤 <span className="sidebar-label">AI Voice Clone</span></PodcastMenuItem>
         <PodcastMenuItem to="/podcast-create" className={isActive("/podcast-create") ? "active" : ""}>➕ <span className="sidebar-label">Create Podcast</span></PodcastMenuItem>
         <PodcastMenuItem to="/browse-podcast-categories" className={isActive("/browse-podcast-categories") ? "active" : ""}>🎧 <span className="sidebar-label">Browse Podcasts</span></PodcastMenuItem>
@@ -422,7 +419,11 @@ const Sidebar = ({ user }) => {
         <SpxMenuItem to="/node-compositor" className={isActive("/node-compositor") ? "active" : ""}>🎛️ <span className="sidebar-label">SPX Compositor</span></SpxMenuItem>
         <SpxMenuItem to="/spx-canvas" className={isActive("/spx-canvas") ? "active" : ""}>🎨 <span className="sidebar-label">SPX Canvas</span></SpxMenuItem>
         <SpxMenuItem to="/spx-vector" className={isActive("/spx-vector") ? "active" : ""}>✒️ <span className="sidebar-label">SPX Vector</span></SpxMenuItem>
-        <SpxComingSoon>🧊 <span className="sidebar-label">SPX 3D Mesh</span><MenuHint className="sidebar-hint" style={{ color:'rgba(0,255,200,0.3)' }}>soon</MenuHint></SpxComingSoon>
+        <SpxMenuItem to="/spx-mesh-editor" className={isActive("/spx-mesh-editor") ? "active" : ""}>🧊 <span className="sidebar-label">SPX 3D Mesh</span></SpxMenuItem>
+        <SpxMenuItem to="/spx-puppet" className={isActive("/spx-puppet") ? "active" : ""}>🎭 <span className="sidebar-label">SPX Puppet</span></SpxMenuItem>
+        <SpxMenuItem to="/spx-beat-lab" className={isActive("/spx-beat-lab") ? "active" : ""}>🥁 <span className="sidebar-label">SPX Beat Lab</span></SpxMenuItem>
+        <SpxMenuItem to="/podcast-studio" className={isActive("/podcast-studio") ? "active" : ""}>🎙️ <span className="sidebar-label">SPX Cast</span></SpxMenuItem>
+        <SpxMenuItem to="/dj-mixer" className={isActive("/dj-mixer") ? "active" : ""}>🎚️ <span className="sidebar-label">SPX DJ Mixer</span></SpxMenuItem>
       </>)}
 
       {/* #9 CREATOR ACADEMY */}
