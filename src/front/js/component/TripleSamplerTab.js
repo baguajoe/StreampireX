@@ -1,6 +1,6 @@
 // =============================================================================
 // TripleSamplerTab.js — Unified 3-Engine Sampler
-// SP-1200 (Bank A) + SPX3000 (Bank B) + Digital (Bank C)
+// SP-1200 (Bank A) + SPX3000 (Bank B) + SPX-3200 (Bank C)
 // Master clock: SPX3000 96 PPQN
 // =============================================================================
 
@@ -10,7 +10,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 const ENGINES = [
   { id: 'sp1200',  label: '🔴 SP-1200',  color: '#ff4400', tag: 'A', desc: '26kHz · 12-bit · E-mu grit' },
   { id: 'spx3000', label: '🎛️ SPX3000', color: '#00ffc8', tag: 'B', desc: '44.1kHz · 12-bit · MPC warm' },
-  { id: 'digital', label: '🎧 Digital',  color: '#5ac8fa', tag: 'C', desc: '48kHz · 24-bit · clean' },
+  { id: 'spx3200', label: '🎹 SPX-3200',  color: '#5ac8fa', tag: 'C', desc: '48kHz · 24-bit · clean' },
 ];
 
 const STEPS = 16;
@@ -140,7 +140,7 @@ function SeqRow({ engineId, engineLabel, color, pads, seq, setSeq, activePad, se
 }
 
 // ── Main TripleSamplerTab ─────────────────────────────────────────────────────
-export default function TripleSamplerTab({ onExport, onSendToArrange, sp1200Pads, spx3000Pads, digitalPads }) {
+export default function TripleSamplerTab({ onExport, onSendToArrange, sp1200Pads, spx3000Pads, spx3200Pads }) {
   // ── Per-engine pad state ───────────────────────────────────────────────────
   const [padsA, setPadsA] = useState(() => emptyPads()); // SP-1200
   const [padsB, setPadsB] = useState(() => emptyPads()); // SPX3000
@@ -335,8 +335,8 @@ export default function TripleSamplerTab({ onExport, onSendToArrange, sp1200Pads
   const importFromProps = useCallback((engine) => {
     if (engine === 'sp1200' && sp1200Pads) setPadsA(sp1200Pads.slice(0, 8).map(p => ({ ...p })));
     if (engine === 'spx3000' && spx3000Pads) setPadsB(spx3000Pads.slice(0, 8).map(p => ({ ...p })));
-    if (engine === 'digital' && digitalPads) setPadsC(digitalPads.slice(0, 8).map(p => ({ ...p })));
-  }, [sp1200Pads, spx3000Pads, digitalPads]);
+    if (engine === 'spx3200' && spx3200Pads) setPadsC(spx3200Pads.slice(0, 8).map(p => ({ ...p })));
+  }, [sp1200Pads, spx3000Pads, spx3200Pads]);
 
   // ── Active bank pads ──────────────────────────────────────────────────────
   const bankData = {
@@ -355,7 +355,7 @@ export default function TripleSamplerTab({ onExport, onSendToArrange, sp1200Pads
 
       {/* ── MASTER TRANSPORT ──────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', background: '#0a1628', borderBottom: '1px solid #1a2a3a' }}>
-        <div style={{ fontSize: 9, color: '#00ffc8', fontWeight: 700 }}>⚡ ALL 3</div>
+        <div style={{ fontSize: 9, color: '#00ffc8', fontWeight: 700 }}>⚡ SPX Trident</div>
         <div style={{ fontSize: 9, color: '#5a7088' }}>MASTER CLOCK · SPX3000 96 PPQN</div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
           {/* BPM */}
@@ -435,7 +435,7 @@ export default function TripleSamplerTab({ onExport, onSendToArrange, sp1200Pads
         />
 
         <SeqRow
-          engineId="digital" engineLabel="🎧 Digital" color={ENGINES[2].color}
+          engineId="digital" engineLabel="🎹 SPX-3200" color={ENGINES[2].color}
           pads={padsC} seq={seqC} setSeq={setSeqC}
           activePad={activePadC} setActivePad={setActivePadC}
           currentStep={currentStep} muted={mutedC} soloed={soloC}
