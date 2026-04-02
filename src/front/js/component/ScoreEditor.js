@@ -445,7 +445,7 @@ export default function ScoreEditor({
     if (!canvasRef.current) return;
     setExportStatus('Generating PDF…');
     try {
-      const { jsPDF } = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm');
+      const { jsPDF } = await import('jspdf');
       const imgData   = canvasRef.current.toDataURL('image/png');
       const pdf       = new jsPDF({ orientation: 'landscape', unit: 'px', format: [canvasRef.current.width, canvasRef.current.height] });
       pdf.addImage(imgData, 'PNG', 0, 0, canvasRef.current.width, canvasRef.current.height);

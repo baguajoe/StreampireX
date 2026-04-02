@@ -316,8 +316,8 @@ const Sidebar = ({ user }) => {
         <span className="sidebar-arrow" style={{ fontSize:'0.6rem', marginLeft:'auto' }}>{showMusic ? '▼' : '▶'}</span>
       </SectionHeader>
       {showMusic && (<>
-        <MenuItem to="/sampler-beat-maker" className={isActive("/sampler-beat-maker") ? "active" : ""}>
-          🥁 <span className="sidebar-label">Sampler / Beat Maker</span><MenuHint className="sidebar-hint">DAW</MenuHint>
+        <MenuItem to="/spx-beat-lab" className={isActive("/spx-beat-lab") ? "active" : ""}>
+          🥁 <span className="sidebar-label">SPX Beat Lab</span><MenuHint className="sidebar-hint">DAW</MenuHint>
         </MenuItem>
         <MenuItem to="/ai-mastering" className={isActive("/ai-mastering") ? "active" : ""}>🎚️ <span className="sidebar-label">AI Mastering</span></MenuItem>
         <MenuItem to="/ai-stem-separation" className={isActive("/ai-stem-separation") ? "active" : ""}>

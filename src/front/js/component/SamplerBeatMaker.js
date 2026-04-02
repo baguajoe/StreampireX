@@ -1,5 +1,5 @@
 // =============================================================================
-// SamplerBeatMaker.js — Complete Beat Maker / Sampler (Phase 1 + 2 + 3)
+// SamplerBeatMaker.js — Complete SPX Beat Lab / Sampler (Phase 1 + 2 + 3)
 // =============================================================================
 // 16-pad MPC-style sampler with step sequencer, live recording, chop view,
 // pattern management, mixer, per-pad effects, song mode/sequence builder,
@@ -2697,7 +2697,7 @@ const SamplerBeatMaker = ({
       {/* TOP BAR */}
       <div className="sampler-topbar">
         <div className="sampler-topbar-left">
-          <h2 className="sampler-title"><span className="sampler-title-icon">🥁</span>Beat Maker</h2>
+          <h2 className="sampler-title"><span className="sampler-title-icon">🥁</span>SPX Beat Lab</h2>
           <div className="pattern-selector">
             {patterns.map((p, i) => (
               <button key={i} className={`pattern-btn ${i === curPatIdx ? 'active' : ''}`} onClick={() => setCurPatIdx(i)}
@@ -2802,9 +2802,10 @@ const SamplerBeatMaker = ({
           { id: 'sampler', label: '🎧 Sampler', title: 'Sample Editor, Waveform, Chop, ADSR' },
           { id: 'drumpad', label: '🥁 Drum Kit', title: 'MPC Pads, Performance, Kits' },
           { id: 'chop', label: '✂️ Chop', title: 'Sample Chop — slice, trim, assign to pads' },
-          { id: 'beats', label: '🎹 Beat Maker', title: 'Step Sequencer, Patterns, Song Mode' },
+          { id: 'beats', label: '🎹 SPX Beat Lab', title: 'Step Sequencer, Patterns, Song Mode' },
           { id: 'spx3000', label: '🎛️ SPX3000', title: 'SPX3000 — MPC3000 engine, 12-bit DAC, 4 banks, 96 PPQN' },
           { id: 'sp1200', label: '🔴 SP-1200', title: 'SP-1200 — E-mu 1987, 26kHz, asymmetric saturation, boom bap' },
+          { id: 'spx3200', label: '🎹 SPX-3200', title: 'SPX-3200 — Modern MPC workflow, 32/24/16-bit, virtual keyboard, chop engine' },
           { id: 'chords', label: '🎼 Chords', title: 'Chord Progression Generator' },
           { id: 'sounds', label: '🔊 Sounds', title: 'Freesound Sample Browser' },
           { id: 'loops', label: '🔁 Loops', title: 'Looperman Loop Browser' },
@@ -3085,14 +3086,14 @@ const SamplerBeatMaker = ({
         {/* ── SOUNDS TAB ── */}
         {activeTab === 'sounds' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
-            {soundsComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🔊 Freesound Browser — open via DAW Sampler view</div>}
+            <FreesoundBrowser onSoundSelect={(buffer, name) => { if (activePad !== null) loadBufferToPad(activePad, buffer, name); }} isEmbedded={true} />
           </div>
         )}
 
         {/* ── LOOPS TAB ── */}
         {activeTab === 'loops' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
-            {loopsComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🔁 Looperman Browser — open via DAW Sampler view</div>}
+            <LoopermanBrowser onLoopSelect={(buffer, name) => { if (activePad !== null) loadBufferToPad(activePad, buffer, name); }} isEmbedded={true} />
           </div>
         )}
 

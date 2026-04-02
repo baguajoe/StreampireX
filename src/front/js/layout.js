@@ -572,7 +572,7 @@ const AppShell = ({ user }) => {
 
                                 {/* ---------------- Studio / AI ---------------- */}
                                 <Route path="/recording-studio" element={<RecordingStudio />} />
-                                <Route path="/sampler-beat-maker" element={<SamplerBeatMaker />} />
+                                <Route path="/spx-beat-lab" element={<SamplerBeatMaker />} />
                                 <Route path="/plugin-rack-demo" element={<PluginRackDemo />} />
                                 <Route path="/wam-plugin-store" element={<WAMPluginStore />} />
                                 <Route path="/ai-mastering" element={<AIMasteringPage />} />

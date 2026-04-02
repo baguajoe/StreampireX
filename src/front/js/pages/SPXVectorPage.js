@@ -436,7 +436,7 @@ export default function SPXVectorPage() {
   }, [artboards, project.width, project.height]);
 
   // ─── Align & Distribute ──────────────────────────────────────────────────
-  const alignLayers = useCallback((alignment) => {
+  const alignLayersV2 = useCallback((alignment) => {
     if(selectedIds.length < 2) return;
     snapshot();
     const sel = project.layers.filter(l=>selectedIds.includes(l.id));

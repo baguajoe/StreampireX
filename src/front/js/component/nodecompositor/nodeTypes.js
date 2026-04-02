@@ -592,6 +592,7 @@ export const NODE_TYPES = {
     }
   },
 
+};
 export const BLEND_MODES = [
   "normal", "screen", "multiply", "overlay", "lighten", "darken",
   "color-dodge", "color-burn", "hard-light", "soft-light",
