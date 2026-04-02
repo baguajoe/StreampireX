@@ -2979,7 +2979,7 @@ const SamplerBeatMaker = ({
                 chopSlices, setChopSlices,
                 chopCanvas, zeroCrossSnap, setZeroCrossSnap,
                 activeSlice, setActiveSlice,
-                bpm, masterVol: 0.8, initCtx, masterRef, activeSrc,
+                bpm, masterVol, initCtx, masterRef, activeSrc,
                 updatePad, setShowChop, showChop,
               }} />
             ) : (
