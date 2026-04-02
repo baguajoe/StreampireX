@@ -3040,7 +3040,7 @@ const SamplerBeatMaker = ({
               onSendToArrange={onSendToArrange}
               sp1200Pads={null}
               spx3000Pads={null}
-              digitalPads={pads}
+              spx3200Pads={pads}
             />
           </div>
         )}
