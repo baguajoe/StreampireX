@@ -2929,54 +2929,88 @@ const SamplerBeatMaker = ({
 
         {/* ── CHOP TAB ── */}
         {activeTab === 'chop' && (
-          <div style={{ flex:1, minHeight:0, overflow:'hidden', display:'flex', flexDirection:'column', position:'relative' }}>
-            {pads.some(p => p.buffer) ? (
-              <div style={{ display:'flex', flexDirection:'column', gap:8, padding:'8px 12px' }}>
-                {/* Pad selector */}
+          <div style={{ flex:1, minHeight:0, overflow:'auto', display:'flex', flexDirection:'column', background:'#06060f' }}>
+            {/* ── STANDALONE CHOP STUDIO ── */}
+            <div style={{ padding:'12px 16px', borderBottom:'1px solid #1a2a3a', display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+              <span style={{ color:'#00ffc8', fontFamily:'JetBrains Mono,monospace', fontWeight:700, fontSize:13 }}>✂️ CHOP STUDIO</span>
+              <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer',
+                background:'rgba(0,255,200,0.08)', border:'1px solid #00ffc8', borderRadius:6,
+                padding:'6px 14px', color:'#00ffc8', fontSize:12, fontWeight:700 }}>
+                📂 LOAD SAMPLE
+                <input type="file" accept="audio/*" style={{ display:'none' }}
+                  onChange={async e => {
+                    const file = e.target.files[0];
+                    const ctx = initCtx();
+                    const ab = await file.arrayBuffer();
+                    const buf = await ctx.decodeAudioData(ab);
+                    const padIdx = 0;
+                    updatePad(padIdx, { buffer: buf, name: file.name.replace(/\.[^.]+$/, '') });
+                    setChopIdx(padIdx);
+                    setChopPts([]);
+                    setShowChop(true);
+                  }} />
+              </label>
+              {pads.some(p => p.buffer) && (
                 <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
-                  <span style={{ fontSize:10, color:'#888', fontFamily:'Share Tech Mono,monospace', letterSpacing:1 }}>SELECT PAD TO CHOP:</span>
+                  <span style={{ fontSize:10, color:'#5a7088', fontFamily:'JetBrains Mono,monospace' }}>OR CHOP PAD:</span>
                   {pads.map((pad, i) => pad.buffer && (
                     <button key={i}
                       onClick={() => { setChopIdx(i); setChopPts([]); setShowChop(true); }}
                       style={{
-                        padding:'3px 10px', border:`1px solid ${chopIdx===i?'#00ffc8':'#3a3b3f'}`,
-                        borderRadius:3, cursor:'pointer', fontSize:10,
-                        background: chopIdx===i ? 'rgba(0,255,200,0.15)' : '#1e1f21',
-                        color: chopIdx===i ? '#00ffc8' : '#888',
-                        fontFamily:'Share Tech Mono,monospace'
+                        padding:'4px 10px', border:`1px solid ${chopIdx===i?'#00ffc8':'#3a3b3f'}`,
+                        borderRadius:4, cursor:'pointer', fontSize:11,
+                        background: chopIdx===i ? 'rgba(0,255,200,0.15)' : 'transparent',
+                        color: chopIdx===i ? '#00ffc8' : '#5a7088',
+                        fontFamily:'JetBrains Mono,monospace'
                       }}>
                       {i+1}: {pad.name || `PAD ${i+1}`}
                     </button>
                   ))}
                 </div>
-                {/* ChopView */}
-                {chopIdx !== null && showChop && (
-                  <ChopView engine={{
-                    pads, setPads, chopIdx, setChopIdx,
-                    chopPts, setChopPts,
-                    chopSens, setChopSens,
-                    chopMode, setChopMode,
-                    chopSlices, setChopSlices,
-                    chopCanvas, zeroCrossSnap, setZeroCrossSnap,
-                    updatePad, setShowChop, showChop,
-                    ctxRef, initCtx, bpm,
-                  }}/>
-                )}
-                {chopIdx === null && (
-                  <div style={{ padding:40, textAlign:'center', color:'#555', fontFamily:'Share Tech Mono,monospace', fontSize:11 }}>
-                    Select a loaded pad above to open the chop editor
-                  </div>
-                )}
-              </div>
+              )}
+            </div>
+            {/* ── CHOP VIEW OR EMPTY STATE ── */}
+            {chopIdx !== null && showChop ? (
+              <ChopView engine={{
+                pads, setPads, chopIdx, setChopIdx,
+                chopPts, setChopPts,
+                chopSens, setChopSens,
+                chopMode, setChopMode,
+                chopSlices, setChopSlices,
+                chopCanvas, zeroCrossSnap, setZeroCrossSnap,
+                activeSlice: chopIdx, setActiveSlice: setChopIdx,
+                bpm, masterVol: 0.8, initCtx, masterRef, activeSrc,
+                updatePad, setShowChop, showChop,
+              }} />
             ) : (
-              <div style={{ padding:40, textAlign:'center', color:'#555', fontFamily:'Share Tech Mono,monospace', fontSize:11 }}>
-                Load samples onto pads first (Sampler or Drum Kit tab)
+              <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16, color:'#5a7088' }}>
+                <div style={{ fontSize:48 }}>✂️</div>
+                <div style={{ fontFamily:'JetBrains Mono,monospace', fontSize:13, textAlign:'center', lineHeight:1.6 }}>
+                  Load a sample above to start chopping<br/>
+                  <span style={{ fontSize:11, color:'#3a4d60' }}>Drag & drop audio file or click LOAD SAMPLE</span>
+                </div>
+                <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer',
+                  background:'rgba(0,255,200,0.08)', border:'1px dashed #00ffc8', borderRadius:8,
+                  padding:'20px 40px', color:'#00ffc8', fontSize:13, fontWeight:700 }}>
+                  🎵 DROP AUDIO HERE OR CLICK TO BROWSE
+                  <input type="file" accept="audio/*" style={{ display:'none' }}
+                    onChange={async e => {
+                      const file = e.target.files[0];
+                      const ctx = initCtx();
+                      const ab = await file.arrayBuffer();
+                      const buf = await ctx.decodeAudioData(ab);
+                      const padIdx = 0;
+                      updatePad(padIdx, { buffer: buf, name: file.name.replace(/\.[^.]+$/, '') });
+                      setChopIdx(padIdx);
+                      setChopPts([]);
+                      setShowChop(true);
+                    }} />
+                </label>
               </div>
             )}
           </div>
         )}
 
-        {/* ── BEAT MAKER TAB ── */}
         {activeTab === 'beats' && (
           <BeatMakerTab
             engine={{

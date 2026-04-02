@@ -365,12 +365,12 @@ const Sidebar = ({ user }) => {
 
       {/* #5 PODCAST */}
       <PodcastSectionHeader className="sidebar-section-header" onClick={() => setShowPodcast(!showPodcast)}>
-        🎙️ <span className="sidebar-section-text">Podcast</span>
+        🎙️ <span class="sidebar-section-text">SPX Cast</span>
         <span className="sidebar-arrow" style={{ fontSize:'0.6rem', marginLeft:'auto' }}>{showPodcast ? '▼' : '▶'}</span>
       </PodcastSectionHeader>
       {showPodcast && (<>
         <PodcastMenuItem to="/my-podcasts" className={isActive("/my-podcasts") ? "active" : ""}>🎙️ <span className="sidebar-label">My Podcasts</span></PodcastMenuItem>
-        <PodcastMenuItem to="/podcast-studio" className={isActive("/podcast-studio") ? "active" : ""}>🎙️ <span className="sidebar-label">Podcast Studio</span></PodcastMenuItem>
+        <PodcastMenuItem to="/podcast-studio" className={isActive("/podcast-studio") ? "active" : ""}>🎙️ <span className="sidebar-label">SPX Cast</span></PodcastMenuItem>
         <PodcastMenuItem to="/voice-clone-services" className={isActive("/voice-clone-services") ? "active" : ""}>🎤 <span className="sidebar-label">AI Voice Clone</span></PodcastMenuItem>
         <PodcastMenuItem to="/podcast-create" className={isActive("/podcast-create") ? "active" : ""}>➕ <span className="sidebar-label">Create Podcast</span></PodcastMenuItem>
         <PodcastMenuItem to="/browse-podcast-categories" className={isActive("/browse-podcast-categories") ? "active" : ""}>🎧 <span className="sidebar-label">Browse Podcasts</span></PodcastMenuItem>
