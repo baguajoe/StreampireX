@@ -21,6 +21,7 @@ import SynthCreator from './SynthCreator';
 import DrumDesigner from './DrumDesigner';
 import InstrumentBuilder from './InstrumentBuilder';
 import SPX3000Tab from './SPX3000Tab';
+import SPXMidiMapPanel from './SPXMidiMapPanel';
 import SP1200Tab from './SP1200Tab';
 import TripleSamplerTab from './TripleSamplerTab';
 import StutterEngine from './StutterEngine';
@@ -420,6 +421,11 @@ const SamplerBeatMaker = ({
   const [midiInputs, setMidiInputs] = useState([]);
   const [selMidi, setSelMidi] = useState(null);
   const [midiLearn, setMidiLearn] = useState(false);
+  const [velocityCurve, setVelocityCurve] = useState('linear');
+  const [padMapping, setPadMapping] = useState('gm');
+  const [transpose, setTranspose] = useState(0);
+  const [octaveShift, setOctaveShift] = useState(0);
+  const [lastNote, setLastNote] = useState(null);
   const [midiLearnPad, setMidiLearnPad] = useState(null);
   const [midiMap, setMidiMap] = useState({});
 
@@ -2819,6 +2825,7 @@ const SamplerBeatMaker = ({
           { id: 'synth',       label: '🎛️ Synth',        title: 'Subtractive Synthesizer' },
           { id: 'drumdesign',  label: '🥁 Drum Design',  title: 'Drum Synthesis Designer' },
           { id: 'instrument',  label: '🎸 Instrument',   title: 'Custom Instrument Builder' },
+          { id: 'midi',        label: '🎹 MIDI Map',   title: 'MIDI Controller Mapping — assign notes to pads, velocity curves, transpose' },
           { id: 'stutter',     label: '⚡ Stutter',      title: 'Beat-Synced Stutter / Glitch FX — Gross Beat style' },
         ].map(tab => (
           <button
@@ -4235,6 +4242,30 @@ const SamplerBeatMaker = ({
       )}
 
         {/* ── STUTTER TAB ── */}
+        {activeTab === 'midi' && (
+          <SPXMidiMapPanel
+            midiMap={midiMap}
+            setMidiMap={setMidiMap}
+            midiLearn={midiLearn}
+            setMidiLearn={setMidiLearn}
+            midiLearnPad={midiLearnPad}
+            setMidiLearnPad={setMidiLearnPad}
+            midiInputs={midiInputs}
+            selMidi={selMidi}
+            setSelMidi={setSelMidi}
+            velocityCurve={velocityCurve}
+            setVelocityCurve={setVelocityCurve}
+            padMapping={padMapping}
+            setPadMapping={setPadMapping}
+            transpose={transpose}
+            setTranspose={setTranspose}
+            octaveShift={octaveShift}
+            setOctaveShift={setOctaveShift}
+            pads={pads}
+            lastNote={lastNote}
+          />
+        )}
+
         {activeTab === 'stutter' && (
           <StutterEngine
             audioContext={ctxRef.current}
