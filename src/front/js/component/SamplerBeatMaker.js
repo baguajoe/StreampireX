@@ -15,6 +15,7 @@ import BeatMakerTab from './tabs/BeatMakerTab';
 import DrumPadTab from './tabs/DrumPadTab';
 import SamplerTab from './tabs/SamplerTab';
 import StemSeparatorTab from './tabs/StemSeparatorTab';
+import VoxTab from './tabs/VoxTab';
 import ChopView from './ChopView';
 import SynthCreator from './SynthCreator';
 import DrumDesigner from './DrumDesigner';
@@ -2805,6 +2806,7 @@ const SamplerBeatMaker = ({
           { id: 'beats',       label: '🎹 SPX Beat Lab', title: 'Step Sequencer, Patterns, Song Mode' },
           { id: 'spx3000',     label: '🎛️ SPX3000',     title: 'SPX3000 — MPC3000 engine, 12-bit DAC, 4 banks, 96 PPQN' },
           { id: 'sp1200',      label: '🔴 SP-1200',      title: 'SP-1200 — E-mu 1987, 26kHz, asymmetric saturation, boom bap' },
+          { id: 'vox',         label: '🎙️ Vox',         title: 'SPX VoxEngine — real-time vocoder, formant filter, unison, harmonizer, arp' },
           { id: 'triple',      label: '🗡️ SPX Trident',       title: 'SP-1200 + SPX3000 + SPX-3200 — unified 3-engine sampler with master clock' },
           { id: 'sounds',      label: '🔊 Sounds',       title: 'Freesound Sample Browser — 500k+ free sounds' },
           { id: 'loops',       label: '🔁 Loops',        title: 'Looperman Loop Browser — 4M+ free loops' },
@@ -3093,6 +3095,13 @@ const SamplerBeatMaker = ({
             />
           </div>
         )}
+        {activeTab === 'vox' && (
+          <VoxTab
+            audioContext={audioContextRef?.current}
+            outputNode={masterGainRef?.current}
+          />
+        )}
+
         {activeTab === 'stems' && (
           <StemSeparatorTab
             engine={{

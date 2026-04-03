@@ -1815,6 +1815,27 @@ const pluginRegistry = {
     ],
     ui: { component: 'WowFlutterPluginUI', width: 320, height: 200 },
   },
+  'spx_vox_engine': {
+    id: 'spx_vox_engine',
+    name: 'SPX VoxEngine',
+    version: '1.0.0',
+    category: 'vocal',
+    type: 'insert',
+    color: '#00ffc8',
+    processor: { kind: 'native' },
+    params: [
+      { id: 'mix',          label: 'Mix',          type: 'float', min: 0,   max: 1,   default: 1.0,  unit: '',   step: 0.01 },
+      { id: 'drive',        label: 'Drive',        type: 'float', min: 0,   max: 1,   default: 0.3,  unit: '',   step: 0.01 },
+      { id: 'gate',         label: 'Gate',         type: 'float', min: 0,   max: 0.3, default: 0.01, unit: '',   step: 0.001 },
+      { id: 'unisonVoices', label: 'Unison',       type: 'float', min: 1,   max: 8,   default: 1,    unit: '',   step: 1 },
+      { id: 'unisonDetune', label: 'Detune',       type: 'float', min: 0,   max: 100, default: 15,   unit: '¢',  step: 1 },
+      { id: 'vowelMorph',   label: 'Vowel',        type: 'float', min: 0,   max: 4,   default: 0,    unit: '',   step: 0.01 },
+      { id: 'carrierFreq',  label: 'Carrier',      type: 'float', min: 20,  max: 2000,default: 220,  unit: 'Hz', step: 1 },
+    ],
+    ui: { component: 'VoxEnginePluginUI', width: 680, height: 520 },
+  },
+
+
 };
 
 export default pluginRegistry;
