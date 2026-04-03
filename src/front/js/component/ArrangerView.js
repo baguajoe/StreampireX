@@ -942,7 +942,7 @@ const ArrangerView = ({
       name: isInstr ? 'MIDI Region' : 'New Region',
       startBeat,
       duration: timeSignatureTop * 4,
-      audioUrl: isInstr ? null : null,
+      audioUrl: isInstr ? null : (pendingDropUrl || null),
       notes: isInstr ? [] : undefined,  // MIDI regions get empty notes array
       color: tracks[trackIndex]?.color,
     };
@@ -1167,7 +1167,19 @@ const ArrangerView = ({
                   />
                 )}
 
-                {(track.regions || []).map(region => (
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files?.[0];
+                const url = URL.createObjectURL(file);
+                const rect = e.currentTarget.getBoundingClientRect();
+                const px = e.clientX - rect.left;
+                const beat = Math.max(0, Math.round((px / (zoom * 80)) * 1) / 1);
+                const trackIndex = tracks.indexOf(track);
+                if (trackIndex === -1) return;
+                const nr = { id: Date.now() + Math.random(), name: file.name.replace(/\.[^.]+$/, ""), startBeat: beat, duration: 4, audioUrl: url, muted: false, fadeIn: 0, fadeOut: 0 };
+              }}
+              {(track.regions || []).map(region => (
                   <Region
                     key={region.id} region={region} trackColor={track.trackType === 'instrument' ? '#af52de' : track.color}
                     trackType={track.trackType || 'audio'}
