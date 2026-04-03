@@ -1836,6 +1836,82 @@ const pluginRegistry = {
   },
 
 
+  'spx_perceptual_eq': {
+    id: 'spx_perceptual_eq',
+    name: 'SPX PerceptualEQ',
+    version: '1.0.0',
+    category: 'eq',
+    type: 'insert',
+    color: '#00ffc8',
+    processor: { kind: 'native' },
+    params: [
+      { id: 'recover', label: 'Recover', type: 'float', min: 0,   max: 1,   default: 0.5, unit: '',   step: 0.01 },
+      { id: 'order',   label: 'Order',   type: 'float', min: 0,   max: 1,   default: 0.5, unit: '',   step: 0.01 },
+      { id: 'boost',   label: 'Boost',   type: 'float', min: 0,   max: 12,  default: 6,   unit: 'dB', step: 0.5  },
+      { id: 'cut',     label: 'Cut',     type: 'float', min: -12, max: 0,   default: -6,  unit: 'dB', step: 0.5  },
+      { id: 'mix',     label: 'Mix',     type: 'float', min: 0,   max: 100, default: 100, unit: '%',  step: 1    },
+    ],
+    ui: { component: 'SPXPerceptualEQPluginUI', width: 480, height: 280 },
+  },
+
+  'graphic_e_q4_band': {
+    id: 'graphic_e_q4_band',
+    name: 'GraphicEQ 4-Band',
+    version: '1.0.0',
+    category: 'eq',
+    type: 'insert',
+    color: '#5ac8fa',
+    processor: { kind: 'native' },
+    params: [
+      { id: 'band0', label: '100Hz', type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+      { id: 'band1', label: '500Hz', type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+      { id: 'band2', label: '2kHz',  type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+      { id: 'band3', label: '8kHz',  type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+      { id: 'outputGain', label: 'Output', type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+    ],
+    ui: { component: 'GraphicEQ4BandPluginUI', width: 320, height: 200 },
+  },
+
+  'graphic_e_q5_band': {
+    id: 'graphic_e_q5_band',
+    name: 'GraphicEQ 5-Band',
+    version: '1.0.0',
+    category: 'eq',
+    type: 'insert',
+    color: '#5ac8fa',
+    processor: { kind: 'native' },
+    params: [
+      { id: 'band0', label: '80Hz',  type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+      { id: 'band1', label: '400Hz', type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+      { id: 'band2', label: '1kHz',  type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+      { id: 'band3', label: '4kHz',  type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+      { id: 'band4', label: '12kHz', type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+      { id: 'outputGain', label: 'Output', type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+    ],
+    ui: { component: 'GraphicEQ5BandPluginUI', width: 360, height: 200 },
+  },
+
+  'graphic_e_q6_band': {
+    id: 'graphic_e_q6_band',
+    name: 'GraphicEQ 6-Band',
+    version: '1.0.0',
+    category: 'eq',
+    type: 'insert',
+    color: '#5ac8fa',
+    processor: { kind: 'native' },
+    params: [
+      { id: 'band0', label: '60Hz',  type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+      { id: 'band1', label: '250Hz', type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+      { id: 'band2', label: '500Hz', type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+      { id: 'band3', label: '2kHz',  type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+      { id: 'band4', label: '6kHz',  type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+      { id: 'band5', label: '16kHz', type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+      { id: 'outputGain', label: 'Output', type: 'float', min: -12, max: 12, default: 0, unit: 'dB', step: 0.5 },
+    ],
+    ui: { component: 'GraphicEQ6BandPluginUI', width: 400, height: 200 },
+  },
+
+
 };
 
 export default pluginRegistry;
