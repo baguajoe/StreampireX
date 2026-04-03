@@ -4684,7 +4684,48 @@ TIMELINE
         { label: 'Reverse Clip', action: handleReverseClip, disabled: !selectedClip },
         { type: 'separator' },
         { label: 'Nest Clip', action: () => console.warn('Nest - Coming Soon'), disabled: !selectedClip },
-        { label: 'Unlink Audio/Video', action: () => console.warn('Unlink - Coming Soon'), disabled: !selectedClip }
+        { label: 'Unlink Audio/Video', action: () => {
+          if (!selectedClip) return;
+          const trackWithClip = tracks.find(t => t.clips.some(c => c.id === selectedClip.id));
+          if (!trackWithClip) return;
+          if (selectedClip.type !== 'video' && !selectedClip.hasAudio) {
+            return;
+          }
+          const videoTrackIdx = tracks.findIndex(t => t.id === trackWithClip.id);
+          const audioTrackExisting = tracks.find((t, i) => i > videoTrackIdx && t.type === 'audio');
+          const audioClip = {
+            ...selectedClip,
+            id: Date.now() + Math.random(),
+            type: 'audio',
+            title: (selectedClip.title || 'Clip') + ' (Audio)',
+            hasAudio: true,
+            videoUrl: null,
+            linkedClipId: selectedClip.id,
+          };
+          const updatedVideoClip = { ...selectedClip, hasAudio: false, linkedClipId: audioClip.id };
+          if (!audioTrackExisting) {
+            const newAudioTrack = {
+              id: Date.now(),
+              name: 'Audio ' + (tracks.filter(t => t.type === 'audio').length + 1),
+              type: 'audio', clips: [], muted: false, volume: 1, locked: false
+            };
+            setTracks(prev => {
+              const next = [...prev];
+              next.splice(videoTrackIdx + 1, 0, { ...newAudioTrack, clips: [audioClip] });
+              return next.map(t => {
+                if (t.id === trackWithClip.id) return { ...t, clips: t.clips.map(c => c.id === selectedClip.id ? updatedVideoClip : c) };
+                return t;
+              });
+            });
+          } else {
+            setTracks(prev => prev.map(t => {
+              if (t.id === trackWithClip.id) return { ...t, clips: t.clips.map(c => c.id === selectedClip.id ? updatedVideoClip : c) };
+              if (t.id === audioTrackExisting.id) return { ...t, clips: [...t.clips, audioClip] };
+              return t;
+            }));
+          }
+          setSelectedClip(updatedVideoClip);
+        }, disabled: !selectedClip }
       ]
     },
     sequence: {
