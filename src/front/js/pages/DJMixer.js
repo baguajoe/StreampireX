@@ -296,11 +296,11 @@ const Turntable = React.memo(({ playing, progress, color, label }) => {
 
       // Tone arm
       ctx.save();
-      const pivotX=W-48, pivotY=32;
-      const armAngle=-1.85+progress*0.38;
+      const pivotX=420, pivotY=28;
+      const armAngle=-2.15+progress*0.35;
 
       // Counterweight
-      const cwLen=28;
+      const cwLen=35;
       const cwX=pivotX-Math.cos(armAngle)*cwLen;
       const cwY=pivotY-Math.sin(armAngle)*cwLen;
       ctx.strokeStyle="#666"; ctx.lineWidth=5; ctx.lineCap="round";
@@ -317,7 +317,7 @@ const Turntable = React.memo(({ playing, progress, color, label }) => {
       ctx.fillStyle="#eee"; ctx.beginPath(); ctx.arc(pivotX,pivotY,4,0,Math.PI*2); ctx.fill();
 
       // S-arm
-      const armLen=110;
+      const armLen=155;
       const tipX=pivotX+Math.cos(armAngle)*armLen;
       const tipY=pivotY+Math.sin(armAngle)*armLen;
       const px=-Math.sin(armAngle), py=Math.cos(armAngle);
