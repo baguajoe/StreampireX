@@ -17,26 +17,14 @@
 ::-webkit-scrollbar-thumb:hover{background:#30363d}
 
 /* ── ROOT SHELL ──────────────────────────────────────────── */
-.spx{
-  display:flex;flex-direction:column;
-  height:100vh;width:100%;
-  background:#06060f;color:#e6edf3;
-  font-family:'JetBrains Mono',monospace;font-size:12px;
-  overflow:hidden;user-select:none;
-}
+.spx{display:flex!important;flex-direction:column!important;height:calc(100vh - 90px)!important;width:100%!important;background:#06060f!important;color:#e6edf3!important;font-family:'JetBrains Mono',monospace!important;font-size:12px!important;overflow:hidden!important;user-select:none!important}
 .spx *{font-family:'JetBrains Mono',monospace}
 .spx button{cursor:pointer}
 .spx input[type=range]{accent-color:#00ffc8}
 .video-editor-page{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 
 /* ── MENU BAR ────────────────────────────────────────────── */
-.spx-menubar{
-  display:flex;align-items:center;
-  height:30px;flex-shrink:0;
-  background:#0a0a14;
-  border-bottom:1px solid #1a1f2a;
-  padding:0 8px;gap:2px;z-index:200;
-}
+.spx-menubar{display:flex!important;flex-direction:row!important;align-items:center!important;height:30px!important;flex-shrink:0!important;background:#0a0a14!important;border-bottom:1px solid #1a1f2a!important;padding:0 8px!important;gap:2px!important;z-index:200!important;overflow:hidden!important}
 .spx-menubar-logo{
   display:flex;align-items:center;gap:5px;
   padding:0 12px 0 2px;margin-right:6px;
@@ -76,13 +64,7 @@
 }
 
 /* ── TOOLBAR (transport) ─────────────────────────────────── */
-.spx-toolbar{
-  display:flex;align-items:center;
-  height:42px;flex-shrink:0;
-  background:#0d1117;
-  border-bottom:2px solid #1a1f2a;
-  padding:0 12px;gap:4px;
-}
+.spx-toolbar{display:flex!important;flex-direction:row!important;align-items:center!important;height:42px!important;flex-shrink:0!important;background:#0d1117!important;border-bottom:2px solid #1a1f2a!important;padding:0 12px!important;gap:4px!important;overflow:hidden!important;flex-wrap:nowrap!important}
 .spx-toolbar-sep{width:1px;height:24px;background:#21262d;margin:0 4px;flex-shrink:0}
 .spx-toolbar-spacer{flex:1}
 .spx-tbtn{
@@ -122,10 +104,7 @@
 .spx-tool-btn.active{background:rgba(0,255,200,.12);color:#00ffc8;border-color:rgba(0,255,200,.3)}
 
 /* ── MAIN 3-COLUMN BODY ──────────────────────────────────── */
-.spx-body{
-  display:flex;flex:1;
-  overflow:hidden;min-height:0;
-}
+.spx-body{display:flex!important;flex-direction:row!important;flex:1!important;overflow:hidden!important;min-height:0!important}
 
 /* ── RESIZE HANDLES ──────────────────────────────────────── */
 .spx-resize-handle{
