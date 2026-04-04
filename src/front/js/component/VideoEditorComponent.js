@@ -1,11 +1,11 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { useEditorState } from './useEditorState';
-import VideoEditorToolbar    from './VideoEditorToolbar';
-import VideoEditorTimeline   from './VideoEditorTimeline';
-import VideoEditorMonitors   from './VideoEditorMonitors';
-import VideoEditorLeftPanel  from './VideoEditorLeftPanel';
-import VideoEditorRightPanel, { VideoEditorColorPanel, VideoEditorAudioMixer } from './VideoEditorRightPanel';
-import VideoEditorExportModal from './VideoEditorExportModal';
+import { useEditorState } from './videoeditor/useEditorState';
+import VideoEditorToolbar    from './videoeditor/VideoEditorToolbar';
+import VideoEditorTimeline   from './videoeditor/VideoEditorTimeline';
+import VideoEditorMonitors   from './videoeditor/VideoEditorMonitors';
+import VideoEditorLeftPanel  from './videoeditor/VideoEditorLeftPanel';
+import VideoEditorRightPanel, { VideoEditorColorPanel, VideoEditorAudioMixer } from './videoeditor/VideoEditorRightPanel';
+import VideoEditorExportModal from './videoeditor/VideoEditorExportModal';
 
 // ── Design tokens ─────────────────────────────────────────
 export const T = {
