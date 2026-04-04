@@ -444,3 +444,20 @@
 .efx-leaf-label{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .efx-leaf-dur{font-size:9px;color:#4e6a82;margin-left:auto;white-space:nowrap}
 .efx-leaf-apply{font-size:9px;color:#00ffc8;font-weight:700;margin-left:auto}
+
+/* ── FORCE FIX: track headers white box ── */
+.track-headers-column { background: #0d1117 !important; }
+.track-header-container { background: #0d1117 !important; border-bottom: 1px solid #21262d !important; }
+.timeline-tracks-container { display: flex !important; flex-direction: row !important; }
+.track-headers-spacer { background: #161b22 !important; }
+.video-editor-pro { display: flex !important; flex-direction: column !important; height: 100vh !important; overflow: hidden !important; }
+.editor-main-layout { display: flex !important; flex-direction: row !important; flex: 1 !important; overflow: hidden !important; min-height: 0 !important; }
+.editor-center-panel { flex: 1 !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; min-width: 0 !important; }
+.preview-area-container { display: flex !important; flex-direction: row !important; flex-shrink: 0 !important; }
+.editor-timeline-section { display: flex !important; flex-direction: column !important; flex: 1 !important; overflow: hidden !important; min-height: 0 !important; }
+.timeline-main-container { display: flex !important; flex-direction: column !important; flex: 1 !important; overflow: hidden !important; }
+.timeline-ruler-container { display: flex !important; flex-direction: row !important; flex-shrink: 0 !important; }
+.timeline-tracks-scroll { flex: 1 !important; overflow: auto !important; }
+.timeline-tracks-content { position: relative !important; }
+.timeline-track-row { position: relative !important; }
+.track-timeline-area { position: relative !important; height: 100% !important; }
