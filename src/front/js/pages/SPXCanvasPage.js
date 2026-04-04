@@ -186,7 +186,29 @@ export default function SPXCanvasPage() {
   const [resizeH,       setResizeH]       = useState(0);
   const [showMaskEditor,setShowMaskEditor] = useState(false);
   const [layerMasks,    setLayerMasks]    = useState({});
-  const curvesCanvasRef = useRef(null);
+  const curvesCanvasRef   = useRef(null);
+  const histCanvasRef     = useRef(null);
+  const liquifyCanvasRef  = useRef(null);
+  const liquifyCtxRef     = useRef(null);
+  const liquifyImgRef     = useRef(null);
+  // ── Filter Gallery ──────────────────────────────────────────────────────────
+  const [showFilterGallery, setShowFilterGallery] = useState(false);
+  const [filterPreview,     setFilterPreview]     = useState(null);
+  // ── Liquify ─────────────────────────────────────────────────────────────────
+  const [showLiquify,       setShowLiquify]       = useState(false);
+  const [liquifyBrush,      setLiquifyBrush]      = useState(60);
+  const [liquifyStrength,   setLiquifyStrength]   = useState(0.3);
+  const [liquifyMode,       setLiquifyMode]       = useState('push'); // push|bloat|pucker|smooth
+  const liquifyPainting    = useRef(false);
+  // ── Layer Masks ─────────────────────────────────────────────────────────────
+  const [maskTarget,        setMaskTarget]        = useState(null); // layerId
+  const maskPaintRef        = useRef(false);
+  const layerMaskRefs       = useRef({});
+  // ── Color Balance ───────────────────────────────────────────────────────────
+  const [cbShadows,         setCbShadows]         = useState([0,0,0]);
+  const [cbMidtones,        setCbMidtones]        = useState([0,0,0]);
+  const [cbHighlights,      setCbHighlights]      = useState([0,0,0]);
+  const [cbTone,            setCbTone]            = useState('midtones');
   const [showGrid,     setShowGrid]     = useState(false);
   const [showRulers,   setShowRulers]   = useState(true);
   const [snapToGrid,   setSnapToGrid]   = useState(false);
@@ -485,6 +507,176 @@ export default function SPXCanvasPage() {
     setStatus('Layer mask toggled');
   }, []);
 
+  // ── Histogram renderer ───────────────────────────────────────────────────
+  const renderHistogram = React.useCallback(() => {
+    const cv = histCanvasRef.current; if (!cv) return;
+    const canvas = canvasRef.current; if (!canvas) return;
+    const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#1a1a1a'; ctx.fillRect(0,0,W,H);
+    const srcCtx = canvas.getContext('2d');
+    const imgData = srcCtx.getImageData(0,0,canvas.width,canvas.height);
+    const d = imgData.data;
+    const rHist=new Uint32Array(256),gHist=new Uint32Array(256),bHist=new Uint32Array(256),lHist=new Uint32Array(256);
+    for(let i=0;i<d.length;i+=4){
+      rHist[d[i]]++; gHist[d[i+1]]++; bHist[d[i+2]]++;
+      lHist[Math.round(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])]++;
+    }
+    const maxVal = Math.max(...lHist);
+    const drawChannel = (hist, color) => {
+      ctx.fillStyle = color;
+      for(let i=0;i<256;i++){
+        const h = (hist[i]/maxVal)*H;
+        ctx.fillRect(i/256*W, H-h, W/256+1, h);
+      }
+    };
+    drawChannel(rHist,'rgba(255,80,80,0.5)');
+    drawChannel(gHist,'rgba(80,255,80,0.5)');
+    drawChannel(bHist,'rgba(80,120,255,0.5)');
+    drawChannel(lHist,'rgba(255,255,255,0.7)');
+    // Grid lines
+    ctx.strokeStyle='#333'; ctx.lineWidth=0.5;
+    [64,128,192].forEach(v=>{
+      ctx.beginPath(); ctx.moveTo(v/255*W,0); ctx.lineTo(v/255*W,H); ctx.stroke();
+    });
+  }, []);
+
+  React.useEffect(()=>{ if(activeTab==='adjust') renderHistogram(); },[activeTab, project, renderHistogram]);
+
+  // ── Layer Mask helpers ────────────────────────────────────────────────────
+  const addLayerMask = React.useCallback((layerId) => {
+    setMaskTarget(layerId);
+    setStatus('Layer mask added — paint black to hide, white to reveal');
+  }, []);
+
+  const applyLayerMask = React.useCallback((layerId) => {
+    const maskCv = layerMaskRefs.current[layerId]; if (!maskCv) return;
+    snapshot();
+    const mainCv = canvasRef.current; if (!mainCv) return;
+    const mainCtx = mainCv.getContext('2d');
+    const maskCtx = maskCv.getContext('2d');
+    const mainData = mainCtx.getImageData(0,0,mainCv.width,mainCv.height);
+    const maskData = maskCtx.getImageData(0,0,maskCv.width,maskCv.height);
+    for(let i=0;i<mainData.data.length;i+=4){
+      const maskVal = maskData.data[i]/255;
+      mainData.data[i+3] = Math.round(mainData.data[i+3]*maskVal);
+    }
+    mainCtx.putImageData(mainData,0,0);
+    setMaskTarget(null);
+    setLayerMasks(prev=>({...prev,[layerId]:false}));
+    setStatus('Layer mask applied');
+  }, [snapshot]);
+
+  const deleteMask = React.useCallback((layerId) => {
+    setMaskTarget(null);
+    setLayerMasks(prev=>{ const n={...prev}; delete n[layerId]; return n; });
+    setStatus('Layer mask deleted');
+  }, []);
+
+  // ── Color Balance ─────────────────────────────────────────────────────────
+  const applyColorBalance = React.useCallback(() => {
+    if(!selectedLayer) return;
+    snapshot();
+    applyAdjustToCanvas(imgData => {
+      const d=imgData.data;
+      const tone=cbTone;
+      const [cr,cg,cb2]= tone==='shadows'?cbShadows:tone==='highlights'?cbHighlights:cbMidtones;
+      for(let i=0;i<d.length;i+=4){
+        const lum=(d[i]+d[i+1]+d[i+2])/3/255;
+        let weight=1;
+        if(tone==='shadows') weight=Math.max(0,1-lum*2);
+        else if(tone==='highlights') weight=Math.max(0,lum*2-1);
+        else weight=Math.max(0,1-Math.abs(lum-0.5)*2);
+        d[i]  =Math.min(255,Math.max(0,d[i]  +cr*weight));
+        d[i+1]=Math.min(255,Math.max(0,d[i+1]+cg*weight));
+        d[i+2]=Math.min(255,Math.max(0,d[i+2]+cb2*weight));
+      }
+      return imgData;
+    });
+    setStatus('Color Balance applied');
+  }, [selectedLayer, cbTone, cbShadows, cbMidtones, cbHighlights, snapshot, applyAdjustToCanvas]);
+
+  // ── Filter Gallery ────────────────────────────────────────────────────────
+  const FILTER_GALLERY = [
+    { id:'emboss',      label:'Emboss',       fn:(d)=>{ const o=new Uint8ClampedArray(d.data); const W=d.width; for(let i=0;i<o.length;i+=4){ const r=d.data[i]-d.data[i+4]+128,g=d.data[i+1]-d.data[i+5]+128,b=d.data[i+2]-d.data[i+6]+128; o[i]=r;o[i+1]=g;o[i+2]=b;o[i+3]=255;} return new ImageData(o,d.width,d.height); }},
+    { id:'edge_detect', label:'Edge Detect',  fn:(d)=>{ const o=new Uint8ClampedArray(d.data.length); const W=d.width,H=d.height; for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){const i=(y*W+x)*4,u=((y-1)*W+x)*4,dn=((y+1)*W+x)*4; const gx=d.data[i]-d.data[i+4],gy=d.data[i]-d.data[dn]; const m=Math.min(255,Math.abs(gx)+Math.abs(gy)); o[i]=m;o[i+1]=m;o[i+2]=m;o[i+3]=255;} return new ImageData(o,W,H); }},
+    { id:'posterize',   label:'Posterize',    fn:(d,lv=4)=>{ const o=new Uint8ClampedArray(d.data); for(let i=0;i<o.length;i+=4){ o[i]=Math.round(o[i]/255*(lv-1))/(lv-1)*255; o[i+1]=Math.round(o[i+1]/255*(lv-1))/(lv-1)*255; o[i+2]=Math.round(o[i+2]/255*(lv-1))/(lv-1)*255;} return new ImageData(o,d.width,d.height); }},
+    { id:'sepia',       label:'Sepia',        fn:(d)=>{ const o=new Uint8ClampedArray(d.data); for(let i=0;i<o.length;i+=4){ const r=d.data[i],g=d.data[i+1],b=d.data[i+2]; o[i]=Math.min(255,r*.393+g*.769+b*.189); o[i+1]=Math.min(255,r*.349+g*.686+b*.168); o[i+2]=Math.min(255,r*.272+g*.534+b*.131); o[i+3]=d.data[i+3];} return new ImageData(o,d.width,d.height); }},
+    { id:'cross_process',label:'Cross Process',fn:(d)=>{ const o=new Uint8ClampedArray(d.data); for(let i=0;i<o.length;i+=4){ o[i]=Math.min(255,d.data[i]*1.4); o[i+1]=Math.min(255,d.data[i+1]*0.8); o[i+2]=Math.min(255,d.data[i+2]*1.2); o[i+3]=d.data[i+3];} return new ImageData(o,d.width,d.height); }},
+    { id:'warming',     label:'Warming',      fn:(d)=>{ const o=new Uint8ClampedArray(d.data); for(let i=0;i<o.length;i+=4){ o[i]=Math.min(255,d.data[i]+20); o[i+1]=Math.min(255,d.data[i+1]+5); o[i+2]=Math.max(0,d.data[i+2]-15); o[i+3]=d.data[i+3];} return new ImageData(o,d.width,d.height); }},
+    { id:'cooling',     label:'Cooling',      fn:(d)=>{ const o=new Uint8ClampedArray(d.data); for(let i=0;i<o.length;i+=4){ o[i]=Math.max(0,d.data[i]-15); o[i+1]=Math.min(255,d.data[i+1]+5); o[i+2]=Math.min(255,d.data[i+2]+20); o[i+3]=d.data[i+3];} return new ImageData(o,d.width,d.height); }},
+    { id:'vintage',     label:'Vintage',      fn:(d)=>{ const o=new Uint8ClampedArray(d.data); for(let i=0;i<o.length;i+=4){ const r=d.data[i],g=d.data[i+1],b=d.data[i+2]; o[i]=Math.min(255,r*.8+60); o[i+1]=Math.min(255,g*.75+40); o[i+2]=Math.min(255,b*.7+20); o[i+3]=d.data[i+3];} return new ImageData(o,d.width,d.height); }},
+    { id:'noir',        label:'Noir',         fn:(d)=>{ const o=new Uint8ClampedArray(d.data); for(let i=0;i<o.length;i+=4){ const lum=Math.round(0.299*d.data[i]+0.587*d.data[i+1]+0.114*d.data[i+2]); const c=lum>128?Math.min(255,lum*1.3):Math.max(0,lum*0.7); o[i]=o[i+1]=o[i+2]=c; o[i+3]=d.data[i+3];} return new ImageData(o,d.width,d.height); }},
+    { id:'duotone',     label:'Duotone',      fn:(d)=>{ const o=new Uint8ClampedArray(d.data); for(let i=0;i<o.length;i+=4){ const lum=(d.data[i]+d.data[i+1]+d.data[i+2])/3/255; o[i]=Math.round(lum*0+255*(1-lum)); o[i+1]=Math.round(lum*255); o[i+2]=Math.round(lum*200); o[i+3]=d.data[i+3];} return new ImageData(o,d.width,d.height); }},
+    { id:'halftone',    label:'Halftone',     fn:(d)=>{ const o=new Uint8ClampedArray(d.data.length).fill(255); const W=d.width,dot=6; for(let y=0;y<d.height;y+=dot)for(let x=0;x<W;x+=dot){ const i=(y*W+x)*4; const lum=1-(d.data[i]+d.data[i+1]+d.data[i+2])/3/255; const r=lum*dot*0.5; for(let dy=0;dy<dot;dy++)for(let dx=0;dx<dot;dx++){ if(Math.hypot(dx-dot/2,dy-dot/2)<r){const pi=((y+dy)*W+(x+dx))*4;o[pi]=o[pi+1]=o[pi+2]=0;o[pi+3]=255;}}} return new ImageData(o,W,d.height); }},
+    { id:'pixelate',    label:'Pixelate',     fn:(d,sz=8)=>{ const o=new Uint8ClampedArray(d.data); const W=d.width; for(let y=0;y<d.height;y+=sz)for(let x=0;x<W;x+=sz){ const i=(y*W+x)*4; const r=d.data[i],g=d.data[i+1],b=d.data[i+2]; for(let dy=0;dy<sz;dy++)for(let dx=0;dx<sz;dx++){const pi=((y+dy)*W+(x+dx))*4;o[pi]=r;o[pi+1]=g;o[pi+2]=b;}} return new ImageData(o,W,d.height); }},
+  ];
+
+  const applyFilter = React.useCallback((filterId) => {
+    const flt = FILTER_GALLERY.find(f=>f.id===filterId); if(!flt) return;
+    const canvas = canvasRef.current; if(!canvas) return;
+    snapshot();
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
+    const result = flt.fn(imgData);
+    ctx.putImageData(result,0,0);
+    setShowFilterGallery(false);
+    setStatus(`Filter applied: ${flt.label}`);
+  }, [snapshot]);
+
+  // ── Liquify ───────────────────────────────────────────────────────────────
+  const initLiquify = React.useCallback(() => {
+    const canvas = canvasRef.current; if(!canvas) return;
+    const lCv = liquifyCanvasRef.current; if(!lCv) return;
+    lCv.width=canvas.width; lCv.height=canvas.height;
+    const ctx=lCv.getContext('2d');
+    ctx.drawImage(canvas,0,0);
+    liquifyCtxRef.current=ctx;
+    const imgData=ctx.getImageData(0,0,lCv.width,lCv.height);
+    liquifyImgRef.current=new Uint8ClampedArray(imgData.data);
+  }, []);
+
+  const liquifyPush = React.useCallback((cx,cy) => {
+    const lCv=liquifyCanvasRef.current; if(!lCv||!liquifyImgRef.current) return;
+    const ctx=liquifyCtxRef.current;
+    const W=lCv.width,H=lCv.height;
+    const src=new Uint8ClampedArray(liquifyImgRef.current);
+    const dst=ctx.getImageData(0,0,W,H);
+    const d=dst.data;
+    const r=liquifyBrush,str=liquifyStrength;
+    for(let y=Math.max(0,cy-r);y<Math.min(H,cy+r);y++){
+      for(let x=Math.max(0,cx-r);x<Math.min(W,cx+r);x++){
+        const dist=Math.hypot(x-cx,y-cy);
+        if(dist>r) continue;
+        const falloff=1-dist/r;
+        const force=falloff*str*10;
+        let sx=x,sy=y;
+        if(liquifyMode==='push'){sx=x-force;sy=y-force;}
+        else if(liquifyMode==='bloat'){sx=cx+(x-cx)*(1-falloff*str);sy=cy+(y-cy)*(1-falloff*str);}
+        else if(liquifyMode==='pucker'){sx=cx+(x-cx)*(1+falloff*str);sy=cy+(y-cy)*(1+falloff*str);}
+        else{sx=x;sy=y;}
+        sx=Math.max(0,Math.min(W-1,Math.round(sx)));
+        sy=Math.max(0,Math.min(H-1,Math.round(sy)));
+        const di=(y*W+x)*4, si=(sy*W+sx)*4;
+        d[di]=src[si];d[di+1]=src[si+1];d[di+2]=src[si+2];d[di+3]=src[si+3];
+      }
+    }
+    ctx.putImageData(dst,0,0);
+    liquifyImgRef.current=new Uint8ClampedArray(dst.data);
+  }, [liquifyBrush, liquifyStrength, liquifyMode]);
+
+  const applyLiquify = React.useCallback(() => {
+    const lCv=liquifyCanvasRef.current; if(!lCv) return;
+    const canvas=canvasRef.current; if(!canvas) return;
+    snapshot();
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(lCv,0,0);
+    setShowLiquify(false);
+    setStatus('Liquify applied');
+  }, [snapshot]);
+
   const onPointerDown = useCallback((e) => {
     // Capture pointer for tablet support
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -727,6 +919,8 @@ export default function SPXCanvasPage() {
         <button style={S.btn()} onClick={()=>exportCanvasJPG(canvasRef.current,project.name)}>💾 JPG</button>
         <button style={S.btn()} onClick={()=>exportCanvasWebP(canvasRef.current,project.name)}>💾 WebP</button>
         <div style={{width:1,height:20,background:'#444',margin:'0 4px'}}/>
+        <button style={S.btn()} onClick={()=>{setShowFilterGallery(true);}} title="Filter Gallery">🎨 Filters</button>
+        <button style={S.btn()} onClick={()=>{setShowLiquify(true);setTimeout(initLiquify,50);}} title="Liquify">💧 Liquify</button>
         <button style={S.btn()} onClick={flattenAll} title="Flatten all layers to one">⬇ Flatten</button>
         <button style={S.btn()} onClick={mergeDown} title="Merge selected layer down">⬇ Merge</button>
         <button style={S.btn()} onClick={()=>{setResizeW(project.width);setResizeH(project.height);setShowResizeDialog(true);}} title="Resize canvas">⛶ Resize</button>
@@ -1056,7 +1250,83 @@ export default function SPXCanvasPage() {
                 </div>
               </div>
 
-              {!selectedLayer&&<div style={{color:'#555',fontSize:10,textAlign:'center',padding:'12px 0'}}>Select a layer to apply adjustments</div>}
+              {/* Color Balance */}
+              <div style={{borderTop:'1px solid #333',paddingTop:8}}>
+                <div style={S.label}>Color Balance</div>
+                <div style={{display:'flex',gap:4,marginBottom:6}}>
+                  {['shadows','midtones','highlights'].map(t=>(
+                    <button key={t} onClick={()=>setCbTone(t)}
+                      style={{...S.btn(cbTone===t),flex:1,fontSize:9,padding:'2px 2px',textTransform:'capitalize'}}>{t}</button>
+                  ))}
+                </div>
+                {[['Cyan/Red',0],['Magenta/Green',1],['Yellow/Blue',2]].map(([lbl,idx])=>{
+                  const arr=cbTone==='shadows'?cbShadows:cbTone==='highlights'?cbHighlights:cbMidtones;
+                  const setter=cbTone==='shadows'?setCbShadows:cbTone==='highlights'?setCbHighlights:setCbMidtones;
+                  return(
+                    <div key={idx} style={{marginBottom:4}}>
+                      <div style={{display:'flex',justifyContent:'space-between'}}>
+                        <span style={{color:'#888',fontSize:10}}>{lbl}</span>
+                        <span style={{color:'#00ffc8',fontSize:10}}>{arr[idx]}</span>
+                      </div>
+                      <input type="range" min={-100} max={100} value={arr[idx]}
+                        onChange={e=>{const n=[...arr];n[idx]=Number(e.target.value);setter(n);}}
+                        style={{width:'100%'}}/>
+                    </div>
+                  );
+                })}
+                <button onClick={applyColorBalance} disabled={!selectedLayer}
+                  style={{...S.btn(true),width:'100%',fontSize:9,opacity:selectedLayer?1:0.4}}>Apply Color Balance</button>
+              </div>
+
+              {/* Histogram */}
+              <div style={{borderTop:'1px solid #333',paddingTop:8}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                  <div style={S.label}>Histogram</div>
+                  <button onClick={renderHistogram} style={{...S.btn(false),fontSize:9,padding:'1px 6px'}}>↺</button>
+                </div>
+                <canvas ref={histCanvasRef} width={240} height={80}
+                  style={{width:'100%',border:'1px solid #333',borderRadius:4,display:'block'}}/>
+                <div style={{display:'flex',justifyContent:'space-around',marginTop:3}}>
+                  {[['R','rgba(255,80,80,0.8)'],['G','rgba(80,255,80,0.8)'],['B','rgba(80,120,255,0.8)'],['L','rgba(255,255,255,0.7)']].map(([ch,col])=>(
+                    <span key={ch} style={{color:col,fontSize:9}}>{ch}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Layer Masks */}
+              <div style={{borderTop:'1px solid #333',paddingTop:8}}>
+                <div style={S.label}>Layer Masks</div>
+                {project.layers.map(l=>(
+                  <div key={l.id} style={{display:'flex',alignItems:'center',gap:4,marginBottom:4}}>
+                    <span style={{flex:1,color:'#888',fontSize:10,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.name}</span>
+                    {!layerMasks[l.id]?(
+                      <button onClick={()=>{setLayerMasks(p=>({...p,[l.id]:true}));addLayerMask(l.id);}}
+                        style={{...S.btn(false),fontSize:9,padding:'1px 5px'}}>+ Mask</button>
+                    ):(
+                      <>
+                        <canvas ref={el=>{if(el)layerMaskRefs.current[l.id]=el;}}
+                          width={project.width} height={project.height}
+                          style={{width:32,height:20,border:'1px solid #555',borderRadius:2,background:'#fff',cursor:'crosshair',
+                            outline:maskTarget===l.id?'2px solid #00ffc8':'none'}}
+                          onClick={()=>setMaskTarget(maskTarget===l.id?null:l.id)}/>
+                        <button onClick={()=>applyLayerMask(l.id)}
+                          style={{...S.btn(true),fontSize:9,padding:'1px 5px'}}>Apply</button>
+                        <button onClick={()=>deleteMask(l.id)}
+                          style={{...S.btn(false),fontSize:9,padding:'1px 5px',color:'#ff4757'}}>✕</button>
+                      </>
+                    )}
+                  </div>
+                ))}
+                {maskTarget&&(
+                  <div style={{background:'#1a1a1a',border:'1px solid #333',borderRadius:4,padding:6,marginTop:4}}>
+                    <div style={{color:'#00ffc8',fontSize:10,marginBottom:4}}>Painting mask on: {project.layers.find(l=>l.id===maskTarget)?.name}</div>
+                    <div style={{color:'#555',fontSize:9}}>Black = hide · White = reveal</div>
+                    <button onClick={()=>setMaskTarget(null)} style={{...S.btn(false),marginTop:4,fontSize:9,width:'100%'}}>Done</button>
+                  </div>
+                )}
+              </div>
+
+              {!selectedLayer&&<div style={{color:'#555',fontSize:10,textAlign:'center',padding:'8px 0'}}>Select a layer to apply adjustments</div>}
             </div>
           )}
 
@@ -1080,7 +1350,95 @@ export default function SPXCanvasPage() {
         </div>
       </div>
     </div>
-      {/* ── Canvas Resize Dialog ── */}
+      {/* ── Filter Gallery Modal ── */}
+      {showFilterGallery&&(
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.88)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:8,width:680,maxHeight:'85vh',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+            <div style={{height:44,background:'#0a0e1a',borderBottom:'1px solid #21262d',display:'flex',alignItems:'center',padding:'0 16px',gap:12}}>
+              <span style={{color:'#00ffc8',fontFamily:'JetBrains Mono',fontSize:13,fontWeight:700}}>🎨 Filter Gallery</span>
+              <div style={{flex:1}}/>
+              <button onClick={()=>setShowFilterGallery(false)} style={{background:'none',border:'none',color:'#888',cursor:'pointer',fontSize:18}}>✕</button>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,padding:16,overflowY:'auto'}}>
+              {FILTER_GALLERY.map(flt=>(
+                <div key={flt.id} style={{display:'flex',flexDirection:'column',gap:6,alignItems:'center'}}>
+                  <div style={{width:'100%',aspectRatio:'1',background:'#1a1a1a',border:'1px solid #333',borderRadius:4,
+                    display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:28,
+                    transition:'border-color 0.15s'}}
+                    onClick={()=>applyFilter(flt.id)}
+                    onMouseEnter={e=>e.currentTarget.style.borderColor='#00ffc8'}
+                    onMouseLeave={e=>e.currentTarget.style.borderColor='#333'}>
+                    {flt.id==='sepia'?'🟤':flt.id==='noir'?'⬛':flt.id==='warming'?'🟠':flt.id==='cooling'?'🔵':flt.id==='vintage'?'🟡':flt.id==='duotone'?'🟣':flt.id==='emboss'?'⬜':flt.id==='edge_detect'?'🔲':flt.id==='posterize'?'🎭':flt.id==='cross_process'?'🌈':flt.id==='halftone'?'⚫':flt.id==='pixelate'?'🔳':'✨'}
+                  </div>
+                  <span style={{color:'#aaa',fontSize:10,textAlign:'center'}}>{flt.label}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{padding:'10px 16px',borderTop:'1px solid #21262d',color:'#555',fontSize:10}}>
+              Click a filter to apply it to the canvas. This is non-reversible — use Undo (Ctrl+Z) to revert.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Liquify Modal ── */}
+      {showLiquify&&(
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.9)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:8,width:900,maxHeight:'90vh',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+            <div style={{height:44,background:'#0a0e1a',borderBottom:'1px solid #21262d',display:'flex',alignItems:'center',padding:'0 16px',gap:12}}>
+              <span style={{color:'#00ffc8',fontFamily:'JetBrains Mono',fontSize:13,fontWeight:700}}>💧 Liquify</span>
+              <div style={{flex:1}}/>
+              <button onClick={()=>setShowLiquify(false)} style={{background:'none',border:'none',color:'#888',cursor:'pointer',fontSize:18}}>✕</button>
+            </div>
+            <div style={{display:'flex',flex:1,overflow:'hidden'}}>
+              <div style={{flex:1,background:'#1a1a1a',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
+                <canvas ref={liquifyCanvasRef}
+                  style={{maxWidth:'100%',maxHeight:'calc(90vh - 120px)',cursor:'crosshair',border:'1px solid #333'}}
+                  onMouseDown={e=>{liquifyPainting.current=true; const r=e.currentTarget.getBoundingClientRect(); liquifyPush(Math.round((e.clientX-r.left)*(liquifyCanvasRef.current?.width||1)/r.width),Math.round((e.clientY-r.top)*(liquifyCanvasRef.current?.height||1)/r.height));}}
+                  onMouseMove={e=>{if(!liquifyPainting.current)return; const r=e.currentTarget.getBoundingClientRect(); liquifyPush(Math.round((e.clientX-r.left)*(liquifyCanvasRef.current?.width||1)/r.width),Math.round((e.clientY-r.top)*(liquifyCanvasRef.current?.height||1)/r.height));}}
+                  onMouseUp={()=>liquifyPainting.current=false}
+                  onMouseLeave={()=>liquifyPainting.current=false}/>
+              </div>
+              <div style={{width:220,background:'#0d1117',borderLeft:'1px solid #21262d',padding:12,display:'flex',flexDirection:'column',gap:10}}>
+                <div>
+                  <div style={{color:'#888',fontSize:10,marginBottom:6,textTransform:'uppercase',letterSpacing:1}}>Mode</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
+                    {[['push','↗ Push'],['bloat','⊕ Bloat'],['pucker','⊖ Pucker'],['smooth','∿ Smooth']].map(([m,l])=>(
+                      <button key={m} onClick={()=>setLiquifyMode(m)}
+                        style={{...S.btn(liquifyMode===m),fontSize:10,padding:'5px 4px'}}>{l}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div style={{display:'flex',justifyContent:'space-between'}}>
+                    <span style={{color:'#888',fontSize:10}}>Brush Size</span>
+                    <span style={{color:'#00ffc8',fontSize:10}}>{liquifyBrush}</span>
+                  </div>
+                  <input type="range" min={10} max={300} value={liquifyBrush}
+                    onChange={e=>setLiquifyBrush(Number(e.target.value))} style={{width:'100%'}}/>
+                </div>
+                <div>
+                  <div style={{display:'flex',justifyContent:'space-between'}}>
+                    <span style={{color:'#888',fontSize:10}}>Strength</span>
+                    <span style={{color:'#00ffc8',fontSize:10}}>{liquifyStrength.toFixed(2)}</span>
+                  </div>
+                  <input type="range" min={0.05} max={1} step={0.05} value={liquifyStrength}
+                    onChange={e=>setLiquifyStrength(Number(e.target.value))} style={{width:'100%'}}/>
+                </div>
+                <div style={{marginTop:'auto',display:'flex',flexDirection:'column',gap:6}}>
+                  <button onClick={initLiquify} style={{...S.btn(false),padding:'6px',fontSize:11}}>↺ Reset</button>
+                  <button onClick={applyLiquify}
+                    style={{background:'#00ffc8',border:'none',color:'#06060f',borderRadius:4,padding:'8px',cursor:'pointer',fontWeight:700,fontSize:12}}>
+                    ✓ Apply Liquify
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Canvas Resize Dialog ── */}}
       {showResizeDialog&&(
         <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.8)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:8,padding:24,width:320,display:'flex',flexDirection:'column',gap:12}}>
