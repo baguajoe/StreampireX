@@ -6,124 +6,38 @@ import DVSTimecode from "../component/DVSTimecode";
 
 const BACKEND = process.env.REACT_APP_BACKEND_URL || "";
 
-
-// ── DJ Controller Profiles ──
 const CONTROLLER_PROFILES = {
   "Akai MPK Mini": {
     desc: "Akai MPK Mini — 25 keys, 8 pads, 8 knobs",
-    map: { 1:"xfader", 7:"vol_a", 8:"vol_b", 10:"low_a", 11:"mid_a", 74:"filter_a",
-           70:"high_a", 71:"low_b", 72:"mid_b", 73:"high_b" },
-    pads: { 36:"cue_a_1", 37:"cue_a_2", 38:"cue_a_3", 39:"cue_a_4",
-            40:"cue_b_1", 41:"cue_b_2", 42:"cue_b_3", 43:"cue_b_4" },
+    map: { 1:"xfader", 7:"vol_a", 8:"vol_b", 10:"low_a", 11:"mid_a", 74:"filter_a", 70:"high_a", 71:"low_b", 72:"mid_b", 73:"high_b" },
+    pads: { 36:"cue_a_1", 37:"cue_a_2", 38:"cue_a_3", 39:"cue_a_4", 40:"cue_b_1", 41:"cue_b_2", 42:"cue_b_3", 43:"cue_b_4" },
   },
   "Novation Launchpad": {
     desc: "Novation Launchpad — 8x8 grid, 64 pads",
     map: { 7:"vol_a", 8:"vol_b" },
-    pads: { 36:"cue_a_1", 37:"cue_a_2", 38:"cue_a_3", 39:"cue_a_4",
-            44:"play_a", 45:"play_b", 46:"sync", 47:"cue_a" },
+    pads: { 36:"cue_a_1", 37:"cue_a_2", 38:"cue_a_3", 39:"cue_a_4", 44:"play_a", 45:"play_b", 46:"sync", 47:"cue_a" },
   },
   "Pioneer DDJ-200": {
     desc: "Pioneer DDJ-200 — 2-deck controller, jog wheels",
-    map: { 7:"vol_a", 8:"vol_b", 10:"low_a", 11:"mid_a", 12:"high_a",
-           13:"low_b", 14:"mid_b", 15:"high_b", 1:"xfader" },
+    map: { 7:"vol_a", 8:"vol_b", 10:"low_a", 11:"mid_a", 12:"high_a", 13:"low_b", 14:"mid_b", 15:"high_b", 1:"xfader" },
     pads: { 36:"cue_a_1", 37:"cue_a_2", 40:"play_a", 41:"play_b", 46:"sync" },
-  },
-  "Native Instruments Traktor": {
-    desc: "NI Traktor Kontrol S2/S4",
-    map: { 7:"vol_a", 8:"vol_b", 10:"low_a", 11:"mid_a", 74:"filter_a",
-           75:"filter_b", 1:"xfader" },
-    pads: { 36:"cue_a_1", 37:"cue_a_2", 38:"cue_a_3", 39:"cue_a_4", 44:"play_a", 45:"play_b" },
   },
   "Pioneer DDJ-400": {
     desc: "Pioneer DDJ-400 — 2-deck, jog wheels, FX",
-    map: { 9:"vol_a", 9:"vol_b", 8:"xfader", 0:"pitch_a", 0:"pitch_b",
-           7:"high_a", 11:"mid_a", 15:"low_a", 7:"high_b", 11:"mid_b", 15:"low_b",
-           20:"filter_a", 20:"filter_b", 70:"fx1", 71:"fx2", 72:"fx3" },
-    pads: { 11:"play_a", 12:"cue_a", 13:"sync_a", 11:"play_b", 12:"cue_b", 13:"sync_b",
-            1:"cue_a_1", 2:"cue_a_2", 3:"cue_a_3", 4:"cue_a_4", 20:"loop_a" },
-  },
-  "Pioneer DDJ-SB3": {
-    desc: "Pioneer DDJ-SB3 — Serato controller",
-    map: { 9:"vol_a", 8:"xfader", 0:"pitch_a", 7:"high_a", 11:"mid_a", 15:"low_a" },
-    pads: { 11:"play_a", 12:"cue_a", 13:"sync_a", 1:"cue_a_1", 2:"cue_a_2", 3:"cue_a_3", 4:"cue_a_4" },
-  },
-  "Pioneer DDJ-REV1": {
-    desc: "Pioneer DDJ-REV1 — Battle style",
-    map: { 9:"vol_a", 8:"xfader", 0:"pitch_a", 7:"high_a", 11:"mid_a", 15:"low_a" },
-    pads: { 11:"play_a", 12:"cue_a", 1:"cue_a_1", 2:"cue_a_2", 3:"cue_a_3", 4:"cue_a_4" },
+    map: { 9:"vol_a", 8:"xfader", 0:"pitch_a", 7:"high_a", 11:"mid_a", 15:"low_a", 20:"filter_a", 70:"fx1", 71:"fx2", 72:"fx3" },
+    pads: { 11:"play_a", 12:"cue_a", 13:"sync_a", 1:"cue_a_1", 2:"cue_a_2", 3:"cue_a_3", 4:"cue_a_4", 20:"loop_a" },
   },
   "Numark Mixtrack Pro FX": {
     desc: "Numark Mixtrack Pro FX — 2-deck, FX paddles",
-    map: { 2:"vol_a", 2:"vol_b", 1:"xfader", 3:"pitch_a", 3:"pitch_b",
-           4:"high_a", 5:"mid_a", 6:"low_a", 4:"high_b", 5:"mid_b", 6:"low_b",
-           7:"filter_a", 7:"filter_b", 20:"fx1", 21:"fx2", 22:"fx3" },
-    pads: { 0:"play_a", 1:"cue_a", 2:"sync_a", 0:"play_b", 1:"cue_b", 2:"sync_b",
-            20:"cue_a_1", 21:"cue_a_2", 22:"cue_a_3", 23:"cue_a_4", 10:"loop_a" },
-  },
-  "Numark Party Mix": {
-    desc: "Numark Party Mix — Beginner controller with light show",
-    map: { 2:"vol_a", 2:"vol_b", 1:"xfader", 3:"pitch_a", 3:"pitch_b" },
-    pads: { 0:"play_a", 1:"cue_a", 0:"play_b", 1:"cue_b" },
-  },
-  "Numark DJ2GO2": {
-    desc: "Numark DJ2GO2 — Ultra portable",
-    map: { 2:"vol_a", 2:"vol_b", 1:"xfader", 3:"pitch_a", 3:"pitch_b" },
-    pads: { 0:"play_a", 1:"cue_a", 20:"cue_a_1", 21:"cue_a_2" },
-  },
-  "Hercules Starlight": {
-    desc: "Hercules DJControl Starlight — Compact with RGB",
-    map: { 2:"vol_a", 2:"vol_b", 1:"xfader", 3:"pitch_a", 3:"pitch_b",
-           4:"high_a", 5:"low_a", 4:"high_b", 5:"low_b" },
-    pads: { 0:"play_a", 1:"cue_a", 0:"play_b", 1:"cue_b",
-            20:"cue_a_1", 21:"cue_a_2", 22:"cue_a_3", 23:"cue_a_4" },
+    map: { 2:"vol_a", 1:"xfader", 3:"pitch_a", 4:"high_a", 5:"mid_a", 6:"low_a", 7:"filter_a", 20:"fx1", 21:"fx2", 22:"fx3" },
+    pads: { 0:"play_a", 1:"cue_a", 2:"sync_a", 20:"cue_a_1", 21:"cue_a_2", 22:"cue_a_3", 23:"cue_a_4", 10:"loop_a" },
   },
   "Hercules Inpulse 300": {
     desc: "Hercules DJControl Inpulse 300 — AI music assistant",
-    map: { 2:"vol_a", 2:"vol_b", 1:"xfader", 3:"pitch_a", 3:"pitch_b",
-           4:"high_a", 5:"mid_a", 6:"low_a", 4:"high_b", 5:"mid_b", 6:"low_b",
-           7:"filter_a", 7:"filter_b" },
-    pads: { 0:"play_a", 1:"cue_a", 2:"sync_a", 0:"play_b", 1:"cue_b", 2:"sync_b",
-            20:"cue_a_1", 21:"cue_a_2", 22:"cue_a_3", 23:"cue_a_4", 10:"loop_a" },
+    map: { 2:"vol_a", 1:"xfader", 3:"pitch_a", 4:"high_a", 5:"mid_a", 6:"low_a", 7:"filter_a" },
+    pads: { 0:"play_a", 1:"cue_a", 2:"sync_a", 20:"cue_a_1", 21:"cue_a_2", 22:"cue_a_3", 23:"cue_a_4", 10:"loop_a" },
   },
-  "Hercules Inpulse 500": {
-    desc: "Hercules DJControl Inpulse 500 — 4 decks capable",
-    map: { 2:"vol_a", 2:"vol_b", 1:"xfader", 3:"pitch_a", 3:"pitch_b",
-           4:"high_a", 5:"mid_a", 6:"low_a", 7:"filter_a", 20:"fx1", 21:"fx2", 22:"fx3" },
-    pads: { 0:"play_a", 1:"cue_a", 2:"sync_a",
-            20:"cue_a_1", 21:"cue_a_2", 22:"cue_a_3", 23:"cue_a_4",
-            24:"cue_a_5", 25:"cue_a_6", 26:"cue_a_7", 27:"cue_a_8" },
-  },
-  "Reloop Mixtour": {
-    desc: "Reloop Mixtour — iOS/Android compatible",
-    map: { 2:"vol_a", 2:"vol_b", 1:"xfader", 3:"pitch_a", 3:"pitch_b" },
-    pads: { 0:"play_a", 1:"cue_a", 0:"play_b", 1:"cue_b" },
-  },
-  "Reloop Ready": {
-    desc: "Reloop Ready — Serato DJ Lite included",
-    map: { 2:"vol_a", 2:"vol_b", 1:"xfader", 3:"pitch_a", 3:"pitch_b",
-           4:"high_a", 5:"mid_a", 6:"low_a", 7:"filter_a" },
-    pads: { 0:"play_a", 1:"cue_a", 2:"sync_a",
-            20:"cue_a_1", 21:"cue_a_2", 22:"cue_a_3", 23:"cue_a_4" },
-  },
-  "Denon MC4000": {
-    desc: "Denon MC4000 — Professional 2-deck",
-    map: { 2:"vol_a", 2:"vol_b", 1:"xfader", 3:"pitch_a", 3:"pitch_b",
-           4:"high_a", 5:"mid_a", 6:"low_a", 7:"filter_a", 20:"fx1", 21:"fx2" },
-    pads: { 0:"play_a", 1:"cue_a", 2:"sync_a",
-            20:"cue_a_1", 21:"cue_a_2", 22:"cue_a_3", 23:"cue_a_4", 10:"loop_a" },
-  },
-  "Behringer CMD Studio 4a": {
-    desc: "Behringer CMD Studio 4a — 4-deck controller",
-    map: { 2:"vol_a", 2:"vol_b", 1:"xfader", 3:"pitch_a", 3:"pitch_b",
-           4:"high_a", 5:"mid_a", 6:"low_a" },
-    pads: { 0:"play_a", 1:"cue_a", 2:"sync_a",
-            20:"cue_a_1", 21:"cue_a_2", 22:"cue_a_3", 23:"cue_a_4" },
-  },
-  "Custom": {
-    desc: "Custom — build your own mapping",
-    map: {},
-    pads: {},
-  },
+  "Custom": { desc: "Custom — build your own mapping", map: {}, pads: {} },
 };
 
 const CAMELOT = {
@@ -157,7 +71,6 @@ async function detectBPM(buffer) {
   } catch { return null; }
 }
 
-// ── Key Detection via Chromagram ──
 async function detectKey(buffer) {
   try {
     const sr = buffer.sampleRate;
@@ -166,22 +79,18 @@ async function detectKey(buffer) {
     src.connect(off.destination); src.start(0);
     const r = await off.startRendering();
     const data = r.getChannelData(0);
-    // Sample every 4096 frames
     const fftSize = 4096;
     const chroma = new Float32Array(12).fill(0);
     const noteFreqs = [16.35,17.32,18.35,19.45,20.6,21.83,23.12,24.5,25.96,27.5,29.14,30.87];
-    // Build chromagram from energy at note frequencies
     for (let oct = 1; oct <= 6; oct++) {
       for (let n = 0; n < 12; n++) {
         const freq = noteFreqs[n] * Math.pow(2, oct);
         if (freq > sr / 2) continue;
-        // Goertzel algorithm for single frequency energy
         const k = Math.round((fftSize * freq) / sr);
         const omega = (2 * Math.PI * k) / fftSize;
         const cos2 = 2 * Math.cos(omega);
         let q1 = 0, q2 = 0;
-        const step = Math.floor(data.length / fftSize);
-        const chunk = step > 0 ? data.slice(0, fftSize) : data;
+        const chunk = data.slice(0, fftSize);
         for (let i = 0; i < chunk.length; i++) {
           const q0 = chunk[i] + cos2 * q1 - q2;
           q2 = q1; q1 = q0;
@@ -189,23 +98,22 @@ async function detectKey(buffer) {
         chroma[n] += q1 * q1 + q2 * q2 - q1 * q2 * cos2;
       }
     }
-    // Match against major/minor profiles (Krumhansl-Schmuckler)
     const major = [6.35,2.23,3.48,2.33,4.38,4.09,2.52,5.19,2.39,3.66,2.29,2.88];
     const minor = [6.33,2.68,3.52,5.38,2.6,3.53,2.54,4.75,3.98,2.69,3.34,3.17];
-    const notes = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-    let bestScore = -Infinity, bestKey = 'C', bestMode = 'maj';
+    const notes = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+    let bestScore = -Infinity, bestKey = "C", bestMode = "maj";
     for (let shift = 0; shift < 12; shift++) {
       const shifted = [...chroma.slice(shift), ...chroma.slice(0, shift)];
       const scoreM = major.reduce((s, v, i) => s + v * shifted[i], 0);
       const scoreMn = minor.reduce((s, v, i) => s + v * shifted[i], 0);
-      if (scoreM > bestScore) { bestScore = scoreM; bestKey = notes[shift]; bestMode = 'maj'; }
-      if (scoreMn > bestScore) { bestScore = scoreMn; bestKey = notes[shift]; bestMode = 'min'; }
+      if (scoreM > bestScore) { bestScore = scoreM; bestKey = notes[shift]; bestMode = "maj"; }
+      if (scoreMn > bestScore) { bestScore = scoreMn; bestKey = notes[shift]; bestMode = "min"; }
     }
-    return bestKey + ' ' + bestMode;
+    return bestKey + " " + bestMode;
   } catch { return null; }
 }
 
-// ── Technics 1200 Canvas Component ──
+// ── Technics 1200 Turntable — proper tonearm geometry ──
 const Turntable = React.memo(({ playing, progress, color, label }) => {
   const cvs = useRef(null);
   const rot = useRef(0);
@@ -215,169 +123,212 @@ const Turntable = React.memo(({ playing, progress, color, label }) => {
     const c = cvs.current; if (!c) return;
     const ctx = c.getContext("2d");
     const W = c.width, H = c.height;
-    const PR = 124, cx = 148, cy = 150;
+    // Platter center and radius — matches real Technics layout
+    const PR = 118, cx = 145, cy = H / 2;
 
     const draw = () => {
-      ctx.clearRect(0,0,W,H);
+      ctx.clearRect(0, 0, W, H);
 
-      // Plinth
-      const bg = ctx.createLinearGradient(0,0,0,H);
-      bg.addColorStop(0,"#2a2a2a"); bg.addColorStop(1,"#101010");
-      ctx.fillStyle=bg; ctx.beginPath(); ctx.roundRect(0,0,W,H,8); ctx.fill();
-      ctx.strokeStyle="#3a3a3a"; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.roundRect(1,1,W-2,H-2,8); ctx.stroke();
+      // Plinth background
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, "#222"); bg.addColorStop(1, "#0a0a0a");
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.roundRect(0, 0, W, H, 8); ctx.fill();
+      ctx.strokeStyle = "#333"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(1, 1, W-2, H-2, 8); ctx.stroke();
 
-      // Chrome outer ring
-      const ring=ctx.createRadialGradient(cx,cy,PR-10,cx,cy,PR+6);
-      ring.addColorStop(0,"#555"); ring.addColorStop(0.3,"#aaa");
-      ring.addColorStop(0.7,"#777"); ring.addColorStop(1,"#333");
-      ctx.fillStyle=ring; ctx.beginPath(); ctx.arc(cx,cy,PR+6,0,Math.PI*2); ctx.fill();
+      // Chrome ring around platter
+      const ring = ctx.createRadialGradient(cx, cy, PR-8, cx, cy, PR+8);
+      ring.addColorStop(0, "#444"); ring.addColorStop(0.4, "#aaa");
+      ring.addColorStop(0.7, "#666"); ring.addColorStop(1, "#222");
+      ctx.fillStyle = ring;
+      ctx.beginPath(); ctx.arc(cx, cy, PR+8, 0, Math.PI*2); ctx.fill();
 
       // Strobe dots
-      for (let i=0;i<80;i++) {
-        const a=(i/80)*Math.PI*2, sr=PR+3;
-        const blink=Math.sin(Date.now()*0.015+i*0.4)>0.7;
-        ctx.fillStyle=blink?"rgba(255,255,255,0.95)":"rgba(0,0,0,0.4)";
-        ctx.beginPath(); ctx.arc(cx+Math.cos(a)*sr,cy+Math.sin(a)*sr,1,0,Math.PI*2); ctx.fill();
+      for (let i = 0; i < 72; i++) {
+        const a = (i / 72) * Math.PI * 2;
+        const sr = PR + 4;
+        const blink = Math.sin(Date.now() * 0.012 + i * 0.5) > 0.65;
+        ctx.fillStyle = blink ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.5)";
+        ctx.beginPath(); ctx.arc(cx + Math.cos(a)*sr, cy + Math.sin(a)*sr, 1, 0, Math.PI*2); ctx.fill();
       }
 
-      // Rotating platter
-      ctx.save(); ctx.translate(cx,cy); ctx.rotate(rot.current);
-      const mat=ctx.createRadialGradient(0,0,0,0,0,PR);
-      mat.addColorStop(0,"#1e1e1e"); mat.addColorStop(0.85,"#131313"); mat.addColorStop(1,"#0a0a0a");
-      ctx.fillStyle=mat; ctx.beginPath(); ctx.arc(0,0,PR,0,Math.PI*2); ctx.fill();
-      for (let r=PR*0.18;r<PR*0.96;r+=2.8) {
-        ctx.strokeStyle=`rgba(255,255,255,${0.025+r/PR*0.04})`;
-        ctx.lineWidth=0.5; ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.stroke();
+      // Rotating vinyl platter
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot.current);
+      const mat = ctx.createRadialGradient(0, 0, 0, 0, 0, PR);
+      mat.addColorStop(0, "#1a1a1a"); mat.addColorStop(0.8, "#111"); mat.addColorStop(1, "#080808");
+      ctx.fillStyle = mat;
+      ctx.beginPath(); ctx.arc(0, 0, PR, 0, Math.PI*2); ctx.fill();
+      // Vinyl grooves
+      for (let r = PR * 0.2; r < PR * 0.96; r += 2.6) {
+        ctx.strokeStyle = `rgba(255,255,255,${0.02 + (r/PR) * 0.035})`;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.stroke();
       }
-      // Label
-      const lg=ctx.createRadialGradient(0,0,0,0,0,PR*0.21);
-      lg.addColorStop(0,color+"dd"); lg.addColorStop(0.6,color+"55"); lg.addColorStop(1,"#111");
-      ctx.fillStyle=lg; ctx.beginPath(); ctx.arc(0,0,PR*0.21,0,Math.PI*2); ctx.fill();
-      ctx.strokeStyle=color+"44"; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.arc(0,0,PR*0.21,0,Math.PI*2); ctx.stroke();
-      ctx.fillStyle="#fff"; ctx.font=`bold ${PR*0.075}px JetBrains Mono,monospace`;
-      ctx.textAlign="center"; ctx.textBaseline="middle";
-      ctx.fillText("SPX",0,-PR*0.06);
-      ctx.font=`${PR*0.058}px JetBrains Mono,monospace`; ctx.fillStyle=color;
-      ctx.fillText(label,0,PR*0.075);
-      ctx.fillStyle="#888"; ctx.beginPath(); ctx.arc(0,0,4,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle="#ccc"; ctx.beginPath(); ctx.arc(0,0,2,0,Math.PI*2); ctx.fill();
+      // Center label
+      const lg = ctx.createRadialGradient(0, 0, 0, 0, 0, PR*0.22);
+      lg.addColorStop(0, color+"ee"); lg.addColorStop(0.5, color+"44"); lg.addColorStop(1, "#111");
+      ctx.fillStyle = lg;
+      ctx.beginPath(); ctx.arc(0, 0, PR*0.22, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.font = `bold ${Math.round(PR*0.08)}px JetBrains Mono,monospace`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("SPX", 0, -PR*0.065);
+      ctx.font = `${Math.round(PR*0.06)}px JetBrains Mono,monospace`; ctx.fillStyle = color;
+      ctx.fillText(label, 0, PR*0.08);
+      // Spindle
+      ctx.fillStyle = "#555"; ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#bbb"; ctx.beginPath(); ctx.arc(0, 0, 2.5, 0, Math.PI*2); ctx.fill();
       ctx.restore();
 
-      // Pitch fader (right of platter, like real Technics)
-      const fx=cx+PR+38, fy=H*0.18, fh=H*0.64;
-      ctx.fillStyle="#111"; ctx.beginPath(); ctx.roundRect(fx-4,fy,8,fh,4); ctx.fill();
-      ctx.strokeStyle="#333"; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.roundRect(fx-4,fy,8,fh,4); ctx.stroke();
-      ctx.strokeStyle="#444"; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.moveTo(fx-8,fy+fh/2); ctx.lineTo(fx+8,fy+fh/2); ctx.stroke();
-      const faderY=fy+fh/2;
-      ctx.fillStyle="#666"; ctx.beginPath(); ctx.roundRect(fx-9,faderY-7,18,14,3); ctx.fill();
-      ctx.fillStyle="#999"; ctx.beginPath(); ctx.roundRect(fx-8,faderY-6,16,12,2); ctx.fill();
-      ctx.strokeStyle="#bbb"; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.moveTo(fx-5,faderY); ctx.lineTo(fx+5,faderY); ctx.stroke();
-      ctx.fillStyle="#555"; ctx.font="8px JetBrains Mono,monospace"; ctx.textAlign="center";
-      ctx.fillText("+",fx,fy-5); ctx.fillText("-",fx,fy+fh+11);
+      // Pitch fader — right side between platter and edge
+      const pfx = cx + PR + 32;
+      const pfy = H * 0.15, pfh = H * 0.7;
+      ctx.fillStyle = "#111";
+      ctx.beginPath(); ctx.roundRect(pfx - 3, pfy, 6, pfh, 3); ctx.fill();
+      ctx.strokeStyle = "#2a2a2a"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(pfx - 3, pfy, 6, pfh, 3); ctx.stroke();
+      // Center mark
+      ctx.strokeStyle = "#3a3a3a"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(pfx-7, pfy+pfh/2); ctx.lineTo(pfx+7, pfy+pfh/2); ctx.stroke();
+      // Fader cap
+      const fcy = pfy + pfh/2;
+      ctx.fillStyle = "#555";
+      ctx.beginPath(); ctx.roundRect(pfx-8, fcy-6, 16, 12, 3); ctx.fill();
+      ctx.fillStyle = "#888";
+      ctx.beginPath(); ctx.roundRect(pfx-7, fcy-5, 14, 10, 2); ctx.fill();
+      ctx.strokeStyle = "#aaa"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(pfx-4, fcy); ctx.lineTo(pfx+4, fcy); ctx.stroke();
+      ctx.fillStyle = "#444"; ctx.font = "7px JetBrains Mono,monospace"; ctx.textAlign = "center";
+      ctx.fillText("+", pfx, pfy - 4); ctx.fillText("-", pfx, pfy + pfh + 10);
 
       // Start/Stop button
-      const btnX=cx-PR*0.55, btnY=H*0.84;
-      ctx.fillStyle="#1a1a1a"; ctx.beginPath(); ctx.arc(btnX,btnY,16,0,Math.PI*2); ctx.fill();
-      ctx.strokeStyle=playing?"#ff4444":"#444"; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.arc(btnX,btnY,16,0,Math.PI*2); ctx.stroke();
-      ctx.fillStyle=playing?"#ff4444":"#333";
-      ctx.shadowColor=playing?"#ff4444":"transparent"; ctx.shadowBlur=playing?12:0;
-      ctx.beginPath(); ctx.arc(btnX,btnY,8,0,Math.PI*2); ctx.fill();
-      ctx.shadowBlur=0;
-      const rpmX=btnX+42;
-      ctx.fillStyle="#222"; ctx.beginPath(); ctx.roundRect(rpmX,btnY-10,30,20,4); ctx.fill();
-      ctx.font="7px JetBrains Mono,monospace"; ctx.fillStyle="#777"; ctx.textAlign="left";
-      ctx.fillText("33",rpmX+3,btnY-1); ctx.fillText("45",rpmX+7,btnY+9);
+      const btnX = cx - PR * 0.52, btnY = H * 0.85;
+      ctx.fillStyle = "#1a1a1a";
+      ctx.beginPath(); ctx.arc(btnX, btnY, 15, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = playing ? "#ff4444" : "#333"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(btnX, btnY, 15, 0, Math.PI*2); ctx.stroke();
+      ctx.fillStyle = playing ? "#ff4444" : "#2a2a2a";
+      ctx.shadowColor = playing ? "#ff4444" : "transparent"; ctx.shadowBlur = playing ? 10 : 0;
+      ctx.beginPath(); ctx.arc(btnX, btnY, 7, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+      // RPM selector
+      const rpmX = btnX + 36;
+      ctx.fillStyle = "#1a1a1a";
+      ctx.beginPath(); ctx.roundRect(rpmX, btnY-9, 28, 18, 3); ctx.fill();
+      ctx.font = "7px JetBrains Mono,monospace"; ctx.fillStyle = "#555"; ctx.textAlign = "left";
+      ctx.fillText("33", rpmX+2, btnY-1); ctx.fillText("45", rpmX+6, btnY+8);
 
-      // Tone arm
+      // ── Tonearm — Technics-style, pivot top-right, arm sweeps to platter ──
       ctx.save();
-      const pivotX=420, pivotY=28;
-      const armAngle=-2.15+progress*0.35;
+      // Pivot is top-right corner of plinth
+      // cx=145, PR=118 so platter right edge at ~263
+      // W=500, so pivot at x=W-52=448 gives proper spacing
+      const pivotX = W - 52;
+      const pivotY = 32;
+      // Arm angle: at rest (progress=0) stylus is near platter edge
+      // angle=-2.18 rad points lower-left, reaching cx+PR area
+      const armAngle = -2.18 + progress * 0.32;
+      const armLen = 168;
 
-      // Counterweight
-      const cwLen=35;
-      const cwX=pivotX-Math.cos(armAngle)*cwLen;
-      const cwY=pivotY-Math.sin(armAngle)*cwLen;
-      ctx.strokeStyle="#666"; ctx.lineWidth=5; ctx.lineCap="round";
-      ctx.beginPath(); ctx.moveTo(pivotX,pivotY); ctx.lineTo(cwX,cwY); ctx.stroke();
-      const cwg=ctx.createRadialGradient(cwX-3,cwY-3,1,cwX,cwY,11);
-      cwg.addColorStop(0,"#ccc"); cwg.addColorStop(0.5,"#777"); cwg.addColorStop(1,"#333");
-      ctx.fillStyle=cwg; ctx.beginPath(); ctx.arc(cwX,cwY,11,0,Math.PI*2); ctx.fill();
+      // Calculate tip position
+      const tipX = pivotX + Math.cos(armAngle) * armLen;
+      const tipY = pivotY + Math.sin(armAngle) * armLen;
 
-      // Pivot
-      const pvg=ctx.createRadialGradient(pivotX-3,pivotY-3,1,pivotX,pivotY,12);
-      pvg.addColorStop(0,"#ddd"); pvg.addColorStop(0.5,"#888"); pvg.addColorStop(1,"#222");
-      ctx.fillStyle="#111"; ctx.beginPath(); ctx.arc(pivotX,pivotY,14,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle=pvg; ctx.beginPath(); ctx.arc(pivotX,pivotY,11,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle="#eee"; ctx.beginPath(); ctx.arc(pivotX,pivotY,4,0,Math.PI*2); ctx.fill();
+      // Counterweight (opposite direction from arm)
+      const cwLen = 36;
+      const cwX = pivotX - Math.cos(armAngle) * cwLen;
+      const cwY = pivotY - Math.sin(armAngle) * cwLen;
+      // CW shaft
+      ctx.strokeStyle = "#555"; ctx.lineWidth = 5; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(pivotX, pivotY); ctx.lineTo(cwX, cwY); ctx.stroke();
+      // CW ball
+      const cwg = ctx.createRadialGradient(cwX-2, cwY-2, 1, cwX, cwY, 10);
+      cwg.addColorStop(0, "#bbb"); cwg.addColorStop(0.5, "#666"); cwg.addColorStop(1, "#222");
+      ctx.fillStyle = cwg;
+      ctx.beginPath(); ctx.arc(cwX, cwY, 10, 0, Math.PI*2); ctx.fill();
 
-      // S-arm
-      const armLen=155;
-      const tipX=pivotX+Math.cos(armAngle)*armLen;
-      const tipY=pivotY+Math.sin(armAngle)*armLen;
-      const px=-Math.sin(armAngle), py=Math.cos(armAngle);
-      const sBend=36;
-      const m2x=pivotX+Math.cos(armAngle)*armLen*0.65;
-      const m2y=pivotY+Math.sin(armAngle)*armLen*0.65;
-      const cp1x=pivotX+Math.cos(armAngle)*armLen*0.35+px*sBend;
-      const cp1y=pivotY+Math.sin(armAngle)*armLen*0.35+py*sBend;
-      const cp2x=m2x+px*sBend*0.2, cp2y=m2y+py*sBend*0.2;
-      const cp3x=m2x-px*sBend*0.4, cp3y=m2y-py*sBend*0.4;
-      const cp4x=tipX-px*sBend*0.1, cp4y=tipY-py*sBend*0.1;
+      // Pivot bearing
+      ctx.fillStyle = "#0d0d0d";
+      ctx.beginPath(); ctx.arc(pivotX, pivotY, 14, 0, Math.PI*2); ctx.fill();
+      const pvg = ctx.createRadialGradient(pivotX-3, pivotY-3, 1, pivotX, pivotY, 11);
+      pvg.addColorStop(0, "#ccc"); pvg.addColorStop(0.4, "#777"); pvg.addColorStop(1, "#1a1a1a");
+      ctx.fillStyle = pvg;
+      ctx.beginPath(); ctx.arc(pivotX, pivotY, 11, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#ddd";
+      ctx.beginPath(); ctx.arc(pivotX, pivotY, 3, 0, Math.PI*2); ctx.fill();
 
-      ctx.strokeStyle="rgba(0,0,0,0.6)"; ctx.lineWidth=9; ctx.lineCap="round";
-      ctx.beginPath(); ctx.moveTo(pivotX+1,pivotY+2);
-      ctx.bezierCurveTo(cp1x+1,cp1y+2,cp2x+1,cp2y+2,m2x+1,m2y+2);
-      ctx.bezierCurveTo(cp3x+1,cp3y+2,cp4x+1,cp4y+2,tipX+1,tipY+2); ctx.stroke();
+      // S-arm with proper Technics curvature
+      const px = -Math.sin(armAngle);
+      const py = Math.cos(armAngle);
+      const sBend = 28;
+      const m1x = pivotX + Math.cos(armAngle) * armLen * 0.38 + px * sBend;
+      const m1y = pivotY + Math.sin(armAngle) * armLen * 0.38 + py * sBend;
+      const m2x = pivotX + Math.cos(armAngle) * armLen * 0.62 + px * sBend * 0.15;
+      const m2y = pivotY + Math.sin(armAngle) * armLen * 0.62 + py * sBend * 0.15;
+      const m3x = pivotX + Math.cos(armAngle) * armLen * 0.80 - px * sBend * 0.25;
+      const m3y = pivotY + Math.sin(armAngle) * armLen * 0.80 - py * sBend * 0.25;
 
-      const ag=ctx.createLinearGradient(pivotX,pivotY,tipX,tipY);
-      ag.addColorStop(0,"#888"); ag.addColorStop(0.3,"#ddd");
-      ag.addColorStop(0.6,"#bbb"); ag.addColorStop(1,"#999");
-      ctx.strokeStyle=ag; ctx.lineWidth=6;
-      ctx.beginPath(); ctx.moveTo(pivotX,pivotY);
-      ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,m2x,m2y);
-      ctx.bezierCurveTo(cp3x,cp3y,cp4x,cp4y,tipX,tipY); ctx.stroke();
+      // Drop shadow
+      ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 8; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(pivotX+1, pivotY+2);
+      ctx.bezierCurveTo(m1x+1, m1y+2, m2x+1, m2y+2, m3x+1, m3y+2);
+      ctx.bezierCurveTo(m3x+1, m3y+2, tipX+1, tipY+2, tipX+1, tipY+2);
+      ctx.stroke();
 
-      ctx.strokeStyle="rgba(255,255,255,0.28)"; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(pivotX,pivotY);
-      ctx.bezierCurveTo(cp1x+px,cp1y+py,cp2x+px,cp2y+py,m2x,m2y);
-      ctx.bezierCurveTo(cp3x+px,cp3y+py,cp4x+px,cp4y+py,tipX,tipY); ctx.stroke();
+      // Main arm gradient — silver/chrome
+      const ag = ctx.createLinearGradient(pivotX, pivotY, tipX, tipY);
+      ag.addColorStop(0, "#777"); ag.addColorStop(0.25, "#ddd"); ag.addColorStop(0.6, "#aaa"); ag.addColorStop(1, "#888");
+      ctx.strokeStyle = ag; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(pivotX, pivotY);
+      ctx.bezierCurveTo(m1x, m1y, m2x, m2y, m3x, m3y);
+      ctx.bezierCurveTo(m3x, m3y, tipX, tipY, tipX, tipY);
+      ctx.stroke();
+
+      // Highlight
+      ctx.strokeStyle = "rgba(255,255,255,0.22)"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(pivotX, pivotY);
+      ctx.bezierCurveTo(m1x+px, m1y+py, m2x+px, m2y+py, m3x, m3y);
+      ctx.stroke();
 
       // Headshell
-      const hsAngle=armAngle+0.22, hsLen=30;
-      const hsX=tipX+Math.cos(hsAngle)*hsLen;
-      const hsY=tipY+Math.sin(hsAngle)*hsLen;
-      ctx.strokeStyle="#aaa"; ctx.lineWidth=4; ctx.lineCap="round";
-      ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(hsX,hsY); ctx.stroke();
-      ctx.save(); ctx.translate(hsX,hsY); ctx.rotate(hsAngle);
-      ctx.fillStyle="#3a3a3a"; ctx.beginPath(); ctx.roundRect(-5,-5,24,10,3); ctx.fill();
-      ctx.fillStyle="#555"; ctx.beginPath(); ctx.roundRect(-4,-4,22,8,2); ctx.fill();
-      ctx.fillStyle="#222"; ctx.beginPath(); ctx.roundRect(14,-3,7,6,1); ctx.fill();
+      const hsA = armAngle + 0.18;
+      const hsLen = 26;
+      const hsX = tipX + Math.cos(hsA) * hsLen;
+      const hsY = tipY + Math.sin(hsA) * hsLen;
+      ctx.strokeStyle = "#888"; ctx.lineWidth = 3.5; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.lineTo(hsX, hsY); ctx.stroke();
+      // Headshell body
+      ctx.save(); ctx.translate(hsX, hsY); ctx.rotate(hsA);
+      ctx.fillStyle = "#2a2a2a";
+      ctx.beginPath(); ctx.roundRect(-4, -4, 20, 8, 2); ctx.fill();
+      ctx.fillStyle = "#444";
+      ctx.beginPath(); ctx.roundRect(-3, -3, 18, 6, 1); ctx.fill();
       ctx.restore();
 
-      // Stylus
-      const nTX=hsX+Math.cos(hsAngle)*26, nTY=hsY+Math.sin(hsAngle)*26;
-      ctx.strokeStyle="#aaa"; ctx.lineWidth=1.2;
-      ctx.beginPath(); ctx.moveTo(hsX+Math.cos(hsAngle)*18,hsY+Math.sin(hsAngle)*18);
-      ctx.lineTo(nTX,nTY); ctx.stroke();
-      ctx.shadowColor=color; ctx.shadowBlur=14;
-      ctx.fillStyle=color; ctx.beginPath(); ctx.arc(nTX,nTY,2.5,0,Math.PI*2); ctx.fill();
-      ctx.shadowBlur=0;
+      // Stylus needle
+      const nX = hsX + Math.cos(hsA) * 22;
+      const nY = hsY + Math.sin(hsA) * 22;
+      ctx.strokeStyle = "#777"; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(hsX + Math.cos(hsA)*14, hsY + Math.sin(hsA)*14);
+      ctx.lineTo(nX, nY); ctx.stroke();
+      // Stylus tip glow
+      ctx.shadowColor = color; ctx.shadowBlur = 12;
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(nX, nY, 2.5, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+
       ctx.restore();
 
-      if (playing) rot.current+=0.022;
-      raf.current=requestAnimationFrame(draw);
+      if (playing) rot.current += 0.022;
+      raf.current = requestAnimationFrame(draw);
     };
+
     draw();
-    return ()=>cancelAnimationFrame(raf.current);
+    return () => cancelAnimationFrame(raf.current);
   }, [playing, progress, color, label]);
 
-  return <canvas ref={cvs} width={500} height={300} style={{display:"block",width:"100%",height:"auto",borderRadius:"8px"}} />;
+  return <canvas ref={cvs} width={500} height={300} className="dj-turntable-canvas" />;
 });
 
 // ── Waveform ──
@@ -385,197 +336,185 @@ const Waveform = React.memo(({ deck, color }) => {
   const cvs = useRef(null), raf = useRef(null);
   useEffect(() => {
     const c = cvs.current; if (!c) return;
-    const ctx = c.getContext("2d"); const w=c.width, h=c.height;
+    const ctx = c.getContext("2d"); const w = c.width, h = c.height;
     const draw = () => {
-      ctx.fillStyle="#06060f"; ctx.fillRect(0,0,w,h);
-      const freq=deck.getFreq(); const bw=w/freq.length;
-      for (let i=0;i<freq.length;i++) {
-        const v=freq[i]/255, bh=v*h*0.9;
-        ctx.fillStyle=`hsla(${160+v*80},100%,${25+v*45}%,${0.4+v*0.6})`;
+      ctx.fillStyle = "#06060f"; ctx.fillRect(0, 0, w, h);
+      const freq = deck.getFreq(); const bw = w / freq.length;
+      for (let i = 0; i < freq.length; i++) {
+        const v = freq[i] / 255, bh = v * h * 0.9;
+        ctx.fillStyle = `hsla(${160 + v*80},100%,${25 + v*45}%,${0.4 + v*0.6})`;
         ctx.fillRect(i*bw, h-bh, bw-0.5, bh);
       }
       if (deck.buffer) {
-        const p=deck.currentTime()/deck.duration(), x=p*w;
-        ctx.strokeStyle="#fff"; ctx.lineWidth=1.5; ctx.globalAlpha=0.85;
-        ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke();
-        ctx.globalAlpha=1;
-        const cx2=(deck.cuePoint/deck.duration())*w;
-        ctx.strokeStyle="#ffcc00"; ctx.lineWidth=1; ctx.setLineDash([3,3]);
-        ctx.beginPath(); ctx.moveTo(cx2,0); ctx.lineTo(cx2,h); ctx.stroke();
+        const p = deck.currentTime() / deck.duration(), x = p * w;
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.85;
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+        ctx.globalAlpha = 1;
+        const cx2 = (deck.cuePoint / deck.duration()) * w;
+        ctx.strokeStyle = "#ffcc00"; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+        ctx.beginPath(); ctx.moveTo(cx2, 0); ctx.lineTo(cx2, h); ctx.stroke();
         ctx.setLineDash([]);
-        deck.hotcues.forEach((hc,i)=>{
-          if(hc===null)return;
-          const hx=(hc/deck.duration())*w;
-          const hcc=["#ff4466","#00aaff","#00ff88","#ff8800"];
-          ctx.strokeStyle=hcc[i]; ctx.lineWidth=1.5;
-          ctx.beginPath(); ctx.moveTo(hx,0); ctx.lineTo(hx,h); ctx.stroke();
-          ctx.fillStyle=hcc[i]; ctx.fillRect(hx-4,0,8,8);
+        deck.hotcues.forEach((hc, i) => {
+          if (hc === null) return;
+          const hx = (hc / deck.duration()) * w;
+          const hcc = ["#ff4466","#00aaff","#00ff88","#ff8800"];
+          ctx.strokeStyle = hcc[i]; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(hx, 0); ctx.lineTo(hx, h); ctx.stroke();
+          ctx.fillStyle = hcc[i]; ctx.fillRect(hx-4, 0, 8, 8);
         });
       }
-      raf.current=requestAnimationFrame(draw);
+      raf.current = requestAnimationFrame(draw);
     };
-    draw(); return ()=>cancelAnimationFrame(raf.current);
-  },[deck,color]);
-  return <canvas ref={cvs} width={400} height={72} className="dj-waveform"/>;
+    draw(); return () => cancelAnimationFrame(raf.current);
+  }, [deck, color]);
+  return <canvas ref={cvs} width={400} height={72} className="dj-waveform" />;
 });
 
 // ── VU Meter ──
-const VU = React.memo(({deck})=>{
-  const cvs=useRef(null),raf=useRef(null);
-  useEffect(()=>{
-    const c=cvs.current; if(!c)return;
-    const ctx=c.getContext("2d");
-    const draw=()=>{
-      const d=deck.getFreq(); const avg=d.reduce((a,b)=>a+b,0)/d.length/255;
-      const w=c.width,h=c.height; ctx.clearRect(0,0,w,h);
-      const n=24,sh=h/n-1,active=Math.round(avg*n);
-      for(let i=0;i<n;i++){
-        const y=h-(i+1)*(h/n);
-        ctx.fillStyle=i>=active?"#111122":i>20?"#ff3366":i>16?"#ffcc00":"#00ffcc";
-        ctx.fillRect(1,y,w-2,sh);
+const VU = React.memo(({ deck }) => {
+  const cvs = useRef(null), raf = useRef(null);
+  useEffect(() => {
+    const c = cvs.current; if (!c) return;
+    const ctx = c.getContext("2d");
+    const draw = () => {
+      const d = deck.getFreq(); const avg = d.reduce((a,b) => a+b, 0) / d.length / 255;
+      const w = c.width, h = c.height; ctx.clearRect(0, 0, w, h);
+      const n = 24, sh = h/n - 1, active = Math.round(avg * n);
+      for (let i = 0; i < n; i++) {
+        const y = h - (i+1) * (h/n);
+        ctx.fillStyle = i >= active ? "#0d1117" : i > 20 ? "#ff3366" : i > 16 ? "#ffcc00" : "#00ffcc";
+        ctx.fillRect(1, y, w-2, sh);
       }
-      raf.current=requestAnimationFrame(draw);
+      raf.current = requestAnimationFrame(draw);
     };
-    draw(); return()=>cancelAnimationFrame(raf.current);
-  },[deck]);
-  return <canvas ref={cvs} width={18} height={120} className="dj-vu"/>;
+    draw(); return () => cancelAnimationFrame(raf.current);
+  }, [deck]);
+  return <canvas ref={cvs} width={18} height={120} className="dj-vu" />;
 });
 
 // ── Knob ──
-const Knob=({label,value,min,max,onChange,color="#00ffcc",size=44})=>{
-  const drag=useRef({on:false});
-  const angle=((value-min)/(max-min))*270-135;
-  const onDown=useCallback(e=>{
-    drag.current={on:true,sy:e.clientY,sv:value};
-    const mv=ev=>{if(!drag.current.on)return;const d=(drag.current.sy-ev.clientY)/120;onChange(Math.max(min,Math.min(max,drag.current.sv+d*(max-min))));};
-    const up=()=>{drag.current.on=false;window.removeEventListener("mousemove",mv);window.removeEventListener("mouseup",up);};
-    window.addEventListener("mousemove",mv);window.addEventListener("mouseup",up);
-  },[value,min,max,onChange]);
-  return(
+const Knob = ({ label, value, min, max, onChange, color="#00ffcc", size=44 }) => {
+  const drag = useRef({ on:false });
+  const angle = ((value-min) / (max-min)) * 270 - 135;
+  const onDown = useCallback(e => {
+    drag.current = { on:true, sy:e.clientY, sv:value };
+    const mv = ev => { if (!drag.current.on) return; const d = (drag.current.sy - ev.clientY) / 120; onChange(Math.max(min, Math.min(max, drag.current.sv + d*(max-min)))); };
+    const up = () => { drag.current.on = false; window.removeEventListener("mousemove", mv); window.removeEventListener("mouseup", up); };
+    window.addEventListener("mousemove", mv); window.addEventListener("mouseup", up);
+  }, [value, min, max, onChange]);
+  return (
     <div className="dj-knob-wrap">
-      <div className="dj-knob" onMouseDown={onDown} style={{"--ka":`${angle}deg`,"--kc":color,width:size,height:size}}><div className="dj-knob-dot"/></div>
+      <div className="dj-knob" onMouseDown={onDown} style={{"--ka":`${angle}deg`,"--kc":color,width:size,height:size}}>
+        <div className="dj-knob-dot" />
+      </div>
       <span className="dj-knob-lbl">{label}</span>
-      <span className="dj-knob-val">{value>0?`+${value.toFixed(0)}`:value.toFixed(0)}</span>
+      <span className="dj-knob-val">{value > 0 ? `+${value.toFixed(0)}` : value.toFixed(0)}</span>
     </div>
   );
 };
 
-// ── Deck class ──
+// ── Deck Engine ──
 class Deck {
-  constructor(id){
-    this.id=id;this.buffer=null;this.source=null;this.gainNode=null;
-    this.eqLow=null;this.eqMid=null;this.eqHigh=null;this.analyser=null;
-    this.fxChain=[];this.fxNodes={};
-    this.startTime=0;this.pauseOffset=0;this.playing=false;
-    this.bpm=null;this.key=null;this.cuePoint=0;
+  constructor(id) {
+    this.id=id; this.buffer=null; this.source=null; this.gainNode=null;
+    this.eqLow=null; this.eqMid=null; this.eqHigh=null; this.analyser=null;
+    this.currentFX=null; this.fxDry=null; this.fxWet=null;
+    this.startTime=0; this.pauseOffset=0; this.playing=false;
+    this.bpm=null; this.key=null; this.cuePoint=0;
     this.hotcues=[null,null,null,null];
-    this.loop=false;this.loopStart=0;this.loopEnd=4;this.pitch=1.0;
-    this.slip=false;this.slipOffset=0;
-    this.title="";this.artwork=null;this.audioType="original";
-    this.fxDry=null;this.fxWet=null;
+    this.loop=false; this.loopStart=0; this.loopEnd=4; this.pitch=1.0;
+    this.slip=false; this.title=""; this.artwork=null; this.audioType="original";
   }
-  setup(out){
-    const c=getCtx();
-    this.gainNode=c.createGain();this.gainNode.gain.value=1;
-    this.eqLow=c.createBiquadFilter();this.eqLow.type="lowshelf";this.eqLow.frequency.value=200;
-    this.eqMid=c.createBiquadFilter();this.eqMid.type="peaking";this.eqMid.frequency.value=1000;this.eqMid.Q.value=1;
-    this.eqHigh=c.createBiquadFilter();this.eqHigh.type="highshelf";this.eqHigh.frequency.value=3000;
-    this.analyser=c.createAnalyser();this.analyser.fftSize=512;
-    this.fxDry=c.createGain();this.fxDry.gain.value=1;
-    this.fxWet=c.createGain();this.fxWet.gain.value=0;
-    this.gainNode.connect(this.eqLow);this.eqLow.connect(this.eqMid);this.eqMid.connect(this.eqHigh);
-    this.eqHigh.connect(this.analyser);this.analyser.connect(this.fxDry);
-    this.fxDry.connect(out);this.fxWet.connect(out);
-    this._out=out;
+  setup(out) {
+    const c = getCtx();
+    this.gainNode = c.createGain(); this.gainNode.gain.value = 1;
+    this.eqLow = c.createBiquadFilter(); this.eqLow.type="lowshelf"; this.eqLow.frequency.value=200;
+    this.eqMid = c.createBiquadFilter(); this.eqMid.type="peaking"; this.eqMid.frequency.value=1000; this.eqMid.Q.value=1;
+    this.eqHigh = c.createBiquadFilter(); this.eqHigh.type="highshelf"; this.eqHigh.frequency.value=3000;
+    this.analyser = c.createAnalyser(); this.analyser.fftSize=512;
+    this.fxDry = c.createGain(); this.fxDry.gain.value=1;
+    this.fxWet = c.createGain(); this.fxWet.gain.value=0;
+    this.gainNode.connect(this.eqLow); this.eqLow.connect(this.eqMid); this.eqMid.connect(this.eqHigh);
+    this.eqHigh.connect(this.analyser); this.analyser.connect(this.fxDry);
+    this.fxDry.connect(out); this.fxWet.connect(out);
+    this._out = out;
   }
-  async loadBuffer(ab){this.buffer=await getCtx().decodeAudioData(ab);this.pauseOffset=0;this.bpm=await detectBPM(this.buffer);this.detectedKey=await detectKey(this.buffer);return {bpm:this.bpm,key:this.detectedKey};}
-  async loadURL(url){const r=await fetch(url);return this.loadBuffer(await r.arrayBuffer());}
-  play(off){
-    if(!this.buffer)return;const c=getCtx();
-    if(c.state==="suspended")c.resume();this._stop();
-    this.source=c.createBufferSource();this.source.buffer=this.buffer;
-    this.source.playbackRate.value=this.pitch;
-    if(this.loop){this.source.loop=true;this.source.loopStart=this.loopStart;this.source.loopEnd=this.loopEnd;}
+  async loadBuffer(ab) { this.buffer=await getCtx().decodeAudioData(ab); this.pauseOffset=0; this.bpm=await detectBPM(this.buffer); this.detectedKey=await detectKey(this.buffer); return {bpm:this.bpm,key:this.detectedKey}; }
+  async loadURL(url) { const r=await fetch(url); return this.loadBuffer(await r.arrayBuffer()); }
+  play(off) {
+    if (!this.buffer) return; const c=getCtx();
+    if (c.state==="suspended") c.resume(); this._stop();
+    this.source = c.createBufferSource(); this.source.buffer=this.buffer;
+    this.source.playbackRate.value = this.pitch;
+    if (this.loop) { this.source.loop=true; this.source.loopStart=this.loopStart; this.source.loopEnd=this.loopEnd; }
     this.source.connect(this.gainNode);
-    const o=off!==undefined?off:this.pauseOffset;
-    this.source.start(0,Math.max(0,o));this.startTime=c.currentTime-o;this.playing=true;
+    const o = off !== undefined ? off : this.pauseOffset;
+    this.source.start(0, Math.max(0, o)); this.startTime=c.currentTime-o; this.playing=true;
   }
-  pause(){if(!this.playing)return;this.pauseOffset=this.currentTime();this._stop();this.playing=false;}
-  setCue(){this.cuePoint=this.currentTime();}
-  jumpCue(){this.pauseOffset=this.cuePoint;if(this.playing)this.play(this.cuePoint);}
-  jumpHotcue(i){if(this.hotcues[i]===null){this.hotcues[i]=this.currentTime();return;}this.pauseOffset=this.hotcues[i];if(this.playing)this.play(this.hotcues[i]);}
-  beatJump(beats){
-    if(!this.buffer||!this.bpm)return;
-    const beatSec=60/this.bpm;
-    const t=Math.max(0,Math.min(this.duration(),this.currentTime()+beats*beatSec));
-    this.pauseOffset=t;if(this.playing)this.play(t);
-  }
-  currentTime(){if(!this.playing)return this.pauseOffset;return Math.min(getCtx().currentTime-this.startTime,this.duration());}
-  duration(){return this.buffer?this.buffer.duration:0;}
-  setGain(v){if(this.gainNode)this.gainNode.gain.value=v;}
-  setEQ(b,db){const n=b==="low"?this.eqLow:b==="mid"?this.eqMid:this.eqHigh;if(n)n.gain.value=db;}
-  setFX(type,wet){
-    const c=getCtx();
-    // Remove old FX
-    if(this.currentFX){try{this.currentFX.disconnect();}catch(_){}}
-    this.fxWet.gain.value=wet;
-    this.fxDry.gain.value=1-wet*0.5;
-    if(wet===0||type==="Off")return;
+  pause() { if (!this.playing) return; this.pauseOffset=this.currentTime(); this._stop(); this.playing=false; }
+  setCue() { this.cuePoint=this.currentTime(); }
+  jumpCue() { this.pauseOffset=this.cuePoint; if (this.playing) this.play(this.cuePoint); }
+  jumpHotcue(i) { if (this.hotcues[i]===null) { this.hotcues[i]=this.currentTime(); return; } this.pauseOffset=this.hotcues[i]; if (this.playing) this.play(this.hotcues[i]); }
+  beatJump(beats) { if (!this.buffer||!this.bpm) return; const beatSec=60/this.bpm; const t=Math.max(0,Math.min(this.duration(),this.currentTime()+beats*beatSec)); this.pauseOffset=t; if (this.playing) this.play(t); }
+  currentTime() { if (!this.playing) return this.pauseOffset; return Math.min(getCtx().currentTime-this.startTime, this.duration()); }
+  duration() { return this.buffer ? this.buffer.duration : 0; }
+  setGain(v) { if (this.gainNode) this.gainNode.gain.value=v; }
+  setEQ(b, db) { const n=b==="low"?this.eqLow:b==="mid"?this.eqMid:this.eqHigh; if (n) n.gain.value=db; }
+  setFX(type, wet) {
+    const c = getCtx();
+    if (this.currentFX) { try { this.currentFX.disconnect(); } catch(_) {} }
+    this.fxWet.gain.value = wet; this.fxDry.gain.value = 1-wet*0.5;
+    if (wet===0||type==="Off") return;
     let node;
-    if(type==="Filter"){node=c.createBiquadFilter();node.type="lowpass";node.frequency.value=200+wet*3000;}
-    else if(type==="Echo"){node=c.createDelay(2);node.delayTime.value=60/((this.bpm||120)*2);}
-    else if(type==="Reverb"){node=c.createConvolver();}
-    else if(type==="Flanger"){node=c.createDelay(0.1);node.delayTime.value=0.003+wet*0.007;}
-    else if(type==="Crush"){node=c.createWaveShaper();const curve=new Float32Array(256);for(let i=0;i<256;i++){const x=i*2/256-1;curve[i]=Math.round(x*(1+wet*16))/(1+wet*16);}node.curve=curve;}
-    else{node=c.createGain();}
-    if(node){
-      this.eqHigh.disconnect();
-      this.eqHigh.connect(node);
-      node.connect(this.fxWet);
-      this.eqHigh.connect(this.fxDry);
-      this.currentFX=node;
+    if (type==="Filter") { node=c.createBiquadFilter(); node.type="lowpass"; node.frequency.value=200+wet*3000; }
+    else if (type==="Echo") { node=c.createDelay(2); node.delayTime.value=60/((this.bpm||120)*2); }
+    else if (type==="Flanger") { node=c.createDelay(0.1); node.delayTime.value=0.003+wet*0.007; }
+    else if (type==="Crush") { node=c.createWaveShaper(); const curve=new Float32Array(256); for(let i=0;i<256;i++){const x=i*2/256-1;curve[i]=Math.round(x*(1+wet*16))/(1+wet*16);} node.curve=curve; }
+    else { node=c.createGain(); }
+    if (node) {
+      this.eqHigh.disconnect(); this.eqHigh.connect(node);
+      node.connect(this.fxWet); this.eqHigh.connect(this.fxDry);
+      this.currentFX = node;
     }
   }
-  _stop(){try{if(this.source){this.source.stop();this.source.disconnect();}}catch(_){}this.source=null;}
-  getFreq(){if(!this.analyser)return new Uint8Array(64);const d=new Uint8Array(this.analyser.frequencyBinCount);this.analyser.getByteFrequencyData(d);return d;}
+  _stop() { try { if (this.source) { this.source.stop(); this.source.disconnect(); } } catch(_) {} this.source=null; }
+  getFreq() { if (!this.analyser) return new Uint8Array(64); const d=new Uint8Array(this.analyser.frequencyBinCount); this.analyser.getByteFrequencyData(d); return d; }
 }
 
-const deckA=new Deck("A"),deckB=new Deck("B");
+const deckA = new Deck("A"), deckB = new Deck("B");
 
 // ── Sampler Pads ──
-const SamplerPads=({audioCtx,masterOut})=>{
-  const [pads,setPads]=useState(Array(8).fill(null).map((_,i)=>({name:`Pad ${i+1}`,buffer:null,color:["#ff4466","#ff8800","#ffcc00","#00ff88","#00ffcc","#00aaff","#aa44ff","#ff44aa"][i]})));
-  const sources=useRef({});
-  const loadPad=async(i,file)=>{
-    const ab=await file.arrayBuffer();
-    const buf=await audioCtx().decodeAudioData(ab);
-    setPads(p=>{const u=[...p];u[i]={...u[i],buffer:buf,name:file.name.replace(/\.[^.]+$/,"").slice(0,12)};return u;});
+const SamplerPads = ({ audioCtx, masterOut }) => {
+  const [pads, setPads] = useState(Array(8).fill(null).map((_,i) => ({
+    name:`Pad ${i+1}`, buffer:null,
+    color:["#ff4466","#ff8800","#ffcc00","#00ff88","#00ffcc","#00aaff","#aa44ff","#ff44aa"][i]
+  })));
+  const sources = useRef({});
+  const loadPad = async (i, file) => {
+    const ab = await file.arrayBuffer();
+    const buf = await audioCtx().decodeAudioData(ab);
+    setPads(p => { const u=[...p]; u[i]={...u[i],buffer:buf,name:file.name.replace(/\.[^.]+$/,"").slice(0,12)}; return u; });
   };
-  const triggerPad=useCallback((i)=>{
-    const pad=pads[i];if(!pad.buffer)return;
-    const c=audioCtx();if(c.state==="suspended")c.resume();
-    try{sources.current[i]?.stop();}catch(_){}
-    const src=c.createBufferSource();src.buffer=pad.buffer;
-    const g=c.createGain();g.gain.value=0.8;
-    src.connect(g);g.connect(masterOut.current||c.destination);
-    src.start();sources.current[i]=src;
-  },[pads,audioCtx,masterOut]);
-  return(
+  const triggerPad = useCallback((i) => {
+    const pad = pads[i]; if (!pad.buffer) return;
+    const c = audioCtx(); if (c.state==="suspended") c.resume();
+    try { sources.current[i]?.stop(); } catch(_) {}
+    const src = c.createBufferSource(); src.buffer=pad.buffer;
+    const g = c.createGain(); g.gain.value=0.8;
+    src.connect(g); g.connect(masterOut.current||c.destination);
+    src.start(); sources.current[i]=src;
+  }, [pads, audioCtx, masterOut]);
+  return (
     <div className="dj-sampler">
       <div className="dj-sampler-label">SP-8 SAMPLER</div>
       <div className="dj-sampler-grid">
-        {pads.map((pad,i)=>(
+        {pads.map((pad, i) => (
           <div key={i} className="dj-pad-wrap">
-            <button
-              className={`dj-pad ${pad.buffer?"loaded":""}`}
-              style={{"--pc":pad.color}}
-              onMouseDown={()=>triggerPad(i)}
-            >
+            <button className={`dj-pad ${pad.buffer?"loaded":""}`} style={{"--pc":pad.color}} onMouseDown={() => triggerPad(i)}>
               <span className="dj-pad-name">{pad.name}</span>
             </button>
             <label className="dj-pad-load">
-              <input type="file" accept="audio/*" style={{display:"none"}} onChange={e=>e.target.files[0]&&loadPad(i,e.target.files[0])}/>
-              +
+              <input type="file" accept="audio/*" style={{display:"none"}} onChange={e => e.target.files[0] && loadPad(i, e.target.files[0])} />+
             </label>
           </div>
         ))}
@@ -585,355 +524,266 @@ const SamplerPads=({audioCtx,masterOut})=>{
 };
 
 // ── FX Panel ──
-const FXPanel=({deck,ds,upd,id})=>{
-  const [fx,setFx]=useState("Filter");
-  const [wet,setWet]=useState(0);
-  return(
+const FXPanel = ({ deck }) => {
+  const [fx, setFx] = useState("Filter");
+  const [wet, setWet] = useState(0);
+  return (
     <div className="dj-fx-panel">
       <div className="dj-fx-label">FX</div>
       <div className="dj-fx-row">
-        <select className="dj-fx-sel" value={fx} onChange={e=>{setFx(e.target.value);deck.setFX(e.target.value,wet);}}>
-          {FX_TYPES.map(f=><option key={f}>{f}</option>)}
+        <select className="dj-fx-sel" value={fx} onChange={e => { setFx(e.target.value); deck.setFX(e.target.value, wet); }}>
+          {FX_TYPES.map(f => <option key={f}>{f}</option>)}
         </select>
         <input type="range" className="dj-fx-knob" min={0} max={1} step={0.01} value={wet}
-          onChange={e=>{const v=parseFloat(e.target.value);setWet(v);deck.setFX(fx,v);}}/>
+          onChange={e => { const v=parseFloat(e.target.value); setWet(v); deck.setFX(fx, v); }} />
         <span className="dj-fx-val">{Math.round(wet*100)}%</span>
-        <button className="dj-fx-off" onClick={()=>{setWet(0);deck.setFX(fx,0);}}>OFF</button>
+        <button className="dj-fx-off" onClick={() => { setWet(0); deck.setFX(fx, 0); }}>OFF</button>
       </div>
     </div>
   );
 };
 
 // ── Beat Jump ──
-const BeatJump=({deck})=>(
+const BeatJump = ({ deck }) => (
   <div className="dj-beatjump">
-    {[-32,-16,-8,-4,-2,-1,1,2,4,8,16,32].map(b=>(
-      <button key={b} className={`dj-bj ${b<0?"bj-back":"bj-fwd"}`}
-        onClick={()=>deck.beatJump(b)}>
+    {[-32,-16,-8,-4,-2,-1,1,2,4,8,16,32].map(b => (
+      <button key={b} className={`dj-bj ${b<0?"bj-back":"bj-fwd"}`} onClick={() => deck.beatJump(b)}>
         {b>0?`+${b}`:b}
       </button>
     ))}
   </div>
 );
 
-// ── Main Component ──
-export default function DJMixer(){
-  const {store}=useContext(Context);
-  const [rdy,setRdy]=useState(false);
-  const [djStatus,setDjStatus]=useState('');
-  useEffect(()=>{if(!djStatus)return;const t=setTimeout(()=>setDjStatus(''),4000);return()=>clearTimeout(t);},[djStatus]);
-  const [xf,setXf]=useState(0.5);
-  const [mvol,setMvol]=useState(1);
-  const [ds,setDs]=useState({
-    A:{playing:false,loaded:false,bpm:null,key:null,title:"",artwork:null,audioType:"original",vol:1,low:0,mid:0,high:0,pitch:1,loop:false,hotcues:[null,null,null,null],slip:false,fx:"Filter",fxWet:0,stems:null,stemsLoading:false,stemVols:{},stemMutes:{}},
-    B:{playing:false,loaded:false,bpm:null,key:null,title:"",artwork:null,audioType:"original",vol:1,low:0,mid:0,high:0,pitch:1,loop:false,hotcues:[null,null,null,null],slip:false,fx:"Filter",fxWet:0,stems:null,stemsLoading:false,stemVols:{},stemMutes:{}},
-  });
-  const [lib,setLib]=useState([]);
-  const [lf,setLf]=useState("all");
-  const [ls,setLs]=useState("");
-  const [ldDeck,setLdDeck]=useState(null);
-  const [urlI,setUrlI]=useState({A:"",B:""});
-  const [showUrl,setShowUrl]=useState({A:false,B:false});
-  const [rec,setRec]=useState(false);
-  const [recBlob,setRecBlob]=useState(null);
-  const [master,setMaster]=useState("A");
-  const [prog,setProg]=useState({A:0,B:0});
-  const [saveModal,setSaveModal]=useState(false);
-  const [mixTitle,setMixTitle]=useState("");
-  const [saving,setSaving]=useState(false);
-  const [activeTab,setActiveTab]=useState("decks");
-  const [midiEnabled,setMidiEnabled]=useState(false);
-  const [controllerProfile,setControllerProfile]=useState("Custom");
-  const [showProfilePicker,setShowProfilePicker]=useState(false);
-  // ── Serato gap features ───────────────────────────────────────────────────
-  const [keyLock,setKeyLock]=useState({A:false,B:false});
-  const [quantize,setQuantize]=useState(true);
-  const [tapTimes,setTapTimes]=useState([]);
-  const [tapBpm,setTapBpm]=useState(null);
-  const [loopRoll,setLoopRoll]=useState({A:false,B:false});
-  const [flipRec,setFlipRec]=useState({A:false,B:false});
-  const [flipPlay,setFlipPlay]=useState({A:false,B:false});
-  const [flipEvents,setFlipEvents]=useState({A:[],B:[]});
-  const [sessionHistory,setSessionHistory]=useState([]);
-  const [showHistory,setShowHistory]=useState(false);
-  const [freqWave,setFreqWave]=useState(true);
-  const [perDeckStem,setPerDeckStem]=useState({A:'original',B:'original'});
-  const [midiMap,setMidiMap]=useState({
-    // CC -> action mapping (customizable)
-    1:  "xfader",    // mod wheel -> crossfader
-    7:  "vol_a",     // ch7 -> deck A volume
-    8:  "vol_b",     // ch8 -> deck B volume
-    10: "low_a",     // ch10 -> deck A low EQ
-    11: "mid_a",     // ch11 -> deck A mid EQ
-    74: "filter_a",  // ch74 -> deck A filter
-  }); // decks | sampler
-  const mgRef=useRef(null),xgA=useRef(null),xgB=useRef(null),recRef=useRef(null),chunks=useRef([]),rafRef=useRef(null);
+function fmt(s) { if (!s||isNaN(s)||s<0) return "0:00"; return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,"0")}`; }
 
-  // ── Tap Tempo ─────────────────────────────────────────────────────────────
+const HC_COLORS = ["#ff4466","#00aaff","#00ff88","#ff8800"];
+
+// ── Main Component ──
+export default function DJMixer() {
+  const { store } = useContext(Context);
+  const [rdy, setRdy] = useState(false);
+  const [djStatus, setDjStatus] = useState("");
+  useEffect(() => { if (!djStatus) return; const t=setTimeout(()=>setDjStatus(""),4000); return ()=>clearTimeout(t); }, [djStatus]);
+  const [xf, setXf] = useState(0.5);
+  const [mvol, setMvol] = useState(1);
+  const [ds, setDs] = useState({
+    A:{playing:false,loaded:false,bpm:null,key:null,title:"",artwork:null,audioType:"original",vol:1,low:0,mid:0,high:0,pitch:1,loop:false,hotcues:[null,null,null,null],slip:false,stems:null,stemsLoading:false,stemVols:{},stemMutes:{}},
+    B:{playing:false,loaded:false,bpm:null,key:null,title:"",artwork:null,audioType:"original",vol:1,low:0,mid:0,high:0,pitch:1,loop:false,hotcues:[null,null,null,null],slip:false,stems:null,stemsLoading:false,stemVols:{},stemMutes:{}},
+  });
+  const [lib, setLib] = useState([]);
+  const [lf, setLf] = useState("all");
+  const [ls, setLs] = useState("");
+  const [ldDeck, setLdDeck] = useState(null);
+  const [urlI, setUrlI] = useState({A:"",B:""});
+  const [showUrl, setShowUrl] = useState({A:false,B:false});
+  const [rec, setRec] = useState(false);
+  const [recBlob, setRecBlob] = useState(null);
+  const [master, setMaster] = useState("A");
+  const [prog, setProg] = useState({A:0,B:0});
+  const [saveModal, setSaveModal] = useState(false);
+  const [mixTitle, setMixTitle] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState("decks");
+  const [midiEnabled, setMidiEnabled] = useState(false);
+  const [controllerProfile, setControllerProfile] = useState("Custom");
+  const [showProfilePicker, setShowProfilePicker] = useState(false);
+  const [keyLock, setKeyLock] = useState({A:false,B:false});
+  const [quantize, setQuantize] = useState(true);
+  const [tapTimes, setTapTimes] = useState([]);
+  const [tapBpm, setTapBpm] = useState(null);
+  const [loopRoll, setLoopRoll] = useState({A:false,B:false});
+  const [flipRec, setFlipRec] = useState({A:false,B:false});
+  const [flipPlay, setFlipPlay] = useState({A:false,B:false});
+  const [flipEvents, setFlipEvents] = useState({A:[],B:[]});
+  const [sessionHistory, setSessionHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [freqWave, setFreqWave] = useState(true);
+  const [perDeckStem, setPerDeckStem] = useState({A:"original",B:"original"});
+  const [streamDests, setStreamDests] = useState({streampirex:false,twitch:false,youtube:false});
+  const [midiMap, setMidiMap] = useState({1:"xfader",7:"vol_a",8:"vol_b",10:"low_a",11:"mid_a",74:"filter_a"});
+  const mgRef=useRef(null), xgA=useRef(null), xgB=useRef(null), recRef=useRef(null), chunks=useRef([]), rafRef=useRef(null), streamRefs=useRef({});
+
   const handleTap = React.useCallback(() => {
     const now = Date.now();
     setTapTimes(prev => {
-      const recent = [...prev, now].filter(t => now - t < 4000).slice(-8);
+      const recent = [...prev, now].filter(t => now-t < 4000).slice(-8);
       if (recent.length >= 2) {
         const intervals = recent.slice(1).map((t,i) => t - recent[i]);
-        const avg = intervals.reduce((a,b)=>a+b,0) / intervals.length;
+        const avg = intervals.reduce((a,b) => a+b, 0) / intervals.length;
         setTapBpm(Math.round(60000 / avg));
       }
       return recent;
     });
   }, []);
 
-  // ── Key Lock — pitch-shift without tempo change ───────────────────────────
   const toggleKeyLock = React.useCallback((id) => {
-    setKeyLock(prev => ({...prev, [id]: !prev[id]}));
-    const dk = id==='A' ? deckA : deckB;
-    // Preserve current pitch ratio but mark key-locked
-    if (dk.source) {
-      try { dk.source.preservesPitch = !keyLock[id]; } catch(e) {}
-    }
+    setKeyLock(prev => ({...prev,[id]:!prev[id]}));
+    const dk = id==="A" ? deckA : deckB;
+    if (dk.source) { try { dk.source.preservesPitch = !keyLock[id]; } catch(e) {} }
   }, [keyLock]);
 
-  // ── Quantize — snap cues to grid ─────────────────────────────────────────
-  const snapToGrid = React.useCallback((time, bpm) => {
-    if (!quantize || !bpm) return time;
-    const beatLen = 60 / bpm;
-    return Math.round(time / beatLen) * beatLen;
-  }, [quantize]);
-
-  // ── Loop Roll ─────────────────────────────────────────────────────────────
   const toggleLoopRoll = React.useCallback((id, size) => {
-    const dk = id==='A' ? deckA : deckB;
-    if (!dk.buffer) return;
-    setLoopRoll(prev => ({...prev, [id]: !prev[id]}));
-    if (!loopRoll[id]) {
-      const beatLen = 60 / (dk.bpm || 120);
-      dk.loopSize = beatLen * size;
-      dk.loopActive = true;
-    } else {
-      dk.loopActive = false;
-    }
+    const dk = id==="A" ? deckA : deckB; if (!dk.buffer) return;
+    setLoopRoll(prev => ({...prev,[id]:!prev[id]}));
+    if (!loopRoll[id]) { const beatLen=60/(dk.bpm||120); dk.loopSize=beatLen*size; dk.loopActive=true; }
+    else { dk.loopActive=false; }
   }, [loopRoll]);
 
-  // ── Flip Mode — record and replay cue sequences ───────────────────────────
-  const startFlipRec = React.useCallback((id) => {
-    setFlipRec(prev => ({...prev, [id]: true}));
-    setFlipEvents(prev => ({...prev, [id]: []}));
-  }, []);
-
-  const stopFlipRec = React.useCallback((id) => {
-    setFlipRec(prev => ({...prev, [id]: false}));
-  }, []);
-
+  const startFlipRec = React.useCallback((id) => { setFlipRec(prev=>({...prev,[id]:true})); setFlipEvents(prev=>({...prev,[id]:[]})); }, []);
+  const stopFlipRec = React.useCallback((id) => { setFlipRec(prev=>({...prev,[id]:false})); }, []);
   const playFlip = React.useCallback((id) => {
-    const events = flipEvents[id];
-    if (!events.length) return;
-    setFlipPlay(prev => ({...prev, [id]: true}));
-    const dk = id==='A' ? deckA : deckB;
-    events.forEach(ev => {
-      setTimeout(() => {
-        if (ev.type === 'cue') dk.seek(ev.pos);
-      }, ev.delay);
-    });
-    setTimeout(() => setFlipPlay(prev => ({...prev, [id]: false})),
-      events[events.length-1]?.delay + 500 || 2000);
+    const events = flipEvents[id]; if (!events.length) return;
+    setFlipPlay(prev=>({...prev,[id]:true}));
+    const dk = id==="A" ? deckA : deckB;
+    events.forEach(ev => { setTimeout(() => { if (ev.type==="cue") dk.seek(ev.pos); }, ev.delay); });
+    setTimeout(() => setFlipPlay(prev=>({...prev,[id]:false})), events[events.length-1]?.delay+500||2000);
   }, [flipEvents]);
 
-  // ── Session History ───────────────────────────────────────────────────────
   const addToHistory = React.useCallback((deck, title, key, bpm) => {
-    setSessionHistory(prev => [{
-      deck, title, key, bpm,
-      time: new Date().toLocaleTimeString(),
-      ts: Date.now()
-    }, ...prev].slice(0, 50));
+    setSessionHistory(prev => [{deck,title,key,bpm,time:new Date().toLocaleTimeString(),ts:Date.now()},...prev].slice(0,50));
   }, []);
 
-  // ── Per-Deck Stem Selection ───────────────────────────────────────────────
-  const setDeckStemMode = React.useCallback((id, mode) => {
-    setPerDeckStem(prev => ({...prev, [id]: mode}));
-    const dk = id==='A' ? deckA : deckB;
-    if (dk.stems && dk.stems[mode]) {
-      dk.audioType = mode;
-      upd(id, {audioType: mode});
-    }
+  const initAudio = useCallback(() => {
+    if (rdy) return; const c=getCtx();
+    const mg=c.createGain(); mg.gain.value=mvol;
+    const ga=c.createGain(), gb=c.createGain();
+    ga.connect(mg); gb.connect(mg); mg.connect(c.destination);
+    mgRef.current=mg; xgA.current=ga; xgB.current=gb;
+    deckA.setup(ga); deckB.setup(gb); setRdy(true);
+  }, [rdy, mvol]);
+
+  useEffect(() => { if (!xgA.current) return; xgA.current.gain.value=Math.cos(xf*Math.PI/2); xgB.current.gain.value=Math.sin(xf*Math.PI/2); }, [xf]);
+  useEffect(() => { if (mgRef.current) mgRef.current.gain.value=mvol; }, [mvol]);
+  useEffect(() => {
+    const tick = () => { setProg({A:deckA.buffer?Math.min(deckA.currentTime()/deckA.duration(),1):0,B:deckB.buffer?Math.min(deckB.currentTime()/deckB.duration(),1):0}); rafRef.current=requestAnimationFrame(tick); };
+    tick(); return () => cancelAnimationFrame(rafRef.current);
   }, []);
 
-  const initAudio=useCallback(()=>{
-    if(rdy)return;const c=getCtx();
-    const mg=c.createGain();mg.gain.value=mvol;
-    const ga=c.createGain(),gb=c.createGain();
-    ga.connect(mg);gb.connect(mg);mg.connect(c.destination);
-    mgRef.current=mg;xgA.current=ga;xgB.current=gb;
-    deckA.setup(ga);deckB.setup(gb);setRdy(true);
-  },[rdy,mvol]);
-
-  useEffect(()=>{if(!xgA.current)return;xgA.current.gain.value=Math.cos(xf*Math.PI/2);xgB.current.gain.value=Math.sin(xf*Math.PI/2);},[xf]);
-  useEffect(()=>{if(mgRef.current)mgRef.current.gain.value=mvol;},[mvol]);
-  useEffect(()=>{
-    const tick=()=>{setProg({A:deckA.buffer?Math.min(deckA.currentTime()/deckA.duration(),1):0,B:deckB.buffer?Math.min(deckB.currentTime()/deckB.duration(),1):0});rafRef.current=requestAnimationFrame(tick);};
-    tick();return()=>cancelAnimationFrame(rafRef.current);
-  },[]);
-
-  useEffect(()=>{
-    const token=store?.token||localStorage.getItem("token");if(!token)return;
+  useEffect(() => {
+    const token = store?.token||localStorage.getItem("token"); if (!token) return;
     Promise.all([
       fetch(`${BACKEND}/api/audio/my-tracks`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json().then(d=>Array.isArray(d)?d:d.beats||d.data||[]):[]).catch(()=>[]),
       fetch(`${BACKEND}/api/beats/my-beats`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json().then(d=>Array.isArray(d)?d:d.beats||d.data||[]):[]).catch(()=>[]),
-    ]).then(([audio,beats])=>{
+    ]).then(([audio,beats]) => {
       const bm=(beats||[]).map(b=>({id:`beat_${b.id}`,title:b.title||"Beat",file_url:b.audio_url||b.file_url,audio_url:b.audio_url||b.file_url,audio_type:"beat",bpm:b.bpm,key:b.key,genre:b.genre,artwork_url:b.artwork_url||b.cover_art_url,source:"beat"}));
-      const all=[...(audio||[]),...bm];const seen=new Set();
-      setLib(all.filter(t=>{const k=`${t.title}_${t.file_url}`;if(seen.has(k))return false;seen.add(k);return true;}));
+      const all=[...(audio||[]),...bm]; const seen=new Set();
+      setLib(all.filter(t => { const k=`${t.title}_${t.file_url}`; if(seen.has(k))return false; seen.add(k); return true; }));
     });
-  },[store]);
+  }, [store]);
 
-  const upd=(id,p)=>setDs(prev=>({...prev,[id]:{...prev[id],...p}}));
+  const upd = (id, p) => setDs(prev => ({...prev,[id]:{...prev[id],...p}}));
 
-  const loadLib=async(id,t)=>{
-    initAudio();const url=t.audio_url||t.file_url||t.r2_url;if(!url)return;
-    setLdDeck(id);const dk=id==="A"?deckA:deckB;
-    try{
-      const bpm=await dk.loadURL(url);
-      dk.title=t.title;dk.artwork=t.artwork_url;dk.audioType=t.audio_type||"original";dk.bpm=bpm||t.bpm;dk.key=t.key;
+  const loadLib = async (id, t) => {
+    initAudio(); const url=t.audio_url||t.file_url||t.r2_url; if (!url) return;
+    setLdDeck(id); const dk=id==="A"?deckA:deckB;
+    try {
+      const result = await dk.loadURL(url);
+      dk.title=t.title; dk.artwork=t.artwork_url; dk.audioType=t.audio_type||"original"; dk.bpm=result?.bpm||t.bpm; dk.key=t.key;
       upd(id,{loaded:true,bpm:dk.bpm,key:t.key,title:t.title,artwork:t.artwork_url,audioType:dk.audioType,hotcues:[null,null,null,null]});
       addToHistory(id, t.title, t.key, dk.bpm);
-    }catch(e){console.error(e);}
+    } catch(e) { console.error(e); }
     setLdDeck(null);
   };
 
-  const loadFile=async(id,file)=>{
-    initAudio();setLdDeck(id);const dk=id==="A"?deckA:deckB;
-    try{
-      const bpm=await dk.loadBuffer(await file.arrayBuffer());
-      dk.title=file.name.replace(/\.[^.]+$/,"");
-      upd(id,{loaded:true,bpm,key:null,title:dk.title,artwork:null,audioType:"original",hotcues:[null,null,null,null]});
-    }catch(e){console.error(e);}
+  const loadFile = async (id, file) => {
+    initAudio(); setLdDeck(id); const dk=id==="A"?deckA:deckB;
+    try {
+      const result = await dk.loadBuffer(await file.arrayBuffer());
+      dk.title = file.name.replace(/\.[^.]+$/, "");
+      upd(id,{loaded:true,bpm:result?.bpm,key:result?.key,title:dk.title,artwork:null,audioType:"original",hotcues:[null,null,null,null]});
+    } catch(e) { console.error(e); }
     setLdDeck(null);
   };
 
-  const loadURL=async(id)=>{
-    const url=urlI[id];if(!url)return;
-    initAudio();setLdDeck(id);const dk=id==="A"?deckA:deckB;
-    try{
-      const bpm=await dk.loadURL(url);
-      const name=url.split("/").pop().split("?")[0].replace(/\.[^.]+$/,"");
-      upd(id,{loaded:true,bpm,key:null,title:name,artwork:null,audioType:"original",hotcues:[null,null,null,null]});
-      setShowUrl(p=>({...p,[id]:false}));setUrlI(p=>({...p,[id]:""}));
-    }catch(e){setDjStatus("Failed to load: "+e.message);}
+  const loadURL = async (id) => {
+    const url=urlI[id]; if (!url) return;
+    initAudio(); setLdDeck(id); const dk=id==="A"?deckA:deckB;
+    try {
+      await dk.loadURL(url);
+      const name = url.split("/").pop().split("?")[0].replace(/\.[^.]+$/, "");
+      upd(id,{loaded:true,bpm:dk.bpm,key:null,title:name,artwork:null,audioType:"original",hotcues:[null,null,null,null]});
+      setShowUrl(p=>({...p,[id]:false})); setUrlI(p=>({...p,[id]:""}));
+    } catch(e) { setDjStatus("Failed to load: "+e.message); }
     setLdDeck(null);
   };
 
-  const togglePlay=(id)=>{
-    initAudio();const dk=id==="A"?deckA:deckB;if(!dk.buffer)return;
-    if(dk.playing){dk.pause();upd(id,{playing:false});}
-    else{dk.play();upd(id,{playing:true});}
+  const togglePlay = (id) => {
+    initAudio(); const dk=id==="A"?deckA:deckB; if (!dk.buffer) return;
+    if (dk.playing) { dk.pause(); upd(id,{playing:false}); }
+    else { dk.play(); upd(id,{playing:true}); }
   };
 
-  const syncBPM=()=>{
-    if(!deckA.bpm||!deckB.bpm)return;
-    const mk=master==="A"?deckA:deckB,sl=master==="A"?deckB:deckA,sid=master==="A"?"B":"A";
-    const ratio=mk.bpm/sl.bpm;sl.pitch=ratio;
-    if(sl.source)sl.source.playbackRate.value=ratio;
+  const syncBPM = () => {
+    if (!deckA.bpm||!deckB.bpm) return;
+    const mk=master==="A"?deckA:deckB, sl=master==="A"?deckB:deckA, sid=master==="A"?"B":"A";
+    const ratio = mk.bpm/sl.bpm; sl.pitch=ratio;
+    if (sl.source) sl.source.playbackRate.value=ratio;
     upd(sid,{pitch:ratio});
   };
 
-  const startRec=()=>{
-    initAudio();const c=getCtx();const dest=c.createMediaStreamDestination();
+  const startRec = () => {
+    initAudio(); const c=getCtx(); const dest=c.createMediaStreamDestination();
     mgRef.current.connect(dest);
-    const r=new MediaRecorder(dest.stream,{mimeType:"audio/webm"});
-    chunks.current=[];r.ondataavailable=e=>chunks.current.push(e.data);
+    const r = new MediaRecorder(dest.stream,{mimeType:"audio/webm"});
+    chunks.current=[]; r.ondataavailable=e=>chunks.current.push(e.data);
     r.onstop=()=>setRecBlob(new Blob(chunks.current,{type:"audio/webm"}));
-    r.start();recRef.current=r;setRec(true);
+    r.start(); recRef.current=r; setRec(true);
   };
-  const stopRec=()=>{if(recRef.current)recRef.current.stop();setRec(false);};
-  const dlMix=()=>{if(!recBlob)return;const a=document.createElement("a");a.href=URL.createObjectURL(recBlob);a.download=`${mixTitle||"mix"}_${Date.now()}.webm`;a.click();};
+  const stopRec = () => { if (recRef.current) recRef.current.stop(); setRec(false); };
+  const dlMix = () => { if (!recBlob) return; const a=document.createElement("a"); a.href=URL.createObjectURL(recBlob); a.download=`${mixTitle||"mix"}_${Date.now()}.webm`; a.click(); };
 
-  const saveMix=async()=>{
-    if(!recBlob)return;setSaving(true);
-    const token=store?.token||localStorage.getItem("token");
-    try{
-      const pr=await fetch(`${BACKEND}/api/r2/presign`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({filename:`mix_${Date.now()}.webm`,content_type:"audio/webm",folder:"mixes"})});
-      const{upload_url,public_url}=await pr.json();
+  const saveMix = async () => {
+    if (!recBlob) return; setSaving(true);
+    const token = store?.token||localStorage.getItem("token");
+    try {
+      const pr = await fetch(`${BACKEND}/api/r2/presign`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({filename:`mix_${Date.now()}.webm`,content_type:"audio/webm",folder:"mixes"})});
+      const {upload_url,public_url} = await pr.json();
       await fetch(upload_url,{method:"PUT",body:recBlob,headers:{"Content-Type":"audio/webm"}});
-      const sv=await fetch(`${BACKEND}/api/audio/upload`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({title:mixTitle||`DJ Mix ${new Date().toLocaleDateString()}`,file_url:public_url,audio_type:"mix",is_public:false})});
-      if(sv.ok){setDjStatus("✅ Mix saved!");setSaveModal(false);setMixTitle("");}
+      const sv = await fetch(`${BACKEND}/api/audio/upload`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({title:mixTitle||`DJ Mix ${new Date().toLocaleDateString()}`,file_url:public_url,audio_type:"mix",is_public:false})});
+      if (sv.ok) { setDjStatus("✅ Mix saved!"); setSaveModal(false); setMixTitle(""); }
       else throw new Error("Save failed");
-    }catch(e){setDjStatus("Error: "+e.message);}
+    } catch(e) { setDjStatus("Error: "+e.message); }
     setSaving(false);
   };
 
-  // ── Stream destinations state ──
-  const [streamDests, setStreamDests] = useState({streampirex:false, twitch:false, youtube:false});
-  const streamRefs = useRef({});
-
-  const applyControllerProfile = React.useCallback((profileName) => {
-    const profile = CONTROLLER_PROFILES[profileName];
-    if (!profile) return;
-    setMidiMap(profile.map);
-    setControllerProfile(profileName);
-    setShowProfilePicker(false);
+  const applyControllerProfile = React.useCallback((name) => {
+    const profile = CONTROLLER_PROFILES[name]; if (!profile) return;
+    setMidiMap(profile.map); setControllerProfile(name); setShowProfilePicker(false);
   }, []);
 
   const toggleStream = useCallback(async (destId) => {
-    const token = store?.token || localStorage.getItem("token");
+    const token = store?.token||localStorage.getItem("token");
     if (streamDests[destId]) {
-      // Stop stream
-      try {
-        await fetch(`${BACKEND}/api/live-stream/stop`, {
-          method:"POST", headers:{"Content-Type":"application/json", Authorization:`Bearer ${token}`},
-          body: JSON.stringify({destination: destId})
-        });
-      } catch(e) { console.error("Stop stream error:", e); }
+      try { await fetch(`${BACKEND}/api/live-stream/stop`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({destination:destId})}); } catch(e) {}
       setStreamDests(p=>({...p,[destId]:false}));
     } else {
-      // Start stream — capture master audio + visualizer canvas
       try {
-        const c = getCtx();
-        const dest = c.createMediaStreamDestination();
-        mgRef.current?.connect(dest);
+        const c=getCtx(); const dest=c.createMediaStreamDestination(); mgRef.current?.connect(dest);
         const audioTrack = dest.stream.getAudioTracks()[0];
-        // Get video from a hidden canvas for visualizer
         const vizCanvas = document.querySelector(".dj-waveform");
         let stream;
-        if (vizCanvas) {
-          const videoStream = vizCanvas.captureStream(30);
-          stream = new MediaStream([videoStream.getVideoTracks()[0], audioTrack]);
+        if (vizCanvas) { const vs=vizCanvas.captureStream(30); stream=new MediaStream([vs.getVideoTracks()[0],audioTrack]); }
+        else { stream=dest.stream; }
+        streamRefs.current[destId]=stream;
+        if (destId!=="streampirex") {
+          await fetch(`${BACKEND}/api/live-stream/start-rtmp`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({destination:destId,title:"DJ Mix — Live",stream_key:null})}).catch(e=>console.warn(e));
         } else {
-          stream = dest.stream;
-        }
-        streamRefs.current[destId] = stream;
-        // Notify backend to start RTMP relay if Twitch/YouTube
-        if (destId !== "streampirex") {
-          await fetch(`${BACKEND}/api/live-stream/start-rtmp`, {
-            method:"POST", headers:{"Content-Type":"application/json", Authorization:`Bearer ${token}`},
-            body: JSON.stringify({destination: destId, title: `DJ Mix — Live`, stream_key: null})
-          }).catch(e => console.warn("RTMP relay:", e.message));
-        } else {
-          // Start StreamPireX live stream
-          await fetch(`${BACKEND}/api/live-stream/create`, {
-            method:"POST", headers:{"Content-Type":"application/json", Authorization:`Bearer ${token}`},
-            body: JSON.stringify({title:`DJ Mix — Live`, type:"audio", is_live:true})
-          }).catch(e => console.warn("SPX stream:", e.message));
+          await fetch(`${BACKEND}/api/live-stream/create`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({title:"DJ Mix — Live",type:"audio",is_live:true})}).catch(e=>console.warn(e));
         }
         setStreamDests(p=>({...p,[destId]:true}));
-      } catch(e) {
-        console.error("Stream start error:", e);
-        setDjStatus("Could not start stream: " + e.message);
-      }
+      } catch(e) { setDjStatus("Could not start stream: "+e.message); }
     }
   }, [streamDests, store]);
 
-  // ── Stem separation ──
   const handleStemSeparate = useCallback(async (id) => {
-    const dk = id==="A" ? deckA : deckB;
-    const s = id==="A" ? ds.A : ds.B;
-    if (!dk.buffer || !s.loaded) return;
-    upd(id, {stemsLoading:true});
-    const token = store?.token || localStorage.getItem("token");
+    const dk=id==="A"?deckA:deckB; const s=id==="A"?ds.A:ds.B;
+    if (!dk.buffer||!s.loaded) return;
+    upd(id,{stemsLoading:true});
+    const token = store?.token||localStorage.getItem("token");
     try {
-      const c = getCtx();
-      // Encode buffer to WAV
+      const c=getCtx();
       const numCh=dk.buffer.numberOfChannels, sr=dk.buffer.sampleRate, len=dk.buffer.length;
-      const wavBuf=new ArrayBuffer(44+len*numCh*2);
-      const view=new DataView(wavBuf);
+      const wavBuf=new ArrayBuffer(44+len*numCh*2); const view=new DataView(wavBuf);
       const writeStr=(o,s)=>{for(let i=0;i<s.length;i++)view.setUint8(o+i,s.charCodeAt(i));};
       writeStr(0,"RIFF"); view.setUint32(4,36+len*numCh*2,true); writeStr(8,"WAVE"); writeStr(12,"fmt ");
       view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,numCh,true);
@@ -947,30 +797,23 @@ export default function DJMixer(){
       const blob=new Blob([wavBuf],{type:"audio/wav"});
       const form=new FormData(); form.append("audio",blob,"deck_"+id+".wav"); form.append("model","htdemucs");
       const res=await fetch(`${BACKEND}/api/ai/stems/separate-upload`,{method:"POST",headers:{Authorization:`Bearer ${token}`},body:form});
-      if(!res.ok) throw new Error("Stem separation failed — "+res.status);
+      if (!res.ok) throw new Error("Stem separation failed — "+res.status);
       const data=await res.json();
       const stemUrls={drums:data.drums_url,bass:data.bass_url,vocals:data.vocals_url,other:data.other_url};
-      const stems={};
-      const out=id==="A"?xgA.current:xgB.current;
-      for(const [name,url] of Object.entries(stemUrls)){
-        if(!url) continue;
+      const stems={}; const out=id==="A"?xgA.current:xgB.current;
+      for (const [name,url] of Object.entries(stemUrls)) {
+        if (!url) continue;
         const r=await fetch(url); const ab=await r.arrayBuffer();
         const buf=await c.decodeAudioData(ab);
         const gn=c.createGain(); gn.gain.value=1; gn.connect(out||c.destination);
         stems[name+"_buf"]=buf; stems[name+"_gain"]=gn;
       }
       upd(id,{stems,stemsLoading:false,stemVols:{drums:1,bass:1,vocals:1,other:1},stemMutes:{}});
-    } catch(e){
-      console.error("Stems error:",e);
-      upd(id,{stemsLoading:false});
-      setDjStatus("Stem separation failed: "+e.message);
-    }
+    } catch(e) { console.error("Stems error:",e); upd(id,{stemsLoading:false}); setDjStatus("Stem separation failed: "+e.message); }
   }, [ds, store]);
 
   const handleMidiCC = useCallback((cc, val) => {
-    const norm = val / 127;
-    const action = midiMap[cc];
-    if (!action) return;
+    const norm=val/127; const action=midiMap[cc]; if (!action) return;
     switch(action) {
       case "xfader":   setXf(norm); break;
       case "vol_a":    deckA.setGain(norm*1.5); upd("A",{vol:norm*1.5}); break;
@@ -978,61 +821,47 @@ export default function DJMixer(){
       case "low_a":    deckA.setEQ("low",(norm-0.5)*24); upd("A",{low:(norm-0.5)*24}); break;
       case "mid_a":    deckA.setEQ("mid",(norm-0.5)*24); upd("A",{mid:(norm-0.5)*24}); break;
       case "high_a":   deckA.setEQ("high",(norm-0.5)*24); upd("A",{high:(norm-0.5)*24}); break;
-      case "low_b":    deckB.setEQ("low",(norm-0.5)*24); upd("B",{low:(norm-0.5)*24}); break;
       case "filter_a": deckA.setFX("Filter",norm); break;
       case "filter_b": deckB.setFX("Filter",norm); break;
       default: break;
     }
-  }, [midiMap, xf]);
+  }, [midiMap]);
 
-  const handleMidiNote = useCallback((note, vel, deckId) => {
-    const dk = deckId === "B" ? deckB : deckA;
-    // Pad notes 36-43 = hot cues 1-8
-    if (note >= 36 && note <= 43) {
-      const hcIdx = note - 36;
-      if (hcIdx < 4) { dk.jumpHotcue(hcIdx); upd(deckId,{hotcues:[...dk.hotcues]}); }
-    }
-    // Note 44 = play/pause A, 45 = play/pause B
-    if (note === 44) togglePlay("A");
-    if (note === 45) togglePlay("B");
-    // Note 46 = sync
-    if (note === 46) syncBPM();
-    // Note 47 = cue A
-    if (note === 47) { deckA.setCue(); upd("A",{}); }
-    if (note === 48) { deckB.setCue(); upd("B",{}); }
+  const handleMidiNote = useCallback((note, vel) => {
+    if (note>=36&&note<=43) { const hcIdx=note-36; if(hcIdx<4){deckA.jumpHotcue(hcIdx);upd("A",{hotcues:[...deckA.hotcues]});} }
+    if (note===44) togglePlay("A");
+    if (note===45) togglePlay("B");
+    if (note===46) syncBPM();
+    if (note===47) { deckA.setCue(); upd("A",{}); }
+    if (note===48) { deckB.setCue(); upd("B",{}); }
   }, []);
 
-  const HC_COLORS=["#ff4466","#00aaff","#00ff88","#ff8800"];
-
-  const renderDeck=(id)=>{
-    const dk=id==="A"?deckA:deckB,s=ds[id];
+  const renderDeck = (id) => {
+    const dk=id==="A"?deckA:deckB, s=ds[id];
     const color=id==="A"?"#00ffcc":"#ff6b35";
-    const p=prog[id],cam=s.key?CAMELOT[s.key]:null;
-    return(
-      <div className={`dj-deck dj-deck-${id.toLowerCase()}`}>
-
-        {/* ── Track Info ── */}
+    const p=prog[id], cam=s.key?CAMELOT[s.key]:null;
+    return (
+      <div className={`dj-deck ${id==="B"?"dj-deck-b":""}`}>
         <div className="dj-deck-hd">
           <div className="dj-deck-letter" style={{color}}>{id}</div>
           <div className="dj-deck-info">
             <div className="dj-track-name">{s.title||"No track loaded"}</div>
             <div className="dj-track-meta">
-              {s.bpm&&<span className="dj-badge" style={{borderColor:color}}>{Math.round(s.bpm)} BPM</span>}
+              {s.bpm&&<span className="dj-badge" style={{borderColor:color,color}}>{Math.round(s.bpm)} BPM</span>}
               {cam&&<span className="dj-badge dj-cam">{cam}</span>}
               {s.key&&<span className="dj-badge dj-key">{s.key}</span>}
               {id===master&&<span className="dj-badge dj-mst">MASTER</span>}
             </div>
           </div>
-          {s.artwork&&<img src={s.artwork} alt="" className="dj-art"/>}
+          {s.artwork&&<img src={s.artwork} alt="" className="dj-art" />}
           {s.loaded&&(
             <button className={`dj-stems-btn ${s.stemsLoading?"loading":""} ${s.stems?"active":""}`}
-              onClick={()=>handleStemSeparate(id)} title="AI Stem Separation">
+              onClick={() => handleStemSeparate(id)}>
               {s.stemsLoading?"⏳":"🎚"} STEMS
             </button>
           )}
         </div>
 
-        {/* ── Stem Mixer ── */}
         {s.stems&&(
           <div className="dj-stem-mixer">
             <div className="dj-stem-label">STEMS — {s.title}</div>
@@ -1041,18 +870,9 @@ export default function DJMixer(){
                 <span className="dj-stem-icon">{icon}</span>
                 <input type="range" className="dj-stem-fader" min={0} max={1} step={0.01}
                   value={s.stemVols?.[stem]??1} style={{"--sc":sc}}
-                  onChange={e=>{
-                    const v=parseFloat(e.target.value);
-                    upd(id,{stemVols:{...(s.stemVols||{}),[stem]:v}});
-                    if(s.stems?.[stem+"_gain"])s.stems[stem+"_gain"].gain.value=v;
-                  }}/>
-                <button className={`dj-stem-mute ${s.stemMutes?.[stem]?"muted":""}`}
-                  style={{"--sc":sc}}
-                  onClick={()=>{
-                    const muted=!(s.stemMutes?.[stem]);
-                    upd(id,{stemMutes:{...(s.stemMutes||{}),[stem]:muted}});
-                    if(s.stems?.[stem+"_gain"])s.stems[stem+"_gain"].gain.value=muted?0:(s.stemVols?.[stem]??1);
-                  }}>
+                  onChange={e=>{const v=parseFloat(e.target.value);upd(id,{stemVols:{...(s.stemVols||{}),[stem]:v}});if(s.stems?.[stem+"_gain"])s.stems[stem+"_gain"].gain.value=v;}}/>
+                <button className={`dj-stem-mute ${s.stemMutes?.[stem]?"muted":""}`} style={{"--sc":sc}}
+                  onClick={()=>{const muted=!(s.stemMutes?.[stem]);upd(id,{stemMutes:{...(s.stemMutes||{}),[stem]:muted}});if(s.stems?.[stem+"_gain"])s.stems[stem+"_gain"].gain.value=muted?0:(s.stemVols?.[stem]??1);}}>
                   {s.stemMutes?.[stem]?"M":"—"}
                 </button>
                 <span className="dj-stem-lbl">{stem}</span>
@@ -1061,110 +881,86 @@ export default function DJMixer(){
           </div>
         )}
 
-        {/* ── Technics 1200 Turntable ── */}
         <div className="dj-turntable-wrap">
-          <Turntable playing={s.playing} progress={p} color={color} label={id==="A"?"DECK A":"DECK B"}/>
+          <Turntable playing={s.playing} progress={p} color={color} label={id==="A"?"DECK A":"DECK B"} />
         </div>
 
-        {/* ── Waveform ── */}
-        <Waveform deck={dk} color={color}/>
+        <Waveform deck={dk} color={color} />
 
-        {/* ── Progress ── */}
         <div className="dj-prog-wrap">
-          <div className="dj-prog"><div className="dj-prog-f" style={{width:`${p*100}%`,background:color}}/></div>
-          <div className="dj-prog-t"><span>{fmt(dk.currentTime())}</span><span style={{color:"#555"}}>-{fmt(dk.duration()-dk.currentTime())}</span></div>
+          <div className="dj-prog"><div className="dj-prog-f" style={{width:`${p*100}%`,background:color}} /></div>
+          <div className="dj-prog-t"><span>{fmt(dk.currentTime())}</span><span>-{fmt(dk.duration()-dk.currentTime())}</span></div>
         </div>
 
-        {/* ── Hot Cues ── */}
         <div className="dj-hcues">
           {[0,1,2,3].map(i=>(
             <button key={i} className={`dj-hc ${s.hotcues[i]!==null?"set":""}`} style={{"--hcc":HC_COLORS[i]}}
               onClick={()=>{dk.jumpHotcue(i);upd(id,{hotcues:[...dk.hotcues]});}}
-              onContextMenu={e=>{e.preventDefault();dk.hotcues[i]=null;upd(id,{hotcues:[...dk.hotcues]});}}
-              title={s.hotcues[i]!==null?`HC${i+1}: ${fmt(s.hotcues[i])} (right-click=clear)`:`Set HC${i+1}`}>{i+1}</button>
+              onContextMenu={e=>{e.preventDefault();dk.hotcues[i]=null;upd(id,{hotcues:[...dk.hotcues]});}}>
+              {i+1}
+            </button>
           ))}
-          <button className="dj-btn dj-cue" onClick={()=>{dk.setCue();upd(id,{});}}>CUE</button>
-          <button className="dj-btn dj-cjump" onClick={()=>dk.jumpCue()}>◀CUE</button>
-          <button className={`dj-btn ${s.slip?"dj-slip-on":""}`} onClick={()=>upd(id,{slip:!s.slip})} title="Slip Mode">SLIP</button>
+          <button className="dj-btn" onClick={()=>{dk.setCue();upd(id,{});}}>CUE</button>
+          <button className="dj-btn" onClick={()=>dk.jumpCue()}>◀CUE</button>
+          <button className={`dj-btn ${s.slip?"dj-slip-on":""}`} onClick={()=>upd(id,{slip:!s.slip})}>SLIP</button>
         </div>
 
-        {/* ── Beat Jump ── */}
-        <BeatJump deck={dk}/>
+        <BeatJump deck={dk} />
 
-        {/* ── Transport ── */}
         <div className="dj-transport">
           <button className={`dj-play ${s.playing?"on":""}`} style={{"--pc":color}} onClick={()=>togglePlay(id)} disabled={!s.loaded}>
             {s.playing?"⏸":"▶"}
           </button>
-          <button className={`dj-btn dj-loop ${s.loop?"on":""}`} onClick={()=>{dk.loop=!dk.loop;if(dk.source)dk.source.loop=dk.loop;upd(id,{loop:dk.loop});}}>🔁</button>
+          <button className={`dj-btn dj-loop ${s.loop?"on":""}`}
+            onClick={()=>{dk.loop=!dk.loop;if(dk.source)dk.source.loop=dk.loop;upd(id,{loop:dk.loop});}}>🔁</button>
           <div className="dj-loop-sz">
             {[1,2,4,8].map(b=>(
               <button key={b} className="dj-lsz" onClick={()=>{
                 if(!dk.buffer)return;
                 const beat=dk.bpm?60/dk.bpm:0.5;
-                dk.loopStart=dk.currentTime();dk.loopEnd=dk.loopStart+beat*b*4;
-                dk.loop=true;if(dk.source){dk.source.loop=true;dk.source.loopStart=dk.loopStart;dk.source.loopEnd=dk.loopEnd;}
+                dk.loopStart=dk.currentTime(); dk.loopEnd=dk.loopStart+beat*b*4;
+                dk.loop=true; if(dk.source){dk.source.loop=true;dk.source.loopStart=dk.loopStart;dk.source.loopEnd=dk.loopEnd;}
                 upd(id,{loop:true});
               }}>{b}</button>
             ))}
           </div>
         </div>
 
-        {/* ── EQ ── */}
         <div className="dj-eq-row">
-          <Knob label="HI" value={s.high} min={-12} max={12} color={color} onChange={v=>{dk.setEQ("high",v);upd(id,{high:v});}}/>
-          <Knob label="MID" value={s.mid} min={-12} max={12} color={color} onChange={v=>{dk.setEQ("mid",v);upd(id,{mid:v});}}/>
-          <Knob label="LOW" value={s.low} min={-12} max={12} color={color} onChange={v=>{dk.setEQ("low",v);upd(id,{low:v});}}/>
-          <Knob label="GAIN" value={s.vol} min={0} max={1.5} step={0.01} color={color} onChange={v=>{dk.setGain(v);upd(id,{vol:v});}}/>
-          <VU deck={dk}/>
+          <Knob label="HI" value={s.high} min={-12} max={12} color={color} onChange={v=>{dk.setEQ("high",v);upd(id,{high:v});}} />
+          <Knob label="MID" value={s.mid} min={-12} max={12} color={color} onChange={v=>{dk.setEQ("mid",v);upd(id,{mid:v});}} />
+          <Knob label="LOW" value={s.low} min={-12} max={12} color={color} onChange={v=>{dk.setEQ("low",v);upd(id,{low:v});}} />
+          <Knob label="GAIN" value={s.vol} min={0} max={1.5} color={color} onChange={v=>{dk.setGain(v);upd(id,{vol:v});}} />
+          <VU deck={dk} />
         </div>
 
-        {/* ── FX ── */}
-        <FXPanel deck={dk} ds={s} upd={upd} id={id}/>
+        <FXPanel deck={dk} />
 
-        {/* ── Pitch Fader ── */}
         <div className="dj-faders">
           <div className="dj-fg">
             <label className="dj-fl">PITCH {((s.pitch-1)*100).toFixed(1)}%</label>
             <input type="range" className="dj-fader dj-pitch" min="0.85" max="1.15" step="0.001" value={s.pitch}
-              onChange={e=>{const v=parseFloat(e.target.value);dk.pitch=v;if(dk.source)dk.source.playbackRate.value=v;upd(id,{pitch:v});}}/>
+              onChange={e=>{const v=parseFloat(e.target.value);dk.pitch=v;if(dk.source)dk.source.playbackRate.value=v;upd(id,{pitch:v});}} />
             <button className="dj-prst" onClick={()=>{dk.pitch=1;if(dk.source)dk.source.playbackRate.value=1;upd(id,{pitch:1});}}>⊙</button>
           </div>
           <div className="dj-fg">
             <label className="dj-fl">VOL</label>
             <input type="range" className="dj-fader" min="0" max="1.5" step="0.01" value={s.vol} style={{"--fc":color}}
-              onChange={e=>{const v=parseFloat(e.target.value);dk.setGain(v);upd(id,{vol:v});}}/>
+              onChange={e=>{const v=parseFloat(e.target.value);dk.setGain(v);upd(id,{vol:v});}} />
             <span className="dj-fv">{Math.round(s.vol*100)}%</span>
           </div>
         </div>
 
-        {/* ── DVS Timecode ── */}
-        <DVSTimecode
-          deckId={id}
-          color={color}
-          audioCtx={getCtx}
-          onPitch={(p) => {
-            dk.pitch = Math.abs(p);
-            if (dk.source) dk.source.playbackRate.value = Math.abs(p);
-            upd(id, {pitch: Math.abs(p)});
-            // Reverse play
-            if (p < 0 && dk.playing) {
-              dk.pause();
-              upd(id, {playing: false});
-            }
-          }}
-          onPosition={(pos) => {
-            // Sync playhead to vinyl position
-          }}
-        />
+        <DVSTimecode deckId={id} color={color} audioCtx={getCtx}
+          onPitch={p=>{dk.pitch=Math.abs(p);if(dk.source)dk.source.playbackRate.value=Math.abs(p);upd(id,{pitch:Math.abs(p)});}}
+          onPosition={()=>{}} />
 
-        {/* ── Load ── */}
         <div className="dj-load-sec">
           <div className="dj-drop-zone"
-            onDragOver={e=>{e.preventDefault();}}
+            onDragOver={e=>e.preventDefault()}
             onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f&&f.type.startsWith("audio/"))loadFile(id,f);}}>
             <label style={{cursor:"pointer",width:"100%",textAlign:"center"}}>
-              <input type="file" accept="audio/*" style={{display:"none"}} onChange={e=>e.target.files[0]&&loadFile(id,e.target.files[0])}/>
+              <input type="file" accept="audio/*" style={{display:"none"}} onChange={e=>e.target.files[0]&&loadFile(id,e.target.files[0])} />
               {ldDeck===id?"⏳ Loading…":s.loaded?"↕ Drag new track":"Drag MP3 / WAV / FLAC or click"}
             </label>
           </div>
@@ -1175,7 +971,7 @@ export default function DJMixer(){
             <div className="dj-url-row">
               <input className="dj-url-in" placeholder="Paste direct audio URL…" value={urlI[id]}
                 onChange={e=>setUrlI(p=>({...p,[id]:e.target.value}))}
-                onKeyDown={e=>e.key==="Enter"&&loadURL(id)}/>
+                onKeyDown={e=>e.key==="Enter"&&loadURL(id)} />
               <button className="dj-url-go" onClick={()=>loadURL(id)}>Load</button>
             </div>
           )}
@@ -1184,17 +980,16 @@ export default function DJMixer(){
     );
   };
 
-  const filtLib=lib.filter(t=>{
+  const filtLib = lib.filter(t => {
     const tm=lf==="all"||t.audio_type===lf;
     const sm=!ls||t.title?.toLowerCase().includes(ls.toLowerCase());
     return tm&&sm;
   });
 
-  return(
+  return (
     <div className="dj-page" onClick={initAudio}>
-      {/* ── Top Bar ── */}
       <div className="dj-topbar">
-        <div className="dj-logo">🎛 <span>DJ<em>Studio</em></span></div>
+        <div className="dj-logo">🎛 <span>SPX <em>DJ Mixer</em></span></div>
         <div className="dj-tabs">
           <button className={`dj-tab ${activeTab==="decks"?"active":""}`} onClick={()=>setActiveTab("decks")}>🎚 Decks</button>
           <button className={`dj-tab ${activeTab==="sampler"?"active":""}`} onClick={()=>setActiveTab("sampler")}>🥁 Sampler</button>
@@ -1202,149 +997,113 @@ export default function DJMixer(){
         <div className="dj-top-acts">
           <button className="dj-sync" onClick={syncBPM}>⟳ SYNC</button>
           <button className="dj-mst-btn" onClick={()=>setMaster(m=>m==="A"?"B":"A")}>MASTER: {master}</button>
+          <button className={`dj-tab ${quantize?"active":""}`} onClick={()=>setQuantize(v=>!v)} title="Quantize">Q</button>
+          <button className="dj-tab" onClick={handleTap} title="Tap Tempo">{tapBpm?`${tapBpm} BPM`:"TAP"}</button>
+          {tapBpm&&<button className="dj-tab" onClick={()=>{setTapBpm(null);setTapTimes([]);}}>✕</button>}
           <button className={`dj-tab ${midiEnabled?"active":""}`}
             style={{borderColor:midiEnabled?"#ffd60a":"",color:midiEnabled?"#ffd60a":""}}
-            onClick={()=>setMidiEnabled(m=>!m)}
-            title="Toggle MIDI controller">
-            🎹 MIDI
-          </button>
+            onClick={()=>setMidiEnabled(m=>!m)}>🎹 MIDI</button>
           {midiEnabled&&(
             <div style={{position:"relative"}}>
-              <button className="dj-tab" style={{color:"#8b949e",fontSize:10}}
-                onClick={()=>setShowProfilePicker(p=>!p)}>
-                🎮 {controllerProfile} ▾
-              </button>
+              <button className="dj-tab" onClick={()=>setShowProfilePicker(p=>!p)}>🎮 {controllerProfile} ▾</button>
               {showProfilePicker&&(
-                <div style={{position:"absolute",top:"100%",left:0,zIndex:200,background:"#161b22",border:"1px solid #30363d",borderRadius:8,padding:4,minWidth:220,boxShadow:"0 8px 32px rgba(0,0,0,0.7)"}}>
+                <div className="dj-profile-picker">
                   {Object.entries(CONTROLLER_PROFILES).map(([name,prof])=>(
-                    <button key={name}
-                      onClick={()=>applyControllerProfile(name)}
-                      style={{display:"block",width:"100%",padding:"8px 12px",background:controllerProfile===name?"rgba(0,255,200,0.08)":"transparent",border:"none",borderRadius:5,color:controllerProfile===name?"#00ffc8":"#8b949e",fontFamily:"JetBrains Mono,monospace",fontSize:10,fontWeight:700,textAlign:"left",cursor:"pointer"}}>
-                      <div>{name}</div>
-                      <div style={{fontSize:9,color:"#4e6a82",fontWeight:400,marginTop:2}}>{prof.desc}</div>
+                    <button key={name} className={`dj-profile-opt ${controllerProfile===name?"active":""}`} onClick={()=>applyControllerProfile(name)}>
+                      <div className="dj-profile-name">{name}</div>
+                      <div className="dj-profile-desc">{prof.desc}</div>
                     </button>
                   ))}
                 </div>
               )}
             </div>
           )}
+          <button className={`dj-tab ${showHistory?"active":""}`} onClick={()=>setShowHistory(v=>!v)}>📋 LOG</button>
           {!rec?<button className="dj-rec" onClick={startRec}>⏺ REC</button>:<button className="dj-rec on" onClick={stopRec}>⏹ STOP</button>}
-          {recBlob&&<><button className="dj-exp" onClick={dlMix}>⬇ Download</button><button className="dj-exp save" onClick={()=>setSaveModal(true)}>☁ Save</button></>}
-          {rec&&<div className="dj-rec-live"><span className="dj-rec-dot"/>REC</div>}
+          {recBlob&&<><button className="dj-exp" onClick={dlMix}>⬇ DL</button><button className="dj-exp save" onClick={()=>setSaveModal(true)}>☁ Save</button></>}
+          {rec&&<div className="dj-rec-live"><span className="dj-rec-dot" />REC</div>}
         </div>
       </div>
 
-      {/* ── Decks View ── */}
       {activeTab==="decks"&&(
         <div className="dj-main">
           {renderDeck("A")}
-
-          {/* ── Center Mixer ── */}
           <div className="dj-center">
-            <div style={{color:"#00ffc8",fontSize:9,fontWeight:800,textTransform:"uppercase",letterSpacing:2,marginBottom:8,textAlign:"center"}}>MIXER</div>
+            <div className="dj-mixer-title">MIXER</div>
             <div className="dj-xfw">
               <div className="dj-xfl"><span style={{color:"#00ffcc"}}>A</span><span className="dj-xft">CROSSFADER</span><span style={{color:"#ff6b35"}}>B</span></div>
-              <input type="range" className="dj-xfader" min="0" max="1" step="0.005" value={xf} onChange={e=>setXf(parseFloat(e.target.value))}/>
+              <input type="range" className="dj-xfader" min="0" max="1" step="0.005" value={xf} onChange={e=>setXf(parseFloat(e.target.value))} />
               <button className="dj-xfc" onClick={()=>setXf(0.5)}>⊙ Center</button>
             </div>
             <div className="dj-mvol">
-              <label className="dj-fl" style={{color:"#fff",textAlign:"center",display:"block"}}>MASTER VOL</label>
-              <input type="range" className="dj-fader" min="0" max="1.5" step="0.01" value={mvol} style={{"--fc":"#fff"}} onChange={e=>setMvol(parseFloat(e.target.value))}/>
-              <span className="dj-fv" style={{textAlign:"center",display:"block"}}>{Math.round(mvol*100)}%</span>
+              <label className="dj-fl">MASTER VOL</label>
+              <input type="range" className="dj-fader" min="0" max="1.5" step="0.01" value={mvol} style={{"--fc":"#fff"}} onChange={e=>setMvol(parseFloat(e.target.value))} />
+              <span className="dj-fv">{Math.round(mvol*100)}%</span>
             </div>
-            <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:6}}>
-              <div style={{color:"#4e6a82",fontSize:9,fontWeight:800,textTransform:"uppercase",letterSpacing:1,textAlign:"center"}}>CH FADERS</div>
+            <div className="dj-ch-faders-section">
+              <div className="dj-ch-faders-label">CH FADERS</div>
               {["A","B"].map(id=>(
-                <div key={id} style={{display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{color:id==="A"?"#00ffcc":"#ff6b35",fontSize:11,fontWeight:800,width:14}}>{id}</span>
+                <div key={id} className="dj-fg">
+                  <span className="dj-fl" style={{color:id==="A"?"#00ffcc":"#ff6b35"}}>{id}</span>
                   <input type="range" className="dj-fader" min="0" max="1.5" step="0.01"
                     value={ds[id].vol} style={{"--fc":id==="A"?"#00ffcc":"#ff6b35"}}
-                    onChange={e=>{const v=parseFloat(e.target.value);(id==="A"?deckA:deckB).setGain(v);upd(id,{vol:v});}}/>
+                    onChange={e=>{const v=parseFloat(e.target.value);(id==="A"?deckA:deckB).setGain(v);upd(id,{vol:v});}} />
                 </div>
               ))}
             </div>
-
-            {/* ── Stream to Destinations ── */}
             <div className="dj-stream-panel">
               <div className="dj-stream-label">🔴 BROADCAST</div>
-              {[
-                {id:"streampirex", label:"StreamPireX", icon:"✨", color:"#00ffc8"},
-                {id:"twitch",      label:"Twitch",      icon:"🟣", color:"#9146ff"},
-                {id:"youtube",     label:"YouTube",     icon:"🔴", color:"#ff0000"},
-              ].map(dest=>(
+              {[{id:"streampirex",label:"StreamPireX",icon:"✨",color:"#00ffc8"},{id:"twitch",label:"Twitch",icon:"🟣",color:"#9146ff"},{id:"youtube",label:"YouTube",icon:"🔴",color:"#ff0000"}].map(dest=>(
                 <div key={dest.id} className="dj-stream-dest">
-                  <span style={{fontSize:12}}>{dest.icon}</span>
+                  <span>{dest.icon}</span>
                   <span className="dj-stream-name">{dest.label}</span>
-                  <button
-                    className={`dj-stream-btn ${streamDests[dest.id]?"live":""}`}
-                    style={{"--dc":dest.color}}
-                    onClick={()=>toggleStream(dest.id)}>
+                  <button className={`dj-stream-btn ${streamDests[dest.id]?"live":""}`} style={{"--dc":dest.color}} onClick={()=>toggleStream(dest.id)}>
                     {streamDests[dest.id]?"⏹ Stop":"▶ Go Live"}
                   </button>
                 </div>
               ))}
               {Object.values(streamDests).some(Boolean)&&(
-                <div className="dj-stream-live-badge">
-                  <span className="dj-rec-dot"/>
-                  LIVE — {Object.entries(streamDests).filter(([,v])=>v).map(([k])=>k).join(" + ")}
-                </div>
+                <div className="dj-stream-live-badge"><span className="dj-rec-dot" />LIVE</div>
               )}
-              <div className="dj-stream-hint">
-                Configure stream keys in Settings → Streaming
-              </div>
+              <div className="dj-stream-hint">Configure stream keys in Settings → Streaming</div>
             </div>
           </div>
-
           {renderDeck("B")}
         </div>
       )}
 
-      {/* ── MIDI Controller Panel ── */}
-      {midiEnabled&&!(/Chrome|Edg/.test(navigator.userAgent))&&(
-        <div style={{background:'rgba(255,100,0,0.1)',border:'1px solid rgba(255,100,0,0.3)',borderRadius:8,padding:'10px 16px',margin:'8px 0',fontSize:12,color:'#ff9500',display:'flex',alignItems:'center',gap:8}}>
-          ⚠️ <span>MIDI controllers require <strong>Chrome or Edge</strong> browser. Firefox and Safari do not support Web MIDI.</span>
-        </div>
-      )}
       {midiEnabled&&(
-        <div style={{position:"fixed",bottom:220,right:16,zIndex:100,width:320}}>
+        <div className="dj-midi-wrap">
           <MidiHardwareInput
             drumMode={false}
-            onNoteOn={(note,vel)=>handleMidiNote(note,vel,"A")}
+            onNoteOn={(note,vel)=>handleMidiNote(note,vel)}
             onNoteOff={()=>{}}
             onCC={(cc,val)=>handleMidiCC(cc,val)}
-            onPitchBend={(val)=>{
-              const norm=(val+8192)/16384;
-              deckA.pitch=0.85+norm*0.3;
-              if(deckA.source)deckA.source.playbackRate.value=deckA.pitch;
-              upd("A",{pitch:deckA.pitch});
-            }}
-            onPadTrigger={(pad)=>handleMidiNote(36+pad,127,"A")}
+            onPitchBend={val=>{const norm=(val+8192)/16384;deckA.pitch=0.85+norm*0.3;if(deckA.source)deckA.source.playbackRate.value=deckA.pitch;upd("A",{pitch:deckA.pitch});}}
+            onPadTrigger={pad=>handleMidiNote(36+pad,127)}
           />
-          {/* MIDI Mapping Table */}
-          <div style={{background:"#0d1117",border:"1px solid #21262d",borderRadius:8,padding:12,marginTop:8,fontSize:10,color:"#8b949e"}}>
-            <div style={{color:"#ffd60a",fontWeight:800,marginBottom:8,letterSpacing:1}}>MIDI MAP</div>
+          <div className="dj-midi-map">
+            <div className="dj-midi-map-title">MIDI MAP</div>
             {Object.entries(midiMap).map(([cc,action])=>(
-              <div key={cc} style={{display:"flex",justifyContent:"space-between",padding:"2px 0",borderBottom:"1px solid #161b22"}}>
-                <span style={{color:"#4e6a82"}}>CC {cc}</span>
-                <span style={{color:"#dde6ef"}}>{action}</span>
+              <div key={cc} className="dj-midi-row">
+                <span className="dj-midi-cc">CC {cc}</span>
+                <span className="dj-midi-action">{action}</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* ── Sampler View ── */}
       {activeTab==="sampler"&&(
-        <div style={{padding:24,flex:1}}>
-          <SamplerPads audioCtx={getCtx} masterOut={mgRef}/>
+        <div className="dj-sampler-view">
+          <SamplerPads audioCtx={getCtx} masterOut={mgRef} />
         </div>
       )}
 
-      {/* ── Library ── */}
       <div className="dj-library">
         <div className="dj-lib-hd">
           <span className="dj-lib-ttl">📂 Library</span>
-          <input className="dj-lib-s" placeholder="Search…" value={ls} onChange={e=>setLs(e.target.value)}/>
+          <input className="dj-lib-s" placeholder="Search…" value={ls} onChange={e=>setLs(e.target.value)} />
         </div>
         <div className="dj-lib-filters">
           {["all","beat","acapella","stem","remix","mix","sample","original"].map(f=>(
@@ -1374,41 +1133,35 @@ export default function DJMixer(){
         </div>
       </div>
 
-            {/* ── Session History Panel ── */}
       {showHistory&&(
-        <div style={{position:'fixed',top:60,right:16,zIndex:999,background:'#0d1117',border:'1px solid #21262d',borderRadius:8,width:320,maxHeight:480,overflowY:'auto',boxShadow:'0 8px 32px rgba(0,0,0,0.6)'}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',borderBottom:'1px solid #21262d'}}>
-            <span style={{color:'#00ffc8',fontFamily:'JetBrains Mono',fontSize:12,fontWeight:700}}>📋 Session Tracklist</span>
-            <div style={{display:'flex',gap:8}}>
-              <button onClick={()=>{
-                const txt=sessionHistory.map((t,i)=>((i+1)+'. ['+t.time+'] Deck '+t.deck+': '+t.title+(t.bpm?' - '+t.bpm+'BPM':'')+(t.key?' ('+t.key+')':''))).join('\n');
+        <div className="dj-history-panel">
+          <div className="dj-history-header">
+            <span className="dj-history-title">📋 Session Tracklist</span>
+            <div style={{display:"flex",gap:8}}>
+              <button className="dj-btn" onClick={()=>{
+                const txt=sessionHistory.map((t,i)=>((i+1)+". ["+t.time+"] Deck "+t.deck+": "+t.title+(t.bpm?" - "+t.bpm+"BPM":"")+(t.key?" ("+t.key+")":""))).join("\n");
                 navigator.clipboard.writeText(txt);
-              }} style={{background:'#1a1f2e',border:'1px solid #333',color:'#aaa',borderRadius:4,padding:'2px 8px',cursor:'pointer',fontSize:10}}>Copy</button>
-              <button onClick={()=>setShowHistory(false)} style={{background:'none',border:'none',color:'#888',cursor:'pointer',fontSize:16}}>✕</button>
+              }}>Copy</button>
+              <button className="dj-btn" onClick={()=>setShowHistory(false)}>✕</button>
             </div>
           </div>
-          {sessionHistory.length===0&&(
-            <div style={{padding:20,color:'#555',fontSize:11,textAlign:'center'}}>No tracks played yet</div>
-          )}
+          {sessionHistory.length===0&&<div className="dj-lib-empty">No tracks played yet</div>}
           {sessionHistory.map((t,i)=>(
-            <div key={i} style={{padding:'8px 14px',borderBottom:'1px solid #161b22',display:'flex',gap:8,alignItems:'center'}}>
-              <div style={{width:24,height:24,borderRadius:'50%',background:t.deck==='A'?'#00ffc8':'#ff6600',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#000',flexShrink:0}}>{t.deck}</div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{color:'#dde6ef',fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.title}</div>
-                <div style={{display:'flex',gap:6,marginTop:2}}>
-                  {t.bpm&&<span style={{color:'#ff6600',fontSize:9}}>{t.bpm} BPM</span>}
-                  {t.key&&<span style={{color:'#7c3aed',fontSize:9}}>{t.key}</span>}
-                  <span style={{color:'#555',fontSize:9}}>{t.time}</span>
+            <div key={i} className="dj-history-row">
+              <div className={`dj-history-deck ${t.deck==="A"?"a":"b"}`}>{t.deck}</div>
+              <div className="dj-history-info">
+                <div className="dj-history-track">{t.title}</div>
+                <div className="dj-history-meta">
+                  {t.bpm&&<span className="dj-history-bpm">{t.bpm} BPM</span>}
+                  {t.key&&<span className="dj-history-key">{t.key}</span>}
+                  <span className="dj-history-time">{t.time}</span>
                 </div>
               </div>
             </div>
           ))}
           {sessionHistory.length>0&&(
-            <div style={{padding:'8px 14px',borderTop:'1px solid #21262d'}}>
-              <button onClick={()=>setSessionHistory([])}
-                style={{background:'#1a1f2e',border:'1px solid #333',color:'#ff4757',borderRadius:4,padding:'4px 10px',cursor:'pointer',fontSize:10,width:'100%'}}>
-                Clear History
-              </button>
+            <div style={{padding:"8px 14px",borderTop:"1px solid #21262d"}}>
+              <button className="dj-btn" style={{width:"100%",color:"#ff4757"}} onClick={()=>setSessionHistory([])}>Clear History</button>
             </div>
           )}
         </div>
@@ -1418,7 +1171,7 @@ export default function DJMixer(){
         <div className="dj-overlay" onClick={()=>setSaveModal(false)}>
           <div className="dj-modal" onClick={e=>e.stopPropagation()}>
             <h3>Save Mix to Library</h3>
-            <input className="dj-modal-in" placeholder="Mix title…" value={mixTitle} onChange={e=>setMixTitle(e.target.value)}/>
+            <input className="dj-modal-in" placeholder="Mix title…" value={mixTitle} onChange={e=>setMixTitle(e.target.value)} />
             <div className="dj-modal-acts">
               <button className="dj-modal-cancel" onClick={()=>setSaveModal(false)}>Cancel</button>
               <button className="dj-modal-save" onClick={saveMix} disabled={saving}>{saving?"Saving…":"☁ Save"}</button>
@@ -1429,5 +1182,3 @@ export default function DJMixer(){
     </div>
   );
 }
-
-function fmt(s){if(!s||isNaN(s)||s<0)return"0:00";return`${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,"0")}`;}
