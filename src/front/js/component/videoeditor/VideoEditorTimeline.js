@@ -263,7 +263,7 @@ export default function VideoEditorTimeline({
         <button className={`spx-tl-opt-btn ${snapOn ? 'active' : ''}`} onClick={() => onToggleSnap && onToggleSnap()}>
           Snap {snapOn ? 'ON' : 'OFF'}
         </button>
-        <button className={`spx-tl-opt-btn ${showWaveforms ? 'active' : ''}`} onClick={() => onToggleWaveforms && onToggleWaveforms()}}>
+        <button className={`spx-tl-opt-btn ${showWaveforms ? 'active' : ''}`} onClick={() => onToggleWaveforms && onToggleWaveforms()}>
           Waveforms
         </button>
         <button className="spx-tl-opt-btn" onClick={() => addTrack('video')}>+ Video</button>
