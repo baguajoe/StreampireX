@@ -228,3 +228,105 @@
 .video-editor-pro .spx-track-header,
 .video-editor-pro .spx-track-header * { background: #0d1117 !important; }
 .video-editor-pro .track-headers-column { background: #0d1117 !important; }
+
+/* ══ PREMIERE PRO LAYOUT MATCH ══ */
+
+/* Hide left sidebar completely - give space to monitors */
+.video-editor-pro .spx-left { display: none !important; }
+
+/* Main layout: no left panel */
+.video-editor-pro .editor-main-layout {
+  display: flex !important;
+  flex-direction: column !important;
+  height: calc(100vh - 68px) !important;
+}
+
+/* Top half: monitors side by side */
+.video-editor-pro .editor-center-panel {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+}
+
+/* Monitors take top 55% */
+.video-editor-pro .spx-monitors,
+.video-editor-pro .preview-area-container {
+  height: 55vh !important;
+  min-height: 340px !important;
+  max-height: 580px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  flex-direction: row !important;
+}
+
+/* Timeline section: bottom 45% */
+.video-editor-pro .editor-timeline-section,
+.video-editor-pro .spx-timeline-area {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Tools strip on left of timeline */
+.video-editor-pro .timeline-controls-bar,
+.video-editor-pro .spx-timeline-controls {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-shrink: 0 !important;
+}
+
+/* Timeline main takes remaining width */
+.video-editor-pro .timeline-main-container {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Track area fills height */
+.video-editor-pro .timeline-tracks-container {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.video-editor-pro .timeline-tracks-scroll {
+  flex: 1 !important;
+  overflow: auto !important;
+  min-height: 0 !important;
+}
+
+/* Track headers dark */
+.video-editor-pro .track-headers-column,
+.video-editor-pro .spx-track-headers {
+  background: #0d1117 !important;
+  width: 200px !important;
+  min-width: 200px !important;
+}
+
+.video-editor-pro .track-header-container,
+.video-editor-pro .track-header-container *,
+.video-editor-pro .spx-track-header {
+  background: #0d1117 !important;
+  color: #e6edf3 !important;
+}
+
+.video-editor-pro .track-name-label,
+.video-editor-pro .spx-track-name {
+  color: #e6edf3 !important;
+  font-size: 11px !important;
+}
+
+.video-editor-pro .track-z-index {
+  color: #4e6a82 !important;
+}
+
+/* Hide media browser popup */
+.video-editor-pro .media-browser-overlay { display: none !important; }
