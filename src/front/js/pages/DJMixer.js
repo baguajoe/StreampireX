@@ -296,11 +296,11 @@ const Turntable = React.memo(({ playing, progress, color, label }) => {
 
       // Tone arm
       ctx.save();
-      const pivotX=W-72, pivotY=52;
-      const armAngle=-2.0+progress*0.45;
+      const pivotX=W-48, pivotY=32;
+      const armAngle=-1.85+progress*0.38;
 
       // Counterweight
-      const cwLen=50;
+      const cwLen=28;
       const cwX=pivotX-Math.cos(armAngle)*cwLen;
       const cwY=pivotY-Math.sin(armAngle)*cwLen;
       ctx.strokeStyle="#666"; ctx.lineWidth=5; ctx.lineCap="round";
@@ -317,7 +317,7 @@ const Turntable = React.memo(({ playing, progress, color, label }) => {
       ctx.fillStyle="#eee"; ctx.beginPath(); ctx.arc(pivotX,pivotY,4,0,Math.PI*2); ctx.fill();
 
       // S-arm
-      const armLen=180;
+      const armLen=110;
       const tipX=pivotX+Math.cos(armAngle)*armLen;
       const tipY=pivotY+Math.sin(armAngle)*armLen;
       const px=-Math.sin(armAngle), py=Math.cos(armAngle);
@@ -645,6 +645,19 @@ export default function DJMixer(){
   const [midiEnabled,setMidiEnabled]=useState(false);
   const [controllerProfile,setControllerProfile]=useState("Custom");
   const [showProfilePicker,setShowProfilePicker]=useState(false);
+  // ── Serato gap features ───────────────────────────────────────────────────
+  const [keyLock,setKeyLock]=useState({A:false,B:false});
+  const [quantize,setQuantize]=useState(true);
+  const [tapTimes,setTapTimes]=useState([]);
+  const [tapBpm,setTapBpm]=useState(null);
+  const [loopRoll,setLoopRoll]=useState({A:false,B:false});
+  const [flipRec,setFlipRec]=useState({A:false,B:false});
+  const [flipPlay,setFlipPlay]=useState({A:false,B:false});
+  const [flipEvents,setFlipEvents]=useState({A:[],B:[]});
+  const [sessionHistory,setSessionHistory]=useState([]);
+  const [showHistory,setShowHistory]=useState(false);
+  const [freqWave,setFreqWave]=useState(true);
+  const [perDeckStem,setPerDeckStem]=useState({A:'original',B:'original'});
   const [midiMap,setMidiMap]=useState({
     // CC -> action mapping (customizable)
     1:  "xfader",    // mod wheel -> crossfader
@@ -655,6 +668,94 @@ export default function DJMixer(){
     74: "filter_a",  // ch74 -> deck A filter
   }); // decks | sampler
   const mgRef=useRef(null),xgA=useRef(null),xgB=useRef(null),recRef=useRef(null),chunks=useRef([]),rafRef=useRef(null);
+
+  // ── Tap Tempo ─────────────────────────────────────────────────────────────
+  const handleTap = React.useCallback(() => {
+    const now = Date.now();
+    setTapTimes(prev => {
+      const recent = [...prev, now].filter(t => now - t < 4000).slice(-8);
+      if (recent.length >= 2) {
+        const intervals = recent.slice(1).map((t,i) => t - recent[i]);
+        const avg = intervals.reduce((a,b)=>a+b,0) / intervals.length;
+        setTapBpm(Math.round(60000 / avg));
+      }
+      return recent;
+    });
+  }, []);
+
+  // ── Key Lock — pitch-shift without tempo change ───────────────────────────
+  const toggleKeyLock = React.useCallback((id) => {
+    setKeyLock(prev => ({...prev, [id]: !prev[id]}));
+    const dk = id==='A' ? deckA : deckB;
+    // Preserve current pitch ratio but mark key-locked
+    if (dk.source) {
+      try { dk.source.preservesPitch = !keyLock[id]; } catch(e) {}
+    }
+  }, [keyLock]);
+
+  // ── Quantize — snap cues to grid ─────────────────────────────────────────
+  const snapToGrid = React.useCallback((time, bpm) => {
+    if (!quantize || !bpm) return time;
+    const beatLen = 60 / bpm;
+    return Math.round(time / beatLen) * beatLen;
+  }, [quantize]);
+
+  // ── Loop Roll ─────────────────────────────────────────────────────────────
+  const toggleLoopRoll = React.useCallback((id, size) => {
+    const dk = id==='A' ? deckA : deckB;
+    if (!dk.buffer) return;
+    setLoopRoll(prev => ({...prev, [id]: !prev[id]}));
+    if (!loopRoll[id]) {
+      const beatLen = 60 / (dk.bpm || 120);
+      dk.loopSize = beatLen * size;
+      dk.loopActive = true;
+    } else {
+      dk.loopActive = false;
+    }
+  }, [loopRoll]);
+
+  // ── Flip Mode — record and replay cue sequences ───────────────────────────
+  const startFlipRec = React.useCallback((id) => {
+    setFlipRec(prev => ({...prev, [id]: true}));
+    setFlipEvents(prev => ({...prev, [id]: []}));
+  }, []);
+
+  const stopFlipRec = React.useCallback((id) => {
+    setFlipRec(prev => ({...prev, [id]: false}));
+  }, []);
+
+  const playFlip = React.useCallback((id) => {
+    const events = flipEvents[id];
+    if (!events.length) return;
+    setFlipPlay(prev => ({...prev, [id]: true}));
+    const dk = id==='A' ? deckA : deckB;
+    events.forEach(ev => {
+      setTimeout(() => {
+        if (ev.type === 'cue') dk.seek(ev.pos);
+      }, ev.delay);
+    });
+    setTimeout(() => setFlipPlay(prev => ({...prev, [id]: false})),
+      events[events.length-1]?.delay + 500 || 2000);
+  }, [flipEvents]);
+
+  // ── Session History ───────────────────────────────────────────────────────
+  const addToHistory = React.useCallback((deck, title, key, bpm) => {
+    setSessionHistory(prev => [{
+      deck, title, key, bpm,
+      time: new Date().toLocaleTimeString(),
+      ts: Date.now()
+    }, ...prev].slice(0, 50));
+  }, []);
+
+  // ── Per-Deck Stem Selection ───────────────────────────────────────────────
+  const setDeckStemMode = React.useCallback((id, mode) => {
+    setPerDeckStem(prev => ({...prev, [id]: mode}));
+    const dk = id==='A' ? deckA : deckB;
+    if (dk.stems && dk.stems[mode]) {
+      dk.audioType = mode;
+      upd(id, {audioType: mode});
+    }
+  }, []);
 
   const initAudio=useCallback(()=>{
     if(rdy)return;const c=getCtx();
@@ -693,6 +794,7 @@ export default function DJMixer(){
       const bpm=await dk.loadURL(url);
       dk.title=t.title;dk.artwork=t.artwork_url;dk.audioType=t.audio_type||"original";dk.bpm=bpm||t.bpm;dk.key=t.key;
       upd(id,{loaded:true,bpm:dk.bpm,key:t.key,title:t.title,artwork:t.artwork_url,audioType:dk.audioType,hotcues:[null,null,null,null]});
+      addToHistory(id, t.title, t.key, dk.bpm);
     }catch(e){console.error(e);}
     setLdDeck(null);
   };
@@ -1271,6 +1373,46 @@ export default function DJMixer(){
           ))}
         </div>
       </div>
+
+            {/* ── Session History Panel ── */}
+      {showHistory&&(
+        <div style={{position:'fixed',top:60,right:16,zIndex:999,background:'#0d1117',border:'1px solid #21262d',borderRadius:8,width:320,maxHeight:480,overflowY:'auto',boxShadow:'0 8px 32px rgba(0,0,0,0.6)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',borderBottom:'1px solid #21262d'}}>
+            <span style={{color:'#00ffc8',fontFamily:'JetBrains Mono',fontSize:12,fontWeight:700}}>📋 Session Tracklist</span>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>{
+                const txt=sessionHistory.map((t,i)=>((i+1)+'. ['+t.time+'] Deck '+t.deck+': '+t.title+(t.bpm?' - '+t.bpm+'BPM':'')+(t.key?' ('+t.key+')':''))).join('\n');
+                navigator.clipboard.writeText(txt);
+              }} style={{background:'#1a1f2e',border:'1px solid #333',color:'#aaa',borderRadius:4,padding:'2px 8px',cursor:'pointer',fontSize:10}}>Copy</button>
+              <button onClick={()=>setShowHistory(false)} style={{background:'none',border:'none',color:'#888',cursor:'pointer',fontSize:16}}>✕</button>
+            </div>
+          </div>
+          {sessionHistory.length===0&&(
+            <div style={{padding:20,color:'#555',fontSize:11,textAlign:'center'}}>No tracks played yet</div>
+          )}
+          {sessionHistory.map((t,i)=>(
+            <div key={i} style={{padding:'8px 14px',borderBottom:'1px solid #161b22',display:'flex',gap:8,alignItems:'center'}}>
+              <div style={{width:24,height:24,borderRadius:'50%',background:t.deck==='A'?'#00ffc8':'#ff6600',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#000',flexShrink:0}}>{t.deck}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{color:'#dde6ef',fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.title}</div>
+                <div style={{display:'flex',gap:6,marginTop:2}}>
+                  {t.bpm&&<span style={{color:'#ff6600',fontSize:9}}>{t.bpm} BPM</span>}
+                  {t.key&&<span style={{color:'#7c3aed',fontSize:9}}>{t.key}</span>}
+                  <span style={{color:'#555',fontSize:9}}>{t.time}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+          {sessionHistory.length>0&&(
+            <div style={{padding:'8px 14px',borderTop:'1px solid #21262d'}}>
+              <button onClick={()=>setSessionHistory([])}
+                style={{background:'#1a1f2e',border:'1px solid #333',color:'#ff4757',borderRadius:4,padding:'4px 10px',cursor:'pointer',fontSize:10,width:'100%'}}>
+                Clear History
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {saveModal&&(
         <div className="dj-overlay" onClick={()=>setSaveModal(false)}>
