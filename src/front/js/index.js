@@ -1,3 +1,5 @@
+import { SPXStemEngine } from './engine/SPXStemEngine';
+SPXStemEngine.preload();
 //import react into the bundle
 import React from "react";
 import ReactDOM from "react-dom";

@@ -1,3 +1,4 @@
+import { useStemSeparation } from '../hooks/useStemSeparation';
 // =============================================================================
 // SamplerBeatMaker.js — Complete SPX Beat Lab / Sampler (Phase 1 + 2 + 3)
 // =============================================================================

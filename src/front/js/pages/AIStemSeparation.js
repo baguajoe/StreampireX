@@ -1,3 +1,4 @@
+import { useStemSeparation } from '../hooks/useStemSeparation';
 // src/front/js/pages/AIStemSeparation.js
 // =====================================================
 // AI STEM SEPARATION — StreamPireX

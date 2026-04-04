@@ -1,3 +1,4 @@
+import { SPXStemEngine } from '../engine/SPXStemEngine';
 // =============================================================================
 // DAWAdvancedFeatures.js — Advanced Recording Studio Features
 // =============================================================================

@@ -1,3 +1,4 @@
+import { useStemSeparation } from '../hooks/useStemSeparation';
 import React, { useState, useEffect, useRef, useCallback, useContext } from "react";
 import { Context } from "../store/appContext";
 import "../../styles/DJMixer.css";
@@ -662,6 +663,7 @@ export default function DJMixer(){
     }
   },[streamDests,store]);
 
+  const { separate: realtimeSeparate, isRealtime: stemRealtime } = useStemSeparation();
   const handleStemSeparate=useCallback(async(id)=>{
     const dk=id==="A"?deckA:deckB;const s=id==="A"?ds.A:ds.B;
     if(!dk.buffer||!s.loaded)return;
