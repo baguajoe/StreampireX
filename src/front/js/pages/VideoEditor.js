@@ -10,6 +10,7 @@ const VideoEditor = () => {
   if (!portalRef.current) {
     const el = document.createElement('div');
     el.id = 'spx-video-editor-portal';
+    el.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#06060f;overflow:hidden;display:flex;flex-direction:column;';
     document.body.appendChild(el);
     portalRef.current = el;
   }
