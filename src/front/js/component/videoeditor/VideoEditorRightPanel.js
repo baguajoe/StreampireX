@@ -229,17 +229,12 @@ export default function VideoEditorRightPanel({
       {/* Content */}
       <div style={{flex:1,overflowY:'auto',padding:10}}>
 
-        {!selectedClip && !selectedTransition && (
-          <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,padding:'32px 16px',color:T.dim2,textAlign:'center',height:'80%'}}>
-            <Sparkles size={32} style={{opacity:.3}}/>
-            <p style={{fontSize:11,lineHeight:1.5,fontFamily:T.font}}>Select a clip or transition<br/>to edit its properties.</p>
-          </div>
-        )}
+
 
         {/* ── EFFECTS TAB ─────────────────────────── */}
-        {tab==='effects' && selectedClip && (
+        {tab==='effects' && (
           <>
-            <div style={{fontSize:10,fontWeight:700,color:T.dim2,textTransform:'uppercase',letterSpacing:.5,marginBottom:8,fontFamily:T.font}}>Effects Stack — {selectedClip.title}</div>
+            <div style={{fontSize:10,fontWeight:700,color:T.dim2,textTransform:'uppercase',letterSpacing:.5,marginBottom:8,fontFamily:T.font}}>Effects Stack{selectedClip?' — '+selectedClip.title:''}</div>
             {(!selectedClip.effects||selectedClip.effects.length===0) ? (
               <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,padding:'24px 12px',color:T.dim2,textAlign:'center'}}>
                 <Wand2 size={24} style={{opacity:.4}}/>
@@ -281,7 +276,7 @@ export default function VideoEditorRightPanel({
         )}
 
         {/* ── TRANSFORM TAB ───────────────────────── */}
-        {tab==='transform' && selectedClip && (
+        {tab==='transform' && (
           <>
             <div style={{fontSize:10,fontWeight:700,color:T.dim2,textTransform:'uppercase',letterSpacing:.5,marginBottom:12,fontFamily:T.font}}>Transform</div>
             {/* Position */}
@@ -336,7 +331,7 @@ export default function VideoEditorRightPanel({
         )}
 
         {/* ── COMPOSITING TAB ─────────────────────── */}
-        {tab==='comp' && selectedClip && (
+        {tab==='comp' && (
           <>
             <div style={{fontSize:10,fontWeight:700,color:T.dim2,textTransform:'uppercase',letterSpacing:.5,marginBottom:12,fontFamily:T.font}}>Compositing</div>
             {/* Blend mode */}
