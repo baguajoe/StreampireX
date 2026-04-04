@@ -44,7 +44,7 @@ html,body{width:100%;background:#06060f;font-family:'Inter',system-ui,sans-serif
 .label-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;letter-spacing:.5px;text-align:center;line-height:1.3}
 .spindle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:#333;border:1px solid #555;z-index:3}
 /* Tonearm */
-.tonearm{position:absolute;top:10px;right:8px;width:70px;height:70px;pointer-events:none}
+.tonearm{position:absolute;top:6px;right:6px;width:60px;height:60px;pointer-events:none}
 
 /* WAVEFORM */
 .waveform{width:100%;height:72px;border-radius:6px;display:block;background:#06060f;border:1px solid #1a1a2e}
@@ -175,11 +175,19 @@ html,body{width:100%;background:#06060f;font-family:'Inter',system-ui,sans-serif
           </div>
         </div>
         <!-- Tonearm SVG overlay -->
-        <svg width="90" height="90" style="position:absolute;top:2px;right:4px;pointer-events:none">
-          <line x1="75" y1="5" x2="30" y2="70" stroke="#888" stroke-width="2.5" stroke-linecap="round"/>
-          <circle cx="75" cy="5" r="6" fill="#444" stroke="#666" stroke-width="1"/>
-          <line x1="30" y1="70" x2="20" y2="78" stroke="#aaa" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="20" cy="80" r="4" fill="#00ffcc"/>
+        <svg width="70" height="70" style="position:absolute;top:4px;right:5px;pointer-events:none">
+          <!-- Pivot bearing -->
+          <circle cx="58" cy="8" r="5" fill="#333" stroke="#666" stroke-width="1.5"/>
+          <circle cx="58" cy="8" r="2" fill="#555"/>
+          <!-- Main arm — shorter, angled correctly -->
+          <line x1="58" y1="8" x2="28" y2="52" stroke="#999" stroke-width="2" stroke-linecap="round"/>
+          <!-- S-bend headshell section -->
+          <path d="M28,52 Q22,58 18,62" stroke="#bbb" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <!-- Headshell -->
+          <rect x="12" y="60" width="10" height="5" rx="1" fill="#666" stroke="#888" stroke-width="1"/>
+          <!-- Stylus tip glow -->
+          <circle cx="14" cy="65" r="2.5" fill="#00ffcc" opacity="0.9"/>
+          <circle cx="14" cy="65" r="4" fill="#00ffcc" opacity="0.2"/>
         </svg>
       </div>
 
