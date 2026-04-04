@@ -214,6 +214,12 @@ export default function SPXVectorPage() {
   const [extrudeLoading,  setExtrudeLoading]  = useState(false);
   const [meshQuality,     setMeshQuality]     = useState('mid'); // low|mid|high|ultra
   const [bakeTexture,     setBakeTexture]     = useState(true);  // bake SVG color onto mesh
+  // ── Crop Marks + Live Paint ───────────────────────────────────────────────
+  const [showCropMarks,   setShowCropMarks]   = useState(false);
+  const [bleedSize,       setBleedSize]       = useState(9);   // px bleed
+  const [livePaintMode,   setLivePaintMode]   = useState(false);
+  const [livePaintColor,  setLivePaintColor]  = useState('#ff6600');
+  const [livePaintRegions,setLivePaintRegions]= useState([]);
   const [extrudePreview,  setExtrudePreview]  = useState(null); // base64 PNG preview
   const extrudeCanvasRef  = useRef(null);
   const extrudeSceneRef   = useRef(null);
@@ -487,6 +493,129 @@ export default function SPXVectorPage() {
   }, [artboards, project.width, project.height]);
 
   // ─── Align & Distribute ──────────────────────────────────────────────────
+  // ── Live Paint Bucket — flood fill enclosed SVG regions ─────────────────
+  const livePaintFill = useCallback((e) => {
+    if (!livePaintMode) return;
+    const pt = getSVGPoint(e);
+    const x = Math.round(pt.x), y = Math.round(pt.y);
+    const W = project.width, H = project.height;
+
+    // Rasterize current SVG to offscreen canvas and flood fill
+    const svgEl = svgRef.current;
+    if (!svgEl) return;
+    const svgStr = new XMLSerializer().serializeToString(svgEl);
+    const blob = new Blob([svgStr], {type:'image/svg+xml'});
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const cv = document.createElement('canvas');
+      cv.width = W; cv.height = H;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, W, H);
+      ctx.drawImage(img, 0, 0, W, H);
+      URL.revokeObjectURL(url);
+
+      const imageData = ctx.getImageData(0, 0, W, H);
+      const data = imageData.data;
+
+      // Get target color at click point
+      const idx = (y * W + x) * 4;
+      const tr = data[idx], tg = data[idx+1], tb = data[idx+2];
+
+      // Parse fill color
+      const fc = document.createElement('canvas'); fc.width=fc.height=1;
+      const fctx = fc.getContext('2d'); fctx.fillStyle=livePaintColor; fctx.fillRect(0,0,1,1);
+      const fd = fctx.getImageData(0,0,1,1).data;
+      const fr=fd[0], fg=fd[1], fb=fd[2];
+
+      if (tr===fr && tg===fg && tb===fb) return; // same color, skip
+
+      // BFS flood fill
+      const tolerance = 32;
+      const colorMatch = (i) => {
+        const r=data[i],g=data[i+1],b=data[i+2];
+        return Math.abs(r-tr)+Math.abs(g-tg)+Math.abs(b-tb) < tolerance*3;
+      };
+      const visited = new Uint8Array(W*H);
+      const queue = [y*W+x];
+      visited[y*W+x] = 1;
+      const filled = [];
+      while (queue.length) {
+        const pos = queue.shift();
+        filled.push(pos);
+        const px=pos%W, py=Math.floor(pos/W);
+        for (const [nx,ny] of [[px-1,py],[px+1,py],[px,py-1],[px,py+1]]) {
+          if (nx<0||nx>=W||ny<0||ny>=H) continue;
+          const ni = ny*W+nx;
+          if (visited[ni]) continue;
+          visited[ni]=1;
+          if (colorMatch(ni*4)) queue.push(ni);
+        }
+      }
+
+      // Apply fill color to filled pixels
+      for (const pos of filled) {
+        const i=pos*4;
+        data[i]=fr; data[i+1]=fg; data[i+2]=fb; data[i+3]=255;
+      }
+      ctx.putImageData(imageData, 0, 0);
+
+      // Add as image layer
+      snapshot();
+      const dataUrl = cv.toDataURL('image/png');
+      addLayer('image', {
+        name: 'Live Paint',
+        src: dataUrl,
+        x: 0, y: 0,
+        width: W, height: H,
+        opacity: 1,
+      });
+      setStatus(`Live Paint: filled ${filled.length} pixels`);
+      setLivePaintRegions(prev=>[...prev,{x,y,color:livePaintColor}]);
+    };
+    img.src = url;
+  }, [livePaintMode, livePaintColor, getSVGPoint, project, svgRef, snapshot, addLayer]);
+
+  // ── Crop Marks generator ──────────────────────────────────────────────────
+  const renderCropMarks = useCallback((ab) => {
+    if (!showCropMarks) return null;
+    const b = bleedSize;
+    const x=ab.x, y=ab.y, w=ab.width, h=ab.height;
+    const markLen = 18, gap = 4;
+    const marks = [
+      // corners: TL, TR, BL, BR — each corner gets 2 lines (H + V)
+      // TL
+      `M${x-b-markLen},${y-b} H${x-b-gap}`,
+      `M${x-b},${y-b-markLen} V${y-b-gap}`,
+      // TR
+      `M${x+w+b+gap},${y-b} H${x+w+b+markLen}`,
+      `M${x+w+b},${y-b-markLen} V${y-b-gap}`,
+      // BL
+      `M${x-b-markLen},${y+h+b} H${x-b-gap}`,
+      `M${x-b},${y+h+b+gap} V${y+h+b+markLen}`,
+      // BR
+      `M${x+w+b+gap},${y+h+b} H${x+w+b+markLen}`,
+      `M${x+w+b},${y+h+b+gap} V${y+h+b+markLen}`,
+    ];
+    return (
+      <g key={`cropmarks_${ab.id}`} pointerEvents="none">
+        {/* Bleed rect */}
+        <rect x={x-b} y={y-b} width={w+b*2} height={h+b*2}
+          fill="none" stroke="#ff000033" strokeWidth={0.5} strokeDasharray="4,4"/>
+        {/* Crop mark lines */}
+        {marks.map((d,i)=>(
+          <path key={i} d={d} stroke="#000" strokeWidth={0.75} fill="none"/>
+        ))}
+        {/* Center marks */}
+        <path d={`M${x+w/2-markLen},${y-b-markLen/2} H${x+w/2+markLen}`} stroke="#000" strokeWidth={0.5} fill="none"/>
+        <path d={`M${x+w/2-markLen},${y+h+b+markLen/2} H${x+w/2+markLen}`} stroke="#000" strokeWidth={0.5} fill="none"/>
+        <path d={`M${x-b-markLen/2},${y+h/2-markLen} V${y+h/2+markLen}`} stroke="#000" strokeWidth={0.5} fill="none"/>
+        <path d={`M${x+w+b+markLen/2},${y+h/2-markLen} V${y+h/2+markLen}`} stroke="#000" strokeWidth={0.5} fill="none"/>
+      </g>
+    );
+  }, [showCropMarks, bleedSize]);
+
   const alignLayersV2 = useCallback((alignment) => {
     if(selectedIds.length < 2) return;
     snapshot();
@@ -1541,6 +1670,27 @@ export default function SPXVectorPage() {
         <button style={S.btn(showPatterns)} onClick={()=>setShowPatterns(v=>!v)} title="Pattern fills">⊞ Patterns</button>
         <button style={S.btn()} onClick={addArtboard} title="Add artboard">＋ Board</button>
         <div style={{width:1,height:20,background:'#444',margin:'0 4px'}}/>
+        <button style={{...S.btn(livePaintMode),background:livePaintMode?'#00ffc8':'',color:livePaintMode?'#06060f':''}}
+          onClick={()=>setLivePaintMode(v=>!v)} title="Live Paint Bucket — click enclosed regions to fill">
+          🪣 {livePaintMode?'Live Paint ON':'Live Paint'}
+        </button>
+        {livePaintMode&&(
+          <input type="color" value={livePaintColor} onChange={e=>setLivePaintColor(e.target.value)}
+            style={{width:28,height:24,border:'none',borderRadius:3,cursor:'pointer'}} title="Paint color"/>
+        )}
+        <button style={S.btn(showCropMarks)} onClick={()=>setShowCropMarks(v=>!v)} title="Toggle crop marks">
+          ✂ Marks
+        </button>
+        {showCropMarks&&(
+          <div style={{display:'flex',alignItems:'center',gap:4}}>
+            <span style={{color:'#888',fontSize:10}}>Bleed</span>
+            <input type="number" min={0} max={50} value={bleedSize}
+              onChange={e=>setBleedSize(Number(e.target.value))}
+              style={{width:36,background:'#1a1a1a',border:'1px solid #333',color:'#dde6ef',borderRadius:3,padding:'1px 4px',fontSize:10}}/>
+            <span style={{color:'#888',fontSize:10}}>px</span>
+          </div>
+        )}
+        <div style={{width:1,height:20,background:'#444',margin:'0 4px'}}/>
         <button style={S.btn()} onClick={()=>exportFullSVG(project,project.name)}>💾 SVG</button>
         <button style={S.btn()} onClick={()=>{ const s=JSON.stringify(project); const b=new Blob([s],{type:'application/json'}); const u=URL.createObjectURL(b); const a=document.createElement('a');a.href=u;a.download=project.name+'.spxv';a.click(); }}>💾 .spxv</button>
         <span style={{color:'#888',fontSize:10}}>Zoom:</span>
@@ -1682,6 +1832,7 @@ export default function SPXVectorPage() {
             viewBox={`0 0 ${project.width} ${project.height}`}
             style={{display:'block',background:project.background,cursor:activeTool==='pen'?'crosshair':activeTool==='zoom'?'zoom-in':'default'}}
             onMouseDown={onSVGMouseDown}
+              onClick={livePaintFill}
             onMouseMove={onSVGMouseMove}
             onMouseUp={onSVGMouseUp}
           >
@@ -1698,6 +1849,7 @@ export default function SPXVectorPage() {
               <g key={ab.id}>
                 <rect x={ab.x} y={ab.y} width={ab.width} height={ab.height}
                   fill="none" stroke={activeArtboard===ab.id?'#ff6600':'#444'} strokeWidth={1} pointerEvents="none"/>
+                {renderCropMarks(ab)}
                 <text x={ab.x} y={ab.y-4} fontSize={11} fill={activeArtboard===ab.id?'#ff6600':'#666'}
                   fontFamily="monospace" pointerEvents="none">{ab.name}</text>
               </g>
