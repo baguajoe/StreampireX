@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import ReactDOM from "react-dom";
 import VideoEditorComponent from "../component/VideoEditorComponent";
-import '../styles/VideoEditor.css';
-import '../styles/VideoEditorComponent.css';
+import '../../styles/VideoEditor.css';
+import '../../styles/VideoEditorComponent.css';
 
 const VideoEditor = () => {
   const portalRef = useRef(null);
