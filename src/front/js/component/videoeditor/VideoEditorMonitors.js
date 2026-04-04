@@ -372,12 +372,17 @@ export default function VideoEditorMonitors({
       <div className="spx-monitors">
         {/* Source Monitor */}
         <div className="spx-monitor">
-          <div className="spx-monitor-header">
-            <span className="spx-monitor-label">Source Monitor</span>
-            {sourceMedia && (
-              <button className="spx-tbtn active" style={{ fontSize:10, padding:'2px 8px' }}
-                onClick={() => setShowSourceMon(true)}>Open</button>
-            )}
+          <div className="spx-monitor-header" style={{padding:0,flexDirection:'column',alignItems:'stretch'}}>
+            <div style={{display:'flex',alignItems:'center',gap:0,borderBottom:'1px solid #21262d',background:'#0a0a14'}}>
+              <span style={{padding:'4px 12px',fontSize:10,fontWeight:700,color:'#00ffc8',borderBottom:'2px solid #00ffc8',textTransform:'uppercase',letterSpacing:1}}>Source</span>
+              <span style={{padding:'4px 12px',fontSize:10,fontWeight:700,color:'#4e6a82',textTransform:'uppercase',letterSpacing:1,cursor:'pointer'}}>Effect Controls</span>
+              <span style={{padding:'4px 12px',fontSize:10,fontWeight:700,color:'#4e6a82',textTransform:'uppercase',letterSpacing:1,cursor:'pointer'}}>Audio Clip Mixer</span>
+              <div style={{flex:1}}/>
+              {sourceMedia && (
+                <button className="spx-tbtn active" style={{fontSize:10,padding:'2px 8px',margin:'2px 6px'}}
+                  onClick={() => setShowSourceMon(true)}>Open</button>
+              )}
+            </div>
           </div>
           <div className="spx-monitor-screen">
             {sourceMedia ? (
@@ -425,8 +430,12 @@ export default function VideoEditorMonitors({
 
         {/* Program Monitor */}
         <div className="spx-monitor">
-          <div className="spx-monitor-header">
-            <span className="spx-monitor-label" style={{ color:'#e6edf3' }}>Program Monitor</span>
+          <div className="spx-monitor-header" style={{padding:0,flexDirection:'column',alignItems:'stretch'}}>
+            <div style={{display:'flex',alignItems:'center',gap:0,borderBottom:'1px solid #21262d',background:'#0a0a14'}}>
+              <span style={{padding:'4px 12px',fontSize:10,fontWeight:700,color:'#00ffc8',borderBottom:'2px solid #00ffc8',textTransform:'uppercase',letterSpacing:1}}>Program</span>
+              <span style={{padding:'4px 12px',fontSize:10,fontWeight:700,color:'#4e6a82',textTransform:'uppercase',letterSpacing:1,cursor:'pointer'}}>Lumetri Scopes</span>
+              <span style={{padding:'4px 12px',fontSize:10,fontWeight:700,color:'#4e6a82',textTransform:'uppercase',letterSpacing:1,cursor:'pointer'}}>Metadata</span>
+              <div style={{flex:1}}/>
             <div style={{ display:'flex', alignItems:'center', gap:6 }}>
               <button className={`spx-tbtn ${programMuted ? 'danger' : 'active'}`}
                 style={{ fontSize:10, padding:'2px 8px' }}
