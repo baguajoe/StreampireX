@@ -347,7 +347,13 @@ export default function VideoEditorTimeline({
                     return (
                       <div key={clip.id}
                         className={`spx-clip${isSelected ? ' selected' : ''}${track.locked ? ' locked' : ''}`}
-                        style={{ left, width, backgroundColor: track.color, filter: cssFilter }}
+                        style={{
+                          left, width,
+                          background: clip.thumbnail
+                            ? `linear-gradient(rgba(0,0,0,0.35),rgba(0,0,0,0.55)), url(${clip.thumbnail}) center/cover no-repeat`
+                            : track.color,
+                          filter: cssFilter
+                        }}
                         onMouseDown={(e) => handleClipMouseDown(e, clip, track.id)}
                         onClick={(e) => { e.stopPropagation(); setSelectedClip(clip); setSelectedTransition(null); }}
                         onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.outline = '2px solid #00ffc8'; }}
@@ -357,7 +363,10 @@ export default function VideoEditorTimeline({
                           e.currentTarget.style.outline = 'none';
                           if (draggedEffect) { applyEffectToClip(clip.id, draggedEffect.id, 50); }
                         }}>
-                        <div className="spx-clip-label">{clip.title}</div>
+                        {clip.thumbnail && (
+                          <img src={clip.thumbnail} alt="" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:0.35,pointerEvents:'none',borderRadius:4}} />
+                        )}
+                        <div className="spx-clip-label" style={{position:'relative',zIndex:1}}>{clip.title}</div>
                         {clip.effects && clip.effects.length > 0 && (
                           <div className="spx-clip-fx-badge">
                             <Sparkles size={8} />{clip.effects.length}
