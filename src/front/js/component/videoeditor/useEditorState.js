@@ -6,45 +6,7 @@ const authHeaders = () => {
   return t ? { 'Authorization': `Bearer ${t}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
 };
 
-// ── Copy / Paste ────────────────────────────────────────
-  const clipboardRef = { current: null };
-  const copyClip = useCallback(() => {
-    if (selectedClip) clipboardRef.current = { ...selectedClip };
-  }, [selectedClip]);
 
-  const pasteClip = useCallback(() => {
-    const cb = clipboardRef.current;
-    if (!cb || !tracks.length) return;
-    const newClip = {
-      ...cb,
-      id: Date.now(),
-      startTime: cb.startTime + cb.duration + 0.1,
-    };
-    addClipToTrack(tracks[0].id, newClip);
-  }, [tracks, addClipToTrack]);
-
-  // ── Reverse clip ─────────────────────────────────────────
-  const reverseClip = useCallback(() => {
-    if (!selectedClip) return;
-    updateClip(selectedClip.id, { reversed: !selectedClip.reversed });
-  }, [selectedClip, updateClip]);
-
-  // ── Speed dialog ─────────────────────────────────────────
-  const [showSpeedDialog, setShowSpeedDialog] = useState(false);
-  const openSpeedDialog = useCallback(() => {
-    if (selectedClip) setShowSpeedDialog(true);
-  }, [selectedClip]);
-
-  // ── Load project ─────────────────────────────────────────
-  const loadProject = useCallback((projectData) => {
-    if (!projectData) return;
-    if (projectData.tracks) setTracks(projectData.tracks);
-    if (projectData.projectTitle) setProjectTitle(projectData.projectTitle);
-    if (projectData.markers) setMarkers(projectData.markers || []);
-  }, [setTracks, setProjectTitle]);
-
-  return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` };
-};
 
 const INITIAL_TRACKS = [
   { id: 1, name: 'Video 1',   type: 'video', visible: true, muted: false, locked: false, color: '#4a9eff', zIndex: 3, clips: [], transitions: [] },
