@@ -6474,12 +6474,14 @@ TIMELINE
                 ======================================== */}
             {showMediaBin && (
               <div className="media-bin-panel" style={{
-                background: '#1e1e1e',
-                borderTop: '1px solid #3f3f46',
-                minHeight: '180px',
-                maxHeight: '280px',
+                background: '#0d1117',
+                borderTop: '1px solid #21262d',
+                minHeight: '160px',
+                maxHeight: '160px',
+                height: '160px',
                 display: 'flex',
-                flexDirection: 'column'
+                flexDirection: 'column',
+                flexShrink: 0
               }}>
                 {/* Media Bin Header */}
                 <div style={{

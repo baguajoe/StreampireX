@@ -496,3 +496,15 @@
 .video-editor-pro .timeline-tracks-content {
   min-height: 100% !important;
 }
+
+/* ── MEDIA BIN COMPACT ── */
+.video-editor-pro .media-bin-panel {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 160px !important;
+  min-height: 160px !important;
+  max-height: 160px !important;
+  flex-shrink: 0 !important;
+  overflow: hidden !important;
+  border-top: 1px solid #21262d !important;
+}
