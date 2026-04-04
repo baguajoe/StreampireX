@@ -44,7 +44,7 @@
 
 /* ── LEFT PANEL ── */
 .video-editor-pro .editor-left-panel{display:none!important}
-.video-editor-pro .spx-left{width:220px;min-width:180px;background:#0d1117;border-right:1px solid #21262d;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.video-editor-pro .spx-left{width:240px;min-width:240px;background:#0d1117;border-right:1px solid #21262d;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
 .video-editor-pro .spx-left-tabs{display:flex;border-bottom:1px solid #21262d;flex-shrink:0}
 .video-editor-pro .spx-left-tab{flex:1;padding:7px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#4e6a82;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;transition:all .15s}
 .video-editor-pro .spx-left-tab:hover{color:#8b949e}
