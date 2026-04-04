@@ -335,3 +335,24 @@
 .video-editor-pro .spx-track-row:nth-child(even) {
   background: #0d1117 !important;
 }
+
+/* ── PREMIERE PRO MONITOR PROPORTIONS ── */
+.video-editor-pro .spx-monitors,
+.video-editor-pro .preview-area-container {
+  height: 32vh !important;
+  min-height: 220px !important;
+  max-height: 380px !important;
+  flex-shrink: 0 !important;
+}
+.video-editor-pro .spx-monitor-screen,
+.video-editor-pro .preview-screen {
+  flex: 1 !important;
+  min-height: 0 !important;
+  background: #000 !important;
+}
+.video-editor-pro .editor-timeline-section,
+.video-editor-pro .spx-timeline-area {
+  flex: 1 !important;
+  min-height: 180px !important;
+  overflow: hidden !important;
+}
