@@ -400,3 +400,99 @@
 .video-editor-pro .spx-right-content {
   padding: 6px !important;
 }
+
+/* ── TIMELINE MORE HEIGHT ── */
+.video-editor-pro .spx-monitors,
+.video-editor-pro .preview-area-container {
+  height: 50vh !important;
+  min-height: 320px !important;
+  max-height: 520px !important;
+}
+.video-editor-pro .editor-timeline-section,
+.video-editor-pro .spx-timeline-area {
+  flex: 1 !important;
+  min-height: 260px !important;
+  max-height: none !important;
+}
+
+/* ── FILL EMPTY SPACE BELOW TIMELINE ── */
+.video-editor-pro .editor-center-panel {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  overflow: hidden !important;
+  min-height: 0 !important;
+}
+.video-editor-pro .editor-timeline-section,
+.video-editor-pro .spx-timeline-area {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+.video-editor-pro .timeline-main-container {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+.video-editor-pro .timeline-tracks-container {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+.video-editor-pro .timeline-tracks-scroll {
+  flex: 1 !important;
+  overflow: auto !important;
+  min-height: 0 !important;
+  min-width: 0 !important;
+}
+/* Ruler stretches full width */
+.video-editor-pro .timeline-ruler,
+.video-editor-pro .spx-ruler {
+  min-width: 100% !important;
+}
+
+/* ── FILL TO BOTTOM OF SCREEN ── */
+.video-editor-pro {
+  height: 100vh !important;
+  max-height: 100vh !important;
+}
+.video-editor-pro .editor-main-layout {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  height: calc(100vh - 68px) !important;
+}
+.video-editor-pro .spx-left,
+.video-editor-pro .editor-left-panel-new {
+  height: 100% !important;
+  overflow-y: auto !important;
+}
+.video-editor-pro .editor-center-panel {
+  height: 100% !important;
+}
+/* Media bin compact - don't eat timeline space */
+.video-editor-pro .media-bin-panel {
+  max-height: 140px !important;
+  min-height: 0 !important;
+  flex-shrink: 0 !important;
+}
+/* Timeline fills everything remaining */
+.video-editor-pro .editor-timeline-section {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+.video-editor-pro .timeline-tracks-scroll {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: auto !important;
+}
+.video-editor-pro .timeline-tracks-content {
+  min-height: 100% !important;
+}

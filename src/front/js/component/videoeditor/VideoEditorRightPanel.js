@@ -310,15 +310,7 @@ export default function VideoEditorRightPanel({
   const [tab, setTab] = useState('effects');
 
   if (!selectedClip && !selectedTransition) {
-    return (
-      <div className="spx-right">
-        <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-          height:'100%',color:'#4e6a82',textAlign:'center',padding:20,gap:10}}>
-          <Layers size={32} style={{opacity:.3}} />
-          <p style={{fontSize:11}}>Select a clip or transition<br />to edit its properties</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   // Transition properties
