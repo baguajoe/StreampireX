@@ -95,9 +95,9 @@ export function VideoEditorColorPanel({ selectedClip, applyEffectToClip, onClose
   const applyLUT = (lut) => {
     if (!selectedClip) return;
     setSat(lut.sat); setCon(lut.con); setTemp(lut.temp); setTint(lut.tint); setActiveLUT(lut.name);
-    applyEffectToClip(selectedClip.id,'saturation',Math.round(lut.sat/2));
-    applyEffectToClip(selectedClip.id,'contrast',Math.round(lut.con/2));
-    applyEffectToClip(selectedClip.id,'hue',Math.round(lut.temp+50));
+    selectedClip&&applyEffectToClip(selectedClip.id,'saturation',Math.round(lut.sat/2));
+    selectedClip&&applyEffectToClip(selectedClip.id,'contrast',Math.round(lut.con/2));
+    selectedClip&&applyEffectToClip(selectedClip.id,'hue',Math.round(lut.temp+50));
   };
 
   const panelStyle = { position:'fixed', right:0, top:72, width:320, height:'calc(100vh - 72px)', background:'#0e0e1e', borderLeft:'1px solid rgba(255,255,255,0.1)', zIndex:200, display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'-16px 0 48px rgba(0,0,0,0.7)' };
@@ -235,27 +235,27 @@ export default function VideoEditorRightPanel({
         {tab==='effects' && (
           <>
             <div style={{fontSize:10,fontWeight:700,color:T.dim2,textTransform:'uppercase',letterSpacing:.5,marginBottom:8,fontFamily:T.font}}>Effects Stack{selectedClip?' — '+selectedClip.title:''}</div>
-            {(!selectedClip.effects||selectedClip.effects.length===0) ? (
+            {(!selectedClip?.effects||selectedClip?.effects?.length===0) ? (
               <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,padding:'24px 12px',color:T.dim2,textAlign:'center'}}>
                 <Wand2 size={24} style={{opacity:.4}}/>
                 <p style={{fontSize:11,fontFamily:T.font}}>No effects applied.<br/>Drag from left panel or select a clip then click an effect.</p>
               </div>
             ) : (
-              (selectedClip.effects||[]).map((fx,i)=>(
+              (selectedClip?.effects||[]).map((fx,i)=>(
                 <div key={i} style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:8,marginBottom:6,overflow:'hidden'}}>
                   <div style={{display:'flex',alignItems:'center',gap:6,padding:'7px 10px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-                    <button onClick={()=>toggleEffect&&toggleEffect(selectedClip.id,fx.id)} style={{background:'transparent',border:'none',color:fx.enabled!==false?T.teal:T.dim2,display:'flex',alignItems:'center',cursor:'pointer'}}>
+                    <button onClick={()=>selectedClip&&toggleEffect&&toggleEffect(selectedClip.id,fx.id)} style={{background:'transparent',border:'none',color:fx.enabled!==false?T.teal:T.dim2,display:'flex',alignItems:'center',cursor:'pointer'}}>
                       {fx.enabled!==false?<Eye size={12}/>:<EyeOff size={12}/>}
                     </button>
                     <span style={{flex:1,fontSize:11,fontWeight:600,color:T.text,fontFamily:T.font}}>{fx.id}</span>
                     <span style={{fontSize:10,color:T.teal,minWidth:32,textAlign:'right',fontFamily:'monospace'}}>{fx.value||50}</span>
-                    <button onClick={()=>removeEffectFromClip&&removeEffectFromClip(selectedClip.id,fx.id)} style={{background:'transparent',border:'none',color:T.dim2,display:'flex',alignItems:'center',cursor:'pointer'}}>
+                    <button onClick={()=>selectedClip&&removeEffectFromClip&&removeEffectFromClip(selectedClip.id,fx.id)} style={{background:'transparent',border:'none',color:T.dim2,display:'flex',alignItems:'center',cursor:'pointer'}}>
                       <Trash2 size={11}/>
                     </button>
                   </div>
                   <div style={{padding:'6px 10px 8px'}}>
                     {label('Value', fx.value||50)}
-                    {slider(fx.value||50, v=>updateEffectValue&&updateEffectValue(selectedClip.id,fx.id,v))}
+                    {slider(fx.value||50, v=>selectedClip&&updateEffectValue&&updateEffectValue(selectedClip.id,fx.id,v))}
                   </div>
                 </div>
               ))
@@ -264,7 +264,7 @@ export default function VideoEditorRightPanel({
             <div style={{fontSize:10,fontWeight:700,color:T.dim2,textTransform:'uppercase',letterSpacing:.5,margin:'12px 0 6px',fontFamily:T.font}}>Quick Apply</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
               {[['fadeIn','Fade In'],['fadeOut','Fade Out'],['brightness','Brightness'],['contrast','Contrast'],['saturation','Saturation'],['blur','Blur']].map(([id,name])=>(
-                <button key={id} onClick={()=>applyEffectToClip&&applyEffectToClip(selectedClip.id,id,50)}
+                <button key={id} onClick={()=>applyEffectToClip&&selectedClip&&applyEffectToClip(selectedClip.id,id,50)}
                   style={{display:'flex',alignItems:'center',gap:4,padding:'5px 8px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:5,color:T.dim,fontSize:10,cursor:'pointer',fontFamily:T.font,transition:'all .12s'}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(0,255,200,0.25)';e.currentTarget.style.color=T.teal;}}
                   onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.07)';e.currentTarget.style.color=T.dim;}}>
@@ -286,7 +286,7 @@ export default function VideoEditorRightPanel({
                 {['x','y'].map(axis=>(
                   <div key={axis} style={{flex:1,display:'flex',alignItems:'center',gap:4}}>
                     <span style={{fontSize:10,color:T.dim2,minWidth:12,fontFamily:T.font}}>{axis.toUpperCase()}</span>
-                    <input type="number" value={comp.position?.[axis]||0} onChange={e=>updateCompositing&&updateCompositing(selectedClip.id,{position:{...comp.position,[axis]:Number(e.target.value)}})}
+                    <input type="number" value={comp.position?.[axis]||0} onChange={e=>updateCompositing&&updateCompositing(selectedClip?.id,{position:{...comp.position,[axis]:Number(e.target.value)}})}
                       style={{flex:1,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:5,color:T.text,fontSize:10,padding:'4px 7px',fontFamily:T.font,width:'100%'}}/>
                   </div>
                 ))}
@@ -299,7 +299,7 @@ export default function VideoEditorRightPanel({
                 {['x','y'].map(axis=>(
                   <div key={axis} style={{flex:1,display:'flex',alignItems:'center',gap:4}}>
                     <span style={{fontSize:10,color:T.dim2,minWidth:12,fontFamily:T.font}}>{axis.toUpperCase()}</span>
-                    <input type="number" value={comp.scale?.[axis]||100} onChange={e=>updateCompositing&&updateCompositing(selectedClip.id,{scale:{...comp.scale,[axis]:Number(e.target.value)}})}
+                    <input type="number" value={comp.scale?.[axis]||100} onChange={e=>updateCompositing&&updateCompositing(selectedClip?.id,{scale:{...comp.scale,[axis]:Number(e.target.value)}})}
                       style={{flex:1,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:5,color:T.text,fontSize:10,padding:'4px 7px',fontFamily:T.font,width:'100%'}}/>
                   </div>
                 ))}
@@ -308,12 +308,12 @@ export default function VideoEditorRightPanel({
             {/* Rotation */}
             <div style={{marginBottom:12}}>
               {label('Rotation', `${comp.rotation||0}°`)}
-              {slider(comp.rotation||0, v=>updateCompositing&&updateCompositing(selectedClip.id,{rotation:v}), -180, 180)}
+              {slider(comp.rotation||0, v=>updateCompositing&&updateCompositing(selectedClip?.id,{rotation:v}), -180, 180)}
             </div>
             {/* Opacity */}
             <div style={{marginBottom:12}}>
               {label('Opacity', `${comp.opacity||100}%`)}
-              {slider(comp.opacity||100, v=>updateCompositing&&updateCompositing(selectedClip.id,{opacity:v}))}
+              {slider(comp.opacity||100, v=>updateCompositing&&updateCompositing(selectedClip?.id,{opacity:v}))}
             </div>
             {/* Presets */}
             <div style={{fontSize:10,fontWeight:700,color:T.dim2,textTransform:'uppercase',letterSpacing:.5,marginBottom:6,fontFamily:T.font}}>Presets</div>
@@ -337,7 +337,7 @@ export default function VideoEditorRightPanel({
             {/* Blend mode */}
             <div style={{marginBottom:12}}>
               <div style={{fontSize:10,color:T.dim,marginBottom:5,fontFamily:T.font}}>Blend Mode</div>
-              <select value={comp.blendMode||'normal'} onChange={e=>updateCompositing&&updateCompositing(selectedClip.id,{blendMode:e.target.value})}
+              <select value={comp.blendMode||'normal'} onChange={e=>updateCompositing&&updateCompositing(selectedClip?.id,{blendMode:e.target.value})}
                 style={{width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:6,color:T.text,fontSize:10,padding:'6px 8px',fontFamily:T.font}}>
                 {BLEND_MODES.map(m=><option key={m} value={m}>{m.charAt(0).toUpperCase()+m.slice(1)}</option>)}
               </select>
@@ -345,7 +345,7 @@ export default function VideoEditorRightPanel({
             {/* Opacity */}
             <div style={{marginBottom:12}}>
               {label('Opacity', `${comp.opacity||100}%`)}
-              {slider(comp.opacity||100, v=>updateCompositing&&updateCompositing(selectedClip.id,{opacity:v}))}
+              {slider(comp.opacity||100, v=>updateCompositing&&updateCompositing(selectedClip?.id,{opacity:v}))}
             </div>
           </>
         )}
