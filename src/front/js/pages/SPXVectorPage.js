@@ -212,6 +212,8 @@ export default function SPXVectorPage() {
   const [extrudeBevel,    setExtrudeBevel]    = useState(0.02);
   const [extrudeMaterial, setExtrudeMaterial] = useState('teal_metal');
   const [extrudeLoading,  setExtrudeLoading]  = useState(false);
+  const [meshQuality,     setMeshQuality]     = useState('mid'); // low|mid|high|ultra
+  const [bakeTexture,     setBakeTexture]     = useState(true);  // bake SVG color onto mesh
   const [extrudePreview,  setExtrudePreview]  = useState(null); // base64 PNG preview
   const extrudeCanvasRef  = useRef(null);
   const extrudeSceneRef   = useRef(null);
@@ -1164,13 +1166,15 @@ export default function SPXVectorPage() {
       shapes.push(star);
     }
 
+    const qualityMap = { low:8, mid:24, high:48, ultra:96 };
+    const curveSegs = qualityMap[meshQuality] || 32;
     const extrudeSettings = {
       depth: extrudeDepth,
       bevelEnabled: extrudeBevel > 0,
       bevelThickness: extrudeBevel,
       bevelSize: extrudeBevel * 0.8,
-      bevelSegments: 4,
-      curveSegments: 16,
+      bevelSegments: Math.max(2, Math.round(curveSegs/8)),
+      curveSegments: curveSegs,
     };
 
     const group = new THREE.Group();
@@ -1292,56 +1296,110 @@ export default function SPXVectorPage() {
 
   const applyDepthMapToMesh = async (depthUrl) => {
     const scene = extrudeSceneRef.current; if (!scene) return;
-    // Remove old mesh
     if (extrudeMeshRef.current) { scene.remove(extrudeMeshRef.current); extrudeMeshRef.current = null; }
 
-    // Load depth map image
+    // ── Load depth map ──────────────────────────────────────────────────────
     const img = await new Promise((resolve, reject) => {
       const i = new Image(); i.crossOrigin = 'anonymous';
-      i.onload = () => resolve(i);
-      i.onerror = reject;
-      i.src = depthUrl;
+      i.onload = () => resolve(i); i.onerror = reject; i.src = depthUrl;
     });
 
-    // Read depth pixels
+    // ── High-res depth sampling (quality-aware) ─────────────────────────────
+    const qualResMap = { low:[256,144], mid:[512,288], high:[768,432], ultra:[1024,576] };
+    const [dw, dh] = qualResMap[meshQuality] || [512,288];
     const offscreen = document.createElement('canvas');
-    const dw = Math.min(img.width, 256); // downsample for performance
-    const dh = Math.min(img.height, 144);
     offscreen.width = dw; offscreen.height = dh;
     const ctx = offscreen.getContext('2d');
     ctx.drawImage(img, 0, 0, dw, dh);
-    const pixels = ctx.getImageData(0, 0, dw, dh).data;
+    const rawPixels = ctx.getImageData(0, 0, dw, dh).data;
 
-    // Build displaced PlaneGeometry
-    const geo = new THREE.PlaneGeometry(3, 3 * (dh/dw), dw-1, dh-1);
+    // ── Gaussian depth smoothing (removes blocky artifacts) ─────────────────
+    const smoothDepth = (pixels, w, h, radius) => {
+      const depth = new Float32Array(w * h);
+      for (let i=0; i<w*h; i++) depth[i] = pixels[i*4] / 255;
+      const out = new Float32Array(w * h);
+      const r = Math.max(1, radius);
+      // horizontal pass
+      for (let y=0; y<h; y++) for (let x=0; x<w; x++) {
+        let sum=0, cnt=0;
+        for (let dx=-r; dx<=r; dx++) {
+          const nx = x+dx;
+          if (nx>=0 && nx<w) { sum+=depth[y*w+nx]; cnt++; }
+        }
+        out[y*w+x] = sum/cnt;
+      }
+      // vertical pass
+      const final = new Float32Array(w * h);
+      for (let y=0; y<h; y++) for (let x=0; x<w; x++) {
+        let sum=0, cnt=0;
+        for (let dy=-r; dy<=r; dy++) {
+          const ny = y+dy;
+          if (ny>=0 && ny<h) { sum+=out[ny*w+x]; cnt++; }
+        }
+        final[y*w+x] = sum/cnt;
+      }
+      return final;
+    };
+    const smoothRadius = depthSmoothing || 2;
+    const smoothed = smoothDepth(rawPixels, dw, dh, smoothRadius);
+
+    // ── Build high-res displaced PlaneGeometry ──────────────────────────────
+    const aspect = dh / dw;
+    const geo = new THREE.PlaneGeometry(3, 3 * aspect, dw-1, dh-1);
     const pos = geo.attributes.position.array;
     for (let i=0; i<dh; i++) {
       for (let j=0; j<dw; j++) {
-        const pxIdx = (i*dw+j)*4;
-        const brightness = pixels[pxIdx]/255; // R channel = depth
+        const brightness = smoothed[i*dw+j];
         const vertIdx = (i*dw+j)*3;
-        pos[vertIdx+2] = brightness * depthStrength * 0.8; // displace Z
+        pos[vertIdx+2] = brightness * (depthStrength||1.0) * 1.2;
       }
     }
     geo.attributes.position.needsUpdate = true;
     geo.computeVertexNormals();
 
+    // ── Material — bake SVG color as texture if enabled ─────────────────────
     const matDef = EXTRUDE_MATERIALS.find(m=>m.id===extrudeMaterial)||EXTRUDE_MATERIALS[0];
     const mat = new THREE.MeshStandardMaterial({
-      color: matDef.color, roughness: matDef.roughness, metalness: matDef.metalness,
+      roughness: matDef.roughness, metalness: matDef.metalness,
       side: THREE.DoubleSide,
     });
 
-    // Optionally load the depth map as a texture too
-    const loader = new THREE.TextureLoader();
-    loader.crossOrigin = 'anonymous';
-    const tex = await new Promise(r => loader.load(depthUrl, r, undefined, ()=>r(null)));
-    if (tex) mat.map = tex;
+    if (bakeTexture) {
+      // Rasterize SVG and bake color onto mesh as texture
+      try {
+        const svgEl = svgRef.current;
+        if (svgEl) {
+          const svgStr = new XMLSerializer().serializeToString(svgEl);
+          const svgBlob = new Blob([svgStr], {type:'image/svg+xml'});
+          const svgUrl = URL.createObjectURL(svgBlob);
+          const colorImg = new Image();
+          colorImg.crossOrigin = 'anonymous';
+          await new Promise((res, rej) => { colorImg.onload=res; colorImg.onerror=rej; colorImg.src=svgUrl; });
+          const colorCanvas = document.createElement('canvas');
+          colorCanvas.width = 1024; colorCanvas.height = Math.round(1024 * aspect);
+          const cctx = colorCanvas.getContext('2d');
+          cctx.fillStyle = '#ffffff';
+          cctx.fillRect(0, 0, colorCanvas.width, colorCanvas.height);
+          cctx.drawImage(colorImg, 0, 0, colorCanvas.width, colorCanvas.height);
+          URL.revokeObjectURL(svgUrl);
+          const colorTex = new THREE.CanvasTexture(colorCanvas);
+          colorTex.needsUpdate = true;
+          mat.map = colorTex;
+        }
+      } catch(e) {
+        console.warn('Color bake failed, using material color:', e);
+        mat.color.set(matDef.color);
+      }
+    } else {
+      mat.color.set(matDef.color);
+    }
 
     const mesh = new THREE.Mesh(geo, mat);
     mesh.castShadow = true;
+    mesh.receiveShadow = true;
     scene.add(mesh);
     extrudeMeshRef.current = mesh;
+    setStatus('AI Depth applied — ' + dw + '×' + dh + ' res, smoothing: ' + smoothRadius);
   };
 
   // ── Session 3: Export + Pipeline ─────────────────────────────────────────
@@ -2448,6 +2506,17 @@ export default function SPXVectorPage() {
 
                 {/* Depth */}
                 {depthMode==='flat' && <div>
+                  <div style={{color:'#888',fontSize:10,marginBottom:4}}>Mesh Quality</div>
+                  <div style={{display:'flex',gap:4,marginBottom:8}}>
+                    {[['low','Low'],['mid','Mid'],['high','High'],['ultra','Ultra']].map(([q,l])=>(
+                      <button key={q} onClick={()=>{ setMeshQuality(q); setTimeout(buildExtrudeMesh,10); }}
+                        style={{flex:1,padding:'3px 2px',border:'none',borderRadius:3,cursor:'pointer',fontSize:9,
+                          background:meshQuality===q?'#ff6600':'#1a1f2e',
+                          color:meshQuality===q?'#fff':'#666'}}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
                   <div style={{color:'#888',fontSize:10,marginBottom:4}}>Extrude Depth</div>
                   <input type="range" min={0.01} max={2} step={0.01} value={extrudeDepth}
                     onChange={e=>{ setExtrudeDepth(Number(e.target.value)); setTimeout(buildExtrudeMesh,10); }}
@@ -2468,6 +2537,23 @@ export default function SPXVectorPage() {
                       <input type="range" min={0.1} max={3} step={0.1} value={depthStrength}
                         onChange={e=>setDepthStrength(Number(e.target.value))} style={{flex:1}}/>
                       <span style={{color:'#00ffc8',fontSize:9,width:24}}>{depthStrength.toFixed(1)}</span>
+                    </div>
+                    {/* Quality selector */}
+                    <div style={{display:'flex',gap:4,marginBottom:6}}>
+                      {[['low','Low'],['mid','Mid'],['high','High'],['ultra','Ultra']].map(([q,l])=>(
+                        <button key={q} onClick={()=>setMeshQuality(q)}
+                          style={{flex:1,padding:'3px 2px',border:'none',borderRadius:3,cursor:'pointer',fontSize:9,
+                            background:meshQuality===q?'#ff6600':'#1a1f2e',
+                            color:meshQuality===q?'#fff':'#666'}}>
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Bake texture toggle */}
+                    <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+                      <input type="checkbox" checked={bakeTexture} onChange={e=>setBakeTexture(e.target.checked)}
+                        style={{accentColor:'#ff6600'}}/>
+                      <span style={{color:'#888',fontSize:10}}>Bake SVG color as texture</span>
                     </div>
                     <button onClick={runMiDaS} disabled={depthLoading}
                       style={{background:depthLoading?'#333':'#00ffc8',color:depthLoading?'#555':'#06060f',
