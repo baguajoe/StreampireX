@@ -227,8 +227,8 @@ const Turntable = React.memo(({ playing, progress, color, label }) => {
       const pivotY = 32;
       // Arm angle: at rest (progress=0) stylus is near platter edge
       // angle=-2.18 rad points lower-left, reaching cx+PR area
-      const armAngle = -2.18 + progress * 0.32;
-      const armLen = 168;
+      const armAngle = -2.57 + progress * 0.28;
+      const armLen = 219;
 
       // Calculate tip position
       const tipX = pivotX + Math.cos(armAngle) * armLen;
