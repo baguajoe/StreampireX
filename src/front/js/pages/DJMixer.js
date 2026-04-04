@@ -206,20 +206,23 @@ const Turntable = React.memo(({ playing, progress, color, label }) => {
 
       const tipX = cx+PR-14-progress*20;
       const tipY = cy+22+progress*10;
-      const cp1x=pivX+6,  cp1y=pivY+22;
-      const cp2x=pivX+12, cp2y=pivY+42;
-      const cp3x=pivX+7,  cp3y=pivY+62;
-      const cp4x=pivX-10, cp4y=pivY+86;
+      // Smooth S-curve: cp1/cp2 control upper curve, cp3/cp4 control lower curve
+      // Midpoint between the two segments for G1 continuity
+      const midX = pivX+8,  midY = pivY+58;
+      const cp1x=pivX+4,  cp1y=pivY+18;
+      const cp2x=pivX+16, cp2y=pivY+38;
+      const cp3x=pivX+12, cp3y=pivY+72;
+      const cp4x=tipX+18, cp4y=tipY-20;
 
       ctx.strokeStyle = "rgba(0,0,0,0.7)"; ctx.lineWidth = 10; ctx.lineCap = "round"; ctx.lineJoin = "round";
       ctx.beginPath(); ctx.moveTo(pivX+1, pivY+2);
-      ctx.bezierCurveTo(cp1x+1,cp1y+2,cp2x+1,cp2y+2,cp3x+1,cp3y+2);
+      ctx.bezierCurveTo(cp1x+1,cp1y+2,cp2x+1,cp2y+2,midX+1,midY+2);
       ctx.bezierCurveTo(cp3x+1,cp3y+2,cp4x+1,cp4y+2,tipX+1,tipY+2);
       ctx.stroke();
 
       ctx.strokeStyle = "#444"; ctx.lineWidth = 8;
       ctx.beginPath(); ctx.moveTo(pivX, pivY);
-      ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,cp3x,cp3y);
+      ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,midX,midY);
       ctx.bezierCurveTo(cp3x,cp3y,cp4x,cp4y,tipX,tipY);
       ctx.stroke();
 
@@ -227,13 +230,13 @@ const Turntable = React.memo(({ playing, progress, color, label }) => {
       ag.addColorStop(0, "#999"); ag.addColorStop(0.3, "#ddd"); ag.addColorStop(0.7, "#bbb"); ag.addColorStop(1, "#999");
       ctx.strokeStyle = ag; ctx.lineWidth = 5;
       ctx.beginPath(); ctx.moveTo(pivX, pivY);
-      ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,cp3x,cp3y);
+      ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,midX,midY);
       ctx.bezierCurveTo(cp3x,cp3y,cp4x,cp4y,tipX,tipY);
       ctx.stroke();
 
       ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(pivX, pivY);
-      ctx.bezierCurveTo(cp1x-1,cp1y,cp2x-1,cp2y,cp3x,cp3y);
+      ctx.bezierCurveTo(cp1x-1,cp1y,cp2x-1,cp2y,midX,midY);
       ctx.bezierCurveTo(cp3x,cp3y,cp4x,cp4y,tipX,tipY);
       ctx.stroke();
 
