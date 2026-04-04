@@ -132,6 +132,40 @@ function SVXMenuDropdown({label,items}){
   );
 }
 
+// ── Gradient Mesh Canvas renderer (used inside foreignObject) ────────────────
+function MeshCanvas({ mesh, width, height }) {
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const cv = ref.current;
+    if (!cv || !mesh?.points) return;
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, width, height);
+    const getP = (r,c) => mesh.points.find(p=>p.r===r&&p.c===c);
+    const bl = (a,b,c,d,u,v) => a*(1-u)*(1-v)+b*(1-u)*v+c*u*(1-v)+d*u*v;
+    const parseC = (color) => {
+      const cv2=document.createElement('canvas');cv2.width=cv2.height=1;
+      const x=cv2.getContext('2d');x.fillStyle=color;x.fillRect(0,0,1,1);
+      return x.getImageData(0,0,1,1).data;
+    };
+    const S = 20;
+    for (let r=0;r<mesh.rows;r++) for (let c=0;c<mesh.cols;c++) {
+      const p00=getP(r,c),p01=getP(r,c+1),p10=getP(r+1,c),p11=getP(r+1,c+1);
+      if(!p00||!p01||!p10||!p11) continue;
+      const [r0,g0,b0]=parseC(p00.color),[r1,g1,b1]=parseC(p01.color);
+      const [r2,g2,b2]=parseC(p10.color),[r3,g3,b3]=parseC(p11.color);
+      for(let u=0;u<S;u++) for(let v=0;v<S;v++){
+        const uc=(u+.5)/S,vc=(v+.5)/S;
+        const x=bl(p00.x,p01.x,p10.x,p11.x,uc,vc);
+        const y=bl(p00.y,p01.y,p10.y,p11.y,uc,vc);
+        const pw=width/S/mesh.cols+2, ph=height/S/mesh.rows+2;
+        ctx.fillStyle=`rgb(${Math.round(bl(r0,r1,r2,r3,uc,vc))},${Math.round(bl(g0,g1,g2,g3,uc,vc))},${Math.round(bl(b0,b1,b2,b3,uc,vc))})`;
+        ctx.fillRect(x-pw/2,y-ph/2,pw,ph);
+      }
+    }
+  }, [mesh, width, height]);
+  return <canvas ref={ref} width={width} height={height} style={{width:'100%',height:'100%'}}/>;
+}
+
 export default function SPXVectorPage() {
   const svgRef = useRef(null);
 
@@ -771,6 +805,28 @@ export default function SPXVectorPage() {
       fill = `url(#pat_${fill.patternId})`;
     } else if (fill && typeof fill === 'object' && fill.type === 'linear') {
       fill = `url(#grad_${layer.id})`;
+    }
+    // Gradient mesh — render via foreignObject with canvas
+    if (layer.gradientMesh) {
+      const gm = layer.gradientMesh;
+      const W = layer.width || 200;
+      const H = layer.height || 200;
+      const fxId = layer.effects?.some(e=>e.enabled) ? `filter_${layer.id}` : null;
+      return (
+        <foreignObject key={layer.id} x={layer.x||0} y={layer.y||0} width={W} height={H}
+          filter={fxId?`url(#${fxId})`:undefined}
+          style={{cursor:activeTool==='select'?'move':'default'}}
+          onMouseDown={(e)=>{
+            e.stopPropagation();
+            if(activeTool==='select'||activeTool==='direct'){
+              setSelectedIds(e.shiftKey?[...selectedIds,layer.id]:[layer.id]);
+              const pt=getSVGPoint(e);
+              setDragState({kind:'move',startX:pt.x,startY:pt.y,ox:layer.x||0,oy:layer.y||0});
+            }
+          }}>
+          <MeshCanvas mesh={gm} width={W} height={H}/>
+        </foreignObject>
+      );
     }
     const stroke=layer.stroke||'none';
     const sw=layer.strokeWidth||1;
@@ -1498,10 +1554,44 @@ export default function SPXVectorPage() {
       <div style={{display:'flex',alignItems:'center',gap:6,padding:'3px 16px',background:'#1e1e1e',borderBottom:'1px solid #2a2a2a',overflowX:'auto'}}>
         <span style={{color:'#555',fontSize:10,whiteSpace:'nowrap'}}>BOARDS:</span>
         {artboards.map(ab => (
-          <button key={ab.id} style={{...S.btn(activeArtboard===ab.id),whiteSpace:'nowrap',fontSize:10}}
-            onClick={()=>setActiveArtboard(ab.id)}>{ab.name}</button>
+          <div key={ab.id} style={{display:'flex',alignItems:'center',gap:2}}>
+            <button style={{...S.btn(activeArtboard===ab.id),whiteSpace:'nowrap',fontSize:10,flex:1}}
+              onClick={()=>setActiveArtboard(ab.id)}>{ab.name}</button>
+            {activeArtboard===ab.id&&(
+              <>
+                <input type="number" title="Width" value={ab.width}
+                  onChange={e=>setArtboards(prev=>prev.map(a=>a.id===ab.id?{...a,width:Number(e.target.value)}:a))}
+                  style={{width:44,background:'#1a1a1a',border:'1px solid #333',color:'#dde6ef',borderRadius:3,padding:'1px 3px',fontSize:9}}/>
+                <span style={{color:'#555',fontSize:9}}>×</span>
+                <input type="number" title="Height" value={ab.height}
+                  onChange={e=>setArtboards(prev=>prev.map(a=>a.id===ab.id?{...a,height:Number(e.target.value)}:a))}
+                  style={{width:44,background:'#1a1a1a',border:'1px solid #333',color:'#dde6ef',borderRadius:3,padding:'1px 3px',fontSize:9}}/>
+                <button title="Export artboard as SVG" onClick={()=>exportArtboard(ab.id,'svg')}
+                  style={{...S.btn(false),padding:'1px 4px',fontSize:9}}>SVG</button>
+                <button title="Export artboard as PNG" onClick={()=>exportArtboard(ab.id,'png')}
+                  style={{...S.btn(false),padding:'1px 4px',fontSize:9}}>PNG</button>
+                <button title="Delete artboard" onClick={()=>{
+                  if(artboards.length===1){setStatus('Cannot delete last artboard');return;}
+                  setArtboards(prev=>prev.filter(a=>a.id!==ab.id));
+                  setActiveArtboard(artboards.find(a=>a.id!==ab.id)?.id||'');
+                }} style={{...S.btn(false),padding:'1px 4px',fontSize:9,color:'#ff4757'}}>✕</button>
+              </>
+            )}
+          </div>
         ))}
-        <button style={{...S.btn(false),fontSize:10}} onClick={addArtboard}>＋</button>
+        <button style={{...S.btn(false),fontSize:10}} onClick={addArtboard}>＋ Add</button>
+        {/* Artboard presets */}
+        {activeArtboard&&(
+          <div style={{display:'flex',gap:3,flexWrap:'wrap',marginTop:4}}>
+            {[['Letter','816x1056'],['A4','794x1123'],['Instagram','1080x1080'],['Story','1080x1920'],['YouTube','1280x720'],['Twitter','1500x500'],['Square','500x500']].map(([name,size])=>{
+              const [w,h]=size.split('x').map(Number);
+              return(
+                <button key={name} onClick={()=>setArtboards(prev=>prev.map(a=>a.id===activeArtboard?{...a,width:w,height:h,name}:a))}
+                  style={{...S.btn(false),fontSize:8,padding:'2px 4px'}}>{name}</button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div style={S.body}>
