@@ -356,3 +356,47 @@
   min-height: 180px !important;
   overflow: hidden !important;
 }
+
+/* ── MATCH PREMIERE PRO LAYOUT ── */
+.video-editor-pro .spx-monitors,
+.video-editor-pro .preview-area-container {
+  height: 58vh !important;
+  min-height: 380px !important;
+  max-height: 620px !important;
+  flex-shrink: 0 !important;
+}
+.video-editor-pro .editor-timeline-section,
+.video-editor-pro .spx-timeline-area {
+  flex: 1 !important;
+  min-height: 240px !important;
+  max-height: 42vh !important;
+}
+.video-editor-pro .timeline-tracks-scroll {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: auto !important;
+}
+/* Left panel narrow like Premiere */
+.video-editor-pro .spx-left {
+  width: 180px !important;
+  min-width: 160px !important;
+}
+
+/* ── RIGHT PANEL WIDTH FIX ── */
+.video-editor-pro .spx-right {
+  width: 260px !important;
+  min-width: 220px !important;
+}
+.video-editor-pro .efx-panel {
+  width: 240px !important;
+  min-width: 200px !important;
+}
+/* Hide the empty state placeholder — takes too much space */
+.video-editor-pro .no-selection-message-enhanced,
+.video-editor-pro .no-video-clip-message-enhanced {
+  display: none !important;
+}
+/* Right panel content compact */
+.video-editor-pro .spx-right-content {
+  padding: 6px !important;
+}
