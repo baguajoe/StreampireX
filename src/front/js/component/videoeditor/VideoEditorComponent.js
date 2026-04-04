@@ -59,6 +59,24 @@ function SpeedDialogContent({ clip, onApply, onClose }) {
 export default function VideoEditorComponent() {
   const e = useEditorState();
   const [programMuted, setProgramMuted] = useState(false);
+  const [leftWidth, setLeftWidth]   = useState(220);
+  const [rightWidth, setRightWidth] = useState(290);
+  const [rightOpen, setRightOpen]   = useState(true);
+  const [monitorH, setMonitorH]     = useState(260);
+
+  const startResize = (e, type) => {
+    e.preventDefault();
+    const startX = e.clientX, startY = e.clientY;
+    const startLeft = leftWidth, startRight = rightWidth, startH = monitorH;
+    const onMove = ev => {
+      if (type === 'left')    setLeftWidth(Math.max(160, Math.min(400, startLeft + ev.clientX - startX)));
+      if (type === 'right')   setRightWidth(Math.max(200, Math.min(500, startRight - (ev.clientX - startX))));
+      if (type === 'monitor') setMonitorH(Math.max(150, Math.min(600, startH + ev.clientY - startY)));
+    };
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
   const [userTier]                      = useState('professional');
 
   return (
@@ -148,6 +166,7 @@ export default function VideoEditorComponent() {
       <div className="spx-body">
 
         {/* Left panel */}
+        <div className="spx-left" style={{width:leftWidth,minWidth:leftWidth,flexShrink:0}}>
         <VideoEditorLeftPanel
           selectedTool={e.selectedTool}
           setSelectedTool={e.setSelectedTool}
@@ -168,12 +187,14 @@ export default function VideoEditorComponent() {
           setSelectedTransType={e.setSelectedTransType}
           addClipToTrack={e.addClipToTrack}
           tracks={e.tracks}
-        />
+        /></div>
+        <div className="spx-resize-handle" onMouseDown={e=>startResize(e,"left")} />
 
-        {/* Center */}
+        {/* Center */
         <div className="spx-center">
 
           {/* Monitors */}
+          <div style={{height:monitorH,flexShrink:0,display:"flex",flexDirection:"column"}}>
           <VideoEditorMonitors
             tracks={e.tracks}
             currentTime={e.currentTime}
@@ -186,7 +207,8 @@ export default function VideoEditorComponent() {
             setShowSourceMon={e.setShowSourceMon}
             addClipToTrack={e.addClipToTrack}
             formatTime={e.formatTime}
-          />
+          /></div>
+          <div className="spx-resize-handle-v" onMouseDown={e=>startResize(e,"monitor")} />
 
           {/* Timeline */}
           <VideoEditorTimeline
@@ -224,10 +246,14 @@ export default function VideoEditorComponent() {
             applyEffectToClip={e.applyEffectToClip}
             timelineRef={e.timelineRef}
             formatTime={e.formatTime}
-          />
+          /></div>
+          <div className="spx-resize-handle-v" onMouseDown={e=>startResize(e,"monitor")} />
         </div>
 
+        <div className="spx-resize-handle" onMouseDown={e=>startResize(e,"right")} />
         {/* Right panel */}
+        <div className="spx-right" style={{width:rightOpen?rightWidth:0,minWidth:rightOpen?200:0,overflow:"hidden",flexShrink:0,position:"relative"}}>
+        <button className="spx-right-close" onClick={()=>setRightOpen(v=>!v)}>{rightOpen?"›":"‹"}</button>
         <VideoEditorRightPanel
           selectedClip={e.selectedClip}
           selectedTransition={e.selectedTransition}
@@ -239,7 +265,7 @@ export default function VideoEditorComponent() {
           setSelectedTransition={e.setSelectedTransition}
           tracks={e.tracks}
           setTracks={e.setTracks}
-        />
+        /></div>
       </div>
 
       {/* ── Floating panels ────────────────────────────── */}
