@@ -2638,7 +2638,7 @@ TIMELINE
   const [showMediaBrowser, setShowMediaBrowser] = useState(false);
   const [showSourceMonitor, setShowSourceMonitor] = useState(false);
   const [sourceMedia, setSourceMedia] = useState(null);
-  const [showMediaBin, setShowMediaBin] = useState(true); // Media Bin visible by default
+  const [showMediaBin, setShowMediaBin] = useState(false); // Media Bin visible by default
   const [mediaBinView, setMediaBinView] = useState('grid'); // 'grid' or 'list'
   const [mediaSearchTerm, setMediaSearchTerm] = useState('');
   const [sourceMonitorMedia, setSourceMonitorMedia] = useState(null);

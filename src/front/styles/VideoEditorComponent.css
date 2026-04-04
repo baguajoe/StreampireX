@@ -508,3 +508,25 @@
   overflow: hidden !important;
   border-top: 1px solid #21262d !important;
 }
+
+/* ── LEFT PANEL WIDER + TIMELINE FILLS BOTTOM ── */
+.video-editor-pro .spx-left {
+  width: 200px !important;
+  min-width: 200px !important;
+}
+.video-editor-pro .editor-main-layout {
+  height: calc(100vh - 68px) !important;
+}
+.video-editor-pro .editor-center-panel {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.video-editor-pro .editor-timeline-section {
+  flex: 1 !important;
+  min-height: 0 !important;
+}
+.video-editor-pro .timeline-tracks-scroll {
+  flex: 1 !important;
+  min-height: 0 !important;
+}
