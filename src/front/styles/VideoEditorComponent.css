@@ -481,3 +481,7 @@
 /* ── TIMELINE VISIBILITY ── */
 .editor-timeline-section { flex: 1 !important; display: flex !important; flex-direction: column !important; min-height: 100px !important; overflow: hidden !important; }
 .timeline-tracks-scroll { flex: 1 !important; overflow: auto !important; min-height: 0 !important; }
+
+/* Hide legacy editor-toolbar that leaks out */
+.editor-left-panel { display: none !important; }
+.editor-left-panel * { display: none !important; }
