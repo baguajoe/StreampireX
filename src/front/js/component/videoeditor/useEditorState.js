@@ -338,6 +338,37 @@ export function useEditorState() {
     return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}:${String(fr).padStart(2,'0')}`;
   }, [frameRate]);
 
+
+  // ── Copy / Paste ─────────────────────────────────────────
+  const clipboardRef = useRef(null);
+  const copyClip = useCallback(() => {
+    if (selectedClip) clipboardRef.current = { ...selectedClip };
+  }, [selectedClip]);
+  const pasteClip = useCallback(() => {
+    const cb = clipboardRef.current;
+    if (!cb || !tracks.length) return;
+    addClipToTrack(tracks[0].id, { ...cb, id: Date.now(), startTime: cb.startTime + cb.duration + 0.1 });
+  }, [tracks, addClipToTrack]);
+
+  // ── Reverse clip ──────────────────────────────────────────
+  const reverseClip = useCallback(() => {
+    if (!selectedClip) return;
+    updateClip(selectedClip.id, { reversed: !selectedClip.reversed });
+  }, [selectedClip, updateClip]);
+
+  // ── Speed dialog ──────────────────────────────────────────
+  const [showSpeedDialog, setShowSpeedDialog] = useState(false);
+  const openSpeedDialog = useCallback(() => {
+    if (selectedClip) setShowSpeedDialog(true);
+  }, [selectedClip]);
+
+  // ── Load project ──────────────────────────────────────────
+  const loadProject = useCallback((projectData) => {
+    if (!projectData) return;
+    if (projectData.tracks) setTracks(projectData.tracks);
+    if (projectData.markers) setMarkers(projectData.markers || []);
+  }, [setTracks]);
+
   return {
     // playback
     isPlaying, currentTime, duration, frameRate, setFrameRate,
