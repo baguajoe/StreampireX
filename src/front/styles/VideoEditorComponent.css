@@ -298,3 +298,40 @@
 .video-editor-pro .spx-section-title{font-size:10px;font-weight:700;color:#4e6a82;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;padding-top:4px}
 .video-editor-pro .workspace-access-btn{display:flex;align-items:center;gap:4px;padding:5px 8px;background:#161b22;border:1px solid #21262d;border-radius:4px;color:#8b949e;font-size:10px;transition:all .15s}
 .video-editor-pro .workspace-access-btn:hover{border-color:#00ffc8;color:#00ffc8;background:rgba(0,255,200,.07)}
+
+/* ── TRACK HEADER BACKGROUND OVERRIDE ── */
+.video-editor-pro .track-header-container,
+.video-editor-pro .track-header-container *,
+.video-editor-pro .spx-track-header,
+.video-editor-pro .track-headers-column,
+.video-editor-pro .track-headers-column > div {
+  background-color: #0d1117 !important;
+  color: #e6edf3 !important;
+}
+.video-editor-pro .track-name-label,
+.video-editor-pro .spx-track-name {
+  color: #e6edf3 !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+}
+.video-editor-pro .track-z-index,
+.video-editor-pro .spx-track-layer {
+  color: #4e6a82 !important;
+  font-size: 9px !important;
+}
+
+/* ── MONITORS FIX — only show one set ── */
+.video-editor-pro .preview-area-container[style*="display:none"],
+.video-editor-pro .preview-area-container[style*="display: none"] {
+  display: none !important;
+}
+
+/* ── TIMELINE TRACK ROWS ── */
+.video-editor-pro .timeline-track-row,
+.video-editor-pro .spx-track-row {
+  background: #0f1218 !important;
+}
+.video-editor-pro .timeline-track-row:nth-child(even),
+.video-editor-pro .spx-track-row:nth-child(even) {
+  background: #0d1117 !important;
+}
