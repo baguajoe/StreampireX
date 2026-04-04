@@ -7,6 +7,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { anchorsToBezierPath, createAnchor, moveAnchor, updateInHandle, updateOutHandle } from "../utils/spxvector/bezierMath";
 import { booleanUnion, booleanSubtract, booleanIntersect, booleanExclude } from "../utils/spxvector/booleanOps";
 import { exportFullSVG } from "../utils/spxvector/svgExport";
+import { EFFECT_DEFS, buildSVGFilter, defaultEffect } from "../utils/spxvector/liveEffects";
+import { blendLayers } from "../utils/spxvector/blendTool";
 import "../../styles/SPXVector.css";
 
 
@@ -210,6 +212,19 @@ export default function SPXVectorPage() {
   const maskCanvasRef = useRef(null);
   const maskPainting  = useRef(false);
   const [maskBrushSize, setMaskBrushSize] = useState(40);
+  // ── Live Effects ────────────────────────────────────────────────────────────
+  const [fxExpanded,    setFxExpanded]    = useState({});
+  // ── Gradient Mesh ────────────────────────────────────────────────────────────
+  const [meshOpen,      setMeshOpen]      = useState(false);
+  const [meshRows,      setMeshRows]      = useState(3);
+  const [meshCols,      setMeshCols]      = useState(3);
+  const [meshPoints,    setMeshPoints]    = useState(null);
+  const [meshSelPt,     setMeshSelPt]     = useState(null);
+  const meshCanvasRef   = useRef(null);
+  // ── Blend Tool ───────────────────────────────────────────────────────────────
+  const [blendSteps,    setBlendSteps]    = useState(5);
+  const [blendSelA,     setBlendSelA]     = useState(null);
+  const [blendSelB,     setBlendSelB]     = useState(null);
   const [showSymbols,    setShowSymbols]    = useState(false);
   const [symbols,        setSymbols]        = useState([]);
   const [artboards,      setArtboards]      = useState([{id:'ab1',name:'Artboard 1',x:0,y:0,width:1920,height:1080}]);
@@ -470,6 +485,111 @@ export default function SPXVectorPage() {
     setStatus('Distributed horizontally');
   },[selectedIds,project.layers,snapshot,updateLayer]);
 
+  // ── Live Effects helpers ─────────────────────────────────────────────────────
+  const addEffect = useCallback((type) => {
+    if (!selectedLayer) return;
+    const fx = defaultEffect(type);
+    if (!fx) return;
+    const effects = [...(selectedLayer.effects||[]), fx];
+    updateLayer(selectedId, { effects });
+    setStatus(`Effect added: ${EFFECT_DEFS[type].label}`);
+  }, [selectedLayer, selectedId, updateLayer]);
+
+  const removeEffect = useCallback((fxId) => {
+    if (!selectedLayer) return;
+    updateLayer(selectedId, { effects: (selectedLayer.effects||[]).filter(e=>e.id!==fxId) });
+  }, [selectedLayer, selectedId, updateLayer]);
+
+  const updateEffect = useCallback((fxId, paramKey, value) => {
+    if (!selectedLayer) return;
+    const effects = (selectedLayer.effects||[]).map(e =>
+      e.id===fxId ? {...e, params:{...e.params,[paramKey]:value}} : e
+    );
+    updateLayer(selectedId, { effects });
+  }, [selectedLayer, selectedId, updateLayer]);
+
+  const toggleEffect = useCallback((fxId) => {
+    if (!selectedLayer) return;
+    const effects = (selectedLayer.effects||[]).map(e =>
+      e.id===fxId ? {...e, enabled:!e.enabled} : e
+    );
+    updateLayer(selectedId, { effects });
+  }, [selectedLayer, selectedId, updateLayer]);
+
+  // ── Gradient Mesh helpers ─────────────────────────────────────────────────
+  const initMesh = useCallback(() => {
+    const W = selectedLayer?.width || project.width;
+    const H = selectedLayer?.height || project.height;
+    const pts = [];
+    for (let r=0; r<=meshRows; r++) for (let c=0; c<=meshCols; c++) {
+      const hue = Math.round(((r*(meshCols+1)+c)/((meshRows+1)*(meshCols+1)))*360);
+      pts.push({ id:`${r}_${c}`, r, c,
+        x: (c/meshCols)*W, y: (r/meshRows)*H,
+        color: `hsl(${hue},70%,55%)` });
+    }
+    setMeshPoints(pts);
+  }, [meshRows, meshCols, selectedLayer, project]);
+
+  const renderMesh = useCallback(() => {
+    const cv = meshCanvasRef.current;
+    if (!cv || !meshPoints) return;
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0,0,cv.width,cv.height);
+    const getCv = (color) => {
+      const c=document.createElement('canvas');c.width=c.height=1;
+      const x=c.getContext('2d');x.fillStyle=color;x.fillRect(0,0,1,1);
+      return x.getImageData(0,0,1,1).data;
+    };
+    const bl = (a,b,c,d,u,v) => a*(1-u)*(1-v)+b*(1-u)*v+c*u*(1-v)+d*u*v;
+    const getP = (r,c) => meshPoints.find(p=>p.r===r&&p.c===c);
+    const S=20;
+    for (let r=0;r<meshRows;r++) for (let c=0;c<meshCols;c++) {
+      const p00=getP(r,c),p01=getP(r,c+1),p10=getP(r+1,c),p11=getP(r+1,c+1);
+      if(!p00||!p01||!p10||!p11) continue;
+      const [r0,g0,b0]=getCv(p00.color),[r1,g1,b1]=getCv(p01.color);
+      const [r2,g2,b2]=getCv(p10.color),[r3,g3,b3]=getCv(p11.color);
+      for(let u=0;u<S;u++) for(let v=0;v<S;v++){
+        const uc=(u+.5)/S,vc=(v+.5)/S;
+        const x=bl(p00.x,p01.x,p10.x,p11.x,uc,vc);
+        const y=bl(p00.y,p01.y,p10.y,p11.y,uc,vc);
+        ctx.fillStyle=`rgb(${Math.round(bl(r0,r1,r2,r3,uc,vc))},${Math.round(bl(g0,g1,g2,g3,uc,vc))},${Math.round(bl(b0,b1,b2,b3,uc,vc))})`;
+        ctx.fillRect(x-2,y-2,4,4);
+      }
+    }
+    // draw control points
+    meshPoints.forEach(p=>{
+      ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);
+      ctx.fillStyle=meshSelPt===p.id?'#ff6600':'#fff';
+      ctx.strokeStyle='#333';ctx.lineWidth=1.5;
+      ctx.fill();ctx.stroke();
+    });
+  }, [meshPoints, meshRows, meshCols, meshSelPt]);
+
+  useEffect(()=>{ if(meshOpen&&meshPoints) renderMesh(); },[meshOpen,meshPoints,meshSelPt,renderMesh]);
+
+  const applyMeshToLayer = useCallback(() => {
+    if (!meshPoints || !selectedLayer) return;
+    updateLayer(selectedId, { gradientMesh: { rows:meshRows, cols:meshCols, points:meshPoints } });
+    setMeshOpen(false);
+    setStatus('Gradient mesh applied');
+  }, [meshPoints, meshRows, meshCols, selectedLayer, selectedId, updateLayer]);
+
+  // ── Blend Tool helpers ────────────────────────────────────────────────────
+  const applyBlend = useCallback(() => {
+    if (!blendSelA || !blendSelB) return;
+    const layA = project.layers.find(l=>l.id===blendSelA);
+    const layB = project.layers.find(l=>l.id===blendSelB);
+    if (!layA || !layB) return;
+    const blended = blendLayers(layA, layB, blendSteps);
+    snapshot();
+    const idx = project.layers.findIndex(l=>l.id===layB.id);
+    const newLayers = [...project.layers];
+    newLayers.splice(idx, 0, ...blended);
+    setProject(p=>({...p, layers:newLayers}));
+    setStatus(`Blend: ${blendSteps} steps created`);
+    setBlendSelA(null); setBlendSelB(null);
+  }, [blendSelA, blendSelB, blendSteps, project.layers, snapshot]);
+
   const distributeLayersV = useCallback(()=>{
     if(selectedIds.length<3) return;
     snapshot();
@@ -657,7 +777,9 @@ export default function SPXVectorPage() {
     const opacity=layer.opacity??1;
     const transform=`rotate(${layer.rotation||0} ${(layer.x||0)+(layer.width||0)/2} ${(layer.y||0)+(layer.height||0)/2})`;
     const isSelected=selectedIds.includes(layer.id);
+    const fxId = layer.effects?.some(e=>e.enabled) ? `filter_${layer.id}` : null;
     const common={fill,stroke:stroke==='none'?'none':stroke,strokeWidth:sw,opacity,
+      filter:fxId?`url(#${fxId})`:undefined,
       style:{cursor:activeTool==='select'?'move':'default'},
       onMouseDown:(e)=>{
         e.stopPropagation();
@@ -1910,6 +2032,184 @@ export default function SPXVectorPage() {
         </div>
       </div>
     </div>
+      {/* ── Effects Tab Content ── */}
+      {activeTab==='effects'&&(
+        <div style={{padding:10,display:'flex',flexDirection:'column',gap:8,overflowY:'auto'}}>
+          {!selectedLayer&&<div style={{color:'#555',fontSize:11,textAlign:'center',paddingTop:20}}>Select a layer to add effects</div>}
+          {selectedLayer&&(<>
+            <div style={S.label}>Add Effect</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
+              {Object.entries(EFFECT_DEFS).map(([type,def])=>(
+                <button key={type} onClick={()=>addEffect(type)}
+                  style={{...S.btn(false),padding:'5px 4px',fontSize:9,textAlign:'center',lineHeight:1.3}}>
+                  + {def.label}
+                </button>
+              ))}
+            </div>
+            <div style={{marginTop:8}}>
+              {(selectedLayer.effects||[]).length===0&&(
+                <div style={{color:'#555',fontSize:10,textAlign:'center',padding:'12px 0'}}>No effects — add one above</div>
+              )}
+              {(selectedLayer.effects||[]).map(fx=>{
+                const def=EFFECT_DEFS[fx.type];
+                if(!def) return null;
+                const expanded=fxExpanded[fx.id];
+                return(
+                  <div key={fx.id} style={{background:'#1a1a1a',border:'1px solid #333',borderRadius:4,marginBottom:6,overflow:'hidden'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6,padding:'6px 8px',cursor:'pointer'}}
+                      onClick={()=>setFxExpanded(p=>({...p,[fx.id]:!p[fx.id]}))}>
+                      <input type="checkbox" checked={fx.enabled} onChange={e=>{e.stopPropagation();toggleEffect(fx.id);}}
+                        style={{accentColor:'#ff6600'}}/>
+                      <span style={{flex:1,fontSize:11,color:fx.enabled?'#dde6ef':'#555'}}>{def.label}</span>
+                      <span style={{color:'#555',fontSize:10}}>{expanded?'▴':'▾'}</span>
+                      <button onClick={e=>{e.stopPropagation();removeEffect(fx.id);}}
+                        style={{...S.btn(false),color:'#ff4757',padding:'1px 5px',fontSize:11}}>✕</button>
+                    </div>
+                    {expanded&&(
+                      <div style={{padding:'6px 10px 10px',display:'flex',flexDirection:'column',gap:6,borderTop:'1px solid #222'}}>
+                        {Object.entries(def.params).map(([key,pd])=>(
+                          <div key={key}>
+                            <div style={{...S.label,marginBottom:2}}>{pd.label}{pd.unit&&` (${pd.unit})`}</div>
+                            {pd.type==='color'?(
+                              <input type="color" value={fx.params[key]||pd.default}
+                                onChange={e=>updateEffect(fx.id,key,e.target.value)}
+                                style={{width:40,height:24,border:'none',borderRadius:3,cursor:'pointer'}}/>
+                            ):pd.type==='select'?(
+                              <select value={fx.params[key]} onChange={e=>updateEffect(fx.id,key,e.target.value)}
+                                style={{...S.input,padding:'2px 4px'}}>
+                                {pd.options.map(o=><option key={o}>{o}</option>)}
+                              </select>
+                            ):(
+                              <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                                <input type="range" min={pd.min} max={pd.max} step={(pd.max-pd.min)>10?1:0.5}
+                                  value={fx.params[key]??pd.default}
+                                  onChange={e=>updateEffect(fx.id,key,Number(e.target.value))}
+                                  style={{flex:1}}/>
+                                <span style={{color:'#ff6600',fontSize:10,width:28,textAlign:'right'}}>{fx.params[key]??pd.default}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{borderTop:'1px solid #333',paddingTop:8,marginTop:4}}>
+              <div style={S.label}>Gradient Mesh</div>
+              <button onClick={()=>{initMesh();setMeshOpen(true);}} style={{...S.btn(false),width:'100%',padding:'6px',fontSize:10}}>
+                ◑ Open Gradient Mesh Editor
+              </button>
+            </div>
+            <div style={{borderTop:'1px solid #333',paddingTop:8,marginTop:4}}>
+              <div style={S.label}>Blend Tool</div>
+              <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                  <span style={{color:'#888',fontSize:10,width:16}}>A</span>
+                  <select value={blendSelA||''} onChange={e=>setBlendSelA(e.target.value||null)}
+                    style={{...S.input,flex:1}}>
+                    <option value=''>— pick layer A —</option>
+                    {project.layers.map(l=><option key={l.id} value={l.id}>{l.name}</option>)}
+                  </select>
+                </div>
+                <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                  <span style={{color:'#888',fontSize:10,width:16}}>B</span>
+                  <select value={blendSelB||''} onChange={e=>setBlendSelB(e.target.value||null)}
+                    style={{...S.input,flex:1}}>
+                    <option value=''>— pick layer B —</option>
+                    {project.layers.map(l=><option key={l.id} value={l.id}>{l.name}</option>)}
+                  </select>
+                </div>
+                <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                  <span style={{color:'#888',fontSize:10}}>Steps</span>
+                  <input type="range" min={1} max={20} value={blendSteps}
+                    onChange={e=>setBlendSteps(Number(e.target.value))} style={{flex:1}}/>
+                  <span style={{color:'#ff6600',fontSize:10,width:20}}>{blendSteps}</span>
+                </div>
+                <button onClick={applyBlend} disabled={!blendSelA||!blendSelB}
+                  style={{...S.btn(blendSelA&&blendSelB),width:'100%',padding:'6px',fontSize:10,
+                    opacity:blendSelA&&blendSelB?1:0.4}}>
+                  ⟿ Apply Blend
+                </button>
+              </div>
+            </div>
+          </>)}
+        </div>
+      )}
+
+      {/* ── Gradient Mesh Modal ── */}
+      {meshOpen&&(
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.9)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:8,width:700,maxHeight:'90vh',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+            <div style={{height:44,background:'#0a0e1a',borderBottom:'1px solid #21262d',display:'flex',alignItems:'center',padding:'0 16px',gap:12}}>
+              <span style={{color:'#00ffc8',fontFamily:'JetBrains Mono',fontSize:13,fontWeight:700}}>◑ Gradient Mesh Editor</span>
+              <div style={{flex:1}}/>
+              <span style={{color:'#888',fontSize:10}}>Click a control point, then pick a color</span>
+              <button onClick={()=>setMeshOpen(false)} style={{background:'none',border:'none',color:'#888',cursor:'pointer',fontSize:18}}>✕</button>
+            </div>
+            <div style={{display:'flex',flex:1,overflow:'hidden'}}>
+              <div style={{flex:1,position:'relative',background:'#1a1a1a',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <canvas ref={meshCanvasRef}
+                  width={selectedLayer?.width||600} height={selectedLayer?.height||400}
+                  style={{maxWidth:'100%',maxHeight:'calc(90vh - 140px)',border:'1px solid #333',cursor:'crosshair'}}
+                  onClick={e=>{
+                    if(!meshPoints) return;
+                    const rect=meshCanvasRef.current.getBoundingClientRect();
+                    const scaleX=(selectedLayer?.width||600)/rect.width;
+                    const scaleY=(selectedLayer?.height||400)/rect.height;
+                    const mx=(e.clientX-rect.left)*scaleX;
+                    const my=(e.clientY-rect.top)*scaleY;
+                    let closest=null,minD=Infinity;
+                    meshPoints.forEach(p=>{
+                      const d=Math.hypot(p.x-mx,p.y-my);
+                      if(d<minD){minD=d;closest=p.id;}
+                    });
+                    if(minD<20) setMeshSelPt(closest);
+                  }}
+                />
+              </div>
+              <div style={{width:200,background:'#0d1117',borderLeft:'1px solid #21262d',padding:12,display:'flex',flexDirection:'column',gap:10,overflowY:'auto'}}>
+                <div>
+                  <div style={S.label}>Grid Size</div>
+                  <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                    <span style={{color:'#888',fontSize:10}}>Rows</span>
+                    <input type="number" min={1} max={8} value={meshRows} style={{...S.input,width:44}}
+                      onChange={e=>{setMeshRows(Number(e.target.value));setMeshPoints(null);}}/>
+                    <span style={{color:'#888',fontSize:10}}>Cols</span>
+                    <input type="number" min={1} max={8} value={meshCols} style={{...S.input,width:44}}
+                      onChange={e=>{setMeshCols(Number(e.target.value));setMeshPoints(null);}}/>
+                  </div>
+                  <button onClick={initMesh} style={{...S.btn(false),width:'100%',marginTop:6,padding:'5px'}}>↺ Init Mesh</button>
+                </div>
+                {meshSelPt&&meshPoints&&(()=>{
+                  const pt=meshPoints.find(p=>p.id===meshSelPt);
+                  return pt?(
+                    <div>
+                      <div style={S.label}>Point Color — {meshSelPt}</div>
+                      <input type="color" value={pt.color}
+                        onChange={e=>{
+                          setMeshPoints(prev=>prev.map(p=>p.id===meshSelPt?{...p,color:e.target.value}:p));
+                        }}
+                        style={{width:'100%',height:36,border:'none',borderRadius:4,cursor:'pointer'}}/>
+                    </div>
+                  ):null;
+                })()}
+                {!meshSelPt&&<div style={{color:'#555',fontSize:10,textAlign:'center'}}>Click a white control point to select it</div>}
+                <div style={{marginTop:'auto',display:'flex',flexDirection:'column',gap:6}}>
+                  <button onClick={applyMeshToLayer}
+                    style={{background:'#ff6600',border:'none',color:'#fff',borderRadius:4,padding:'8px',cursor:'pointer',fontWeight:700,fontSize:12}}>
+                    ✓ Apply to Layer
+                  </button>
+                  <button onClick={()=>setMeshOpen(false)}
+                    style={{...S.btn(false),padding:'6px',fontSize:11}}>Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <button title="AI Fill" onClick={()=>setAiFillOpen(true)} style={{position:'fixed',bottom:24,right:24,zIndex:1000,width:48,height:48,borderRadius:'50%',background:'#FF6600',border:'none',color:'#fff',fontSize:20,cursor:'pointer',boxShadow:'0 4px 16px rgba(255,102,0,0.5)'}}>✦</button>
       {aiFillOpen&&(
         <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.85)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
