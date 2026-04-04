@@ -218,91 +218,105 @@ const Turntable = React.memo(({ playing, progress, color, label }) => {
       ctx.font = "7px JetBrains Mono,monospace"; ctx.fillStyle = "#555"; ctx.textAlign = "left";
       ctx.fillText("33", rpmX+2, btnY-1); ctx.fillText("45", rpmX+6, btnY+8);
 
-      // ── Tonearm — Technics-style, pivot top-right, arm sweeps to platter ──
+      // ── Tonearm — vertical S-arm, pivot beside platter, traced from Technics 1200 ──
       ctx.save();
-      // Pivot is top-right corner of plinth
-      // cx=145, PR=118 so platter right edge at ~263
-      // W=500, so pivot at x=W-52=448 gives proper spacing
-      const pivotX = W - 52;
-      const pivotY = 32;
-      // Arm angle: at rest (progress=0) stylus is near platter edge
-      // angle=-2.18 rad points lower-left, reaching cx+PR area
-      const armAngle = -2.57 + progress * 0.28;
-      const armLen = 219;
 
-      // Calculate tip position
-      const tipX = pivotX + Math.cos(armAngle) * armLen;
-      const tipY = pivotY + Math.sin(armAngle) * armLen;
+      // Pivot wheel — sits right next to platter upper-right, cx=148 PR=118 so edge=266
+      // Pivot at x=295, y=88 (scaled from 500px preview to actual canvas W=500 H=300)
+      const pivotX = cx + PR + 31;  // ~295 when cx=148, PR=116
+      const pivotY = H * 0.29;      // ~88 when H=300
 
-      // Counterweight (opposite direction from arm)
-      const cwLen = 36;
-      const cwX = pivotX - Math.cos(armAngle) * cwLen;
-      const cwY = pivotY - Math.sin(armAngle) * cwLen;
-      // CW shaft
-      ctx.strokeStyle = "#555"; ctx.lineWidth = 5; ctx.lineCap = "round";
-      ctx.beginPath(); ctx.moveTo(pivotX, pivotY); ctx.lineTo(cwX, cwY); ctx.stroke();
-      // CW ball
-      const cwg = ctx.createRadialGradient(cwX-2, cwY-2, 1, cwX, cwY, 10);
-      cwg.addColorStop(0, "#bbb"); cwg.addColorStop(0.5, "#666"); cwg.addColorStop(1, "#222");
-      ctx.fillStyle = cwg;
-      ctx.beginPath(); ctx.arc(cwX, cwY, 10, 0, Math.PI*2); ctx.fill();
+      // Pivot bearing — big wheel
+      ctx.fillStyle = "#1a1a1a";
+      ctx.beginPath(); ctx.arc(pivotX, pivotY, 16, 0, Math.PI*2); ctx.fill();
+      const pw1 = ctx.createRadialGradient(pivotX-4, pivotY-4, 1, pivotX, pivotY, 16);
+      pw1.addColorStop(0, "#888"); pw1.addColorStop(0.4, "#444"); pw1.addColorStop(1, "#1a1a1a");
+      ctx.fillStyle = pw1;
+      ctx.beginPath(); ctx.arc(pivotX, pivotY, 16, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#2a2a2a";
+      ctx.beginPath(); ctx.arc(pivotX, pivotY, 10, 0, Math.PI*2); ctx.fill();
+      const pw2 = ctx.createRadialGradient(pivotX-2, pivotY-2, 1, pivotX, pivotY, 8);
+      pw2.addColorStop(0, "#777"); pw2.addColorStop(1, "#333");
+      ctx.fillStyle = pw2;
+      ctx.beginPath(); ctx.arc(pivotX, pivotY, 8, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#555";
+      ctx.beginPath(); ctx.arc(pivotX, pivotY, 4, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#ccc";
+      ctx.beginPath(); ctx.arc(pivotX, pivotY, 2, 0, Math.PI*2); ctx.fill();
 
-      // Pivot bearing
-      ctx.fillStyle = "#0d0d0d";
-      ctx.beginPath(); ctx.arc(pivotX, pivotY, 14, 0, Math.PI*2); ctx.fill();
-      const pvg = ctx.createRadialGradient(pivotX-3, pivotY-3, 1, pivotX, pivotY, 11);
-      pvg.addColorStop(0, "#ccc"); pvg.addColorStop(0.4, "#777"); pvg.addColorStop(1, "#1a1a1a");
-      ctx.fillStyle = pvg;
-      ctx.beginPath(); ctx.arc(pivotX, pivotY, 11, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = "#ddd";
-      ctx.beginPath(); ctx.arc(pivotX, pivotY, 3, 0, Math.PI*2); ctx.fill();
+      // S-arm bezier — goes DOWN from pivot, S-curves to platter edge
+      // From preview: pivot(295,88) -> cp1(301,110) -> cp2(307,128) -> cp3(302,148) -> cp4(284,172) -> tip(266,175)
+      // Scale to actual canvas: preview was 500x300, canvas is also 500x300 — direct mapping
+      const sa_tip_x = cx + PR - 12 - progress * 18;  // moves inward as track plays
+      const sa_tip_y = H * 0.583 + progress * 8;
 
-      // S-arm with proper Technics curvature
-      const px = -Math.sin(armAngle);
-      const py = Math.cos(armAngle);
-      const sBend = 28;
-      const m1x = pivotX + Math.cos(armAngle) * armLen * 0.38 + px * sBend;
-      const m1y = pivotY + Math.sin(armAngle) * armLen * 0.38 + py * sBend;
-      const m2x = pivotX + Math.cos(armAngle) * armLen * 0.62 + px * sBend * 0.15;
-      const m2y = pivotY + Math.sin(armAngle) * armLen * 0.62 + py * sBend * 0.15;
-      const m3x = pivotX + Math.cos(armAngle) * armLen * 0.80 - px * sBend * 0.25;
-      const m3y = pivotY + Math.sin(armAngle) * armLen * 0.80 - py * sBend * 0.25;
+      const sa_cp1x = pivotX + 6,  sa_cp1y = pivotY + 22;
+      const sa_cp2x = pivotX + 12, sa_cp2y = pivotY + 40;
+      const sa_cp3x = pivotX + 7,  sa_cp3y = pivotY + 60;
+      const sa_cp4x = pivotX - 11, sa_cp4y = pivotY + 84;
 
-      // Drop shadow
-      ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 8; ctx.lineCap = "round";
-      ctx.beginPath(); ctx.moveTo(pivotX+1, pivotY+2);
-      ctx.bezierCurveTo(m1x+1, m1y+2, m2x+1, m2y+2, m3x+1, m3y+2);
-      ctx.bezierCurveTo(m3x+1, m3y+2, tipX+1, tipY+2, tipX+1, tipY+2);
+      // Shadow
+      ctx.strokeStyle = "rgba(0,0,0,0.7)"; ctx.lineWidth = 10; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(pivotX+1, pivotY+2);
+      ctx.bezierCurveTo(sa_cp1x+1, sa_cp1y+2, sa_cp2x+1, sa_cp2y+2, sa_cp3x+1, sa_cp3y+2);
+      ctx.bezierCurveTo(sa_cp3x+1, sa_cp3y+2, sa_cp4x+1, sa_cp4y+2, sa_tip_x+1, sa_tip_y+2);
       ctx.stroke();
 
-      // Main arm gradient — silver/chrome
-      const ag = ctx.createLinearGradient(pivotX, pivotY, tipX, tipY);
-      ag.addColorStop(0, "#777"); ag.addColorStop(0.25, "#ddd"); ag.addColorStop(0.6, "#aaa"); ag.addColorStop(1, "#888");
+      // Dark outer
+      ctx.strokeStyle = "#444"; ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(pivotX, pivotY);
+      ctx.bezierCurveTo(sa_cp1x, sa_cp1y, sa_cp2x, sa_cp2y, sa_cp3x, sa_cp3y);
+      ctx.bezierCurveTo(sa_cp3x, sa_cp3y, sa_cp4x, sa_cp4y, sa_tip_x, sa_tip_y);
+      ctx.stroke();
+
+      // Chrome
+      const ag = ctx.createLinearGradient(pivotX, pivotY, sa_tip_x, sa_tip_y);
+      ag.addColorStop(0, "#aaa"); ag.addColorStop(0.4, "#ddd"); ag.addColorStop(0.8, "#bbb"); ag.addColorStop(1, "#999");
       ctx.strokeStyle = ag; ctx.lineWidth = 5;
-      ctx.beginPath(); ctx.moveTo(pivotX, pivotY);
-      ctx.bezierCurveTo(m1x, m1y, m2x, m2y, m3x, m3y);
-      ctx.bezierCurveTo(m3x, m3y, tipX, tipY, tipX, tipY);
+      ctx.beginPath();
+      ctx.moveTo(pivotX, pivotY);
+      ctx.bezierCurveTo(sa_cp1x, sa_cp1y, sa_cp2x, sa_cp2y, sa_cp3x, sa_cp3y);
+      ctx.bezierCurveTo(sa_cp3x, sa_cp3y, sa_cp4x, sa_cp4y, sa_tip_x, sa_tip_y);
       ctx.stroke();
 
       // Highlight
-      ctx.strokeStyle = "rgba(255,255,255,0.22)"; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(pivotX, pivotY);
-      ctx.bezierCurveTo(m1x+px, m1y+py, m2x+px, m2y+py, m3x, m3y);
+      ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(pivotX, pivotY);
+      ctx.bezierCurveTo(sa_cp1x-1, sa_cp1y, sa_cp2x-1, sa_cp2y, sa_cp3x, sa_cp3y);
+      ctx.bezierCurveTo(sa_cp3x, sa_cp3y, sa_cp4x, sa_cp4y, sa_tip_x, sa_tip_y);
       ctx.stroke();
 
-      // Headshell
-      const hsA = armAngle + 0.18;
-      const hsLen = 26;
-      const hsX = tipX + Math.cos(hsA) * hsLen;
-      const hsY = tipY + Math.sin(hsA) * hsLen;
-      ctx.strokeStyle = "#888"; ctx.lineWidth = 3.5; ctx.lineCap = "round";
-      ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.lineTo(hsX, hsY); ctx.stroke();
+      // Headshell connector
+      const hsX = sa_tip_x - 10, hsY = sa_tip_y + 9;
+      ctx.strokeStyle = "#888"; ctx.lineWidth = 4; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(sa_tip_x, sa_tip_y); ctx.lineTo(hsX, hsY); ctx.stroke();
+      ctx.strokeStyle = "#bbb"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(sa_tip_x, sa_tip_y); ctx.lineTo(hsX, hsY); ctx.stroke();
+
       // Headshell body
-      ctx.save(); ctx.translate(hsX, hsY); ctx.rotate(hsA);
-      ctx.fillStyle = "#2a2a2a";
-      ctx.beginPath(); ctx.roundRect(-4, -4, 20, 8, 2); ctx.fill();
+      ctx.save();
+      ctx.translate(hsX, hsY);
+      ctx.rotate(-0.18);
       ctx.fillStyle = "#444";
-      ctx.beginPath(); ctx.roundRect(-3, -3, 18, 6, 1); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(-2, -5, 22, 10, 3); ctx.fill();
+      ctx.fillStyle = "#555";
+      ctx.beginPath(); ctx.roundRect(-1, -4, 20, 8, 2); ctx.fill();
+      ctx.fillStyle = "#333";
+      ctx.beginPath(); ctx.roundRect(15, -3, 5, 6, 1); ctx.fill();
+      ctx.restore();
+
+      // Stylus needle
+      const nX = hsX - 2, nY = hsY + 7;
+      ctx.strokeStyle = "#777"; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(hsX + 2, hsY + 2); ctx.lineTo(nX, nY); ctx.stroke();
+      ctx.shadowColor = color; ctx.shadowBlur = 12;
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(nX, nY, 2.5, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+
       ctx.restore();
 
       // Stylus needle
