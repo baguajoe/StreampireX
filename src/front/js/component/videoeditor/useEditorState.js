@@ -3,7 +3,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 const BACKEND = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 const authHeaders = () => {
   const t = localStorage.getItem('jwt-token') || localStorage.getItem('token') || '';
-  // ── Copy / Paste ────────────────────────────────────────
+  return t ? { 'Authorization': `Bearer ${t}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+};
+
+// ── Copy / Paste ────────────────────────────────────────
   const clipboardRef = { current: null };
   const copyClip = useCallback(() => {
     if (selectedClip) clipboardRef.current = { ...selectedClip };
