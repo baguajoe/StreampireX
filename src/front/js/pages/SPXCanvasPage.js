@@ -176,6 +176,17 @@ export default function SPXCanvasPage() {
   const [retouchRadius,   setRetouchRadius]   = useState(20);
   const [retouchStrength, setRetouchStrength] = useState(0.4);
   const lastRetouchPt     = useRef(null);
+  // ── Curves state ──────────────────────────────────────────────────────────
+  const [curvesPoints,  setCurvesPoints]  = useState([{x:0,y:0},{x:255,y:255}]);
+  const [activeChannel, setActiveChannel] = useState('rgb'); // rgb|r|g|b
+  const [sharpAmount,   setSharpAmount]   = useState(0.5);
+  const [noiseAmount,   setNoiseAmount]   = useState(0);
+  const [showResizeDialog, setShowResizeDialog] = useState(false);
+  const [resizeW,       setResizeW]       = useState(0);
+  const [resizeH,       setResizeH]       = useState(0);
+  const [showMaskEditor,setShowMaskEditor] = useState(false);
+  const [layerMasks,    setLayerMasks]    = useState({});
+  const curvesCanvasRef = useRef(null);
   const [showGrid,     setShowGrid]     = useState(false);
   const [showRulers,   setShowRulers]   = useState(true);
   const [snapToGrid,   setSnapToGrid]   = useState(false);
@@ -350,6 +361,129 @@ export default function SPXCanvasPage() {
   const tabletPressure = useRef(1.0);
   const tabletTiltX = useRef(0);
   const tabletTiltY = useRef(0);
+
+  // ── Curves renderer ──────────────────────────────────────────────────────
+  const renderCurves = React.useCallback(() => {
+    const cv = curvesCanvasRef.current; if (!cv) return;
+    const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    ctx.clearRect(0,0,W,H);
+    // Background
+    ctx.fillStyle='#1a1a1a'; ctx.fillRect(0,0,W,H);
+    // Grid
+    ctx.strokeStyle='#333'; ctx.lineWidth=0.5;
+    [64,128,192].forEach(v=>{
+      ctx.beginPath(); ctx.moveTo(v/255*W,0); ctx.lineTo(v/255*W,H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,H-v/255*H); ctx.lineTo(W,H-v/255*H); ctx.stroke();
+    });
+    // Diagonal reference
+    ctx.strokeStyle='#444'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,H); ctx.lineTo(W,0); ctx.stroke();
+    // Curve
+    const pts = [...curvesPoints].sort((a,b)=>a.x-b.x);
+    ctx.strokeStyle = activeChannel==='r'?'#ff4444':activeChannel==='g'?'#44ff44':activeChannel==='b'?'#4488ff':'#00ffc8';
+    ctx.lineWidth=2; ctx.beginPath();
+    pts.forEach((p,i)=>{
+      const cx=p.x/255*W, cy=H-p.y/255*H;
+      if(i===0) ctx.moveTo(cx,cy); else ctx.lineTo(cx,cy);
+    });
+    ctx.stroke();
+    // Control points
+    pts.forEach(p=>{
+      ctx.beginPath(); ctx.arc(p.x/255*W, H-p.y/255*H, 5, 0, Math.PI*2);
+      ctx.fillStyle='#fff'; ctx.fill();
+      ctx.strokeStyle='#333'; ctx.lineWidth=1.5; ctx.stroke();
+    });
+  }, [curvesPoints, activeChannel]);
+
+  React.useEffect(()=>{ renderCurves(); },[renderCurves]);
+
+  const addCurvePoint = React.useCallback((e) => {
+    const cv = curvesCanvasRef.current; if (!cv) return;
+    const rect = cv.getBoundingClientRect();
+    const x = Math.round(((e.clientX-rect.left)/rect.width)*255);
+    const y = Math.round((1-(e.clientY-rect.top)/rect.height)*255);
+    setCurvesPoints(prev=>[...prev,{x:Math.max(0,Math.min(255,x)),y:Math.max(0,Math.min(255,y))}]);
+  }, []);
+
+  const applyCurvesToLayer = React.useCallback(() => {
+    if (!selectedLayer) return;
+    const pts = [...curvesPoints].sort((a,b)=>a.x-b.x);
+    const lut = new Uint8Array(256);
+    for (let i=0;i<256;i++) {
+      let lo=pts[0], hi=pts[pts.length-1];
+      for (let j=0;j<pts.length-1;j++) { if(pts[j].x<=i&&pts[j+1].x>=i){lo=pts[j];hi=pts[j+1];break;} }
+      const t = lo.x===hi.x ? 0 : (i-lo.x)/(hi.x-lo.x);
+      lut[i] = Math.max(0,Math.min(255,Math.round(lo.y+(hi.y-lo.y)*t)));
+    }
+    snapshot();
+    applyAdjustToCanvas(layer => {
+      if (!layer.imageData) return layer;
+      const d = new Uint8ClampedArray(layer.imageData.data);
+      for (let i=0;i<d.length;i+=4) {
+        if (activeChannel==='rgb'||activeChannel==='r') d[i]  =lut[d[i]];
+        if (activeChannel==='rgb'||activeChannel==='g') d[i+1]=lut[d[i+1]];
+        if (activeChannel==='rgb'||activeChannel==='b') d[i+2]=lut[d[i+2]];
+      }
+      return {...layer, imageData:{...layer.imageData,data:d}};
+    });
+    setStatus('Curves applied');
+  }, [curvesPoints, activeChannel, selectedLayer, snapshot, applyAdjustToCanvas]);
+
+  const applyLevelsToLayer = React.useCallback(() => {
+    if (!selectedLayer) return;
+    snapshot();
+    applyAdjustToCanvas(layer => applyLevels(layer, inBlack, inWhite, gamma));
+    setStatus('Levels applied');
+  }, [selectedLayer, inBlack, inWhite, gamma, snapshot, applyAdjustToCanvas]);
+
+  const applyBCToLayer = React.useCallback(() => {
+    if (!selectedLayer) return;
+    snapshot();
+    applyAdjustToCanvas(layer => applyBrightnessContrast(layer, brightness, contrastAdj));
+    setStatus('Brightness/Contrast applied');
+  }, [selectedLayer, brightness, contrastAdj, snapshot, applyAdjustToCanvas]);
+
+  const applyHSLToLayer = React.useCallback(() => {
+    if (!selectedLayer) return;
+    snapshot();
+    applyAdjustToCanvas(layer => applyHueSaturation(layer, hue, saturation, lightness));
+    setStatus('Hue/Saturation applied');
+  }, [selectedLayer, hue, saturation, lightness, snapshot, applyAdjustToCanvas]);
+
+  const applyVibranceToLayer = React.useCallback(() => {
+    if (!selectedLayer) return;
+    snapshot();
+    applyAdjustToCanvas(layer => applyVibrance(layer, vibrance));
+    setStatus('Vibrance applied');
+  }, [selectedLayer, vibrance, snapshot, applyAdjustToCanvas]);
+
+  const applySharpenToLayer = React.useCallback(() => {
+    if (!selectedLayer) return;
+    snapshot();
+    applyAdjustToCanvas(layer => applySharpening(layer, sharpAmount));
+    setStatus('Sharpening applied');
+  }, [selectedLayer, sharpAmount, snapshot, applyAdjustToCanvas]);
+
+  const applyNoiseRedToLayer = React.useCallback(() => {
+    if (!selectedLayer) return;
+    snapshot();
+    applyAdjustToCanvas(layer => applyNoiseReduction(layer, noiseAmount));
+    setStatus('Noise reduction applied');
+  }, [selectedLayer, noiseAmount, snapshot, applyAdjustToCanvas]);
+
+  const applyResizeCanvas = React.useCallback(() => {
+    if (!resizeW || !resizeH) return;
+    snapshot();
+    setProject(p=>({...p, width:resizeW, height:resizeH}));
+    setShowResizeDialog(false);
+    setStatus(`Canvas resized to ${resizeW}×${resizeH}`);
+  }, [resizeW, resizeH, snapshot]);
+
+  const toggleLayerMask = React.useCallback((layerId) => {
+    setLayerMasks(prev=>({...prev,[layerId]:!prev[layerId]}));
+    setStatus('Layer mask toggled');
+  }, []);
 
   const onPointerDown = useCallback((e) => {
     // Capture pointer for tablet support
@@ -592,6 +726,10 @@ export default function SPXCanvasPage() {
         <button style={S.btn()} onClick={()=>exportCanvasPNG(canvasRef.current,project.name)}>💾 PNG</button>
         <button style={S.btn()} onClick={()=>exportCanvasJPG(canvasRef.current,project.name)}>💾 JPG</button>
         <button style={S.btn()} onClick={()=>exportCanvasWebP(canvasRef.current,project.name)}>💾 WebP</button>
+        <div style={{width:1,height:20,background:'#444',margin:'0 4px'}}/>
+        <button style={S.btn()} onClick={flattenAll} title="Flatten all layers to one">⬇ Flatten</button>
+        <button style={S.btn()} onClick={mergeDown} title="Merge selected layer down">⬇ Merge</button>
+        <button style={S.btn()} onClick={()=>{setResizeW(project.width);setResizeH(project.height);setShowResizeDialog(true);}} title="Resize canvas">⛶ Resize</button>
       </div>
 
       <div style={S.body}>
@@ -802,6 +940,126 @@ export default function SPXCanvasPage() {
             </div>
           )}
 
+          {/* Adjust Tab */}
+          {activeTab==='adjust' && (
+            <div style={{padding:10,display:'flex',flexDirection:'column',gap:10,overflowY:'auto'}}>
+
+              {/* Curves */}
+              <div>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                  <div style={S.label}>Curves</div>
+                  <div style={{display:'flex',gap:3}}>
+                    {['rgb','r','g','b'].map(ch=>(
+                      <button key={ch} onClick={()=>setActiveChannel(ch)}
+                        style={{...S.btn(activeChannel===ch),padding:'1px 5px',fontSize:9,
+                          background:activeChannel===ch?(ch==='r'?'#ff4444':ch==='g'?'#44ff44':ch==='b'?'#4488ff':'#00ffc8'):'#333',
+                          color:activeChannel===ch?'#000':'#aaa'}}>
+                        {ch.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <canvas ref={curvesCanvasRef} width={200} height={200}
+                  style={{width:'100%',border:'1px solid #333',borderRadius:4,cursor:'crosshair',display:'block'}}
+                  onClick={addCurvePoint}/>
+                <div style={{display:'flex',gap:4,marginTop:4}}>
+                  <button onClick={()=>setCurvesPoints([{x:0,y:0},{x:255,y:255}])}
+                    style={{...S.btn(false),flex:1,fontSize:9}}>Reset</button>
+                  <button onClick={applyCurvesToLayer} disabled={!selectedLayer}
+                    style={{...S.btn(true),flex:1,fontSize:9,opacity:selectedLayer?1:0.4}}>Apply</button>
+                </div>
+              </div>
+
+              {/* Levels */}
+              <div style={{borderTop:'1px solid #333',paddingTop:8}}>
+                <div style={S.label}>Levels</div>
+                {[['Black Point','inBlack',setInBlack,0,255,inBlack],
+                  ['White Point','inWhite',setInWhite,0,255,inWhite],
+                  ['Gamma','gamma',setGamma,0.1,3,gamma]].map(([lbl,key,setter,min,max,val])=>(
+                  <div key={key} style={{marginBottom:6}}>
+                    <div style={{display:'flex',justifyContent:'space-between'}}>
+                      <span style={{color:'#888',fontSize:10}}>{lbl}</span>
+                      <span style={{color:'#00ffc8',fontSize:10}}>{Number(val).toFixed(key==='gamma'?2:0)}</span>
+                    </div>
+                    <input type="range" min={min} max={max} step={key==='gamma'?0.05:1} value={val}
+                      onChange={e=>setter(Number(e.target.value))} style={{width:'100%'}}/>
+                  </div>
+                ))}
+                <button onClick={applyLevelsToLayer} disabled={!selectedLayer}
+                  style={{...S.btn(true),width:'100%',fontSize:9,opacity:selectedLayer?1:0.4}}>Apply Levels</button>
+              </div>
+
+              {/* Brightness / Contrast */}
+              <div style={{borderTop:'1px solid #333',paddingTop:8}}>
+                <div style={S.label}>Brightness / Contrast</div>
+                {[['Brightness','brightness',setBrightness,-1,1,0.01,brightness],
+                  ['Contrast','contrastAdj',setContrastAdj,0,3,0.05,contrastAdj]].map(([lbl,key,setter,min,max,step,val])=>(
+                  <div key={key} style={{marginBottom:6}}>
+                    <div style={{display:'flex',justifyContent:'space-between'}}>
+                      <span style={{color:'#888',fontSize:10}}>{lbl}</span>
+                      <span style={{color:'#00ffc8',fontSize:10}}>{Number(val).toFixed(2)}</span>
+                    </div>
+                    <input type="range" min={min} max={max} step={step} value={val}
+                      onChange={e=>setter(Number(e.target.value))} style={{width:'100%'}}/>
+                  </div>
+                ))}
+                <button onClick={applyBCToLayer} disabled={!selectedLayer}
+                  style={{...S.btn(true),width:'100%',fontSize:9,opacity:selectedLayer?1:0.4}}>Apply B/C</button>
+              </div>
+
+              {/* Hue / Saturation / Lightness */}
+              <div style={{borderTop:'1px solid #333',paddingTop:8}}>
+                <div style={S.label}>Hue / Saturation</div>
+                {[['Hue','hue',setHue,-180,180,1,hue],
+                  ['Saturation','saturation',setSaturation,0,3,0.05,saturation],
+                  ['Lightness','lightness',setLightness,-1,1,0.05,lightness],
+                  ['Vibrance','vibrance',setVibrance,-1,1,0.05,vibrance]].map(([lbl,key,setter,min,max,step,val])=>(
+                  <div key={key} style={{marginBottom:6}}>
+                    <div style={{display:'flex',justifyContent:'space-between'}}>
+                      <span style={{color:'#888',fontSize:10}}>{lbl}</span>
+                      <span style={{color:'#00ffc8',fontSize:10}}>{Number(val).toFixed(key==='hue'?0:2)}</span>
+                    </div>
+                    <input type="range" min={min} max={max} step={step} value={val}
+                      onChange={e=>setter(Number(e.target.value))} style={{width:'100%'}}/>
+                  </div>
+                ))}
+                <div style={{display:'flex',gap:4}}>
+                  <button onClick={applyHSLToLayer} disabled={!selectedLayer}
+                    style={{...S.btn(true),flex:1,fontSize:9,opacity:selectedLayer?1:0.4}}>Apply H/S</button>
+                  <button onClick={applyVibranceToLayer} disabled={!selectedLayer}
+                    style={{...S.btn(true),flex:1,fontSize:9,opacity:selectedLayer?1:0.4}}>Apply Vib</button>
+                </div>
+              </div>
+
+              {/* Sharpen + Noise Reduction */}
+              <div style={{borderTop:'1px solid #333',paddingTop:8}}>
+                <div style={S.label}>Sharpen / Noise</div>
+                <div style={{marginBottom:6}}>
+                  <div style={{display:'flex',justifyContent:'space-between'}}>
+                    <span style={{color:'#888',fontSize:10}}>Sharpen Amount</span>
+                    <span style={{color:'#00ffc8',fontSize:10}}>{sharpAmount.toFixed(2)}</span>
+                  </div>
+                  <input type="range" min={0} max={2} step={0.05} value={sharpAmount}
+                    onChange={e=>setSharpAmount(Number(e.target.value))} style={{width:'100%'}}/>
+                  <button onClick={applySharpenToLayer} disabled={!selectedLayer}
+                    style={{...S.btn(true),width:'100%',marginTop:4,fontSize:9,opacity:selectedLayer?1:0.4}}>Apply Sharpen</button>
+                </div>
+                <div>
+                  <div style={{display:'flex',justifyContent:'space-between'}}>
+                    <span style={{color:'#888',fontSize:10}}>Noise Reduction</span>
+                    <span style={{color:'#00ffc8',fontSize:10}}>{noiseAmount.toFixed(2)}</span>
+                  </div>
+                  <input type="range" min={0} max={1} step={0.05} value={noiseAmount}
+                    onChange={e=>setNoiseAmount(Number(e.target.value))} style={{width:'100%'}}/>
+                  <button onClick={applyNoiseRedToLayer} disabled={!selectedLayer}
+                    style={{...S.btn(true),width:'100%',marginTop:4,fontSize:9,opacity:selectedLayer?1:0.4}}>Apply Noise Red</button>
+                </div>
+              </div>
+
+              {!selectedLayer&&<div style={{color:'#555',fontSize:10,textAlign:'center',padding:'12px 0'}}>Select a layer to apply adjustments</div>}
+            </div>
+          )}
+
           {/* Brush Options (when brush tool active) */}
           {activeTool==='brush'||activeTool==='eraser' ? (
             <div style={{...S.panel,borderTop:'1px solid #333'}}>
@@ -822,6 +1080,39 @@ export default function SPXCanvasPage() {
         </div>
       </div>
     </div>
+      {/* ── Canvas Resize Dialog ── */}
+      {showResizeDialog&&(
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.8)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:8,padding:24,width:320,display:'flex',flexDirection:'column',gap:12}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span style={{color:'#00ffc8',fontFamily:'JetBrains Mono',fontSize:13,fontWeight:700}}>⛶ Canvas Size</span>
+              <button onClick={()=>setShowResizeDialog(false)} style={{background:'none',border:'none',color:'#888',cursor:'pointer',fontSize:18}}>✕</button>
+            </div>
+            <div style={{display:'flex',gap:12,alignItems:'center'}}>
+              <div style={{flex:1}}>
+                <div style={S.label}>Width (px)</div>
+                <input type="number" style={S.input} value={resizeW} onChange={e=>setResizeW(Number(e.target.value))}/>
+              </div>
+              <div style={{flex:1}}>
+                <div style={S.label}>Height (px)</div>
+                <input type="number" style={S.input} value={resizeH} onChange={e=>setResizeH(Number(e.target.value))}/>
+              </div>
+            </div>
+            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+              {[['HD','1280x720'],['FHD','1920x1080'],['4K','3840x2160'],['Square','1080x1080'],['Portrait','1080x1920'],['A4','2480x3508']].map(([name,size])=>{
+                const [w,h]=size.split('x').map(Number);
+                return <button key={name} onClick={()=>{setResizeW(w);setResizeH(h);}}
+                  style={{...S.btn(false),fontSize:9,padding:'2px 6px'}}>{name}</button>;
+              })}
+            </div>
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button onClick={()=>setShowResizeDialog(false)} style={{...S.btn(false),padding:'6px 14px'}}>Cancel</button>
+              <button onClick={applyResizeCanvas} style={{...S.btn(true),padding:'6px 14px'}}>Apply</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <button title="AI Fill" onClick={()=>setAiFillOpen(true)} style={{position:'fixed',bottom:24,right:24,zIndex:1000,width:48,height:48,borderRadius:'50%',background:'#FF6600',border:'none',color:'#fff',fontSize:20,cursor:'pointer',boxShadow:'0 4px 16px rgba(255,102,0,0.5)'}}>✦</button>
       {aiFillOpen&&(
         <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.85)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
