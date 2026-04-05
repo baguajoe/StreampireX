@@ -200,31 +200,29 @@ html,body{width:100%;background:#06060f;font-family:'Inter',system-ui,sans-serif
 
           <!-- Main arm tube — from pivot toward platter outer edge -->
           <!-- Pivot 208,26 → pre-S-bend point ~148,80 -->
-          <line x1="208" y1="26" x2="148" y2="80" stroke="url(#armGrad)" stroke-width="5" stroke-linecap="round"/>
-          <!-- Shadow -->
-          <line x1="209" y1="27" x2="149" y2="81" stroke="rgba(0,0,0,0.6)" stroke-width="7" stroke-linecap="round"/>
+          <!-- Main arm tube — from pivot toward platter outer edge -->
+          <line x1="208" y1="26" x2="150" y2="75" stroke="url(#armGrad)" stroke-width="5" stroke-linecap="round"/>
+          <line x1="209" y1="27" x2="151" y2="76" stroke="rgba(0,0,0,0.6)" stroke-width="7" stroke-linecap="round"/>
           <!-- Highlight -->
-          <line x1="207" y1="25" x2="147" y2="79" stroke="rgba(255,255,255,0.18)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="207" y1="25" x2="149" y2="74" stroke="rgba(255,255,255,0.18)" stroke-width="2" stroke-linecap="round"/>
 
           <!-- S-bend — first curve outward -->
-          <path d="M148,80 C142,88 136,90 130,96" stroke="#c0c0c0" stroke-width="4" fill="none" stroke-linecap="round"/>
-          <!-- S-bend — second curve inward (makes the S) -->
-          <path d="M130,96 C124,102 120,106 116,114" stroke="#c8c8c8" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+          <!-- S-bend smooth curve -->
+          <path d="M150,75 C140,83 130,85 124,93 C118,101 116,107 118,114" stroke="#c2c2c2" stroke-width="4" fill="none" stroke-linecap="round"/>
 
           <!-- Headshell connector -->
-          <rect x="109" y="112" width="14" height="5" rx="2" fill="#3a3a3a" stroke="#666" stroke-width="1"/>
+          <rect x="111" y="112" width="14" height="5" rx="2" fill="#3a3a3a" stroke="#666" stroke-width="1"/>
           <!-- Headshell body -->
-          <rect x="107" y="117" width="16" height="11" rx="2" fill="#2a2a2a" stroke="#555" stroke-width="1"/>
+          <rect x="109" y="117" width="16" height="10" rx="2" fill="#2a2a2a" stroke="#555" stroke-width="1"/>
           <!-- Cartridge -->
-          <rect x="108" y="128" width="14" height="7" rx="1" fill="#1c1c1c" stroke="#444" stroke-width="1"/>
-          <!-- Cantilever line -->
-          <line x1="115" y1="135" x2="115" y2="141" stroke="#666" stroke-width="1.5"/>
+          <rect x="110" y="127" width="13" height="5" rx="1" fill="#1c1c1c" stroke="#444" stroke-width="1"/>
+          <!-- Cantilever -->
+          <line x1="116" y1="132" x2="116" y2="137" stroke="#666" stroke-width="1.5"/>
 
-          <!-- Stylus tip — lands on outer groove of platter -->
-          <!-- Platter center ~95,100, outer groove ~65px radius → stylus at ~115,140 -->
-          <circle cx="115" cy="141" r="3" fill="#00ffcc" opacity="1"/>
-          <circle cx="115" cy="141" r="6" fill="#00ffcc" opacity="0.35"/>
-          <circle cx="115" cy="141" r="11" fill="#00ffcc" opacity="0.12"/>
+          <!-- Stylus glow — on outer groove -->
+          <circle cx="116" cy="137" r="3" fill="#00ffcc" opacity="1"/>
+          <circle cx="116" cy="137" r="6" fill="#00ffcc" opacity="0.35"/>
+          <circle cx="116" cy="137" r="11" fill="#00ffcc" opacity="0.12"/>
           <circle cx="115" cy="141" r="16" fill="#00ffcc" opacity="0.05"/>
 
           <!-- Arm lift cueing lever -->
