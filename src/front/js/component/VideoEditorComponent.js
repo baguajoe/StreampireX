@@ -4648,7 +4648,7 @@ TIMELINE
             Project
           </button>
           <button
-            onClick={() => setShowMediaBrowser(true)}
+            onClick={() => {}}
             title="Media Browser"
             style={{
               display: 'flex',
@@ -6346,7 +6346,7 @@ TIMELINE
 
           {/* Timeline Section */}
           <div className="d-flex">
-            {showMediaBrowser && (
+            {false && (
               <MediaBrowser
                 onFileSelect={(file) => {
                   setMediaLibrary(prev => {

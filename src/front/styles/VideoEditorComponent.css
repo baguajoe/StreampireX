@@ -333,3 +333,96 @@
   position: relative !important;
   z-index: 10 !important;
 }
+
+/* ── FILL BOTTOM SPACE ── */
+.video-editor-pro .editor-main-layout {
+  height: calc(100vh - 68px) !important;
+}
+.video-editor-pro .editor-center-panel {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+/* Bottom section: bin + timeline side by side */
+.video-editor-pro .editor-timeline-section {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+/* Media bin left of timeline */
+.video-editor-pro .media-bin-panel {
+  width: 350px !important;
+  min-width: 280px !important;
+  max-width: 400px !important;
+  height: 100% !important;
+  max-height: none !important;
+  flex-shrink: 0 !important;
+  border-right: 1px solid #21262d !important;
+  border-top: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+/* Timeline fills remaining space */
+.video-editor-pro .timeline-main-container {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+.video-editor-pro .timeline-tracks-container {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+.video-editor-pro .timeline-tracks-scroll {
+  flex: 1 !important;
+  overflow: auto !important;
+}
+
+/* ── BOTTOM SPACE FIX - targeted only ── */
+.video-editor-pro .editor-center-panel {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+.video-editor-pro .editor-timeline-section {
+  flex: 1 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+.video-editor-pro .timeline-controls-bar {
+  flex-shrink: 0 !important;
+}
+.video-editor-pro .timeline-main-container {
+  flex: 1 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+.video-editor-pro .timeline-ruler-container {
+  flex-shrink: 0 !important;
+}
+.video-editor-pro .timeline-tracks-container {
+  flex: 1 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  overflow: hidden !important;
+}
+.video-editor-pro .track-headers-column {
+  flex-shrink: 0 !important;
+  overflow-y: auto !important;
+}
+.video-editor-pro .timeline-tracks-scroll {
+  flex: 1 !important;
+  overflow: auto !important;
+  min-height: 0 !important;
+}
