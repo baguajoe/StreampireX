@@ -175,7 +175,7 @@ html,body{width:100%;background:#06060f;font-family:'Inter',system-ui,sans-serif
           </div>
         </div>
         <!-- Tonearm SVG overlay — full turntable size -->
-        <svg width="200" height="200" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10">
+        <svg viewBox="0 0 220 210" style="position:absolute;top:0;left:0;width:110%;height:105%;pointer-events:none;z-index:10;right:-10%">
           <!-- Counterweight (rear of arm) -->
           <circle cx="188" cy="22" r="7" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
           <circle cx="188" cy="22" r="4" fill="#1a1a1a" stroke="#444" stroke-width="1"/>
