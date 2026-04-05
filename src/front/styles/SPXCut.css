@@ -534,12 +534,13 @@ a { text-decoration: none; }
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 4px;
   background: var(--bg-2);
   border-top: 1px solid var(--border);
-  padding: 2px 8px;
-  height: 20px;
+  padding: 3px 6px;
+  height: 28px;
   flex-shrink: 0;
+  overflow: hidden;
 }
 .spxcut-monitor-tc { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
 .spxcut-monitor-tc.tc-orange { color: var(--orange); }
@@ -1682,3 +1683,21 @@ a { text-decoration: none; }
 .spxcut-text-dim { color: var(--text-dim); }
 .spxcut-mt-4 { margin-top: 4px; }
 .spxcut-separator { height: 1px; background: var(--border); margin: 6px 0; }
+
+.spxcut-monitor-tbtn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 11px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  padding: 0;
+  transition: all var(--trans);
+}
+.spxcut-monitor-tbtn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.spxcut-monitor-tbtn.mtbtn-play { color: var(--teal); }
