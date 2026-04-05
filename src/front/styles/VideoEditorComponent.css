@@ -597,3 +597,10 @@
   min-width: 200px !important;
   max-width: 200px !important;
 }
+
+/* ── Timeline Premiere-style layout fix ─────────────────── */
+.video-editor-pro .d-flex { display:flex !important; flex-direction:row !important; flex:1 !important; overflow:hidden !important; min-height:0 !important; min-width:0 !important; }
+.video-editor-pro .editor-timeline-section { flex:1 !important; display:flex !important; flex-direction:column !important; overflow:hidden !important; min-height:0 !important; min-width:0 !important; }
+.video-editor-pro .media-bin-panel { display:flex !important; flex-direction:column !important; flex-shrink:0 !important; width:220px !important; min-width:160px !important; max-width:450px !important; overflow:hidden !important; }
+.video-editor-pro .spx-resizer { width:4px !important; background:#21262d !important; cursor:col-resize !important; flex-shrink:0 !important; transition:background 0.15s; }
+.video-editor-pro .spx-resizer:hover { background:#00ffc8 !important; }

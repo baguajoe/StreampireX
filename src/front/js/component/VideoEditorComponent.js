@@ -5648,7 +5648,7 @@ TIMELINE
                           className="quick-add-btn"
                           onClick={(e) => {
                             e.stopPropagation();
-                            const videoTrack = tracks.find(t => t.type === 'video');
+                            const videoTrack = [...tracks].filter(t => t.type === 'video' && !t.locked).sort((a,b) => (a.zIndex||0)-(b.zIndex||0))[0] || null;
                             const audioTrack = tracks.find(t => t.type === 'audio');
                             const targetTrack = media.type === 'audio' ? audioTrack : videoTrack;
 
@@ -5849,7 +5849,7 @@ TIMELINE
                     <button
                       className="add-to-timeline-btn"
                       onClick={() => {
-                        const videoTrack = tracks.find(t => t.type === 'video');
+                        const videoTrack = [...tracks].filter(t => t.type === 'video' && !t.locked).sort((a,b) => (a.zIndex||0)-(b.zIndex||0))[0] || null;
                         const audioTrack = tracks.find(t => t.type === 'audio');
                         const targetTrack = sourceMonitorMedia.type === 'audio' ? audioTrack : videoTrack;
 
@@ -6860,7 +6860,7 @@ TIMELINE
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      const videoTrack = tracks.find(t => t.type === 'video');
+                                      const videoTrack = [...tracks].filter(t => t.type === 'video' && !t.locked).sort((a,b) => (a.zIndex||0)-(b.zIndex||0))[0] || null;
                                       const audioTrack = tracks.find(t => t.type === 'audio');
                                       const targetTrack = media.type === 'audio' ? audioTrack : videoTrack;
 
