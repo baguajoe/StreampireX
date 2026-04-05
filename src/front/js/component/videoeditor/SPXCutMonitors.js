@@ -174,7 +174,7 @@ function ProgramMonitor({ state, actions, selectors, playback }) {
       });
     });
     if (!drew) {
-      ctx.fillStyle = '#06060f';
+      ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, W, H);
     }
   }, [state.playhead, state.tracks, fitMode]);
@@ -284,7 +284,7 @@ function SPXCutMonitors({ state, actions, selectors, playback }) {
         <SourceMonitor  state={state} actions={actions} selectors={selectors} />
         <ProgramMonitor state={state} actions={actions} selectors={selectors} playback={playback} />
       </div>
-      <div className="spxcut-monitor-resize" ref={resizeRef} title="Drag to resize monitors" />
+
     </>
   );
 }
