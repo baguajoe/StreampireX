@@ -3919,8 +3919,9 @@ TIMELINE
     const mouseY = e.clientY - rect.top;
     const timelineWidth = rect.width;
 
-    // Calculate new time position
-    let newTime = ((mouseX - dragOffset) / timelineWidth) * duration;
+    // Calculate new time position using pixelsPerSecond (not percentage of width)
+    const pixelsPerSecond = 2 * zoom;
+    let newTime = (mouseX - dragOffset) / pixelsPerSecond;
     newTime = snapToGrid(newTime);
 
     // Determine which track the mouse is over based on Y position
@@ -5648,7 +5649,7 @@ TIMELINE
                           className="quick-add-btn"
                           onClick={(e) => {
                             e.stopPropagation();
-                            const videoTrack = [...tracks].filter(t => t.type === 'video' && !t.locked).sort((a,b) => (a.zIndex||0)-(b.zIndex||0))[0] || null;
+                            const videoTrack = [...tracks].filter(t => t.type === 'video' && !t.locked && !t.muted).sort((a,b) => (a.zIndex||0)-(b.zIndex||0))[0] || [...tracks].filter(t => t.type === 'video' && !t.locked).sort((a,b) => (a.zIndex||0)-(b.zIndex||0))[0] || null;
                             const audioTrack = tracks.find(t => t.type === 'audio');
                             const targetTrack = media.type === 'audio' ? audioTrack : videoTrack;
 
@@ -5757,7 +5758,6 @@ TIMELINE
             onPlayPause={() => setIsPlaying(p => !p)}
             onSeek={(t) => setCurrentTime(t === Infinity ? duration : t)}
             addClipToTrack={(trackId, clipObj) => {
-              // Add clip immediately — don't wait for thumbnail
               const clipToAdd = {
                 ...clipObj,
                 title: clipObj.title || clipObj.name,
@@ -5766,7 +5766,6 @@ TIMELINE
               setTracks(prev => prev.map(t =>
                 t.id === trackId ? { ...t, clips: [...t.clips, clipToAdd] } : t
               ));
-              // Then async update thumbnail if needed
               const finalize = (thumb) => {
                 if (!thumb) return;
                 setTracks(prev => prev.map(t => ({
@@ -5778,13 +5777,16 @@ TIMELINE
                 try {
                   const vid = document.createElement('video');
                   vid.crossOrigin = 'anonymous';
+                  vid.muted = true;
                   vid.src = clipObj.mediaUrl;
-                  vid.currentTime = 0.5;
-                  vid.onloadeddata = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 160; canvas.height = 90;
-                    canvas.getContext('2d').drawImage(vid, 0, 0, 160, 90);
-                    finalize(canvas.toDataURL('image/jpeg', 0.7));
+                  vid.onloadedmetadata = () => { vid.currentTime = Math.min(1, vid.duration * 0.1); };
+                  vid.onseeked = () => {
+                    try {
+                      const canvas = document.createElement('canvas');
+                      canvas.width = 160; canvas.height = 90;
+                      canvas.getContext('2d').drawImage(vid, 0, 0, 160, 90);
+                      finalize(canvas.toDataURL('image/jpeg', 0.7));
+                    } catch { finalize(null); }
                   };
                   vid.onerror = () => finalize(null);
                 } catch { finalize(null); }
@@ -5849,7 +5851,7 @@ TIMELINE
                     <button
                       className="add-to-timeline-btn"
                       onClick={() => {
-                        const videoTrack = [...tracks].filter(t => t.type === 'video' && !t.locked).sort((a,b) => (a.zIndex||0)-(b.zIndex||0))[0] || null;
+                        const videoTrack = [...tracks].filter(t => t.type === 'video' && !t.locked && !t.muted).sort((a,b) => (a.zIndex||0)-(b.zIndex||0))[0] || [...tracks].filter(t => t.type === 'video' && !t.locked).sort((a,b) => (a.zIndex||0)-(b.zIndex||0))[0] || null;
                         const audioTrack = tracks.find(t => t.type === 'audio');
                         const targetTrack = sourceMonitorMedia.type === 'audio' ? audioTrack : videoTrack;
 
@@ -6860,7 +6862,7 @@ TIMELINE
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      const videoTrack = [...tracks].filter(t => t.type === 'video' && !t.locked).sort((a,b) => (a.zIndex||0)-(b.zIndex||0))[0] || null;
+                                      const videoTrack = [...tracks].filter(t => t.type === 'video' && !t.locked && !t.muted).sort((a,b) => (a.zIndex||0)-(b.zIndex||0))[0] || [...tracks].filter(t => t.type === 'video' && !t.locked).sort((a,b) => (a.zIndex||0)-(b.zIndex||0))[0] || null;
                                       const audioTrack = tracks.find(t => t.type === 'audio');
                                       const targetTrack = media.type === 'audio' ? audioTrack : videoTrack;
 

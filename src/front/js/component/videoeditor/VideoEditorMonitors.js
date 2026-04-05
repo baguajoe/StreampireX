@@ -274,7 +274,7 @@ export default function VideoEditorMonitors({
         : media.duration)
       : 30;
     const dur = Math.max(1, (outPt > inPt) ? outPt - inPt : mediaDur);
-    const videoTrack = [...tracks].filter(t => t.type === 'video' && !t.locked).sort((a,b) => (a.zIndex||0)-(b.zIndex||0))[0] || null;
+    const videoTrack = [...tracks].filter(t => t.type === 'video' && !t.locked && !t.muted).sort((a,b) => (a.zIndex||0)-(b.zIndex||0))[0] || [...tracks].filter(t => t.type === 'video' && !t.locked).sort((a,b) => (a.zIndex||0)-(b.zIndex||0))[0] || null;
     const getEnd = (tr) => tr ? Math.max(0, ...tr.clips.map(c => c.startTime + c.duration)) : 0;
 
     // Single atomic update — build both clips then update tracks once
