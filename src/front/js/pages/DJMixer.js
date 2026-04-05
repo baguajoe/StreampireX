@@ -208,11 +208,14 @@ const Turntable = React.memo(({ playing, progress, color, label }) => {
       const tipY = cy+22+progress*10;
       // Smooth S-curve: cp1/cp2 control upper curve, cp3/cp4 control lower curve
       // Midpoint between the two segments for G1 continuity
-      const midX = pivX+8,  midY = pivY+58;
-      const cp1x=pivX+4,  cp1y=pivY+18;
-      const cp2x=pivX+16, cp2y=pivY+38;
-      const cp3x=pivX+12, cp3y=pivY+72;
-      const cp4x=tipX+18, cp4y=tipY-20;
+      // S-arm: pivot top-right, arm sweeps left-down to tipX/tipY on groove
+      // First segment: pivot -> midpoint (arm tube going left-down)
+      const midX = pivX-30, midY = pivY+50;
+      const cp1x=pivX-8,  cp1y=pivY+10;
+      const cp2x=pivX-18, cp2y=pivY+30;
+      // Second segment: midpoint -> stylus tip (S-bend curves slightly forward)
+      const cp3x=midX-10, cp3y=midY+20;
+      const cp4x=tipX+14, cp4y=tipY-16;
 
       ctx.strokeStyle = "rgba(0,0,0,0.7)"; ctx.lineWidth = 10; ctx.lineCap = "round"; ctx.lineJoin = "round";
       ctx.beginPath(); ctx.moveTo(pivX+1, pivY+2);
