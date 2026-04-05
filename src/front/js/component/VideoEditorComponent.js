@@ -6466,10 +6466,25 @@ TIMELINE
                 MEDIA BIN / PROJECT PANEL - Like Premiere Pro
                 ======================================== */}
             {showMediaBin && (
-              <div className="media-bin-panel" style={{
+              <div className="media-bin-panel"
+              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const files = Array.from(e.dataTransfer.files);
+                files.forEach(file => {
+                  const url = URL.createObjectURL(file);
+                  const type = file.type.startsWith('video') ? 'video' : file.type.startsWith('audio') ? 'audio' : 'image';
+                  const item = { id: Date.now() + Math.random(), name: file.name, type, src: url, duration: 5, file };
+                  setMediaItems(prev => [...(prev||[]), item]);
+                });
+              }}
+              style={{
                 background: '#0d1117',
                 borderTop: '1px solid #21262d',
-                flex: 1,
+                width: '220px',
+                minWidth: '220px',
+                maxWidth: '220px',
+                flex: 'none',
                 minHeight: 0,
                 display: 'flex',
                 flexDirection: 'column',
