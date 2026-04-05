@@ -15,7 +15,15 @@ function SPXCutTimeline({ state, actions, selectors, drag, playback }) {
   const rulerCanvasRef= useRef(null);
   const scrollRef     = useRef(null);
   const [dropOver, setDropOver]     = useState(false);
+  const [markers, setMarkers]         = useState([]);
   const [rulerWidth, setRulerWidth] = useState(0);
+
+  // Marker listener
+  useEffect(() => {
+    const handler = (e) => setMarkers(prev => [...prev, { time: e.detail.time, label: e.detail.label || '' }]);
+    window.addEventListener('spxcut:addmarker', handler);
+    return () => window.removeEventListener('spxcut:addmarker', handler);
+  }, []);
 
   const pps = state.zoom; // pixels per second
 
@@ -172,6 +180,18 @@ function SPXCutTimeline({ state, actions, selectors, drag, playback }) {
           style={{ width: totalWidth }}
         >
           <canvas className="spxcut-ruler-canvas" ref={rulerCanvasRef} />
+          {markers.map((m, i) => (
+            <div
+              key={i}
+              className="spxcut-marker"
+              style={{ left: m.time * pps - state.scrollLeft, bottom: 0, top: 0 }}
+              onClick={() => actions.setPlayhead(m.time)}
+              title={m.label || formatTimecode(m.time)}
+            >
+              <div className="spxcut-marker-head" />
+              {m.label && <span className="spxcut-marker-label">{m.label}</span>}
+            </div>
+          ))}
         </div>
       </div>
 

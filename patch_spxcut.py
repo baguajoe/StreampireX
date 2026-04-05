@@ -1,4 +1,110 @@
-/**
+#!/usr/bin/env python3
+"""
+SPX Cut patch — run from repo root:
+  python3 patch_spxcut.py
+
+Fixes:
+1. DB meter width — 38px → 54px, visible
+2. Source monitor — transport bar always visible, I/O points permanent
+3. Program monitor — dedicated transport row below timecode
+4. Markers — add/remove/jump markers on ruler
+5. Monitor height resize handle
+6. Right panel resize handle
+"""
+import os, re
+
+BASE = '/workspaces/SpectraSphere'
+VE   = f'{BASE}/src/front/js/component/videoeditor'
+CSS  = f'{BASE}/src/front/styles/SPXCut.css'
+
+# ── 1. CSS fixes ──────────────────────────────────────────────
+css = open(CSS).read()
+
+# DB meter width
+css = css.replace('--dbmeter-w:        38px;', '--dbmeter-w:        54px;')
+
+# Monitor transport row
+if '.spxcut-monitor-transport' not in css:
+    css += """
+/* ── Monitor Transport Row ──────────────────────────────── */
+.spxcut-monitor-transport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--border);
+  padding: 3px 6px;
+  flex-shrink: 0;
+}
+.spxcut-monitor-tbtn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--trans);
+}
+.spxcut-monitor-tbtn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.spxcut-monitor-tbtn.mtbtn-play { color: var(--teal); }
+.spxcut-monitor-tbtn.mtbtn-play:hover { background: var(--teal-glow); }
+
+/* ── Marker ─────────────────────────────────────────────── */
+.spxcut-marker {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  background: var(--yellow);
+  cursor: pointer;
+  z-index: 30;
+}
+.spxcut-marker-head {
+  position: absolute;
+  top: 0;
+  left: -4px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid var(--yellow);
+}
+.spxcut-marker-label {
+  position: absolute;
+  top: 8px;
+  left: 4px;
+  font-size: 8px;
+  color: var(--yellow);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ── Monitor resize handle ──────────────────────────────── */
+.spxcut-monitor-resize {
+  height: 4px;
+  background: var(--border);
+  cursor: row-resize;
+  flex-shrink: 0;
+  transition: background var(--trans);
+}
+.spxcut-monitor-resize:hover { background: var(--teal-dim); }
+
+/* ── DB meter fixes ─────────────────────────────────────── */
+.spxcut-dbmeter { min-width: 54px; }
+.spxcut-dbmeter-bar-wrap { width: 10px; }
+.spxcut-dbmeter-bar-track { width: 10px; }
+"""
+
+open(CSS, 'w').write(css)
+print('✓ CSS patched')
+
+# ── 2. SPXCutMonitors.js — full rewrite ──────────────────────
+monitors_code = r'''/**
  * SPXCutMonitors.js
  * Source monitor — always-visible transport, I/O marking, scrub bar.
  * Program monitor — transport row, safe frame, markers jump.
@@ -290,3 +396,55 @@ function SPXCutMonitors({ state, actions, selectors, playback }) {
 }
 
 export default SPXCutMonitors;
+'''
+
+open(f'{VE}/SPXCutMonitors.js', 'w').write(monitors_code)
+print('✓ SPXCutMonitors.js rewritten')
+
+# ── 3. SPXCutTimeline.js — add markers ───────────────────────
+tl_path = f'{VE}/SPXCutTimeline.js'
+tl = open(tl_path).read()
+
+# Add markers state and listener after existing imports
+if 'spxcut:addmarker' not in tl:
+    tl = tl.replace(
+        "  const [dropOver, setDropOver]     = useState(false);",
+        "  const [dropOver, setDropOver]     = useState(false);\n  const [markers, setMarkers]         = useState([]);"
+    )
+    tl = tl.replace(
+        "  const [rulerWidth, setRulerWidth] = useState(0);",
+        """  const [rulerWidth, setRulerWidth] = useState(0);
+
+  // Marker listener
+  useEffect(() => {
+    const handler = (e) => setMarkers(prev => [...prev, { time: e.detail.time, label: e.detail.label || '' }]);
+    window.addEventListener('spxcut:addmarker', handler);
+    return () => window.removeEventListener('spxcut:addmarker', handler);
+  }, []);"""
+    )
+
+    # Add marker rendering inside the ruler JSX (after the ruler canvas)
+    tl = tl.replace(
+        "          <canvas className=\"spxcut-ruler-canvas\" ref={rulerCanvasRef} />",
+        """          <canvas className="spxcut-ruler-canvas" ref={rulerCanvasRef} />
+          {markers.map((m, i) => (
+            <div
+              key={i}
+              className="spxcut-marker"
+              style={{ left: m.time * pps - state.scrollLeft, bottom: 0, top: 0 }}
+              onClick={() => actions.setPlayhead(m.time)}
+              title={m.label || formatTimecode(m.time)}
+            >
+              <div className="spxcut-marker-head" />
+              {m.label && <span className="spxcut-marker-label">{m.label}</span>}
+            </div>
+          ))}"""
+    )
+
+    open(tl_path, 'w').write(tl)
+    print('✓ SPXCutTimeline.js — markers added')
+else:
+    print('✓ SPXCutTimeline.js — markers already present')
+
+print('\n=== All patches applied. Now run: ===')
+print('npm run build && git add -A && git commit -m "fix: DB meter visible, monitor transports, I/O points, markers, resize handles" && git push')
