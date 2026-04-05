@@ -590,3 +590,10 @@
   min-width: 14px !important;
   text-align: right !important;
 }
+
+/* ── Shrink media bin so timeline no longer overlaps ── */
+.video-editor-pro .media-bin-panel {
+  width: 200px !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
+}
