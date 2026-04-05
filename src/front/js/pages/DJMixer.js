@@ -189,7 +189,7 @@ const Turntable = React.memo(({ playing, progress, color, label }) => {
       ctx.fillText("33", rpmX+2, btnY-1); ctx.fillText("45", rpmX+2, btnY+8);
 
       // Tonearm
-      const pivX = cx+PR+31;
+      const pivX = cx+PR+18;
       const pivY = H*0.29;
       ctx.save();
 
@@ -204,18 +204,19 @@ const Turntable = React.memo(({ playing, progress, color, label }) => {
       ctx.fillStyle = "#555"; ctx.beginPath(); ctx.arc(pivX, pivY, 4, 0, Math.PI*2); ctx.fill();
       ctx.fillStyle = "#ccc"; ctx.beginPath(); ctx.arc(pivX, pivY, 2, 0, Math.PI*2); ctx.fill();
 
-      const tipX = cx+PR-14-progress*20;
-      const tipY = cy+22+progress*10;
+      const tipX = cx+PR*0.75-progress*18;
+      const tipY = cy-PR*0.1+progress*12;
       // Smooth S-curve: cp1/cp2 control upper curve, cp3/cp4 control lower curve
       // Midpoint between the two segments for G1 continuity
-      // S-arm: pivot top-right, arm sweeps left-down to tipX/tipY on groove
-      // First segment: pivot -> midpoint (arm tube going left-down)
-      const midX = pivX-30, midY = pivY+50;
-      const cp1x=pivX-8,  cp1y=pivY+10;
-      const cp2x=pivX-18, cp2y=pivY+30;
-      // Second segment: midpoint -> stylus tip (S-bend curves slightly forward)
-      const cp3x=midX-10, cp3y=midY+20;
-      const cp4x=tipX+14, cp4y=tipY-16;
+      // S-arm: long straight tube from pivot angling down-left, then S-bend to headshell
+      const armEndX = pivX - 55, armEndY = pivY + 55;
+      const midX = armEndX, midY = armEndY;
+      // First bezier: pivot straight down-left (main arm tube - nearly linear)
+      const cp1x=pivX-18, cp1y=pivY+18;
+      const cp2x=pivX-38, cp2y=pivY+38;
+      // Second bezier: S-bend from arm end to stylus tip
+      const cp3x=armEndX-8, cp3y=armEndY+18;
+      const cp4x=tipX+10,   cp4y=tipY-8;
 
       ctx.strokeStyle = "rgba(0,0,0,0.7)"; ctx.lineWidth = 10; ctx.lineCap = "round"; ctx.lineJoin = "round";
       ctx.beginPath(); ctx.moveTo(pivX+1, pivY+2);
