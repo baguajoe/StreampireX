@@ -7162,7 +7162,7 @@ TIMELINE
               <div className="timeline-main-container">
                 {/* Ruler */}
                 <div className="timeline-ruler-container">
-                  <div className="track-headers-spacer" style={{ background: '#252830', width: '280px', minWidth: '280px' }} />
+                  <div className="track-headers-spacer" style={{ width: '280px', minWidth: '280px' }} />
                   <div className="timeline-ruler-scroll">
                     <div
                       className="timeline-ruler"
@@ -7214,7 +7214,7 @@ TIMELINE
 
                 {/* Tracks */}
                 <div className="timeline-tracks-container">
-                  <div className="track-headers-column" style={{ background: '#252830' }}>
+                  <div className="track-headers-column">
                     {tracks.sort((a, b) => b.zIndex - a.zIndex).map(track => (
                       <div key={track.id} className="track-header-container" style={{
                         height: '52px',

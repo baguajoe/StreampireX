@@ -260,3 +260,29 @@
 /* Tool grid */
 .video-editor-pro .tool-grid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:4px!important}
 .video-editor-pro .tool-btn,.video-editor-pro .spx-tool-btn{display:flex!important;visibility:visible!important}
+
+/* ── TRACK HEADER WHITE FIX ── */
+.video-editor-pro .track-header-container,
+.video-editor-pro .track-header-container *,
+.video-editor-pro .spx-track-header,
+.video-editor-pro .spx-track-header * {
+  background: #0d1117 !important;
+  background-color: #0d1117 !important;
+  color: #e6edf3 !important;
+}
+.video-editor-pro .track-headers-column,
+.video-editor-pro .spx-track-headers {
+  background: #0d1117 !important;
+  background-color: #0d1117 !important;
+}
+.video-editor-pro .track-name-label,
+.video-editor-pro .spx-track-name { color: #e6edf3 !important; }
+.video-editor-pro .track-z-index,
+.video-editor-pro .spx-track-layer { color: #4e6a82 !important; }
+.video-editor-pro .track-toggle-btn,
+.video-editor-pro .track-lock-btn,
+.video-editor-pro .track-layer-btn,
+.video-editor-pro .spx-track-btn {
+  background: transparent !important;
+  color: #4e6a82 !important;
+}
