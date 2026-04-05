@@ -88,6 +88,11 @@ const MENUS = {
     { label: 'Quick Apply',        shortcut: 'Shift+5', action: 'quickApply' },
     { sep: true },
     { label: 'Reset Layout',       shortcut: '',        action: 'resetLayout' },
+    { sep: true },
+    { label: 'Audio Mixer',        shortcut: 'Shift+6', action: 'mixer' },
+    { label: 'Scopes',             shortcut: 'Shift+7', action: 'scopes' },
+    { label: 'Scene Detection',    shortcut: 'Shift+8', action: 'sceneDetect' },
+    { label: 'Proxy Mode',         shortcut: 'Shift+P', action: 'proxyMode' },
   ],
 };
 
@@ -254,6 +259,18 @@ function SPXCutHeader({ state, actions, selectors, playback }) {
       case 'colorGrade':
         actions.setColorGrade(!state.showColorGrade);
         break;
+      case 'mixer':
+        actions.setMixer(!state.showMixer);
+        break;
+      case 'scopes':
+        actions.setScopes(!state.showScopes);
+        break;
+      case 'sceneDetect':
+        actions.setSceneDetect(!state.showSceneDetect);
+        break;
+      case 'proxyMode':
+        actions.setProxyMode(!state.proxyMode);
+        break;
 
       case 'quickApply':
         actions.setQuickApply(!state.showQuickApply);
@@ -382,6 +399,17 @@ function SPXCutHeader({ state, actions, selectors, playback }) {
         >
           {state.isDirty ? '● Save' : 'Saved'}
         </button>
+        {state.proxyMode && <span className="spxcut-proxy-badge">PROXY</span>}
+        <button
+          className="spxcut-proxy-btn"
+          onClick={() => handleAction('mixer')}
+          title="Audio Mixer (Shift+6)"
+        >🎚</button>
+        <button
+          className="spxcut-proxy-btn"
+          onClick={() => handleAction('scopes')}
+          title="Scopes (Shift+7)"
+        >📊</button>
         <button
           className="spxcut-hbtn hbtn-export"
           onClick={() => actions.setExportModal(true)}

@@ -1752,3 +1752,140 @@ a { text-decoration: none; }
 .spxcut-dbmeter { min-width: 54px; }
 .spxcut-dbmeter-bar-wrap { width: 10px; }
 .spxcut-dbmeter-bar-track { width: 10px; }
+
+/* ── Audio Mixer Panel ──────────────────────────────────── */
+.spxcut-mixer-panel {
+  display: flex;
+  flex-direction: column;
+  height: 220px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  background: var(--bg-base);
+  overflow: hidden;
+}
+.spxcut-mixer-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.spxcut-mixer-toggle-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--teal);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.spxcut-mixer-inner {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* ── Scopes Panel ───────────────────────────────────────── */
+.spxcut-scopes-panel {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.spxcut-scope-tabs {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.spxcut-scope-tab {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: 9px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all var(--trans);
+  font-family: var(--font);
+}
+.spxcut-scope-tab.scope-active {
+  border-color: var(--teal);
+  color: var(--teal);
+  background: var(--teal-glow-sm);
+}
+.spxcut-scope-canvas-wrap {
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.spxcut-scope-canvas-wrap canvas {
+  width: 100%;
+  display: block;
+}
+
+/* ── Scene Detection ────────────────────────────────────── */
+.spxcut-scene-panel {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.spxcut-scene-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.spxcut-scene-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--trans);
+}
+.spxcut-scene-item:hover {
+  border-color: var(--teal-dim);
+  background: var(--teal-glow-sm);
+}
+.spxcut-scene-thumb {
+  width: 40px;
+  height: 23px;
+  background: var(--bg-4);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.spxcut-scene-thumb canvas { width: 100%; height: 100%; display: block; }
+.spxcut-scene-tc { font-size: 10px; color: var(--teal); }
+.spxcut-scene-label { font-size: 9px; color: var(--text-dim); flex: 1; }
+
+/* ── Proxy Badge ────────────────────────────────────────── */
+.spxcut-proxy-badge {
+  background: var(--orange-glow-sm);
+  border: 1px solid var(--orange-dim);
+  border-radius: var(--radius-sm);
+  color: var(--orange);
+  font-size: 9px;
+  padding: 2px 6px;
+  margin-left: 6px;
+}
+.spxcut-proxy-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: 10px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all var(--trans);
+  font-family: var(--font);
+}
+.spxcut-proxy-btn:hover { border-color: var(--orange); color: var(--orange); }
+.spxcut-proxy-btn.proxy-on { border-color: var(--orange); color: var(--orange); background: var(--orange-glow-sm); }
