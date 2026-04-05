@@ -6469,12 +6469,11 @@ TIMELINE
               <div className="media-bin-panel" style={{
                 background: '#0d1117',
                 borderTop: '1px solid #21262d',
-                minHeight: '160px',
-                maxHeight: '160px',
-                height: '160px',
+                flex: 1,
+                minHeight: 0,
                 display: 'flex',
                 flexDirection: 'column',
-                flexShrink: 0
+                overflow: 'hidden'
               }}>
                 {/* Media Bin Header */}
                 <div style={{

@@ -426,3 +426,90 @@
   overflow: auto !important;
   min-height: 0 !important;
 }
+
+/* ── D-FLEX WRAPPER FILLS HEIGHT ── */
+.video-editor-pro .d-flex {
+  display: flex !important;
+  flex-direction: row !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* ── FINAL HEIGHT FILL ── */
+.video-editor-pro .d-flex {
+  height: 100% !important;
+  align-items: stretch !important;
+}
+.video-editor-pro .media-bin-panel {
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  flex-shrink: 0 !important;
+  width: 350px !important;
+  min-width: 280px !important;
+}
+.video-editor-pro .editor-timeline-section {
+  height: 100% !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+}
+.video-editor-pro .timeline-tracks-scroll {
+  flex: 1 !important;
+  min-height: 0 !important;
+}
+.video-editor-pro .timeline-tracks-content {
+  min-height: 100% !important;
+}
+
+/* ── FIX BIN/TIMELINE OVERLAP ── */
+.video-editor-pro .d-flex {
+  flex-direction: row !important;
+  align-items: stretch !important;
+  overflow: hidden !important;
+}
+.video-editor-pro .media-bin-panel {
+  width: 340px !important;
+  min-width: 280px !important;
+  max-width: 340px !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  border-right: 1px solid #21262d !important;
+  overflow: hidden !important;
+  z-index: 1 !important;
+}
+.video-editor-pro .editor-timeline-section {
+  flex: 1 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  z-index: 1 !important;
+}
+
+/* ── TIMELINE CONTROLS INSIDE TIMELINE SECTION ── */
+.video-editor-pro .editor-timeline-section {
+  position: relative !important;
+  overflow: hidden !important;
+}
+.video-editor-pro .timeline-controls-bar {
+  position: relative !important;
+  z-index: 1 !important;
+  flex-shrink: 0 !important;
+  width: 100% !important;
+}
+.video-editor-pro .timeline-main-container {
+  position: relative !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+/* Bin fixed width, timeline takes rest */
+.video-editor-pro .media-bin-panel {
+  flex: 0 0 300px !important;
+  width: 300px !important;
+  min-width: 240px !important;
+  max-width: 300px !important;
+}
+.video-editor-pro .editor-timeline-section {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
