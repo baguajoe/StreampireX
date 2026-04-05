@@ -3050,6 +3050,19 @@ TIMELINE
     { label: 'Volume', value: KEYFRAME_PROPERTIES.VOLUME },
   ];
 
+  const getClipAnimatedValue = (clip, property, time, fallback = 0) => {
+    if (!clip || !clip.keyframes || !clip.keyframes.length) return fallback;
+    const kfs = clip.keyframes.filter(k => k.property === property).sort((a, b) => a.time - b.time);
+    if (!kfs.length) return fallback;
+    if (time <= kfs[0].time) return kfs[0].value;
+    if (time >= kfs[kfs.length - 1].time) return kfs[kfs.length - 1].value;
+    const next = kfs.find(k => k.time > time);
+    const prev = kfs.slice().reverse().find(k => k.time <= time);
+    if (!prev || !next) return fallback;
+    const t = (time - prev.time) / (next.time - prev.time);
+    return prev.value + (next.value - prev.value) * t;
+  };
+
   const getSelectedClipCurrentAnimatedValue = () => {
     if (!selectedClip) return 0;
     const fallback = DEFAULT_KEYFRAME_VALUE_BY_PROPERTY[selectedKeyframeProperty] ?? 0;
@@ -5692,19 +5705,34 @@ TIMELINE
             setSourceMedia={setSourceMedia}
             showSourceMon={showSourceMonitor}
             setShowSourceMon={setShowSourceMonitor}
-            addClipToTrack={(media, trackIdx) => {
-              const ti = trackIdx ?? 0;
-              if (!tracks[ti]) return;
-              const newClip = {
-                id: Date.now(),
-                name: media.name,
-                url: media.url,
-                type: media.type,
-                startTime: tracks[ti].clips.reduce((max, c) => Math.max(max, c.startTime + c.duration), 0),
-                duration: media.duration || 5,
-                effects: [],
+            addClipToTrack={(trackId, clipObj) => {
+              const finalize = (thumb) => {
+                setTracks(prev => prev.map(t =>
+                  t.id === trackId ? { ...t, clips: [...t.clips, {
+                    ...clipObj,
+                    title: clipObj.title || clipObj.name,
+                    thumbnail: thumb || clipObj.thumbnail || null
+                  }] } : t
+                ));
               };
-              setTracks(prev => prev.map((t, i) => i === ti ? { ...t, clips: [...t.clips, newClip] } : t));
+              // Auto-generate thumbnail from video URL
+              if (clipObj.type === 'video' && clipObj.mediaUrl && !clipObj.thumbnail) {
+                try {
+                  const vid = document.createElement('video');
+                  vid.crossOrigin = 'anonymous';
+                  vid.src = clipObj.mediaUrl;
+                  vid.currentTime = 0.5;
+                  vid.onloadeddata = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 160; canvas.height = 90;
+                    canvas.getContext('2d').drawImage(vid, 0, 0, 160, 90);
+                    finalize(canvas.toDataURL('image/jpeg', 0.7));
+                  };
+                  vid.onerror = () => finalize(null);
+                } catch { finalize(null); }
+              } else {
+                finalize(clipObj.thumbnail || null);
+              }
             }}
             formatTime={formatTime}
           />
@@ -7365,13 +7393,18 @@ TIMELINE
                                       style={{
                                         left: `${leftPosition}px`,
                                         width: `${width}px`,
-                                        backgroundColor: track.color,
+                                        backgroundColor: clip.thumbnail ? '#000' :
+                                          clip.type === 'video' ? '#1a3a5c' :
+                                          clip.type === 'audio' ? '#1a3a2a' :
+                                          clip.type === 'image' ? '#3a2a1a' : (track.color || '#2a2a4a'),
                                         opacity: clip.compositing?.opacity ? clip.compositing.opacity / 100 : 1,
                                         cursor: track.locked ? 'not-allowed' : 'grab',
                                         backgroundImage: clip.thumbnail ? `url(${clip.thumbnail})` : 'none',
                                         backgroundSize: 'cover',
-                                        backgroundPosition: 'center',
-                                        backgroundBlendMode: 'luminosity'
+                                        backgroundPosition: 'left center',
+                                        backgroundRepeat: 'repeat-x',
+                                        border: clip.type === 'video' ? '1px solid #4a9eff44' :
+                                                clip.type === 'audio' ? '1px solid #00ffc844' : '1px solid #ff990044'
                                       }}
                                       onClick={(e) => {
                                         e.stopPropagation();
