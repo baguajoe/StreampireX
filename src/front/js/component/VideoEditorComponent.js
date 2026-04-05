@@ -3884,7 +3884,29 @@ TIMELINE
     const clickX = e.clientX - rect.left;
     const clipStartPixel = clip.startTime * 2 * zoom;
 
-    setDraggedClip({ ...clip, trackId, originalTrackId: trackId });
+    // Find linked clip (audio linked to video or vice versa)
+    const linkedClip = (() => {
+      if (clip.type === 'video') {
+        // Look for audio clip with same title
+        for (const t of tracks) {
+          if (t.type === 'audio') {
+            const a = t.clips.find(c => c.title === clip.title + ' (Audio)' || c.title === clip.title + ' (audio)');
+            if (a) return { clip: a, trackId: t.id };
+          }
+        }
+      } else if (clip.type === 'audio') {
+        const baseName = clip.title.replace(' (Audio)', '').replace(' (audio)', '');
+        for (const t of tracks) {
+          if (t.type === 'video') {
+            const v = t.clips.find(c => c.title === baseName);
+            if (v) return { clip: v, trackId: t.id };
+          }
+        }
+      }
+      return null;
+    })();
+
+    setDraggedClip({ ...clip, trackId, originalTrackId: trackId, linkedClip });
     setDragOffset(clickX - clipStartPixel);
     setSelectedClip(clip);
   };
@@ -3920,23 +3942,20 @@ TIMELINE
     // Check collisions on target track
     newTime = checkCollisions(targetTrackId, draggedClip.id, newTime, draggedClip.duration);
 
-    // Move clip (possibly to new track)
+    // Move clip (possibly to new track) + linked clip
+    const linked = draggedClip.linkedClip;
     if (targetTrackId !== draggedClip.trackId) {
       // Moving to a different track
       setTracks(prevTracks =>
         prevTracks.map(track => {
           if (track.id === draggedClip.trackId) {
-            // Remove from original track
-            return {
-              ...track,
-              clips: track.clips.filter(c => c.id !== draggedClip.id)
-            };
+            return { ...track, clips: track.clips.filter(c => c.id !== draggedClip.id) };
           } else if (track.id === targetTrackId) {
-            // Add to new track
-            return {
-              ...track,
-              clips: [...track.clips, { ...draggedClip, startTime: Math.max(0, newTime) }]
-            };
+            return { ...track, clips: [...track.clips, { ...draggedClip, startTime: Math.max(0, newTime) }] };
+          }
+          // Move linked clip too
+          if (linked && track.id === linked.trackId) {
+            return { ...track, clips: track.clips.map(c => c.id === linked.clip.id ? { ...c, startTime: Math.max(0, newTime) } : c) };
           }
           return track;
         })
@@ -3944,20 +3963,17 @@ TIMELINE
       // Update draggedClip's trackId
       setDraggedClip(prev => ({ ...prev, trackId: targetTrackId }));
     } else {
-      // Moving within same track
+      // Moving within same track + move linked clip
       setTracks(prevTracks =>
-        prevTracks.map(track =>
-          track.id === draggedClip.trackId
-            ? {
-              ...track,
-              clips: track.clips.map(clip =>
-                clip.id === draggedClip.id
-                  ? { ...clip, startTime: Math.max(0, newTime) }
-                  : clip
-              )
-            }
-            : track
-        )
+        prevTracks.map(track => {
+          if (track.id === draggedClip.trackId) {
+            return { ...track, clips: track.clips.map(c => c.id === draggedClip.id ? { ...c, startTime: Math.max(0, newTime) } : c) };
+          }
+          if (linked && track.id === linked.trackId) {
+            return { ...track, clips: track.clips.map(c => c.id === linked.clip.id ? { ...c, startTime: Math.max(0, newTime) } : c) };
+          }
+          return track;
+        })
       );
     }
   };
