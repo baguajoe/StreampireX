@@ -280,11 +280,13 @@ export default function VideoEditorMonitors({
     const getEnd = (tr) => tr ? Math.max(0, ...tr.clips.map(c => c.startTime + c.duration)) : 0;
 
     // Single atomic update — build both clips then update tracks once
+    // Use same startTime for both so they're perfectly synced
+    const insertStart = Math.max(getEnd(videoTrack), getEnd(audioTrack));
     const clipsToAdd = [];
     if ((mode === 'video' || mode === 'both') && media.type !== 'audio' && videoTrack) {
       clipsToAdd.push({ trackId: videoTrack.id, clip: {
         id: Date.now(), title: media.name, type: 'video',
-        startTime: getEnd(videoTrack), duration: dur,
+        startTime: insertStart, duration: dur,
         mediaUrl: media.url, r2_key: media.r2_key, cloudId: media.cloudId,
         thumbnail: media.thumbnail, inPoint: inPt, outPoint: outPt,
         effects: [], keyframes: [],
@@ -294,7 +296,7 @@ export default function VideoEditorMonitors({
     if ((mode === 'audio' || mode === 'both') && (media.type === 'video' || media.type === 'audio') && audioTrack) {
       clipsToAdd.push({ trackId: audioTrack.id, clip: {
         id: Date.now()+1, title: media.name + ' (Audio)', type: 'audio',
-        startTime: getEnd(audioTrack), duration: dur,
+        startTime: insertStart, duration: dur,
         mediaUrl: media.url, r2_key: media.r2_key, cloudId: media.cloudId,
         inPoint: inPt, outPoint: outPt, effects: [], keyframes: [],
         compositing: { opacity:100 }
