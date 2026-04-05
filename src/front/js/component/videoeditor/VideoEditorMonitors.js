@@ -409,21 +409,46 @@ export default function VideoEditorMonitors({
               </div>
             )}
           </div>
-          <div className="spx-monitor-footer">
-            <span className="spx-monitor-timecode" title="SMPTE Timecode">
-            {(() => {
-              const fr = 24;
-              const totalFrames = Math.floor(currentTime * fr);
-              const ff = totalFrames % fr;
-              const ts = Math.floor(totalFrames / fr);
-              return `${String(Math.floor(ts/3600)).padStart(2,'0')}:${String(Math.floor(ts/60)%60).padStart(2,'0')}:${String(ts%60).padStart(2,'0')}:${String(ff).padStart(2,'0')}`;
-            })()}
-          </span>
+          <div className="spx-monitor-footer" style={{flexDirection:'column',gap:4,padding:'4px 8px'}}>
+            {/* Row 1 — timecode + I/O markers */}
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              <span className="spx-monitor-timecode" title="SMPTE Timecode">
+              {(() => {
+                const fr = 24;
+                const totalFrames = Math.floor(currentTime * fr);
+                const ff = totalFrames % fr;
+                const ts = Math.floor(totalFrames / fr);
+                return `${String(Math.floor(ts/3600)).padStart(2,'0')}:${String(Math.floor(ts/60)%60).padStart(2,'0')}:${String(ts%60).padStart(2,'0')}:${String(ff).padStart(2,'0')}`;
+              })()}
+              </span>
+              {sourceMedia && (
+                <button className="spx-tbtn" style={{fontSize:10,padding:'2px 6px'}}
+                  onClick={() => setShowSourceMon(true)} title="Edit In/Out points">
+                  Edit I/O
+                </button>
+              )}
+            </div>
+            {/* Row 2 — Insert Video / Insert Audio / Overwrite buttons */}
             {sourceMedia && (
-              <button className="spx-tbtn active" style={{ marginLeft:'auto', fontSize:10, padding:'2px 8px' }}
-                onClick={() => setShowSourceMon(true)}>
-                Edit In/Out
-              </button>
+              <div style={{display:'flex',gap:4}}>
+                <button className="spx-tbtn active" style={{fontSize:10,padding:'2px 8px',display:'flex',alignItems:'center',gap:3}}
+                  title="Insert Video only (,)"
+                  onClick={() => handleAddToTimeline(sourceMedia, 0, sourceMedia.duration || 30, 'video')}>
+                  <Video size={11}/> Video
+                </button>
+                {(sourceMedia.type === 'video' || sourceMedia.type === 'audio') && (
+                  <button className="spx-tbtn" style={{fontSize:10,padding:'2px 8px',display:'flex',alignItems:'center',gap:3,background:'rgba(255,107,107,0.15)',borderColor:'rgba(255,107,107,0.4)',color:'#ff6b6b'}}
+                    title="Insert Audio only"
+                    onClick={() => handleAddToTimeline(sourceMedia, 0, sourceMedia.duration || 30, 'audio')}>
+                    <AudioWaveform size={11}/> Audio
+                  </button>
+                )}
+                <button className="spx-tbtn" style={{fontSize:10,padding:'2px 8px',display:'flex',alignItems:'center',gap:3,background:'rgba(0,255,200,0.1)',borderColor:'rgba(0,255,200,0.3)',color:'#00ffc8'}}
+                  title="Insert Video + Audio (.)"
+                  onClick={() => handleAddToTimeline(sourceMedia, 0, sourceMedia.duration || 30, 'both')}>
+                  <Plus size={11}/> Insert
+                </button>
+              </div>
             )}
           </div>
         </div>
