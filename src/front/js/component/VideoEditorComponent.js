@@ -6454,7 +6454,7 @@ TIMELINE
           </div>
 
           {/* Timeline Section */}
-          <div className="d-flex">
+          <div className="d-flex" style={{display:"flex",flexDirection:"row",flex:1,minHeight:0,overflow:"hidden",alignItems:"stretch"}}>
             {false && (
               <MediaBrowser
                 onFileSelect={(file) => {
@@ -6564,7 +6564,7 @@ TIMELINE
                 MEDIA BIN / PROJECT PANEL - Like Premiere Pro
                 ======================================== */}
             {showMediaBin && (
-              <div className="media-bin-panel"
+              <div className="media-bin-panel" style={{display:"flex",flexDirection:"column",width:"220px",minWidth:"160px",maxWidth:"420px",flexShrink:0,height:"100%",overflow:"hidden",background:"#0d1117",borderRight:"1px solid #21262d"}}
               onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
               onDrop={(e) => {
                 e.preventDefault();
@@ -7100,7 +7100,7 @@ TIMELINE
               window.addEventListener('mousemove',onMove);
               window.addEventListener('mouseup',onUp);
             }}/>
-            <div className="editor-timeline-section">
+            <div className="editor-timeline-section" style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
               {/* Timeline Controls */}
               <div className="timeline-controls-bar">
                 <div className="timeline-zoom-controls">
