@@ -481,17 +481,17 @@ export default function VideoEditorMonitors({
                 <div style={{flex:1}}/>
                 {/* Insert buttons */}
                 <button className="spx-tbtn active" style={{fontSize:9,padding:'1px 6px',display:'flex',alignItems:'center',gap:2}}
-                  onClick={()=>handleAddToTimeline(sourceMedia,srcIn,srcOut,'video')} title="Insert Video (,)">
+                  onClick={()=>handleAddToTimeline(sourceMedia,srcIn,srcOut||srcDur,'video')} title="Insert Video (,)">
                   <Video size={10}/> V
                 </button>
                 {(sourceMedia.type==='video'||sourceMedia.type==='audio') && (
                   <button className="spx-tbtn" style={{fontSize:9,padding:'1px 6px',display:'flex',alignItems:'center',gap:2,color:'#ff6b6b',borderColor:'rgba(255,107,107,0.4)'}}
-                    onClick={()=>handleAddToTimeline(sourceMedia,srcIn,srcOut,'audio')} title="Insert Audio">
+                    onClick={()=>handleAddToTimeline(sourceMedia,srcIn,srcOut||srcDur,'audio')} title="Insert Audio">
                     <AudioWaveform size={10}/> A
                   </button>
                 )}
                 <button className="spx-tbtn" style={{fontSize:9,padding:'1px 6px',display:'flex',alignItems:'center',gap:2,color:'#00ffc8',borderColor:'rgba(0,255,200,0.3)'}}
-                  onClick={()=>handleAddToTimeline(sourceMedia,srcIn,srcOut,'both')} title="Insert V+A (.)">
+                  onClick={()=>handleAddToTimeline(sourceMedia,srcIn,srcOut||srcDur,'both')} title="Insert V+A (.)">
                   <Plus size={10}/> All
                 </button>
               </div>

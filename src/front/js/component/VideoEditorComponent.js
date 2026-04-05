@@ -3987,10 +3987,29 @@ TIMELINE
         duration: fileType === 'image' ? '0:05' : '0:30',
         file: file,
         url: URL.createObjectURL(file),
+        _realDuration: null,
         uploading: true
       };
 
       setMediaLibrary(prev => [...prev, newMediaItem]);
+
+      // Probe real duration from local file
+      if (fileType === 'video' || fileType === 'audio') {
+        try {
+          const probeEl = document.createElement(fileType === 'audio' ? 'audio' : 'video');
+          probeEl.preload = 'metadata';
+          probeEl.onerror = () => {};
+          probeEl.onloadedmetadata = () => {
+            try {
+              const dur = isFinite(probeEl.duration) && probeEl.duration > 0 ? probeEl.duration : 30;
+              const mins = Math.floor(dur / 60);
+              const secs = Math.round(dur % 60).toString().padStart(2, '0');
+              setMediaLibrary(prev => prev.map(m => m.id === tempId ? { ...m, duration: `${mins}:${secs}`, _realDuration: dur } : m));
+            } catch(e) {}
+          };
+          probeEl.src = newMediaItem.url;
+        } catch(e) {}
+      }
 
       try {
         // Upload to Cloudinary
@@ -5618,16 +5637,16 @@ TIMELINE
                             const targetTrack = media.type === 'audio' ? audioTrack : videoTrack;
 
                             if (targetTrack && !targetTrack.locked) {
+                              // Get real duration
                               let durationSeconds = 30;
-                              if (media.duration) {
+                              if (media._realDuration && isFinite(media._realDuration) && media._realDuration > 0) {
+                                durationSeconds = media._realDuration;
+                              } else if (media.duration) {
                                 const parts = media.duration.split(':');
-                                durationSeconds = parts.length === 2
-                                  ? parseInt(parts[0]) * 60 + parseInt(parts[1])
-                                  : 30;
+                                if (parts.length === 3) durationSeconds = parseInt(parts[0])*3600 + parseInt(parts[1])*60 + parseInt(parts[2]);
+                                else if (parts.length === 2) durationSeconds = parseInt(parts[0])*60 + parseInt(parts[1]);
                               }
-                              if (media.type === 'image') {
-                                durationSeconds = 5;
-                              }
+                              if (media.type === 'image') durationSeconds = 5;
 
                               const lastClipEnd = targetTrack.clips.reduce((max, clip) =>
                                 Math.max(max, clip.startTime + clip.duration), 0
@@ -5654,13 +5673,27 @@ TIMELINE
                                 }
                               };
 
-                              setTracks(prevTracks =>
-                                prevTracks.map(t =>
-                                  t.id === targetTrack.id
-                                    ? { ...t, clips: [...t.clips, newClip] }
-                                    : t
-                                )
-                              );
+                              setTracks(prevTracks => {
+                                const aTrack = prevTracks.find(t => t.type === 'audio' && !t.locked);
+                                const aEnd = aTrack ? aTrack.clips.reduce((mx,c) => Math.max(mx, c.startTime+c.duration), 0) : 0;
+                                const audioClip = media.type === 'video' && aTrack ? {
+                                  id: Date.now() + 1,
+                                  title: media.name + ' (Audio)',
+                                  startTime: aEnd,
+                                  duration: durationSeconds,
+                                  type: 'audio',
+                                  mediaUrl: media.url,
+                                  cloudinary_public_id: media.cloudinary_public_id,
+                                  inPoint: 0, outPoint: durationSeconds,
+                                  effects: [], keyframes: [],
+                                  compositing: { opacity: 100 }
+                                } : null;
+                                return prevTracks.map(t => {
+                                  if (t.id === targetTrack.id) return { ...t, clips: [...t.clips, newClip] };
+                                  if (audioClip && t.id === aTrack.id) return { ...t, clips: [...t.clips, audioClip] };
+                                  return t;
+                                });
+                              });
 
                               setSelectedClip(newClip);
                             }
@@ -5814,6 +5847,29 @@ TIMELINE
                           const lastClipEnd = targetTrack.clips.reduce((max, clip) =>
                             Math.max(max, clip.startTime + clip.duration), 0
                           );
+
+                          // Also add audio track for video files
+                          if (sourceMonitorMedia.type === 'video' && audioTrack && !audioTrack.locked) {
+                            const audioLastEnd = audioTrack.clips.reduce((max, clip) =>
+                              Math.max(max, clip.startTime + clip.duration), 0
+                            );
+                            const audioClip = {
+                              id: Date.now() + 1,
+                              title: `${sourceMonitorMedia.name} (Audio)`,
+                              startTime: audioLastEnd,
+                              duration: durationSeconds,
+                              type: 'audio',
+                              mediaUrl: sourceMonitorMedia.url,
+                              cloudinary_public_id: sourceMonitorMedia.cloudinary_public_id,
+                              inPoint: 0,
+                              outPoint: durationSeconds,
+                              effects: [], keyframes: [],
+                              compositing: { opacity: 100 }
+                            };
+                            setTracks(prev => prev.map(t =>
+                              t.id === audioTrack.id ? { ...t, clips: [...t.clips, audioClip] } : t
+                            ));
+                          }
 
                           const newClip = {
                             id: Date.now(),
@@ -6504,8 +6560,23 @@ TIMELINE
                 files.forEach(file => {
                   const url = URL.createObjectURL(file);
                   const type = file.type.startsWith('video') ? 'video' : file.type.startsWith('audio') ? 'audio' : 'image';
-                  const item = { id: Date.now() + Math.random(), name: file.name, type, url, duration: '0:30', file };
+                  const tempId = Date.now() + Math.random();
+                  const item = { id: tempId, name: file.name, type, url, duration: '0:30', file, _rawFile: file };
                   setMediaLibrary(prev => [...(prev||[]), item]);
+                  if (type === 'video' || type === 'audio') {
+                    const probe = document.createElement(type === 'audio' ? 'audio' : 'video');
+                    probe.preload = 'metadata';
+                    probe.onerror = () => {};
+                    probe.onloadedmetadata = () => {
+                      try {
+                        const dur = isFinite(probe.duration) && probe.duration > 0 ? probe.duration : 30;
+                        const mins = Math.floor(dur / 60);
+                        const secs = Math.round(dur % 60).toString().padStart(2, '0');
+                        setMediaLibrary(prev => prev.map(m => m.id === tempId ? { ...m, duration: `${mins}:${secs}`, _realDuration: dur } : m));
+                      } catch(e) {}
+                    };
+                    try { probe.src = url; } catch(e) {}
+                  }
                 });
               }}
               style={{
@@ -6795,12 +6866,33 @@ TIMELINE
                                           Math.max(max, clip.startTime + clip.duration), 0
                                         );
 
+
+                                        // Split audio to Audio 1 for video files
+                                        if (media.type === 'video' && audioTrack && !audioTrack.locked) {
+                                          const audioLastEnd = audioTrack.clips.reduce((max, clip) =>
+                                            Math.max(max, clip.startTime + clip.duration), 0
+                                          );
+                                          const audioClip = {
+                                            id: Date.now() + 1,
+                                            title: `${media.name} (Audio)`,
+                                            startTime: audioLastEnd,
+                                            duration: durationSeconds,
+                                            type: 'audio',
+                                            mediaUrl: media.url,
+                                            cloudinary_public_id: media.cloudinary_public_id,
+                                            inPoint: 0,
+                                            outPoint: durationSeconds,
+                                            effects: [], keyframes: [],
+                                            compositing: { opacity: 100 }
+                                          };
+                                          // audio added below in combined setTracks
+                                        }
                                         const newClip = {
                                           id: Date.now(),
                                           title: media.name,
                                           startTime: lastClipEnd,
                                           duration: durationSeconds,
-                                          type: media.type,
+                                          type: media.type === 'video' ? 'video' : media.type,
                                           mediaUrl: media.url,
                                           cloudinary_public_id: media.cloudinary_public_id,
                                           thumbnail: media.thumbnail,
@@ -6816,13 +6908,28 @@ TIMELINE
                                           }
                                         };
 
-                                        setTracks(prevTracks =>
-                                          prevTracks.map(t =>
-                                            t.id === targetTrack.id
-                                              ? { ...t, clips: [...t.clips, newClip] }
-                                              : t
-                                          )
-                                        );
+                                        setTracks(prevTracks => {
+                                          const aEnd = media.type === 'video' && audioTrack && !audioTrack.locked
+                                            ? prevTracks.find(t => t.id === audioTrack.id)?.clips.reduce((mx,c) => Math.max(mx, c.startTime+c.duration), 0) || 0
+                                            : 0;
+                                          const aClip = media.type === 'video' && audioTrack && !audioTrack.locked ? {
+                                            id: Date.now() + 1,
+                                            title: `${media.name} (Audio)`,
+                                            startTime: aEnd,
+                                            duration: durationSeconds,
+                                            type: 'audio',
+                                            mediaUrl: media.url,
+                                            cloudinary_public_id: media.cloudinary_public_id,
+                                            inPoint: 0, outPoint: durationSeconds,
+                                            effects: [], keyframes: [],
+                                            compositing: { opacity: 100 }
+                                          } : null;
+                                          return prevTracks.map(t => {
+                                            if (t.id === targetTrack.id) return { ...t, clips: [...t.clips, newClip] };
+                                            if (aClip && t.id === audioTrack.id) return { ...t, clips: [...t.clips, aClip] };
+                                            return t;
+                                          });
+                                        });
                                         setSelectedClip(newClip);
                                       }
                                     }}
