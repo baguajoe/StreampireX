@@ -7136,6 +7136,18 @@ TIMELINE
                                 {track.type === 'video' ? <Video size={14} /> : <AudioWaveform size={14} />}
                               </div>
                               <button
+                                onClick={() => setTracks(prev => prev.map(t => t.id === track.id ? {...t, muted: !t.muted} : t))}
+                                title={track.muted ? 'Unmute Track' : 'Mute Track (M)'}
+                                style={{background:'none',border:'none',cursor:'pointer',padding:'2px 4px',
+                                  color: track.muted ? '#f85149' : '#4e6a82',fontWeight:700,fontSize:10}}
+                              >M</button>
+                              <button
+                                onClick={() => setTracks(prev => prev.map(t => t.id === track.id ? {...t, solo: !t.solo} : t))}
+                                title="Solo Track (S)"
+                                style={{background:'none',border:'none',cursor:'pointer',padding:'2px 4px',
+                                  color: track.solo ? '#ffd60a' : '#4e6a82',fontWeight:700,fontSize:10}}
+                              >S</button>
+                              <button
                                 className={`track-lock-btn ${track.locked ? 'locked' : ''}`}
                                 onClick={() => toggleTrackLock(track.id)}
                                 title={track.locked ? 'Unlock Track' : 'Lock Track'}

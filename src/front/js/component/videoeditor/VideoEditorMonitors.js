@@ -267,8 +267,15 @@ export default function VideoEditorMonitors({
   }, [isPlaying, currentTime, activeClip]);
 
   const handleAddToTimeline = useCallback((media, inPt, outPt, mode) => {
-    const dur = Math.max(1, outPt - inPt);
-    const videoTrack = tracks.find(t => t.type === 'video' && !t.locked);
+    // If no I/O points set, use full media duration
+    const mediaDur = media.duration
+      ? (typeof media.duration === 'string'
+        ? (() => { const p = media.duration.split(':'); return p.length===2 ? parseInt(p[0])*60+parseInt(p[1]) : 30; })()
+        : media.duration)
+      : 30;
+    const dur = Math.max(1, (outPt > inPt) ? outPt - inPt : mediaDur);
+    const videoTrack = tracks.find(t => t.type === 'video' && !t.locked && !t.muted) 
+                      || tracks.find(t => t.type === 'video' && !t.locked);
     const audioTrack = tracks.find(t => t.type === 'audio' && !t.locked);
     const getEnd = (tr) => tr ? Math.max(0, ...tr.clips.map(c => c.startTime + c.duration)) : 0;
 
@@ -515,9 +522,26 @@ export default function VideoEditorMonitors({
           <div className="spx-monitor-screen">
             {renderProgram()}
           </div>
-          <div className="spx-monitor-footer">
-            <span style={{ fontSize:10, color:'#4e6a82' }}>1920×1080 •</span>
-            <span className="spx-monitor-timecode" style={{ marginLeft:4 }}>{formatTime(currentTime)}</span>
+          <div className="spx-monitor-footer" style={{flexDirection:'column',gap:4,padding:'4px 8px'}}>
+            <div style={{display:'flex',alignItems:'center',gap:4}}>
+              <button className="spx-ctrl-btn"
+                onClick={()=>onSeek&&onSeek(0)} style={{padding:'1px 5px'}}>
+                <SkipBack size={11}/>
+              </button>
+              <button className="spx-ctrl-btn"
+                style={{background:isPlaying?'#f85149':'#00ffc8',color:'#000',padding:'2px 6px'}}
+                onClick={()=>onPlayPause&&onPlayPause()}>
+                {isPlaying?<Pause size={12}/>:<Play size={12}/>}
+              </button>
+              <button className="spx-ctrl-btn"
+                onClick={()=>onSeek&&onSeek(999999)} style={{padding:'1px 5px'}}>
+                <SkipForward size={11}/>
+              </button>
+              <span style={{fontSize:9,color:'#4e6a82',marginLeft:4,fontFamily:'monospace'}}>
+                {formatTime(currentTime)}
+              </span>
+              <span style={{marginLeft:'auto',fontSize:9,color:'#4e6a82'}}>1920×1080</span>
+            </div>
           </div>
         </div>
       </div>
