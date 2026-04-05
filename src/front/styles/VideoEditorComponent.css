@@ -228,3 +228,62 @@
 .video-editor-pro .spx-track-header,
 .video-editor-pro .spx-track-header * { background: #0d1117 !important; }
 .video-editor-pro .track-headers-column { background: #0d1117 !important; }
+
+/* ══ VERTICAL TOOLBAR FIX ══ */
+.video-editor-pro .spx-vtoolbar {
+  width: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  background: #0d1117 !important;
+  border-right: 1px solid #21262d !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  padding: 6px 0 !important;
+  gap: 3px !important;
+  flex-shrink: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+.video-editor-pro .spx-vtoolbar-btn {
+  width: 28px !important;
+  height: 28px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 4px !important;
+  color: #8b949e !important;
+  cursor: pointer !important;
+  font-size: 13px !important;
+  flex-shrink: 0 !important;
+}
+.video-editor-pro .spx-vtoolbar-btn:hover {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+}
+.video-editor-pro .spx-vtoolbar-btn.active {
+  background: rgba(0,255,200,.15) !important;
+  color: #00ffc8 !important;
+  border-color: rgba(0,255,200,.4) !important;
+}
+.video-editor-pro .spx-vtoolbar-divider {
+  width: 20px !important;
+  height: 1px !important;
+  background: #21262d !important;
+  margin: 3px 0 !important;
+  flex-shrink: 0 !important;
+}
+
+/* ── MEDIA BIN PERMANENT BOTTOM LEFT ── */
+.video-editor-pro .media-bin-panel {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 200px !important;
+  min-height: 200px !important;
+  max-height: 200px !important;
+  flex-shrink: 0 !important;
+  background: #0d1117 !important;
+  border-top: 1px solid #21262d !important;
+}

@@ -2638,7 +2638,7 @@ TIMELINE
   const [showMediaBrowser, setShowMediaBrowser] = useState(false);
   const [showSourceMonitor, setShowSourceMonitor] = useState(false);
   const [sourceMedia, setSourceMedia] = useState(null);
-  const [showMediaBin, setShowMediaBin] = useState(false); // Media Bin visible by default
+  const [showMediaBin, setShowMediaBin] = useState(true); // Media Bin visible by default
   const [mediaBinView, setMediaBinView] = useState('grid'); // 'grid' or 'list'
   const [mediaSearchTerm, setMediaSearchTerm] = useState('');
   const [sourceMonitorMedia, setSourceMonitorMedia] = useState(null);
@@ -4915,6 +4915,32 @@ TIMELINE
       <div className="editor-main-layout">
         {/* Left Panel - Vertical Tools + Media + Effects + Transitions */}
         {/* Left panel removed */}
+        {/* ── VERTICAL TOOLBAR ── */}
+        <div className="spx-vtoolbar">
+          {[
+            {id:'select', icon:'▶', tip:'Selection (V)'},
+            {id:'track', icon:'↕', tip:'Track Select (A)'},
+            {id:'ripple', icon:'⇥', tip:'Ripple Edit (B)'},
+            {id:'roll', icon:'⇔', tip:'Rolling Edit (N)'},
+            {id:'razor', icon:'✂', tip:'Razor (C)'},
+            {id:'slip', icon:'↔', tip:'Slip (Y)'},
+            {id:'pen', icon:'✏', tip:'Pen (P)'},
+            {id:'hand', icon:'✋', tip:'Hand (H)'},
+            {id:'zoom', icon:'🔍', tip:'Zoom (Z)'},
+          ].map(t => (
+            <button key={t.id}
+              className={`spx-vtoolbar-btn ${selectedTool===t.id?'active':''}`}
+              onClick={() => setSelectedTool(t.id)}
+              title={t.tip}
+              style={{fontSize:13}}>
+              {t.icon}
+            </button>
+          ))}
+          <div className="spx-vtoolbar-divider"/>
+          <button className="spx-vtoolbar-btn" title="Add Track" onClick={handleAddTracks} style={{fontSize:13}}>+</button>
+          <button className="spx-vtoolbar-btn" title="Markers" onClick={handleAddMarker} style={{fontSize:13}}>◆</button>
+        </div>
+
         {/* Left Panel - Tools & Effects (legacy inline — hidden) */}
         <div className="editor-left-panel" style={{display:'none'}}>
           {/* STICKY IMPORT MEDIA - Always visible at top */}
