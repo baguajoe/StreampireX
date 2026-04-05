@@ -514,91 +514,78 @@
   min-width: 0 !important;
 }
 
-/* ── CLEAR SECTION BORDERS LIKE PREMIERE ── */
-.video-editor-pro .spx-monitors,
-.video-editor-pro .preview-area-container {
-  border-bottom: 2px solid #30363d !important;
-}
-.video-editor-pro .spx-monitor,
-.video-editor-pro .preview-area {
-  border-right: 2px solid #30363d !important;
-}
-.video-editor-pro .spx-monitor:last-child,
-.video-editor-pro .preview-area:last-child {
-  border-right: none !important;
-}
+/* ══ FINAL FIXES ══ */
+
+/* Bin smaller, no overlap */
 .video-editor-pro .media-bin-panel {
-  border-right: 2px solid #30363d !important;
-  flex: 0 0 280px !important;
-  width: 280px !important;
-  max-width: 280px !important;
-  min-width: 240px !important;
+  width: 260px !important;
+  min-width: 200px !important;
+  max-width: 260px !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
   overflow: hidden !important;
+  position: relative !important;
+  z-index: 2 !important;
 }
+
+/* Timeline starts after bin */
 .video-editor-pro .editor-timeline-section {
   flex: 1 !important;
   min-width: 0 !important;
-  overflow: hidden !important;
-  border-left: none !important;
-}
-/* Track headers must not overflow */
-.video-editor-pro .track-headers-column,
-.video-editor-pro .spx-track-headers {
   position: relative !important;
-  z-index: 2 !important;
+  z-index: 1 !important;
   overflow: hidden !important;
-}
-/* Right panel border */
-.video-editor-pro .spx-right,
-.video-editor-pro .efx-panel {
-  border-left: 2px solid #30363d !important;
-}
-/* Vertical toolbar border */
-.video-editor-pro .spx-vtoolbar {
-  border-right: 2px solid #30363d !important;
 }
 
-/* ── BIN FITS SECTION ── */
-.video-editor-pro .media-bin-panel {
-  flex: 0 0 260px !important;
-  width: 260px !important;
-  min-width: 180px !important;
-  max-width: 260px !important;
-  overflow: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
-.video-editor-pro .media-bin-panel > * {
-  flex-shrink: 0 !important;
-}
-/* Resizable dividers */
+/* Resizable borders */
 .video-editor-pro .spx-resizer {
   width: 4px !important;
   background: #21262d !important;
   cursor: col-resize !important;
   flex-shrink: 0 !important;
-  transition: background .15s !important;
-  position: relative !important;
   z-index: 10 !important;
-}
-.video-editor-pro .spx-resizer:hover,
-.video-editor-pro .spx-resizer.dragging {
-  background: #00ffc8 !important;
-}
-.video-editor-pro .spx-resizer-h {
-  height: 4px !important;
-  width: 100% !important;
-  background: #21262d !important;
-  cursor: row-resize !important;
-  flex-shrink: 0 !important;
   transition: background .15s !important;
 }
-.video-editor-pro .spx-resizer-h:hover {
+.video-editor-pro .spx-resizer:hover {
   background: #00ffc8 !important;
 }
 
-/* ── DB METER VISIBLE ── */
-.video-editor-pro {
+/* Vertical dB meter - right of timeline, left of effects panel */
+.video-editor-pro .spx-db-meter-vertical {
+  width: 36px !important;
+  flex-shrink: 0 !important;
+  background: #0d1117 !important;
+  border-left: 1px solid #21262d !important;
   display: flex !important;
   flex-direction: column !important;
+  align-items: center !important;
+  padding: 8px 2px !important;
+  gap: 0 !important;
+  overflow: hidden !important;
+}
+.video-editor-pro .spx-db-meter-vertical .db-label {
+  font-size: 7px !important;
+  color: #4e6a82 !important;
+  font-weight: 700 !important;
+  margin-bottom: 6px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+}
+.video-editor-pro .spx-db-meter-vertical .db-tick {
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  margin-bottom: 5px !important;
+}
+.video-editor-pro .spx-db-meter-vertical .db-bar {
+  flex: 1 !important;
+  height: 3px !important;
+  border-radius: 1px !important;
+  margin-right: 2px !important;
+}
+.video-editor-pro .spx-db-meter-vertical .db-num {
+  font-size: 7px !important;
+  color: #4e6a82 !important;
+  min-width: 14px !important;
+  text-align: right !important;
 }
