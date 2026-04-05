@@ -29,30 +29,22 @@ export const useUndoRedo = (initialState, maxHistory = 50) => {
   const isUndoRedoAction = useRef(false);
 
   const setState = useCallback((newState) => {
-    // Don't add to history if this is an undo/redo action
     if (isUndoRedoAction.current) {
       setStateInternal(newState);
       return;
     }
-
-    const actualNewState = typeof newState === 'function' ? newState(state) : newState;
-    
-    setHistory(prev => {
-      // Remove any future states if we're in the middle of history
-      const newHistory = prev.slice(0, historyIndex + 1);
-      // Add new state
-      newHistory.push(JSON.parse(JSON.stringify(actualNewState)));
-      // Limit history size
-      if (newHistory.length > maxHistory) {
-        newHistory.shift();
-        return newHistory;
-      }
-      return newHistory;
+    // Use functional updates throughout to avoid stale closure bugs
+    setStateInternal(prev => {
+      const actualNewState = typeof newState === 'function' ? newState(prev) : newState;
+      setHistory(h => {
+        const newHistory = h.slice(0, h.length);
+        newHistory.push(JSON.parse(JSON.stringify(actualNewState)));
+        return newHistory.length > maxHistory ? newHistory.slice(-maxHistory) : newHistory;
+      });
+      setHistoryIndex(i => i + 1);
+      return actualNewState;
     });
-    
-    setHistoryIndex(prev => Math.min(prev + 1, maxHistory - 1));
-    setStateInternal(actualNewState);
-  }, [state, historyIndex, maxHistory]);
+  }, [maxHistory]);
 
   const undo = useCallback(() => {
     if (historyIndex > 0) {

@@ -279,23 +279,29 @@ export default function VideoEditorMonitors({
     const audioTrack = tracks.find(t => t.type === 'audio' && !t.locked);
     const getEnd = (tr) => tr ? Math.max(0, ...tr.clips.map(c => c.startTime + c.duration)) : 0;
 
+    // Single atomic update — build both clips then update tracks once
+    const clipsToAdd = [];
     if ((mode === 'video' || mode === 'both') && media.type !== 'audio' && videoTrack) {
-      addClipToTrack(videoTrack.id, {
+      clipsToAdd.push({ trackId: videoTrack.id, clip: {
         id: Date.now(), title: media.name, type: 'video',
         startTime: getEnd(videoTrack), duration: dur,
         mediaUrl: media.url, r2_key: media.r2_key, cloudId: media.cloudId,
         thumbnail: media.thumbnail, inPoint: inPt, outPoint: outPt,
-        effects: [], compositing: { opacity:100, blendMode:'normal', position:{x:0,y:0}, scale:{x:100,y:100}, rotation:0 }
-      });
+        effects: [], keyframes: [],
+        compositing: { opacity:100, blendMode:'normal', position:{x:0,y:0}, scale:{x:100,y:100}, rotation:0, anchor:{x:50,y:50} }
+      }});
     }
     if ((mode === 'audio' || mode === 'both') && (media.type === 'video' || media.type === 'audio') && audioTrack) {
-      addClipToTrack(audioTrack.id, {
-        id: Date.now()+1, title: media.name + ' (audio)', type: 'audio',
+      clipsToAdd.push({ trackId: audioTrack.id, clip: {
+        id: Date.now()+1, title: media.name + ' (Audio)', type: 'audio',
         startTime: getEnd(audioTrack), duration: dur,
         mediaUrl: media.url, r2_key: media.r2_key, cloudId: media.cloudId,
-        inPoint: inPt, outPoint: outPt, effects: [], compositing: { opacity:100 }
-      });
+        inPoint: inPt, outPoint: outPt, effects: [], keyframes: [],
+        compositing: { opacity:100 }
+      }});
     }
+    // Use addClipToTrack for each but chain via functional update
+    clipsToAdd.forEach(({ trackId, clip }) => addClipToTrack(trackId, clip));
     setShowSourceMon(false);
   }, [tracks, addClipToTrack, setShowSourceMon]);
 

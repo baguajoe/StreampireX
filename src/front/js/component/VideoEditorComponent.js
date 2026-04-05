@@ -5741,16 +5741,23 @@ TIMELINE
             onPlayPause={() => setIsPlaying(p => !p)}
             onSeek={(t) => setCurrentTime(t === Infinity ? duration : t)}
             addClipToTrack={(trackId, clipObj) => {
-              const finalize = (thumb) => {
-                setTracks(prev => prev.map(t =>
-                  t.id === trackId ? { ...t, clips: [...t.clips, {
-                    ...clipObj,
-                    title: clipObj.title || clipObj.name,
-                    thumbnail: thumb || clipObj.thumbnail || null
-                  }] } : t
-                ));
+              // Add clip immediately — don't wait for thumbnail
+              const clipToAdd = {
+                ...clipObj,
+                title: clipObj.title || clipObj.name,
+                thumbnail: clipObj.thumbnail || null
               };
-              // Auto-generate thumbnail from video URL
+              setTracks(prev => prev.map(t =>
+                t.id === trackId ? { ...t, clips: [...t.clips, clipToAdd] } : t
+              ));
+              // Then async update thumbnail if needed
+              const finalize = (thumb) => {
+                if (!thumb) return;
+                setTracks(prev => prev.map(t => ({
+                  ...t,
+                  clips: t.clips.map(c => c.id === clipToAdd.id ? { ...c, thumbnail: thumb } : c)
+                })));
+              };
               if (clipObj.type === 'video' && clipObj.mediaUrl && !clipObj.thumbnail) {
                 try {
                   const vid = document.createElement('video');
@@ -6458,89 +6465,78 @@ TIMELINE
               <SourceMonitor
                 selectedMedia={sourceMonitorMedia}
                 onAddToTimeline={(media, inPoint, outPoint, insertType) => {
-                  // Auto-detect insert type based on media type
                   if (!insertType) insertType = media.type === 'audio' ? 'audio' : 'both';
-                  const videoTrack = tracks.find(t => t.type === 'video');
-                  const audioTrack = tracks.find(t => t.type === 'audio');
 
-                  // Calculate duration from in/out points
-                  const clipDuration = Math.max(1, outPoint - inPoint);
+                  // Get real duration — outPoint may be a string or NaN
+                  let clipDuration = parseFloat(outPoint) - parseFloat(inPoint);
+                  if (!isFinite(clipDuration) || clipDuration < 1) {
+                    // Fall back to media._realDuration or parse media.duration string
+                    if (media._realDuration && isFinite(media._realDuration) && media._realDuration > 0) {
+                      clipDuration = media._realDuration;
+                    } else if (media.duration) {
+                      const parts = String(media.duration).split(':');
+                      if (parts.length === 3) clipDuration = parseInt(parts[0])*3600 + parseInt(parts[1])*60 + parseInt(parts[2]);
+                      else if (parts.length === 2) clipDuration = parseInt(parts[0])*60 + parseInt(parts[1]);
+                      else clipDuration = 30;
+                    } else {
+                      clipDuration = 30;
+                    }
+                  }
+                  if (media.type === 'image') clipDuration = 5;
 
-                  // Find where to insert (at end of existing clips)
                   const getLastClipEnd = (track) => {
                     if (!track || !track.clips || track.clips.length === 0) return 0;
                     return Math.max(...track.clips.map(c => c.startTime + c.duration));
                   };
 
-                  // Insert Video
-                  if ((insertType === 'video' || insertType === 'both') && media.type !== 'audio') { // video/image only
-                    if (videoTrack && !videoTrack.locked) {
+                  // Single atomic setTracks — no race condition
+                  setTracks(prevTracks => {
+                    const vTrack = prevTracks.find(t => t.type === 'video' && !t.locked);
+                    const aTrack = prevTracks.find(t => t.type === 'audio' && !t.locked);
+                    let newTracks = [...prevTracks];
+                    let lastVideoClip = null;
+
+                    if ((insertType === 'video' || insertType === 'both') && media.type !== 'audio' && vTrack) {
                       const videoClip = {
                         id: Date.now(),
                         title: media.name,
-                        startTime: getLastClipEnd(videoTrack),
-                        duration: clipDuration || 30,
+                        startTime: getLastClipEnd(vTrack),
+                        duration: clipDuration,
                         type: 'video',
                         mediaUrl: media.url,
                         cloudinary_public_id: media.cloudinary_public_id,
                         thumbnail: media.thumbnail,
                         inPoint: parseFloat(inPoint) || 0,
                         outPoint: parseFloat(outPoint) || clipDuration,
-                        effects: [],
-                        keyframes: [],
-                        compositing: {
-                          opacity: 100,
-                          blendMode: 'normal',
-                          position: { x: 0, y: 0 },
-                          scale: { x: 100, y: 100 },
-                          rotation: 0,
-                          anchor: { x: 50, y: 50 }
-                        }
+                        effects: [], keyframes: [],
+                        compositing: { opacity: 100, blendMode: 'normal', position: { x: 0, y: 0 }, scale: { x: 100, y: 100 }, rotation: 0, anchor: { x: 50, y: 50 } }
                       };
-
-                      setTracks(prevTracks =>
-                        prevTracks.map(t =>
-                          t.id === videoTrack.id
-                            ? { ...t, clips: [...t.clips, videoClip] }
-                            : t
-                        )
-                      );
-                      setSelectedClip(videoClip);
+                      lastVideoClip = videoClip;
+                      newTracks = newTracks.map(t => t.id === vTrack.id ? { ...t, clips: [...t.clips, videoClip] } : t);
                     }
-                  }
 
-                  // Insert Audio (from video or audio file)
-                  if ((insertType === 'audio' || insertType === 'both') &&
-                    (media.type === 'video' || media.type === 'audio')) {
-                    if (audioTrack && !audioTrack.locked) {
+                    if ((insertType === 'audio' || insertType === 'both') && (media.type === 'video' || media.type === 'audio') && aTrack) {
+                      const curATrack = newTracks.find(t => t.id === aTrack.id);
                       const audioClip = {
                         id: Date.now() + 1,
-                        title: `${media.name} (Audio)`,
-                        startTime: getLastClipEnd(audioTrack),
-                        duration: clipDuration || 30,
+                        title: media.name + ' (Audio)',
+                        startTime: getLastClipEnd(curATrack),
+                        duration: clipDuration,
                         type: 'audio',
                         mediaUrl: media.url,
                         cloudinary_public_id: media.cloudinary_public_id,
                         inPoint: parseFloat(inPoint) || 0,
                         outPoint: parseFloat(outPoint) || clipDuration,
-                        effects: [],
-                        keyframes: [],
-                        compositing: {
-                          opacity: 100
-                        }
+                        effects: [], keyframes: [],
+                        compositing: { opacity: 100 }
                       };
-
-                      setTracks(prevTracks =>
-                        prevTracks.map(t =>
-                          t.id === audioTrack.id
-                            ? { ...t, clips: [...t.clips, audioClip] }
-                            : t
-                        )
-                      );
+                      newTracks = newTracks.map(t => t.id === aTrack.id ? { ...t, clips: [...t.clips, audioClip] } : t);
                     }
-                  }
 
-                  console.log(`✅ Added ${media.name} to timeline (${insertType})`);
+                    return newTracks;
+                  });
+
+                  console.log(`✅ Added ${media.name} to timeline (${insertType}) duration=${clipDuration}s`);
                   setShowSourceMonitor(false);
                 }}
                 onClose={() => setShowSourceMonitor(false)}
