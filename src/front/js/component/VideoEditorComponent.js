@@ -2451,7 +2451,7 @@ TIMELINE
   const [selectedClip, setSelectedClip] = useState(null);
   const [selectedTransition, setSelectedTransition] = useState(null);
   const [selectedTransitionType, setSelectedTransitionType] = useState('crossDissolve'); // Default transition to add
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(0.3);
   const [frameRate, setFrameRate] = useState(24); // Default to 24fps (film standard)
 
   const [snapGridSize, setSnapGridSize] = useState(5);
@@ -7416,7 +7416,41 @@ TIMELINE
                               console.log('   draggedTransition:', draggedTransition);
                               console.log('   draggedMedia:', draggedMedia);
 
-                              if (draggedTransition) {
+                              // Handle desktop file drop directly onto timeline
+                              const desktopFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('video') || f.type.startsWith('audio') || f.type.startsWith('image'));
+                              if (desktopFiles.length > 0 && !draggedTransition && !draggedMedia) {
+                                const file = desktopFiles[0];
+                                const url = URL.createObjectURL(file);
+                                const ftype = file.type.startsWith('video') ? 'video' : file.type.startsWith('audio') ? 'audio' : 'image';
+                                const tempId = Date.now() + Math.random();
+                                const mediaItem = { id: tempId, name: file.name, type: ftype, url, duration: '0:30', _realDuration: null };
+                                setMediaLibrary(prev => [...(prev||[]), mediaItem]);
+                                const rect2 = e.currentTarget.getBoundingClientRect();
+                                const dropX = e.clientX - rect2.left;
+                                const dropTime2 = Math.max(0, dropX / (2 * zoom));
+                                const probeEl = document.createElement(ftype === 'audio' ? 'audio' : ftype === 'video' ? 'video' : 'img');
+                                probeEl.onerror = () => {};
+                                probeEl.onloadedmetadata = () => {
+                                  try {
+                                    const dur = isFinite(probeEl.duration) && probeEl.duration > 0 ? probeEl.duration : 30;
+                                    setMediaLibrary(prev => prev.map(m => m.id === tempId ? { ...m, _realDuration: dur, duration: `${Math.floor(dur/60)}:${String(Math.round(dur%60)).padStart(2,'0')}` } : m));
+                                    setTracks(prev => {
+                                      const vt = prev.find(t => t.type === 'video' && !t.locked);
+                                      const at = prev.find(t => t.type === 'audio' && !t.locked);
+                                      const tgt = ftype === 'audio' ? at : vt;
+                                      if (!tgt) return prev;
+                                      const vid = { id: Date.now(), title: file.name, startTime: snapToGrid(dropTime2), duration: dur, type: ftype, mediaUrl: url, effects: [], keyframes: [], compositing: { opacity:100, blendMode:'normal', position:{x:0,y:0}, scale:{x:100,y:100}, rotation:0, anchor:{x:50,y:50} } };
+                                      let next = prev.map(t => t.id === tgt.id ? {...t, clips:[...t.clips, vid]} : t);
+                                      if (ftype === 'video' && at) {
+                                        const aud = { id: Date.now()+1, title: file.name+' (Audio)', startTime: snapToGrid(dropTime2), duration: dur, type: 'audio', mediaUrl: url, effects: [], keyframes: [], compositing: {opacity:100} };
+                                        next = next.map(t => t.id === at.id ? {...t, clips:[...t.clips, aud]} : t);
+                                      }
+                                      return next;
+                                    });
+                                  } catch(err) {}
+                                };
+                                try { probeEl.src = url; } catch(err) {}
+                              } else if (draggedTransition) {
                                 handleTimelineDrop(e, track.id);
                               } else if (draggedMedia) {
                                 handleMediaDrop(e, track.id);
@@ -7533,6 +7567,41 @@ TIMELINE
                                       onDragOver={handleEffectDragOver}
                                       onDragLeave={handleEffectDragLeave}
                                     >
+                                      {/* Resize handle - left */}
+                                      <div style={{position:'absolute',left:0,top:0,bottom:0,width:6,cursor:'w-resize',background:'rgba(0,255,200,0.3)',zIndex:10}}
+                                        onMouseDown={(e) => {
+                                          e.stopPropagation();
+                                          const startX = e.clientX;
+                                          const origStart = clip.startTime;
+                                          const origDur = clip.duration;
+                                          const onMove = (ev) => {
+                                            const dx = ev.clientX - startX;
+                                            const dt = dx / (2 * zoom);
+                                            const newStart = Math.max(0, origStart + dt);
+                                            const newDur = Math.max(1, origDur - dt);
+                                            setTracks(prev => prev.map(t => ({...t, clips: t.clips.map(c => c.id === clip.id ? {...c, startTime: newStart, duration: newDur} : c)})));
+                                          };
+                                          const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+                                          window.addEventListener('mousemove', onMove);
+                                          window.addEventListener('mouseup', onUp);
+                                        }}
+                                      />
+                                      {/* Resize handle - right */}
+                                      <div style={{position:'absolute',right:0,top:0,bottom:0,width:6,cursor:'e-resize',background:'rgba(0,255,200,0.3)',zIndex:10}}
+                                        onMouseDown={(e) => {
+                                          e.stopPropagation();
+                                          const startX = e.clientX;
+                                          const origDur = clip.duration;
+                                          const onMove = (ev) => {
+                                            const dx = ev.clientX - startX;
+                                            const newDur = Math.max(1, origDur + dx / (2 * zoom));
+                                            setTracks(prev => prev.map(t => ({...t, clips: t.clips.map(c => c.id === clip.id ? {...c, duration: newDur} : c)})));
+                                          };
+                                          const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+                                          window.addEventListener('mousemove', onMove);
+                                          window.addEventListener('mouseup', onUp);
+                                        }}
+                                      />
                                       <div className="clip-content-timeline">
                                         <div className="clip-title-timeline">
                                           {clip.title}
