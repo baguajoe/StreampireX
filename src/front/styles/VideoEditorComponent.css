@@ -213,7 +213,7 @@
 .video-editor-pro .track-headers-column,.video-editor-pro .spx-track-headers{width:220px!important;min-width:220px!important;background:#0d1117!important}
 .video-editor-pro .track-header-container,.video-editor-pro .spx-track-header{background:#0d1117!important;color:#e6edf3!important}
 .video-editor-pro .track-name-label,.video-editor-pro .spx-track-name{color:#e6edf3!important}
-.video-editor-pro .media-bin-panel{display:none!important}
+.video-editor-pro .media-bin-panel{display:flex!important;flex-direction:column!important;flex-shrink:0!important;width:220px!important;min-width:160px!important;max-width:450px!important;overflow:hidden!important}
 .video-editor-pro .tool-grid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:4px!important}
 .video-editor-pro .spx-tool-btn,.video-editor-pro .tool-btn{display:flex!important;visibility:visible!important}
 
