@@ -2638,7 +2638,29 @@ TIMELINE
   const [showMediaBrowser, setShowMediaBrowser] = useState(false);
   const [showSourceMonitor, setShowSourceMonitor] = useState(false);
   const [sourceMedia, setSourceMedia] = useState(null);
-  const [showMediaBin, setShowMediaBin] = useState(true); // Media Bin visible by default
+  const [showMediaBin, setShowMediaBin] = useState(true);
+  const [binWidth, setBinWidth] = React.useState(260);
+  const [monitorHeight, setMonitorHeight] = React.useState(52);
+
+  const startBinResize = React.useCallback((e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = binWidth;
+    const onMove = (ev) => setBinWidth(Math.max(180, Math.min(500, startW + ev.clientX - startX)));
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [binWidth]);
+
+  const startMonitorResize = React.useCallback((e) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startH = monitorHeight;
+    const onMove = (ev) => setMonitorHeight(Math.max(30, Math.min(70, startH + (ev.clientY - startY) / window.innerHeight * 100)));
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [monitorHeight]); // Media Bin visible by default
   const [mediaBinView, setMediaBinView] = useState('grid'); // 'grid' or 'list'
   const [mediaSearchTerm, setMediaSearchTerm] = useState('');
   const [sourceMonitorMedia, setSourceMonitorMedia] = useState(null);
@@ -4535,7 +4557,7 @@ TIMELINE
   };
 
   return (
-    <div className="video-editor-pro">
+    <div className="video-editor-pro" style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden"}}>
       {/* Premiere Pro Style Menu Bar */}
       <div ref={menuBarRef} className="editor-navbar">
         {/* Logo */}
@@ -6469,8 +6491,10 @@ TIMELINE
               <div className="media-bin-panel" style={{
                 background: '#0d1117',
                 borderTop: '1px solid #21262d',
-                flex: 1,
-                minHeight: 0,
+                width: binWidth,
+                minWidth: 180,
+                maxWidth: 500,
+                flexShrink: 0,
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden'
@@ -6925,7 +6949,8 @@ TIMELINE
               </div>
             )}
 
-            <div className="editor-timeline-section">
+            <div className="spx-resizer" onMouseDown={startBinResize} title="Drag to resize bin"/>
+            <div className="editor-timeline-section" style={{display:'flex',flexDirection:'column',flex:1,minWidth:0,overflow:'hidden'}}>
               {/* Timeline Controls */}
               <div className="timeline-controls-bar">
                 <div className="timeline-zoom-controls">
@@ -8253,6 +8278,16 @@ TIMELINE
           />
         )
       }
+      {/* ── dB METER ── */}
+      <div style={{height:28,flexShrink:0,background:'#0a0a14',borderTop:'2px solid #21262d',display:'flex',alignItems:'center',padding:'0 12px',gap:0,overflow:'hidden'}}>
+        <span style={{fontSize:9,color:'#4e6a82',marginRight:12,fontWeight:700}}>dB</span>
+        {[0,-3,-6,-9,-12,-15,-18,-21,-24,-27,-30,-36,-42,-48,-54,-60].map(db=>(
+          <div key={db} style={{display:'flex',flexDirection:'column',alignItems:'center',marginRight:6}}>
+            <div style={{width:4,height:12,borderRadius:1,background:db>=-3?'#f85149':db>=-12?'#ffd60a':'#00ffc8',opacity:0.6,marginBottom:2}}/>
+            <span style={{fontSize:7,color:'#4e6a82'}}>{db}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
