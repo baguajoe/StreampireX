@@ -49,10 +49,6 @@ const INITIAL_STATE = {
 
   // UI state
   showExportModal:   false,
-  showMixer:         false,
-  showScopes:        false,
-  showSceneDetect:   false,
-  proxyMode:         false,
   showColorGrade:    false,
   showQuickApply:    false,
   activeRightTab:    'effects', // effects | transform | presets
@@ -213,14 +209,6 @@ function editorReducer(state, action) {
     /* ─── UI ────────────────────────────────────────────────── */
     case 'SET_EXPORT_MODAL':
       return { ...state, showExportModal: action.payload };
-    case 'SET_MIXER':
-      return { ...state, showMixer: action.payload };
-    case 'SET_SCOPES':
-      return { ...state, showScopes: action.payload };
-    case 'SET_SCENE_DETECT':
-      return { ...state, showSceneDetect: action.payload };
-    case 'SET_PROXY_MODE':
-      return { ...state, proxyMode: action.payload };
 
     case 'SET_COLOR_GRADE':
       return { ...state, showColorGrade: action.payload };
@@ -646,10 +634,6 @@ export function useEditorStore() {
 
     // UI
     setExportModal:   useCallback(v => dispatch({ type: 'SET_EXPORT_MODAL', payload: v }), []),
-    setMixer:         useCallback(v => dispatch({ type: 'SET_MIXER', payload: v }), []),
-    setScopes:        useCallback(v => dispatch({ type: 'SET_SCOPES', payload: v }), []),
-    setSceneDetect:   useCallback(v => dispatch({ type: 'SET_SCENE_DETECT', payload: v }), []),
-    setProxyMode:     useCallback(v => dispatch({ type: 'SET_PROXY_MODE', payload: v }), []),
     setColorGrade:    useCallback(v => dispatch({ type: 'SET_COLOR_GRADE', payload: v }), []),
     setQuickApply:    useCallback(v => dispatch({ type: 'SET_QUICK_APPLY', payload: v }), []),
     setRightTab:      useCallback(t => dispatch({ type: 'SET_RIGHT_TAB', payload: t }), []),

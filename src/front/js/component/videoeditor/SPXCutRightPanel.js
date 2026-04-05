@@ -1,5 +1,3 @@
-import SPXCutScopes      from './SPXCutScopes';
-import SPXCutSceneDetect from './SPXCutSceneDetect';
 /**
  * SPXCutRightPanel.js
  * 3 tabs: Effects Stack, Transform, Presets.
@@ -351,22 +349,12 @@ function SPXCutRightPanel({ state, actions, selectors, drag }) {
           className={`spxcut-tab${state.activeRightTab === 'presets' ? ' tab-active' : ''}`}
           onClick={() => actions.setRightTab('presets')}
         >Presets</button>
-        <button
-          className={`spxcut-tab${state.activeRightTab === 'scopes' ? ' tab-active' : ''}`}
-          onClick={() => actions.setRightTab('scopes')}
-        >Scopes</button>
-        <button
-          className={`spxcut-tab${state.activeRightTab === 'scenes' ? ' tab-active' : ''}`}
-          onClick={() => actions.setRightTab('scenes')}
-        >Scenes</button>
       </div>
 
       <div className="spxcut-tab-content">
         {state.activeRightTab === 'effects'   && <EffectsStackTab clip={activeClip} actions={actions} />}
         {state.activeRightTab === 'transform' && <TransformTab    clip={activeClip} actions={actions} />}
-        {state.activeRightTab === 'presets'   && <PresetsTab         clip={activeClip} actions={actions} />}
-        {state.activeRightTab === 'scopes'    && <SPXCutScopes      state={state} actions={actions} />}
-        {state.activeRightTab === 'scenes'    && <SPXCutSceneDetect state={state} actions={actions} />}
+        {state.activeRightTab === 'presets'   && <PresetsTab      clip={activeClip} actions={actions} />}
       </div>
     </div>
   );

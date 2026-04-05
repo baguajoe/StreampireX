@@ -23,9 +23,6 @@ import SPXCutFxPanel         from './SPXCutFxPanel';
 import SPXCutExportModal     from './SPXCutExportModal';
 import SPXCutQuickApply      from './SPXCutQuickApply';
 import SPXCutContextMenu     from './SPXCutContextMenu';
-import SPXCutAudioMixer      from './SPXCutAudioMixer';
-import SPXCutScopes          from './SPXCutScopes';
-import SPXCutSceneDetect     from './SPXCutSceneDetect';
 
 function SPXCutEditor() {
   const { state, actions, selectors } = useEditorStore();
@@ -121,14 +118,6 @@ function SPXCutEditor() {
         />
 
       </div>
-
-      {/* Audio Mixer */}
-      {state.showMixer && (
-        <SPXCutAudioMixer
-          state={state}
-          actions={actions}
-        />
-      )}
 
       {/* Modals / Overlays */}
       {state.showExportModal && (
