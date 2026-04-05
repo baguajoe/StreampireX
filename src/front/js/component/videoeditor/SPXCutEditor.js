@@ -5,7 +5,7 @@
  * Zero inline CSS.
  */
 import React, { useEffect, useCallback } from 'react';
-import '../../../../../styles/SPXCut.css';
+// CSS loaded via index.css
 
 import { useEditorStore }    from './hooks/useEditorStore';
 import { useClipDrag }       from './hooks/useClipDrag';

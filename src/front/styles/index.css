@@ -596,3 +596,4 @@ html { scroll-behavior: smooth; }
 .spx-right-tab:hover { color:#8b949e; background:rgba(255,255,255,0.04); }
 .spx-right-tab.active { color:#00ffc8; border-bottom-color:#00ffc8; background:rgba(0,255,200,0.06); }
 .spx-right-content { flex:1; overflow-y:auto; padding:12px; }
+@import '../js/component/videoeditor/../../../styles/SPXCut.css';

@@ -8,8 +8,8 @@ import { useReducer, useCallback, useRef } from 'react';
 
 // ── Initial State ─────────────────────────────────────────────
 const INITIAL_TRACKS = [
-  { id: 1, name: 'Video 1',   type: 'video', zIndex: 2, muted: false, locked: false, solo: false, color: '#4a9eff', clips: [], transitions: [] },
-  { id: 2, name: 'Overlay 1', type: 'video', zIndex: 3, muted: true,  locked: false, solo: false, color: '#ff6b6b', clips: [], transitions: [] },
+  { id: 1, name: 'Overlay 1', type: 'video', zIndex: 3, muted: true,  locked: false, solo: false, color: '#ff6b6b', clips: [], transitions: [] },
+  { id: 2, name: 'Video 1',   type: 'video', zIndex: 2, muted: false, locked: false, solo: false, color: '#4a9eff', clips: [], transitions: [] },
   { id: 3, name: 'Audio 1',   type: 'audio', zIndex: 1, muted: false, locked: false, solo: false, color: '#00d4aa', clips: [], transitions: [] },
 ];
 
