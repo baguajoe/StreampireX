@@ -4914,40 +4914,7 @@ TIMELINE
       {/* Main Editor Layout */}
       <div className="editor-main-layout">
         {/* Left Panel - Vertical Tools + Media + Effects + Transitions */}
-        <VideoEditorLeftPanel
-          selectedTool={selectedTool}
-          setSelectedTool={setSelectedTool}
-          mediaLibrary={mediaLibrary}
-          uploading={uploading}
-          importFiles={() => fileInputRef.current?.click()}
-          fileInputRef={fileInputRef}
-          sourceMedia={sourceMedia}
-          setSourceMedia={setSourceMedia}
-          setShowSourceMon={setShowSourceMonitor}
-          selectedClip={selectedClip}
-          applyEffectToClip={(clipId, effectId, val) => applyEffect(clipId, effectId, val ?? 50)}
-          draggedEffect={draggedEffect}
-          setDraggedEffect={setDraggedEffect}
-          draggedTransition={draggedTransition}
-          setDraggedTransition={setDraggedTransition}
-          selectedTransType={selectedTransitionType}
-          setSelectedTransType={setSelectedTransitionType}
-          addClipToTrack={(media, trackIdx) => {
-            const ti = trackIdx ?? 0;
-            if (!tracks[ti]) return;
-            const newClip = {
-              id: Date.now(),
-              name: media.name,
-              url: media.url,
-              type: media.type,
-              startTime: tracks[ti].clips.reduce((max, c) => Math.max(max, c.startTime + c.duration), 0),
-              duration: media.duration || 5,
-              effects: [],
-            };
-            setTracks(prev => prev.map((t, i) => i === ti ? { ...t, clips: [...t.clips, newClip] } : t));
-          }}
-          tracks={tracks}
-        />
+        {/* Left panel removed */}
         {/* Left Panel - Tools & Effects (legacy inline — hidden) */}
         <div className="editor-left-panel" style={{display:'none'}}>
           {/* STICKY IMPORT MEDIA - Always visible at top */}

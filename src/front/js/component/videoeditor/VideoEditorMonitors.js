@@ -436,13 +436,14 @@ export default function VideoEditorMonitors({
               <span style={{padding:'4px 12px',fontSize:10,fontWeight:700,color:'#4e6a82',textTransform:'uppercase',letterSpacing:1,cursor:'pointer'}}>Lumetri Scopes</span>
               <span style={{padding:'4px 12px',fontSize:10,fontWeight:700,color:'#4e6a82',textTransform:'uppercase',letterSpacing:1,cursor:'pointer'}}>Metadata</span>
               <div style={{flex:1}}/>
-            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
               <button className={`spx-tbtn ${programMuted ? 'danger' : 'active'}`}
                 style={{ fontSize:10, padding:'2px 8px' }}
                 onClick={() => setProgramMuted(m => !m)}>
                 {programMuted ? <><VolumeX size={11} /> Muted</> : <><Volume2 size={11} /> Sound</>}
               </button>
               <span className="spx-monitor-timecode">{formatTime(currentTime)}</span>
+              </div>
             </div>
           </div>
           <div className="spx-monitor-screen">
