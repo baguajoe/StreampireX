@@ -3884,23 +3884,23 @@ TIMELINE
     const clickX = e.clientX - rect.left;
     const clipStartPixel = clip.startTime * 2 * zoom;
 
-    // Find linked clip (audio linked to video or vice versa)
+    // Find linked clip by linkGroup (most reliable) or title fallback
     const linkedClip = (() => {
-      if (clip.type === 'video') {
-        // Look for audio clip with same title
-        for (const t of tracks) {
-          if (t.type === 'audio') {
-            const a = t.clips.find(c => c.title === clip.title + ' (Audio)' || c.title === clip.title + ' (audio)');
-            if (a) return { clip: a, trackId: t.id };
-          }
+      for (const t of tracks) {
+        if (t.id === trackId) continue;
+        // Match by linkGroup first
+        if (clip.linkGroup) {
+          const linked = t.clips.find(c => c.linkGroup === clip.linkGroup && c.id !== clip.id);
+          if (linked) return { clip: linked, trackId: t.id };
         }
-      } else if (clip.type === 'audio') {
-        const baseName = clip.title.replace(' (Audio)', '').replace(' (audio)', '');
-        for (const t of tracks) {
-          if (t.type === 'video') {
-            const v = t.clips.find(c => c.title === baseName);
-            if (v) return { clip: v, trackId: t.id };
-          }
+        // Fallback: title matching
+        if (clip.type === 'video') {
+          const a = t.clips.find(c => c.title === clip.title + ' (Audio)' || c.title === clip.title + ' (audio)');
+          if (a) return { clip: a, trackId: t.id };
+        } else if (clip.type === 'audio') {
+          const baseName = clip.title.replace(' (Audio)', '').replace(' (audio)', '');
+          const v = t.clips.find(c => c.title === baseName);
+          if (v) return { clip: v, trackId: t.id };
         }
       }
       return null;

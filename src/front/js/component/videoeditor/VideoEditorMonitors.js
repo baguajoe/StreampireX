@@ -280,23 +280,26 @@ export default function VideoEditorMonitors({
     // Single atomic update — build both clips then update tracks once
     // Use same startTime for both so they're perfectly synced
     const insertStart = Math.max(getEnd(videoTrack), getEnd(audioTrack));
+    const vidId = Date.now();
+    const audId = Date.now() + 1;
+    const linkGroup = `link_${vidId}`;
     const clipsToAdd = [];
     if ((mode === 'video' || mode === 'both') && media.type !== 'audio' && videoTrack) {
       clipsToAdd.push({ trackId: videoTrack.id, clip: {
-        id: Date.now(), title: media.name, type: 'video',
+        id: vidId, title: media.name, type: 'video',
         startTime: insertStart, duration: dur,
         mediaUrl: media.url, r2_key: media.r2_key, cloudId: media.cloudId,
         thumbnail: media.thumbnail, inPoint: inPt, outPoint: outPt,
-        effects: [], keyframes: [],
+        effects: [], keyframes: [], linkGroup,
         compositing: { opacity:100, blendMode:'normal', position:{x:0,y:0}, scale:{x:100,y:100}, rotation:0, anchor:{x:50,y:50} }
       }});
     }
     if ((mode === 'audio' || mode === 'both') && (media.type === 'video' || media.type === 'audio') && audioTrack) {
       clipsToAdd.push({ trackId: audioTrack.id, clip: {
-        id: Date.now()+1, title: media.name + ' (Audio)', type: 'audio',
+        id: audId, title: media.name + ' (Audio)', type: 'audio',
         startTime: insertStart, duration: dur,
         mediaUrl: media.url, r2_key: media.r2_key, cloudId: media.cloudId,
-        inPoint: inPt, outPoint: outPt, effects: [], keyframes: [],
+        inPoint: inPt, outPoint: outPt, effects: [], keyframes: [], linkGroup,
         compositing: { opacity:100 }
       }});
     }
