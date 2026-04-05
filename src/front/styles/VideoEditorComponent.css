@@ -287,3 +287,49 @@
   background: #0d1117 !important;
   border-top: 1px solid #21262d !important;
 }
+
+/* ── FILL NEGATIVE SPACE ── */
+.video-editor-pro .editor-main-layout {
+  height: calc(100vh - 68px) !important;
+  overflow: hidden !important;
+}
+.video-editor-pro .editor-center-panel {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  min-height: 0 !important;
+}
+.video-editor-pro .editor-timeline-section {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+.video-editor-pro .timeline-main-container {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+}
+.video-editor-pro .timeline-tracks-container {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+.video-editor-pro .timeline-tracks-scroll {
+  flex: 1 !important;
+  overflow: auto !important;
+}
+/* Media bin fills its space */
+.video-editor-pro .media-bin-panel {
+  flex: 1 !important;
+  max-height: none !important;
+  min-height: 0 !important;
+}
+/* Left area with vtoolbar and bin */
+.video-editor-pro .spx-vtoolbar {
+  position: relative !important;
+  z-index: 10 !important;
+}

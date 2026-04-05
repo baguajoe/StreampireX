@@ -4918,15 +4918,15 @@ TIMELINE
         {/* ── VERTICAL TOOLBAR ── */}
         <div className="spx-vtoolbar">
           {[
-            {id:'select', icon:'▶', tip:'Selection (V)'},
-            {id:'track', icon:'↕', tip:'Track Select (A)'},
-            {id:'ripple', icon:'⇥', tip:'Ripple Edit (B)'},
-            {id:'roll', icon:'⇔', tip:'Rolling Edit (N)'},
+            {id:'select', icon:'↖', tip:'Selection (V)'},
+            {id:'track', icon:'⇕', tip:'Track Select (A)'},
+            {id:'ripple', icon:'◄►', tip:'Ripple Edit (B)'},
+            {id:'roll', icon:'↹', tip:'Rolling Edit (N)'},
             {id:'razor', icon:'✂', tip:'Razor (C)'},
             {id:'slip', icon:'↔', tip:'Slip (Y)'},
-            {id:'pen', icon:'✏', tip:'Pen (P)'},
-            {id:'hand', icon:'✋', tip:'Hand (H)'},
-            {id:'zoom', icon:'🔍', tip:'Zoom (Z)'},
+            {id:'pen', icon:'✒', tip:'Pen (P)'},
+            {id:'hand', icon:'☚', tip:'Hand (H)'},
+            {id:'zoom', icon:'⊕', tip:'Zoom (Z)'},
           ].map(t => (
             <button key={t.id}
               className={`spx-vtoolbar-btn ${selectedTool===t.id?'active':''}`}
