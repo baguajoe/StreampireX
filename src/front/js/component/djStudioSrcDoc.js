@@ -175,43 +175,61 @@ html,body{width:100%;background:#06060f;font-family:'Inter',system-ui,sans-serif
           </div>
         </div>
         <!-- Tonearm SVG overlay — full turntable size -->
-        <svg viewBox="0 0 220 210" style="position:absolute;top:0;left:0;width:110%;height:105%;pointer-events:none;z-index:10;right:-10%">
-          <!-- Counterweight (rear of arm) -->
-          <circle cx="188" cy="22" r="7" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
-          <circle cx="188" cy="22" r="4" fill="#1a1a1a" stroke="#444" stroke-width="1"/>
-          <!-- Counterweight rod -->
-          <line x1="181" y1="22" x2="174" y2="26" stroke="#555" stroke-width="2.5" stroke-linecap="round"/>
-          <!-- Pivot bearing housing (outer ring) -->
-          <circle cx="172" cy="28" r="9" fill="#1e1e1e" stroke="#666" stroke-width="1.5"/>
-          <circle cx="172" cy="28" r="6" fill="#2a2a2a" stroke="#555" stroke-width="1"/>
-          <circle cx="172" cy="28" r="2.5" fill="#777"/>
-          <!-- Anti-skate adjuster -->
-          <line x1="172" y1="37" x2="172" y2="44" stroke="#444" stroke-width="1.5"/>
-          <circle cx="172" cy="46" r="3" fill="#333" stroke="#555" stroke-width="1"/>
-          <!-- Main arm tube — long aluminium tube from pivot to S-bend -->
-          <line x1="172" y1="28" x2="108" y2="88" stroke="#b0b0b0" stroke-width="3.5" stroke-linecap="round"/>
-          <!-- Arm shadow/depth -->
-          <line x1="173" y1="29" x2="109" y2="89" stroke="rgba(0,0,0,0.4)" stroke-width="5" stroke-linecap="round"/>
-          <!-- Arm highlight -->
-          <line x1="171" y1="27" x2="107" y2="87" stroke="rgba(255,255,255,0.15)" stroke-width="1.5" stroke-linecap="round"/>
-          <!-- S-curve first bend -->
-          <path d="M108,88 C102,96 96,100 90,106" stroke="#c0c0c0" stroke-width="3" fill="none" stroke-linecap="round"/>
-          <!-- S-curve second bend (reverse direction — the S) -->
-          <path d="M90,106 C84,112 80,114 76,120" stroke="#c8c8c8" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-          <!-- Headshell connector clip -->
-          <rect x="70" y="117" width="12" height="5" rx="2" fill="#444" stroke="#777" stroke-width="1"/>
+        <svg viewBox="0 0 240 210" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;overflow:visible">
+          <defs>
+            <linearGradient id="armGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#d0d0d0"/>
+              <stop offset="50%" style="stop-color:#909090"/>
+              <stop offset="100%" style="stop-color:#606060"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Counterweight (behind pivot, going right) -->
+          <line x1="220" y1="22" x2="208" y2="26" stroke="#444" stroke-width="3" stroke-linecap="round"/>
+          <ellipse cx="226" cy="20" rx="9" ry="7" fill="#1a1a1a" stroke="#555" stroke-width="1.5"/>
+          <ellipse cx="226" cy="20" rx="5" ry="4" fill="#111" stroke="#333" stroke-width="1"/>
+
+          <!-- Pivot bearing housing -->
+          <circle cx="208" cy="26" r="10" fill="#1c1c1c" stroke="#777" stroke-width="2"/>
+          <circle cx="208" cy="26" r="6" fill="#252525" stroke="#555" stroke-width="1.5"/>
+          <circle cx="208" cy="26" r="2.5" fill="#999"/>
+
+          <!-- Anti-skate string -->
+          <line x1="208" y1="36" x2="208" y2="50" stroke="#333" stroke-width="1" stroke-dasharray="2,2"/>
+          <circle cx="208" cy="52" r="3" fill="#222" stroke="#444" stroke-width="1"/>
+
+          <!-- Main arm tube — from pivot toward platter outer edge -->
+          <!-- Pivot 208,26 → pre-S-bend point ~148,80 -->
+          <line x1="208" y1="26" x2="148" y2="80" stroke="url(#armGrad)" stroke-width="5" stroke-linecap="round"/>
+          <!-- Shadow -->
+          <line x1="209" y1="27" x2="149" y2="81" stroke="rgba(0,0,0,0.6)" stroke-width="7" stroke-linecap="round"/>
+          <!-- Highlight -->
+          <line x1="207" y1="25" x2="147" y2="79" stroke="rgba(255,255,255,0.18)" stroke-width="2" stroke-linecap="round"/>
+
+          <!-- S-bend — first curve outward -->
+          <path d="M148,80 C142,88 136,90 130,96" stroke="#c0c0c0" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <!-- S-bend — second curve inward (makes the S) -->
+          <path d="M130,96 C124,102 120,106 116,114" stroke="#c8c8c8" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+
+          <!-- Headshell connector -->
+          <rect x="109" y="112" width="14" height="5" rx="2" fill="#3a3a3a" stroke="#666" stroke-width="1"/>
           <!-- Headshell body -->
-          <rect x="68" y="122" width="14" height="9" rx="2" fill="#333" stroke="#666" stroke-width="1"/>
-          <!-- Cartridge body -->
-          <rect x="69" y="131" width="12" height="6" rx="1" fill="#222" stroke="#555" stroke-width="1"/>
-          <!-- Cantilever -->
-          <line x1="75" y1="137" x2="75" y2="142" stroke="#888" stroke-width="1"/>
-          <!-- Stylus tip glow -->
-          <circle cx="75" cy="142" r="2.5" fill="#00ffcc" opacity="1"/>
-          <circle cx="75" cy="142" r="5" fill="#00ffcc" opacity="0.3"/>
-          <circle cx="75" cy="142" r="9" fill="#00ffcc" opacity="0.1"/>
-          <!-- Arm lift platform -->
-          <rect x="155" y="38" width="12" height="5" rx="2" fill="#252525" stroke="#444" stroke-width="1"/>
+          <rect x="107" y="117" width="16" height="11" rx="2" fill="#2a2a2a" stroke="#555" stroke-width="1"/>
+          <!-- Cartridge -->
+          <rect x="108" y="128" width="14" height="7" rx="1" fill="#1c1c1c" stroke="#444" stroke-width="1"/>
+          <!-- Cantilever line -->
+          <line x1="115" y1="135" x2="115" y2="141" stroke="#666" stroke-width="1.5"/>
+
+          <!-- Stylus tip — lands on outer groove of platter -->
+          <!-- Platter center ~95,100, outer groove ~65px radius → stylus at ~115,140 -->
+          <circle cx="115" cy="141" r="3" fill="#00ffcc" opacity="1"/>
+          <circle cx="115" cy="141" r="6" fill="#00ffcc" opacity="0.35"/>
+          <circle cx="115" cy="141" r="11" fill="#00ffcc" opacity="0.12"/>
+          <circle cx="115" cy="141" r="16" fill="#00ffcc" opacity="0.05"/>
+
+          <!-- Arm lift cueing lever -->
+          <rect x="192" y="38" width="13" height="5" rx="2" fill="#1e1e1e" stroke="#444" stroke-width="1"/>
+          <rect x="196" y="43" width="5" height="8" rx="1" fill="#161616" stroke="#333" stroke-width="1"/>
         </svg>
       </div>
 
