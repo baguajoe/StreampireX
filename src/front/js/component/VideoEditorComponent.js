@@ -5705,6 +5705,8 @@ TIMELINE
             setSourceMedia={setSourceMedia}
             showSourceMon={showSourceMonitor}
             setShowSourceMon={setShowSourceMonitor}
+            onPlayPause={() => setIsPlaying(p => !p)}
+            onSeek={(t) => setCurrentTime(t === Infinity ? duration : t)}
             addClipToTrack={(trackId, clipObj) => {
               const finalize = (thumb) => {
                 setTracks(prev => prev.map(t =>

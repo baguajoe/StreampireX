@@ -229,7 +229,7 @@ function BroadcastSafeOverlay({ show, type = 'both' }) {
 export default function VideoEditorMonitors({
   tracks, currentTime, isPlaying, programMuted, setProgramMuted,
   sourceMedia, setSourceMedia, showSourceMon, setShowSourceMon,
-  addClipToTrack, formatTime,
+  addClipToTrack, formatTime, onPlayPause, onSeek,
 }) {
   const programVideoRef = useRef(null);
   const sourceVidRef = useRef(null);
