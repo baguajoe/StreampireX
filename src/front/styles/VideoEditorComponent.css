@@ -201,406 +201,62 @@
 .video-editor-pro .efx-leaf-label{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .video-editor-pro .efx-leaf-apply{font-size:9px;color:#00ffc8;font-weight:700;margin-left:auto}
 
-/* ══ FINAL LAYOUT OVERRIDES ══ */
-.video-editor-pro .spx-left{width:240px!important;min-width:240px!important}
-.video-editor-pro .spx-monitors,.video-editor-pro .preview-area-container{height:50vh!important;min-height:300px!important;max-height:500px!important;flex-shrink:0!important}
-.video-editor-pro .editor-main-layout{height:calc(100vh - 68px)!important;display:flex!important;flex-direction:row!important;overflow:hidden!important}
-.video-editor-pro .editor-center-panel{flex:1!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;min-width:0!important}
-.video-editor-pro .editor-timeline-section{flex:1!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;min-height:0!important}
-.video-editor-pro .timeline-main-container{flex:1!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;min-height:0!important}
-.video-editor-pro .timeline-tracks-container{flex:1!important;display:flex!important;flex-direction:row!important;overflow:hidden!important;min-height:0!important}
-.video-editor-pro .timeline-tracks-scroll{flex:1!important;overflow:auto!important;min-height:0!important}
-.video-editor-pro .track-headers-column,.video-editor-pro .spx-track-headers{width:220px!important;min-width:220px!important;background:#0d1117!important}
+/* ══ LAYOUT OVERRIDES — ONE BLOCK, NO DUPLICATES ══ */
+
+/* Monitors */
+.video-editor-pro .spx-monitors,.video-editor-pro .preview-area-container{height:42vh!important;min-height:260px!important;max-height:460px!important;flex-shrink:0!important}
+
+/* Main layout row: vtoolbar | center | db-meter | right | efx */
+.video-editor-pro .editor-main-layout{height:calc(100vh - 68px)!important;display:flex!important;flex-direction:row!important;overflow:hidden!important;min-height:0!important}
+
+/* Vertical toolbar */
+.video-editor-pro .spx-vtoolbar{width:36px!important;min-width:36px!important;background:#0d1117!important;border-right:1px solid #21262d!important;display:flex!important;flex-direction:column!important;align-items:center!important;padding:6px 0!important;gap:3px!important;flex-shrink:0!important;overflow:hidden!important}
+.video-editor-pro .spx-vtoolbar-btn{width:28px!important;height:28px!important;display:flex!important;align-items:center!important;justify-content:center!important;background:transparent!important;border:1px solid transparent!important;border-radius:4px!important;color:#8b949e!important;cursor:pointer!important}
+.video-editor-pro .spx-vtoolbar-btn:hover{background:#21262d!important;color:#e6edf3!important}
+.video-editor-pro .spx-vtoolbar-btn.active{background:rgba(0,255,200,.15)!important;color:#00ffc8!important;border-color:rgba(0,255,200,.4)!important}
+.video-editor-pro .spx-vtoolbar-divider{width:20px!important;height:1px!important;background:#21262d!important;margin:3px 0!important;flex-shrink:0!important}
+
+/* Center panel: monitors on top, then bottom row */
+.video-editor-pro .editor-center-panel{flex:1!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;min-width:0!important;min-height:0!important}
+
+/* Bottom row: media bin | resizer | timeline */
+.video-editor-pro .d-flex{display:flex!important;flex-direction:row!important;flex:1!important;min-height:0!important;overflow:hidden!important;align-items:stretch!important}
+
+/* Media bin */
+.video-editor-pro .media-bin-panel{display:flex!important;flex-direction:column!important;width:220px!important;min-width:160px!important;max-width:420px!important;flex-shrink:0!important;flex-grow:0!important;height:100%!important;overflow:hidden!important;background:#0d1117!important;border-right:1px solid #21262d!important}
+
+/* Resizer */
+.video-editor-pro .spx-resizer{width:4px!important;flex-shrink:0!important;background:#21262d!important;cursor:col-resize!important;transition:background .15s!important}
+.video-editor-pro .spx-resizer:hover{background:#00ffc8!important}
+
+/* Timeline section fills rest */
+.video-editor-pro .editor-timeline-section,.video-editor-pro .spx-timeline-area{flex:1!important;min-width:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;min-height:0!important}
+.video-editor-pro .timeline-controls-bar,.video-editor-pro .spx-timeline-controls{flex-shrink:0!important}
+.video-editor-pro .timeline-main-container{flex:1!important;min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+.video-editor-pro .timeline-ruler-container{flex-shrink:0!important}
+.video-editor-pro .timeline-tracks-container{flex:1!important;min-height:0!important;display:flex!important;flex-direction:row!important;overflow:hidden!important}
+.video-editor-pro .track-headers-column,.video-editor-pro .spx-track-headers{width:220px!important;min-width:220px!important;flex-shrink:0!important;background:#0d1117!important;overflow-y:auto!important}
+.video-editor-pro .track-headers-spacer,.video-editor-pro .spx-track-header-spacer{width:220px!important;min-width:220px!important}
+.video-editor-pro .timeline-tracks-scroll{flex:1!important;overflow:auto!important;min-height:0!important;min-width:0!important}
+.video-editor-pro .timeline-tracks-content{position:relative!important;min-height:100%!important}
+
+/* Track headers */
 .video-editor-pro .track-header-container,.video-editor-pro .spx-track-header{background:#0d1117!important;color:#e6edf3!important}
 .video-editor-pro .track-name-label,.video-editor-pro .spx-track-name{color:#e6edf3!important}
-.video-editor-pro .media-bin-panel{display:flex!important;flex-direction:column!important;flex-shrink:0!important;width:220px!important;min-width:160px!important;max-width:450px!important;overflow:hidden!important}
+.video-editor-pro .track-z-index{color:#4e6a82!important}
+
+/* dB meter */
+.video-editor-pro .spx-db-meter-vertical{width:36px!important;flex-shrink:0!important;background:#0d1117!important;border-left:1px solid #21262d!important;display:flex!important;flex-direction:column!important;align-items:center!important;padding:8px 2px!important;overflow:hidden!important}
+
+/* Right panels */
+.video-editor-pro .spx-right{width:280px!important;min-width:240px!important;flex-shrink:0!important;display:flex!important;flex-direction:column!important;background:#0d1117!important;border-left:1px solid #21262d!important;overflow:hidden!important}
+.video-editor-pro .spx-right-tabs{display:flex!important;background:#161b22!important;border-bottom:1px solid #21262d!important;flex-shrink:0!important}
+.video-editor-pro .spx-right-tab{flex:1!important;padding:8px 4px!important;background:transparent!important;border:none!important;border-bottom:2px solid transparent!important;color:#4e6a82!important;font-size:10px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.5px!important;cursor:pointer!important;font-family:'JetBrains Mono',monospace!important}
+.video-editor-pro .spx-right-tab:hover{color:#8b949e!important;background:rgba(255,255,255,.04)!important}
+.video-editor-pro .spx-right-tab.active{color:#00ffc8!important;border-bottom-color:#00ffc8!important;background:rgba(0,255,200,.06)!important}
+.video-editor-pro .spx-right-content{flex:1!important;overflow-y:auto!important;padding:10px!important}
+.video-editor-pro .efx-panel{width:240px!important;min-width:200px!important;flex-shrink:0!important;display:flex!important;flex-direction:column!important;height:100%!important;background:#0d1117!important;border-left:1px solid #21262d!important;overflow:hidden!important}
+
+/* Tool grid */
 .video-editor-pro .tool-grid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:4px!important}
-.video-editor-pro .spx-tool-btn,.video-editor-pro .tool-btn{display:flex!important;visibility:visible!important}
-
-/* ── TRACK HEADER FIX ── */
-.video-editor-pro .track-header-container,
-.video-editor-pro .track-header-container * {
-  background-color: #0d1117 !important;
-  color: #e6edf3 !important;
-}
-.video-editor-pro .track-name-label { color: #e6edf3 !important; }
-.video-editor-pro .track-z-index { color: #4e6a82 !important; }
-.video-editor-pro .spx-track-header,
-.video-editor-pro .spx-track-header * { background: #0d1117 !important; }
-.video-editor-pro .track-headers-column { background: #0d1117 !important; }
-
-/* ══ VERTICAL TOOLBAR FIX ══ */
-.video-editor-pro .spx-vtoolbar {
-  width: 36px !important;
-  min-width: 36px !important;
-  max-width: 36px !important;
-  background: #0d1117 !important;
-  border-right: 1px solid #21262d !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  padding: 6px 0 !important;
-  gap: 3px !important;
-  flex-shrink: 0 !important;
-  height: 100% !important;
-  overflow: hidden !important;
-}
-.video-editor-pro .spx-vtoolbar-btn {
-  width: 28px !important;
-  height: 28px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: transparent !important;
-  border: 1px solid transparent !important;
-  border-radius: 4px !important;
-  color: #8b949e !important;
-  cursor: pointer !important;
-  font-size: 13px !important;
-  flex-shrink: 0 !important;
-}
-.video-editor-pro .spx-vtoolbar-btn:hover {
-  background: #21262d !important;
-  color: #e6edf3 !important;
-}
-.video-editor-pro .spx-vtoolbar-btn.active {
-  background: rgba(0,255,200,.15) !important;
-  color: #00ffc8 !important;
-  border-color: rgba(0,255,200,.4) !important;
-}
-.video-editor-pro .spx-vtoolbar-divider {
-  width: 20px !important;
-  height: 1px !important;
-  background: #21262d !important;
-  margin: 3px 0 !important;
-  flex-shrink: 0 !important;
-}
-
-/* ── MEDIA BIN PERMANENT BOTTOM LEFT ── */
-.video-editor-pro .media-bin-panel {
-  display: flex !important;
-  flex-direction: column !important;
-  height: 200px !important;
-  min-height: 200px !important;
-  max-height: 200px !important;
-  flex-shrink: 0 !important;
-  background: #0d1117 !important;
-  border-top: 1px solid #21262d !important;
-}
-
-/* ── FILL NEGATIVE SPACE ── */
-.video-editor-pro .editor-main-layout {
-  height: calc(100vh - 68px) !important;
-  overflow: hidden !important;
-}
-.video-editor-pro .editor-center-panel {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-  min-height: 0 !important;
-}
-.video-editor-pro .editor-timeline-section {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-.video-editor-pro .timeline-main-container {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  min-height: 0 !important;
-}
-.video-editor-pro .timeline-tracks-container {
-  flex: 1 !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-.video-editor-pro .timeline-tracks-scroll {
-  flex: 1 !important;
-  overflow: auto !important;
-}
-/* Media bin fills its space */
-.video-editor-pro .media-bin-panel {
-  flex: 1 !important;
-  max-height: none !important;
-  min-height: 0 !important;
-}
-/* Left area with vtoolbar and bin */
-.video-editor-pro .spx-vtoolbar {
-  position: relative !important;
-  z-index: 10 !important;
-}
-
-/* ── FILL BOTTOM SPACE ── */
-.video-editor-pro .editor-main-layout {
-  height: calc(100vh - 68px) !important;
-}
-.video-editor-pro .editor-center-panel {
-  height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
-/* Bottom section: bin + timeline side by side */
-.video-editor-pro .editor-timeline-section {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: row !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-/* Media bin left of timeline */
-.video-editor-pro .media-bin-panel {
-  width: 350px !important;
-  min-width: 280px !important;
-  max-width: 400px !important;
-  height: 100% !important;
-  max-height: none !important;
-  flex-shrink: 0 !important;
-  border-right: 1px solid #21262d !important;
-  border-top: none !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
-/* Timeline fills remaining space */
-.video-editor-pro .timeline-main-container {
-  flex: 1 !important;
-  min-width: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-}
-.video-editor-pro .timeline-tracks-container {
-  flex: 1 !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-.video-editor-pro .timeline-tracks-scroll {
-  flex: 1 !important;
-  overflow: auto !important;
-}
-
-/* ── BOTTOM SPACE FIX - targeted only ── */
-.video-editor-pro .editor-center-panel {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  min-height: 0 !important;
-  height: 100% !important;
-}
-.video-editor-pro .editor-timeline-section {
-  flex: 1 !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-}
-.video-editor-pro .timeline-controls-bar {
-  flex-shrink: 0 !important;
-}
-.video-editor-pro .timeline-main-container {
-  flex: 1 !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-}
-.video-editor-pro .timeline-ruler-container {
-  flex-shrink: 0 !important;
-}
-.video-editor-pro .timeline-tracks-container {
-  flex: 1 !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: row !important;
-  overflow: hidden !important;
-}
-.video-editor-pro .track-headers-column {
-  flex-shrink: 0 !important;
-  overflow-y: auto !important;
-}
-.video-editor-pro .timeline-tracks-scroll {
-  flex: 1 !important;
-  overflow: auto !important;
-  min-height: 0 !important;
-}
-
-/* ── D-FLEX WRAPPER FILLS HEIGHT ── */
-.video-editor-pro .d-flex {
-  display: flex !important;
-  flex-direction: row !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-
-/* ── FINAL HEIGHT FILL ── */
-.video-editor-pro .d-flex {
-  height: 100% !important;
-  align-items: stretch !important;
-}
-.video-editor-pro .media-bin-panel {
-  height: 100% !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  flex-shrink: 0 !important;
-  width: 350px !important;
-  min-width: 280px !important;
-}
-.video-editor-pro .editor-timeline-section {
-  height: 100% !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-}
-.video-editor-pro .timeline-tracks-scroll {
-  flex: 1 !important;
-  min-height: 0 !important;
-}
-.video-editor-pro .timeline-tracks-content {
-  min-height: 100% !important;
-}
-
-/* ── FIX BIN/TIMELINE OVERLAP ── */
-.video-editor-pro .d-flex {
-  flex-direction: row !important;
-  align-items: stretch !important;
-  overflow: hidden !important;
-}
-.video-editor-pro .media-bin-panel {
-  width: 340px !important;
-  min-width: 280px !important;
-  max-width: 340px !important;
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
-  border-right: 1px solid #21262d !important;
-  overflow: hidden !important;
-  z-index: 1 !important;
-}
-.video-editor-pro .editor-timeline-section {
-  flex: 1 !important;
-  min-width: 0 !important;
-  overflow: hidden !important;
-  z-index: 1 !important;
-}
-
-/* ── TIMELINE CONTROLS INSIDE TIMELINE SECTION ── */
-.video-editor-pro .editor-timeline-section {
-  position: relative !important;
-  overflow: hidden !important;
-}
-.video-editor-pro .timeline-controls-bar {
-  position: relative !important;
-  z-index: 1 !important;
-  flex-shrink: 0 !important;
-  width: 100% !important;
-}
-.video-editor-pro .timeline-main-container {
-  position: relative !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-/* Bin fixed width, timeline takes rest */
-.video-editor-pro .media-bin-panel {
-  flex: 0 0 300px !important;
-  width: 300px !important;
-  min-width: 240px !important;
-  max-width: 300px !important;
-}
-.video-editor-pro .editor-timeline-section {
-  flex: 1 !important;
-  min-width: 0 !important;
-}
-
-/* ══ FINAL FIXES ══ */
-
-/* Bin smaller, no overlap */
-.video-editor-pro .media-bin-panel {
-  width: 260px !important;
-  min-width: 200px !important;
-  max-width: 260px !important;
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
-  overflow: hidden !important;
-  position: relative !important;
-  z-index: 2 !important;
-}
-
-/* Timeline starts after bin */
-.video-editor-pro .editor-timeline-section {
-  flex: 1 !important;
-  min-width: 0 !important;
-  position: relative !important;
-  z-index: 1 !important;
-  overflow: hidden !important;
-}
-
-/* Resizable borders */
-.video-editor-pro .spx-resizer {
-  width: 4px !important;
-  background: #21262d !important;
-  cursor: col-resize !important;
-  flex-shrink: 0 !important;
-  z-index: 10 !important;
-  transition: background .15s !important;
-}
-.video-editor-pro .spx-resizer:hover {
-  background: #00ffc8 !important;
-}
-
-/* Vertical dB meter - right of timeline, left of effects panel */
-.video-editor-pro .spx-db-meter-vertical {
-  width: 36px !important;
-  flex-shrink: 0 !important;
-  background: #0d1117 !important;
-  border-left: 1px solid #21262d !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: flex-end !important;
-  padding: 8px 2px !important;
-  gap: 0 !important;
-  overflow: hidden !important;
-}
-.video-editor-pro .spx-db-meter-vertical .db-label {
-  font-size: 7px !important;
-  color: #4e6a82 !important;
-  font-weight: 700 !important;
-  margin-bottom: 6px !important;
-  text-transform: uppercase !important;
-  letter-spacing: 1px !important;
-}
-.video-editor-pro .spx-db-meter-vertical .db-tick {
-  display: flex !important;
-  align-items: center !important;
-  width: 100% !important;
-  margin-bottom: 5px !important;
-}
-.video-editor-pro .spx-db-meter-vertical .db-bar {
-  flex: 1 !important;
-  height: 3px !important;
-  border-radius: 1px !important;
-  margin-right: 2px !important;
-}
-.video-editor-pro .spx-db-meter-vertical .db-num {
-  font-size: 7px !important;
-  color: #4e6a82 !important;
-  min-width: 14px !important;
-  text-align: right !important;
-}
-
-/* ── Shrink media bin so timeline no longer overlaps ── */
-.video-editor-pro .media-bin-panel {
-  width: 200px !important;
-  min-width: 200px !important;
-  max-width: 200px !important;
-}
-
-/* ── Timeline Premiere-style layout fix ─────────────────── */
-.video-editor-pro .d-flex { display:flex !important; flex-direction:row !important; flex:1 !important; overflow:hidden !important; min-height:0 !important; min-width:0 !important; }
-.video-editor-pro .editor-timeline-section { flex:1 !important; display:flex !important; flex-direction:column !important; overflow:hidden !important; min-height:0 !important; min-width:0 !important; }
-.video-editor-pro .media-bin-panel { display:flex !important; flex-direction:column !important; flex-shrink:0 !important; width:220px !important; min-width:160px !important; max-width:450px !important; overflow:hidden !important; }
-.video-editor-pro .spx-resizer { width:4px !important; background:#21262d !important; cursor:col-resize !important; flex-shrink:0 !important; transition:background 0.15s; }
-.video-editor-pro .spx-resizer:hover { background:#00ffc8 !important; }
+.video-editor-pro .tool-btn,.video-editor-pro .spx-tool-btn{display:flex!important;visibility:visible!important}
