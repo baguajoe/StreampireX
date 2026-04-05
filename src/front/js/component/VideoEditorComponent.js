@@ -5574,7 +5574,7 @@ TIMELINE
                         if (!media.uploading && !media.uploadFailed) {
                           // Double-click to open Source Monitor
                           setSourceMonitorMedia(media);
-                          setShowSourceMonitor(true);
+                          
                         }
                       }}
                       style={{ cursor: media.uploading ? 'wait' : 'pointer', position: 'relative' }}
@@ -5709,7 +5709,7 @@ TIMELINE
             formatTime={formatTime}
           />
           {/* Legacy inline monitors — hidden */}
-          <div className="preview-area-container" style={{display:'none'}}>
+          <div className="preview-area-container" style={{display:"none"}}>
             <div className="preview-area">
               <div className="preview-container">
                 <div className="monitor-header" style={{
@@ -6474,8 +6474,8 @@ TIMELINE
                 files.forEach(file => {
                   const url = URL.createObjectURL(file);
                   const type = file.type.startsWith('video') ? 'video' : file.type.startsWith('audio') ? 'audio' : 'image';
-                  const item = { id: Date.now() + Math.random(), name: file.name, type, src: url, duration: 5, file };
-                  setMediaItems(prev => [...(prev||[]), item]);
+                  const item = { id: Date.now() + Math.random(), name: file.name, type, url, duration: '0:30', file };
+                  setMediaLibrary(prev => [...(prev||[]), item]);
                 });
               }}
               style={{
@@ -6668,9 +6668,8 @@ TIMELINE
                               onDoubleClick={(e) => {
                                 e.stopPropagation();
                                 if (!media.uploading) {
-                                  // Double click = open Source Monitor popup for editing
                                   setSourceMonitorMedia(media);
-                                  setShowSourceMonitor(true);
+                                  setSourceMedia(media);
                                 }
                               }}
                               className="media-grid-item"
@@ -6885,7 +6884,7 @@ TIMELINE
                                 e.stopPropagation();
                                 if (!media.uploading) {
                                   setSourceMonitorMedia(media);
-                                  setShowSourceMonitor(true);
+                                  
                                 }
                               }}
                               style={{
