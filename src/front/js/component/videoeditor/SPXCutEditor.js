@@ -88,6 +88,7 @@ function SPXCutEditor() {
               actions={actions}
               drag={drag}
             />
+            <SPXCutDBMeter isPlaying={state.isPlaying} tracks={state.tracks} />
             <SPXCutTimeline
               state={state}
               actions={actions}
@@ -98,8 +99,7 @@ function SPXCutEditor() {
           </div>
         </div>
 
-        {/* Col 3 — DB Meter */}
-        <SPXCutDBMeter isPlaying={state.isPlaying} tracks={state.tracks} />
+
 
         {/* Col 4 — Right Panel (Effects/Transform/Presets) */}
         <SPXCutRightPanel
