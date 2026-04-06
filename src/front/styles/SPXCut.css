@@ -360,7 +360,7 @@ a { text-decoration: none; }
 .spxcut-main {
   grid-row: 3;
   display: grid;
-  grid-template-columns: var(--toolbar-w) 1fr var(--right-panel-w) var(--fx-panel-w);
+  grid-template-columns: var(--toolbar-w) 1fr var(--dbmeter-w) var(--right-panel-w) var(--fx-panel-w);
   overflow: hidden;
   min-height: 0;
 }
@@ -431,7 +431,7 @@ a { text-decoration: none; }
 /* ── Monitors ────────────────────────────────────────────────── */
 .spxcut-monitors {
   display: grid;
-  grid-template-columns: 1fr 1fr var(--dbmeter-w);
+  grid-template-columns: 1fr 1fr;
   background: #000;
   border-bottom: 1px solid var(--border);
   overflow: hidden;
