@@ -193,6 +193,9 @@ function ProgramMonitor({ state, actions, selectors, playback }) {
         )}
       </div>
 
+      {/* Empty inout-bar placeholder to match source monitor height */}
+      <div className="spxcut-monitor-inout-bar" />
+
       {/* Transport */}
       <div className="spxcut-monitor-tc-row">
         <button className="spxcut-monitor-tbtn" onClick={actions.gotoStart}>⏮</button>

@@ -445,6 +445,8 @@ a { text-decoration: none; }
   flex-direction: column;
   border-right: 1px solid var(--border);
   overflow: hidden;
+  height: 100%;
+  min-height: 0;
 }
 .spxcut-monitor:last-child { border-right: none; }
 .spxcut-monitor-header {
@@ -515,6 +517,7 @@ a { text-decoration: none; }
 }
 .spxcut-monitor-inout-bar {
   height: 14px;
+  flex-shrink: 0;
   background: var(--bg-2);
   border-top: 1px solid var(--border);
   position: relative;
@@ -552,6 +555,7 @@ a { text-decoration: none; }
   background: var(--bg-2);
   border-top: 1px solid var(--border);
   padding: 4px 6px;
+  height: 28px;
   flex-shrink: 0;
 }
 .spxcut-insert-btn {
