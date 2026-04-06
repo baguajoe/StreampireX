@@ -360,7 +360,7 @@ a { text-decoration: none; }
 .spxcut-main {
   grid-row: 3;
   display: grid;
-  grid-template-columns: var(--toolbar-w) 1fr var(--right-panel-w) var(--fx-panel-w);
+  grid-template-columns: var(--toolbar-w) 1fr var(--dbmeter-w) var(--right-panel-w) var(--fx-panel-w);
   overflow: hidden;
   min-height: 0;
 }
@@ -1662,7 +1662,8 @@ a { text-decoration: none; }
    DB METER
    ============================================================ */
 .spxcut-dbmeter {
-  width: var(--dbmeter-w);
+  grid-column: 3;
+  grid-row: 1;
   background: var(--bg-1);
   border-left: 1px solid var(--border);
   border-right: 1px solid var(--border);

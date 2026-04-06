@@ -95,7 +95,6 @@ function SPXCutEditor() {
               drag={drag}
               playback={playback}
             />
-            <SPXCutDBMeter isPlaying={state.isPlaying} tracks={state.tracks} />
           </div>
         </div>
 
