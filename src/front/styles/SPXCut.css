@@ -769,6 +769,7 @@ a { text-decoration: none; }
    ============================================================ */
 .spxcut-timeline {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -998,19 +999,7 @@ a { text-decoration: none; }
 /* ============================================================
    DB METER
    ============================================================ */
-.spxcut-dbmeter {
-  grid-column: 3;
-  grid-row: 2;
-  background: var(--bg-1);
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  padding: 4px 2px;
-  overflow: hidden;
-  min-height: 0;
-}
+
 .spxcut-dbmeter-title {
   font-size: 7px;
   color: var(--text-dim);
@@ -1088,6 +1077,19 @@ a { text-decoration: none; }
   flex-shrink: 0;
 }
 
+.spxcut-dbmeter {
+  grid-column: 3;
+  grid-row: 2;
+  background: var(--bg-1);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 4px 2px;
+  overflow: hidden;
+  min-height: 0;
+}
 /* ============================================================
    RIGHT PANEL — Effects / Transform / Presets
    ============================================================ */
@@ -1755,19 +1757,7 @@ a { text-decoration: none; }
 /* ============================================================
    DB METER
    ============================================================ */
-.spxcut-dbmeter {
-  grid-column: 3;
-  grid-row: 2;
-  background: var(--bg-1);
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  padding: 4px 2px;
-  overflow: hidden;
-  min-height: 0;
-}
+
 .spxcut-dbmeter-title {
   font-size: 7px;
   color: var(--text-dim);
@@ -1844,20 +1834,7 @@ a { text-decoration: none; }
   font-weight: 700;
   flex-shrink: 0;
 }
-.spxcut-dbmeter {
-  grid-column: 3;
-  grid-row: 2;
-  background: var(--bg-1);
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  padding: 4px 2px;
-  overflow: hidden;
-  align-self: start;
-  height: calc(100vh - 42vh - var(--header-h) - var(--transport-h) - 56px);
-}
+
 .spxcut-dbmeter-title {
   font-size: 7px;
   color: var(--text-dim);
