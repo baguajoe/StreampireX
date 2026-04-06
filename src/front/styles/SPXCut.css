@@ -997,10 +997,9 @@ a { text-decoration: none; }
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 3px;
-  gap: 2px;
+  align-items: stretch;
+  padding: 4px 2px;
+  gap: 0;
   overflow: hidden;
 }
 .spxcut-dbmeter-label { font-size: 8px; color: var(--text-dim); text-transform: uppercase; writing-mode: vertical-rl; }
@@ -1705,3 +1704,11 @@ a { text-decoration: none; }
 
 .spxcut-monitor-tc.tc-in { color: var(--teal); font-size: 9px; }
 .spxcut-monitor-tc.tc-out { color: var(--orange); font-size: 9px; }
+
+.spxcut-dbmeter-title { font-size: 7px; color: var(--text-dim); text-transform: uppercase; text-align: center; padding: 3px 0; flex-shrink: 0; }
+.spxcut-dbmeter-body { flex: 1; display: flex; flex-direction: row; gap: 2px; min-height: 0; }
+.spxcut-dbmeter-scale { display: flex; flex-direction: column; justify-content: space-between; width: 12px; flex-shrink: 0; padding-bottom: 14px; }
+.spxcut-dbmeter-scale-label { font-size: 6px; color: var(--text-dim); text-align: right; line-height: 1; }
+.spxcut-dbmeter-channels { display: flex; flex-direction: row; gap: 3px; flex: 1; min-height: 0; }
+.spxcut-dbmeter-channel { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; min-height: 0; }
+.spxcut-dbmeter-ch-label { font-size: 8px; color: var(--teal); font-weight: 700; flex-shrink: 0; }
