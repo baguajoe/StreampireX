@@ -66,7 +66,7 @@ function SPXCutDBMeter({ isPlaying }) {
           {[0, 1].map(i => (
             <div key={i} className="spxcut-dbmeter-channel">
               <div className="spxcut-dbmeter-bar-track">
-                <div className={barClass(i)} style={{ height: Math.max(1, levels[i] * 100) + '%' }} />
+                <div className={barClass(i)} style={{ height: (levels[i] * 100) + '%' }} />
                 {peaks[i] > 0.01 && (
                   <div className="spxcut-dbmeter-peak" style={{ bottom: (peaks[i] * 100) + '%' }} />
                 )}
