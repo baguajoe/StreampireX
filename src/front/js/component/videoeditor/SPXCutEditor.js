@@ -100,6 +100,9 @@ function SPXCutEditor() {
 
 
 
+        {/* Col 3 — DB Meter */}
+        <SPXCutDBMeter isPlaying={state.isPlaying} tracks={state.tracks} />
+
         {/* Col 4 — Right Panel (Effects/Transform/Presets) */}
         <SPXCutRightPanel
           state={state}
