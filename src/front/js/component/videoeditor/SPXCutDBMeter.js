@@ -75,7 +75,7 @@ function SPXCutDBMeter({ isPlaying, tracks }) {
 
   return (
     <div className="spxcut-dbmeter">
-      <span className="spxcut-dbmeter-label">VU</span>
+      <span className="spxcut-dbmeter-label" style={{fontSize:7,writingMode:"horizontal-tb",marginBottom:2}}>VU</span>
 
       <div className="spxcut-dbmeter-bars">
         {CHANNELS.map((ch, i) => {
@@ -104,12 +104,7 @@ function SPXCutDBMeter({ isPlaying, tracks }) {
         })}
       </div>
 
-      {/* dB scale labels */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 0, fontSize: 7, color: 'var(--text-dim)', alignItems: 'center', paddingBottom: 2 }}>
-        {['0', '-6', '-12', '-18'].map(db => (
-          <span key={db} style={{ lineHeight: 1.2 }}>{db}</span>
-        ))}
-      </div>
+
     </div>
   );
 }
