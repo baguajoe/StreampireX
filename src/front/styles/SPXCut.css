@@ -1671,7 +1671,7 @@ a { text-decoration: none; }
   padding: 4px 2px;
   overflow: hidden;
   min-height: 0;
-  align-self: start;
+  align-self: stretch;
   max-height: 42vh;
 }
 .spxcut-dbmeter-title {
