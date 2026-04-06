@@ -108,10 +108,10 @@ function SourceMonitor({ state, actions, selectors }) {
 
       {/* I/O timecodes + insert */}
       <div className="spxcut-monitor-footer">
-        <span className="spxcut-monitor-tc" style={{ color: 'var(--teal)', fontSize: 9 }}>
+        <span className="spxcut-monitor-tc tc-in">
           {srcIn !== null ? `IN ${formatTimecode(srcIn)}` : 'IN --:--:--:--'}
         </span>
-        <span className="spxcut-monitor-tc" style={{ color: 'var(--orange)', fontSize: 9 }}>
+        <span className="spxcut-monitor-tc tc-out">
           {srcOut !== null ? `OUT ${formatTimecode(srcOut)}` : 'OUT --:--:--:--'}
         </span>
         <button className="spxcut-insert-btn" onClick={() => insertIntoTimeline('video')} disabled={!sourceFile}>V</button>
@@ -210,10 +210,10 @@ function ProgramMonitor({ state, actions, selectors, playback }) {
 
       {/* I/O display + insert */}
       <div className="spxcut-monitor-footer">
-        <span className="spxcut-monitor-tc" style={{ color: 'var(--teal)', fontSize: 9 }}>
+        <span className="spxcut-monitor-tc tc-in">
           {state.inPoint !== null ? `IN ${formatTimecode(state.inPoint)}` : 'IN --:--:--:--'}
         </span>
-        <span className="spxcut-monitor-tc" style={{ color: 'var(--orange)', fontSize: 9 }}>
+        <span className="spxcut-monitor-tc tc-out">
           {state.outPoint !== null ? `OUT ${formatTimecode(state.outPoint)}` : 'OUT --:--:--:--'}
         </span>
       </div>

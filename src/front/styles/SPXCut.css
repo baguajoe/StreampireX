@@ -1702,3 +1702,6 @@ a { text-decoration: none; }
 }
 .spxcut-monitor-tbtn:hover { background: var(--bg-hover); color: var(--text-primary); }
 .spxcut-monitor-tbtn.mtbtn-play { color: var(--teal); }
+
+.spxcut-monitor-tc.tc-in { color: var(--teal); font-size: 9px; }
+.spxcut-monitor-tc.tc-out { color: var(--orange); font-size: 9px; }
