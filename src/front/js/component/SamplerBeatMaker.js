@@ -24,6 +24,11 @@ import InstrumentBuilder from './InstrumentBuilder';
 import SPX3000Tab from './SPX3000Tab';
 import SPXMidiMapPanel from './SPXMidiMapPanel';
 import SP1200Tab from './SP1200Tab';
+import SPX60Tab        from './SPX60Tab';
+import SPXEPSTab       from './SPXEPSTab';
+import SPXS950Tab      from './SPXS950Tab';
+import SPXS1000Tab     from './SPXS1000Tab';
+import { useSamplerMasterClock } from './samplerMasterClock';
 import TripleSamplerTab from './TripleSamplerTab';
 import StutterEngine from './StutterEngine';
 
@@ -281,6 +286,7 @@ const SamplerBeatMaker = ({
 
   // ==== TRANSPORT ====
   const [isPlaying, setIsPlaying] = useState(false);
+  const masterClock = useSamplerMasterClock(bpm, isPlaying);
   const [bpm, setBpm] = useState(140);
 
   // ── Advanced sequencer features ─────────────────────────────────────────
@@ -2814,6 +2820,10 @@ const SamplerBeatMaker = ({
           { id: 'spx3000',     label: '🎛️ SPX3000',     title: 'SPX3000 — MPC3000 engine, 12-bit DAC, 4 banks, 96 PPQN' },
           { id: 'sp1200',      label: '🔴 SP-1200',      title: 'SP-1200 — E-mu 1987, 26kHz, asymmetric saturation, boom bap' },
           { id: 'vox',         label: '🎙️ Vox',         title: 'SPX VoxEngine — real-time vocoder, formant filter, unison, harmonizer, arp' },
+          { id: 'spx60',   label: '🎛️ SPX-60',   title: 'SPX-60 — 12-bit 40kHz, Linn swing, 4-vel layers' },
+          { id: 'spx-eps', label: '🎛️ SPX-EPS',  title: 'SPX-EPS — 13-bit 29kHz, DOC chip, lo-fi grit' },
+          { id: 'spx950',  label: '🎛️ SPX-950',  title: 'SPX-950 — 12-bit 40kHz, R-2R ladder, West Coast warm' },
+          { id: 'spx1000', label: '🎛️ SPX-1000', title: 'SPX-1000 — 16-bit 44.1kHz, linear PCM, clean' },
           { id: 'triple',      label: '🗡️ SPX Trident',       title: 'SP-1200 + SPX3000 + SPX-3200 — unified 3-engine sampler with master clock' },
           { id: 'sounds',      label: '🔊 Sounds',       title: 'Freesound Sample Browser — 500k+ free sounds' },
           { id: 'loops',       label: '🔁 Loops',        title: 'Looperman Loop Browser — 4M+ free loops' },
@@ -3082,6 +3092,50 @@ const SamplerBeatMaker = ({
           </div>
         )}
 
+        {activeTab === 'spx60' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            <SPX60Tab
+              onExport={onExport}
+              onSendToArrange={onSendToArrange}
+              isEmbedded={true}
+              masterClock={masterClock}
+              onSendToTriple={(padIdx, buffer, name) => { setActiveTab('triple'); }}
+            />
+          </div>
+        )}
+        {activeTab === 'spx-eps' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            <SPXEPSTab
+              onExport={onExport}
+              onSendToArrange={onSendToArrange}
+              isEmbedded={true}
+              masterClock={masterClock}
+              onSendToTriple={(padIdx, buffer, name) => { setActiveTab('triple'); }}
+            />
+          </div>
+        )}
+        {activeTab === 'spx950' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            <SPXS950Tab
+              onExport={onExport}
+              onSendToArrange={onSendToArrange}
+              isEmbedded={true}
+              masterClock={masterClock}
+              onSendToTriple={(padIdx, buffer, name) => { setActiveTab('triple'); }}
+            />
+          </div>
+        )}
+        {activeTab === 'spx1000' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            <SPXS1000Tab
+              onExport={onExport}
+              onSendToArrange={onSendToArrange}
+              isEmbedded={true}
+              masterClock={masterClock}
+              onSendToTriple={(padIdx, buffer, name) => { setActiveTab('triple'); }}
+            />
+          </div>
+        )}
         {/* ── STEMS TAB ── */}
         {activeTab === 'looperman' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
