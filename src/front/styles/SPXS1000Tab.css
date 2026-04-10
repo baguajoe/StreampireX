@@ -242,7 +242,7 @@
 .spxs1000-pad.muted          { opacity: 0.35; }
 .spxs1000-pad:active         { box-shadow: none; transform: translateY(1px); }
 
-.spxs1000-pad-num  { font-family: var(--font-lcd); font-size: 0.72rem; color: #222222; font-weight: 700; align-self: flex-start; }
+.spxs1000-pad-num  { font-family: var(--font-lcd); font-size: 0.72rem; color: #222222; font-weight: 700; align-self: center; }
 .spxs1000-pad-name { font-family: var(--font-lcd); font-size: 0.78rem; color: #111111; text-align: center; padding: 0 3px; word-break: break-all; font-weight: 600; letter-spacing: 0.02em; }
 .spxs1000-pad-drop { font-family: var(--font-lcd); font-size: 0.65rem; color: #555555; }
 .spxs1000-pad.firing .spxs1000-pad-name { color: var(--accent); }
