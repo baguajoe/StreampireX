@@ -409,3 +409,64 @@
 .spxeps-key-black.mapped { background: linear-gradient(180deg, #1a3010 0%, #0e2008 100%); }
 .spxeps-key-white.active { background: linear-gradient(180deg, var(--accent) 0%, #aa3300 100%); }
 .spxeps-key-black.active { background: linear-gradient(180deg, var(--accent2) 0%, var(--accent) 100%); }
+
+/* keyboard section */
+.spxeps-keyboard-section {
+  background: #0a0b12;
+  border-top: 3px solid #cc4400;
+  padding: 6px 8px 0;
+  flex-shrink: 0;
+}
+.spxeps-keyboard {
+  position: relative;
+  display: flex;
+  height: 72px;
+  width: 100%;
+  overflow: hidden;
+}
+.spxeps-key-white {
+  flex: 1;
+  height: 100%;
+  background: linear-gradient(180deg, #f0ede6 0%, #e8e4dc 100%);
+  border: 1px solid #888;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 3px;
+  position: relative;
+  z-index: 1;
+  box-shadow: inset 0 -2px 0 #d0ccc4, 1px 0 0 #aaa;
+  user-select: none;
+}
+.spxeps-key-white:hover { background: linear-gradient(180deg, #f8f5ee 0%, #f0ece4 100%); }
+.spxeps-key-white.active { background: linear-gradient(180deg, #e85500 0%, #aa3300 100%); }
+.spxeps-key-white.mapped { background: linear-gradient(180deg, #ffe8d0 0%, #ffd4b0 100%); }
+.spxeps-key-note {
+  font-family: Share Tech Mono, monospace;
+  font-size: 0.42rem;
+  color: #808880;
+  pointer-events: none;
+}
+.spxeps-key-black {
+  position: absolute;
+  width: 2.2%;
+  height: 62%;
+  top: 0;
+  background: linear-gradient(180deg, #282828 0%, #1a1a1a 60%, #303030 100%);
+  border: 1px solid #000;
+  border-top: none;
+  border-radius: 0 0 3px 3px;
+  cursor: pointer;
+  z-index: 2;
+  box-shadow: 2px 4px 6px rgba(0,0,0,0.5), inset 0 -2px 0 #404040;
+  user-select: none;
+}
+.spxeps-key-black:hover { background: linear-gradient(180deg, #383838 0%, #282828 60%, #404040 100%); }
+.spxeps-key-black.active { background: linear-gradient(180deg, #e85500 0%, #aa3300 100%); }
+.spxeps-key-black.mapped { background: linear-gradient(180deg, #3a1800 0%, #200e00 100%); }
+.spxeps-zone-chip { min-width: 100px; min-height: 60px; padding: 10px 14px; }
+.spxeps-zone-name { font-size: 0.72rem; color: #c0c8e0; }
+.spxeps-main { min-height: 160px; }
