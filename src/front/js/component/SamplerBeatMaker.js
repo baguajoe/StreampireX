@@ -2774,12 +2774,7 @@ const SamplerBeatMaker = ({
           {onOpenSampler && <button className="transport-btn" onClick={onOpenSampler} title="Open Sampler — load/chop samples">〰 Sampler</button>}
           {onSendToArrange && <button className="transport-btn" onClick={bounceToArrange} title="Bounce pattern/song to Arrange track">→🎚 Arrange</button>}
 
-          <div className="view-toggle">
-            <button className={view === 'pads' ? 'active' : ''} onClick={() => setView('pads')}>Pads</button>
-            <button className={view === 'sequencer' ? 'active' : ''} onClick={() => setView('sequencer')}>Seq</button>
-            <button className={view === 'split' ? 'active' : ''} onClick={() => setView('split')}>Split</button>
-            <button className={view === 'piano' ? 'active' : ''} onClick={() => setView('piano')}>🎹 Piano</button>
-          </div>
+
 
           <div className="export-dropdown">
             <button className="export-btn" onClick={() => setShowExportPanel(!showExportPanel)} disabled={exporting}>{exporting ? '⏳...' : '⬇ Export'}</button>
