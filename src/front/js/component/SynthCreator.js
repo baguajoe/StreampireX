@@ -486,6 +486,7 @@ const SynthCreator = ({ onClose, onAssignToPad, onAssignToTrack }) => {
       const a=document.createElement('a');a.href=url;a.download=`${presetName.replace(/\s+/g,'_')}.wav`;document.body.appendChild(a);a.click();document.body.removeChild(a);
       setTimeout(()=>URL.revokeObjectURL(url),5000);
       toast('✓ WAV exported');
+      if (onBounceToChop) onBounceToChop(rendered);
     } catch(e){console.error(e);toast('✗ Export failed');}
     setExporting(false);
   };

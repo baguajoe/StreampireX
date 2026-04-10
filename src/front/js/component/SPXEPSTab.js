@@ -377,6 +377,9 @@ export default function SPXEPSTab({ onExport, onSendToArrange, isEmbedded, maste
             <div className="spxeps-keyboard-info">
               <span>Zone {selectedZone + 1}: {zones[selectedZone].name}</span>
               <button className="spxeps-action-btn" onClick={() => fileSelect(selectedZone)}>📂 LOAD SAMPLE</button>
+              {zones[selectedZone]?.processedBuffer && onChopRequest && (
+                <button className="spxeps-action-btn" onClick={() => onChopRequest(zones[selectedZone].processedBuffer, (zi, data) => updateZone(zi, Object.keys(data)[0], Object.values(data)[0]), setZones)}>✂️ CHOP</button>
+              )}
               {zones[selectedZone].processedBuffer && (
                 <button className="spxeps-action-btn" onClick={() => updateZone(selectedZone, 'processedBuffer', null)}>✕ CLEAR</button>
               )}
@@ -531,3 +534,5 @@ export default function SPXEPSTab({ onExport, onSendToArrange, isEmbedded, maste
     </div>
   );
 }
+
+export { applyDSP as dspChain };

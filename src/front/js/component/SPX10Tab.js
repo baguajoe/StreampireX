@@ -522,3 +522,5 @@ export default function SPX10Tab({ onExport, onSendToArrange, isEmbedded, master
     </div>
   );
 }
+
+export { applyDSP as dspChain };

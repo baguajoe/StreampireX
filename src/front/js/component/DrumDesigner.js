@@ -540,6 +540,7 @@ const DrumDesigner = ({ onClose, onAssignToPad, onAssignToTrack }) => {
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 5000);
       toast('✓ WAV exported');
+      if (onBounceToChop) onBounceToChop(rendered);
       if (onAssignToTrack) {
         const ctx = getCtx();
         const ab = await blob.arrayBuffer();

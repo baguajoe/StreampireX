@@ -363,6 +363,9 @@ export default function SPX60Tab({ onExport, onSendToArrange, isEmbedded, master
               </div>
               <div className="spx60-settings-actions">
                 <button className="spx60-action-btn" onClick={() => fileSelect(selectedPad)}>📂 LOAD</button>
+                {pads[selectedPad]?.processedBuffer && onChopRequest && (
+                  <button className="spx60-action-btn" onClick={() => onChopRequest(pads[selectedPad].processedBuffer, updatePad, setPads)}>✂️ CHOP</button>
+                )}
                 <button className="spx60-action-btn" onClick={() => clearPad(selectedPad)}>✕ CLEAR</button>
                 {pads[selectedPad].processedBuffer && onSendToArrange && (
                   <button className="spx60-action-btn" onClick={() => onSendToArrange(selectedPad, pads[selectedPad])}>→ ARR</button>
@@ -402,3 +405,5 @@ export default function SPX60Tab({ onExport, onSendToArrange, isEmbedded, master
     </div>
   );
 }
+
+export { applyDSP as dspChain };

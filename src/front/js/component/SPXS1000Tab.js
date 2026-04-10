@@ -355,6 +355,9 @@ export default function SPXS1000Tab({ onExport, onSendToArrange, isEmbedded, mas
               </div>
               <div className="spxs1000-settings-actions">
                 <button className="spxs1000-action-btn" onClick={() => fileSelect(selectedPad)}>📂 LOAD</button>
+                {pads[selectedPad]?.processedBuffer && onChopRequest && (
+                  <button className="spxs1000-action-btn" onClick={() => onChopRequest(pads[selectedPad].processedBuffer, updatePad, setPads)}>✂️ CHOP</button>
+                )}
                 <button className="spxs1000-action-btn" onClick={() => clearPad(selectedPad)}>✕ CLEAR</button>
                 {pads[selectedPad].processedBuffer && onSendToArrange && (
                   <button className="spxs1000-action-btn" onClick={() => onSendToArrange(selectedPad, pads[selectedPad])}>→ ARR</button>
@@ -394,3 +397,5 @@ export default function SPXS1000Tab({ onExport, onSendToArrange, isEmbedded, mas
     </div>
   );
 }
+
+export { applyDSP as dspChain };

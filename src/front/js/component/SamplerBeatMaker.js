@@ -24,11 +24,11 @@ import InstrumentBuilder from './InstrumentBuilder';
 import SPX3000Tab from './SPX3000Tab';
 import SPXMidiMapPanel from './SPXMidiMapPanel';
 import SP1200Tab from './SP1200Tab';
-import SPX60Tab        from './SPX60Tab';
-import SPX10Tab        from './SPX10Tab';
-import SPXEPSTab       from './SPXEPSTab';
-import SPXS950Tab      from './SPXS950Tab';
-import SPXS1000Tab     from './SPXS1000Tab';
+import SPX60Tab, { dspChain as spx60Dsp }   from './SPX60Tab';
+import SPX10Tab, { dspChain as spx10Dsp }    from './SPX10Tab';
+import SPXEPSTab, { dspChain as spxEpsDsp }  from './SPXEPSTab';
+import SPXS950Tab, { dspChain as spx950Dsp } from './SPXS950Tab';
+import SPXS1000Tab, { dspChain as spx1000Dsp } from './SPXS1000Tab';
 import { useSamplerMasterClock } from './samplerMasterClock';
 import TripleSamplerTab from './TripleSamplerTab';
 import StutterEngine from './StutterEngine';
@@ -336,6 +336,7 @@ const SamplerBeatMaker = ({
 
   // ==== CHOP VIEW (Phase 2) ====
   const [showChop, setShowChop] = useState(false);
+  const [hwChopState, setHwChopState] = useState(null); // { buffer, dspFn, pads, setPads }
   const [chopIdx, setChopIdx] = useState(null);
   const [chopPts, setChopPts] = useState([]);
   const [chopSens, setChopSens] = useState(0.3);
@@ -1999,6 +2000,10 @@ const SamplerBeatMaker = ({
   // WAVEFORM CHOP (Phase 2)
   // =========================================================================
 
+  const onChopRequest = useCallback((buffer, updatePadFn, setPadsFn, dspFn) => {
+    setHwChopState({ buffer, updatePadFn, setPadsFn, dspFn: dspFn || null });
+  }, []);
+
   const openChop = useCallback((pi) => { if (!pads[pi]?.buffer) return; setChopIdx(pi); setChopPts([]); setShowChop(true); }, [pads]);
 
   const drawWave = useCallback(() => {
@@ -3056,6 +3061,7 @@ const SamplerBeatMaker = ({
               isEmbedded={true}
               masterClock={masterClock}
               onSendToTriple={(padIdx, buffer, name) => { setActiveTab('triple'); }}
+              onChopRequest={(buf, upFn, setFn) => onChopRequest(buf, upFn, setFn, spx60Dsp)}
             />
           </div>
         )}
@@ -3067,6 +3073,7 @@ const SamplerBeatMaker = ({
               isEmbedded={true}
               masterClock={masterClock}
               onSendToTriple={(padIdx, buffer, name) => { setActiveTab('triple'); }}
+              onChopRequest={(buf, upFn, setFn) => onChopRequest(buf, upFn, setFn, spx10Dsp)}
             />
           </div>
         )}
@@ -3078,6 +3085,7 @@ const SamplerBeatMaker = ({
               isEmbedded={true}
               masterClock={masterClock}
               onSendToTriple={(padIdx, buffer, name) => { setActiveTab('triple'); }}
+              onChopRequest={(buf, upFn, setFn) => onChopRequest(buf, upFn, setFn, spxEpsDsp)}
             />
           </div>
         )}
@@ -3089,6 +3097,7 @@ const SamplerBeatMaker = ({
               isEmbedded={true}
               masterClock={masterClock}
               onSendToTriple={(padIdx, buffer, name) => { setActiveTab('triple'); }}
+              onChopRequest={(buf, upFn, setFn) => onChopRequest(buf, upFn, setFn, spx950Dsp)}
             />
           </div>
         )}
@@ -3100,6 +3109,7 @@ const SamplerBeatMaker = ({
               isEmbedded={true}
               masterClock={masterClock}
               onSendToTriple={(padIdx, buffer, name) => { setActiveTab('triple'); }}
+              onChopRequest={(buf, upFn, setFn) => onChopRequest(buf, upFn, setFn, spx1000Dsp)}
             />
           </div>
         )}
@@ -3223,7 +3233,9 @@ const SamplerBeatMaker = ({
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
             <SynthCreator onAssignToPad={(buffer, name) => {
               if (typeof onLoadSample === 'function') onLoadSample(buffer, name, null, null);
-            }} />
+            }} 
+              onBounceToChop={(buf) => onChopRequest(buf, updatePad, setPads, null)}
+            />
           </div>
         )}
 
@@ -3232,7 +3244,9 @@ const SamplerBeatMaker = ({
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
             <DrumDesigner onAssignToPad={(buffer, name) => {
               if (typeof onLoadSample === 'function') onLoadSample(buffer, name, null, null);
-            }} />
+            }} 
+              onBounceToChop={(buf) => onChopRequest(buf, updatePad, setPads, null)}
+            />
           </div>
         )}
 
@@ -3241,7 +3255,9 @@ const SamplerBeatMaker = ({
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
             <InstrumentBuilder onAssignToPad={(buffer, name) => {
               if (typeof onLoadSample === 'function') onLoadSample(buffer, name, null, null);
-            }} />
+            }} 
+              onBounceToChop={(buf) => onChopRequest(buf, updatePad, setPads, null)}
+            />
           </div>
         )}
 
@@ -3629,6 +3645,27 @@ const SamplerBeatMaker = ({
           zeroCrossSnap, setZeroCrossSnap, activeSlice, setActiveSlice,
           bpm, masterVol, initCtx, masterRef, activeSrc,
           updatePad, setShowChop, showChop,
+        }} />
+      )}
+
+
+      {/* ── HW SAMPLER CHOP ── */}
+      {hwChopState && (
+        <ChopView engine={{
+          pads: Array.from({length:16},(_,i)=>({idx:i,name:'',buffer:null})),
+          chopIdx: 0,
+          chopPts: [], setChopPts: () => {},
+          chopMode: 'transient', setChopMode: () => {},
+          chopSens: 30, setChopSens: () => {},
+          chopSlices: [], setChopSlices: () => {},
+          zeroCrossSnap: true, setZeroCrossSnap: () => {},
+          activeSlice: -1, setActiveSlice: () => {},
+          bpm, masterVol: 1, initCtx, masterRef, activeSrc,
+          previewDsp: hwChopState.dspFn,
+          updatePad: hwChopState.updatePadFn,
+          setShowChop: (v) => { if (!v) setHwChopState(null); },
+          showChop: true,
+          hwBuffer: hwChopState.buffer,
         }} />
       )}
 
