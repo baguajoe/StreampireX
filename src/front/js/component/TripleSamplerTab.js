@@ -342,11 +342,11 @@ export default function TripleSamplerTab({ onExport, onSendToArrange, sp1200Pads
   const bankData = {
     sp1200:  { pads: padsA, setPads: setPadsA, active: activeA, seq: seqA, setSeq: setSeqA, activePad: activePadA, setActivePad: setActivePadA, muted: mutedA, soloed: soloA, ctx: ctxA, master: masterA, setActive: setActiveA, color: ENGINES[0].color },
     spx3000: { pads: padsB, setPads: setPadsB, active: activeB, seq: seqB, setSeq: setSeqB, activePad: activePadB, setActivePad: setActivePadB, muted: mutedB, soloed: soloB, ctx: ctxB, master: masterB, setActive: setActiveB, color: ENGINES[1].color },
-    digital: { pads: padsC, setPads: setPadsC, active: activeC, seq: seqC, setSeq: setSeqC, activePad: activePadC, setActivePad: setActivePadC, muted: mutedC, soloed: soloC, ctx: ctxC, master: masterC, setActive: setActiveC, color: ENGINES[2].color },
+    spx3200: { pads: padsC, setPads: setPadsC, active: activeC, seq: seqC, setSeq: setSeqC, activePad: activePadC, setActivePad: setActivePadC, muted: mutedC, soloed: soloC, ctx: ctxC, master: masterC, setActive: setActiveC, color: ENGINES[2].color },
   };
 
-  const muteFns  = { sp1200: () => setMutedA(v => !v), spx3000: () => setMutedB(v => !v), digital: () => setMutedC(v => !v) };
-  const soloFns  = { sp1200: () => setSoloA(v => !v),  spx3000: () => setSoloB(v => !v),  digital: () => setSoloC(v => !v) };
+  const muteFns  = { sp1200: () => setMutedA(v => !v), spx3000: () => setMutedB(v => !v), spx3200: () => setMutedC(v => !v) };
+  const soloFns  = { sp1200: () => setSoloA(v => !v),  spx3000: () => setSoloB(v => !v),  spx3200: () => setSoloC(v => !v) };
 
   const ab = bankData[activeBank] || bankData[Object.keys(bankData)[0]];
 
