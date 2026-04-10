@@ -31,6 +31,7 @@ import SPXS1000Tab     from './SPXS1000Tab';
 import { useSamplerMasterClock } from './samplerMasterClock';
 import TripleSamplerTab from './TripleSamplerTab';
 import StutterEngine from './StutterEngine';
+import SBMDropdownNav from './SBMDropdownNav';
 import AIBeatAssistant from './AIBeatAssistant';
 import ChordProgressionGenerator from './ChordProgressionGenerator';
 import HumToSong from './HumToSong';
@@ -2812,60 +2813,8 @@ const SamplerBeatMaker = ({
           {devices.outputs.length > 1 && <div className="device-hint">✅ External audio interface detected</div>}
         </div>
       )}
-      {/* ═══ 4-TAB NAVIGATION ═══ */}
-      <div className="sbm-tab-nav" style={{
-        display: 'flex', gap: 0, background: '#0a1628', overflowX: 'auto', flexWrap: 'nowrap',
-        borderBottom: '2px solid #1a2a3a', padding: '0 8px',
-      }}>
-        {[
-          { id: 'sampler', label: '🎧 Sampler', title: 'Sample Editor, Waveform, Chop, ADSR' },
-          { id: 'drumpad',    label: '🥁 Drum Kit',    title: 'MPC Pads, Performance, Kits' },
-          { id: 'chop',        label: '✂️ Chop',        title: 'Sample Chop — slice, trim, assign to pads' },
-          { id: 'beats',       label: '🎹 SPX Beat Lab', title: 'Step Sequencer, Patterns, Song Mode' },
-          { id: 'spx3000',     label: '🎛️ SPX3000',     title: 'SPX3000 — MPC3000 engine, 12-bit DAC, 4 banks, 96 PPQN' },
-          { id: 'sp1200',      label: '🔴 SP-1200',      title: 'SP-1200 — E-mu 1987, 26kHz, asymmetric saturation, boom bap' },
-          { id: 'vox',         label: '🎙️ Vox',         title: 'SPX VoxEngine — real-time vocoder, formant filter, unison, harmonizer, arp' },
-          { id: 'spx60',   label: '🎛️ SPX-60',   title: 'SPX-60 — 12-bit 40kHz, Linn swing, 4-vel layers' },
-          { id: 'spx-eps', label: '🎛️ SPX-EPS',  title: 'SPX-EPS — 13-bit 29kHz, DOC chip, lo-fi grit' },
-          { id: 'spx950',  label: '🎛️ SPX-950',  title: 'SPX-950 — 12-bit 40kHz, R-2R ladder, West Coast warm' },
-          { id: 'spx1000', label: '🎛️ SPX-1000', title: 'SPX-1000 — 16-bit 44.1kHz, linear PCM, clean' },
-          { id: 'triple',      label: '🗡️ SPX Trident',       title: 'SP-1200 + SPX3000 + SPX-3200 — unified 3-engine sampler with master clock' },
-          { id: 'sounds',      label: '🔊 Sounds',       title: 'Freesound Sample Browser — 500k+ free sounds' },
-          { id: 'loops',       label: '🔁 Loops',        title: 'Looperman Loop Browser — 4M+ free loops' },
-          { id: 'chords',      label: '🎼 Chords',       title: 'Chord Progression Generator' },
-          { id: 'aibeats',     label: '🤖 AI Beats',     title: 'AI Beat Pattern Generator' },
-          { id: 'voicemidi',   label: '🎤 Voice MIDI',   title: 'Voice to MIDI Converter' },
-          { id: 'humtosong',   label: '🎵 Hum to Song',  title: 'Hum a melody to generate a beat' },
-          { id: 'texttosong',  label: '✍️ Text to Song', title: 'Text prompt to generated song' },
-          { id: 'stems',       label: '✂️ Stems',        title: 'AI Stem Separator' },
-          { id: 'synth',       label: '🎛️ Synth',        title: 'Subtractive Synthesizer' },
-          { id: 'drumdesign',  label: '🥁 Drum Design',  title: 'Drum Synthesis Designer' },
-          { id: 'instrument',  label: '🎸 Instrument',   title: 'Custom Instrument Builder' },
-          { id: 'midi',        label: '🎹 MIDI Map',   title: 'MIDI Controller Mapping — assign notes to pads, velocity curves, transpose' },
-          { id: 'stutter',     label: '⚡ Stutter',      title: 'Beat-Synced Stutter / Glitch FX — Gross Beat style' },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            className={`sbm-main-tab ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
-            title={tab.title}
-            style={{
-              padding: '8px 16px',
-              background: activeTab === tab.id ? '#0d1f35' : 'transparent',
-              color: activeTab === tab.id ? '#00ffc8' : '#5a7088',
-              border: 'none',
-              borderBottom: activeTab === tab.id ? '2px solid #00ffc8' : '2px solid transparent',
-              cursor: 'pointer',
-              fontSize: '0.75rem',
-              fontWeight: activeTab === tab.id ? 700 : 400,
-              transition: 'all 0.15s',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* ═══ GROUPED DROPDOWN NAV ═══ */}
+      <SBMDropdownNav activeTab={activeTab} setActiveTab={setActiveTab} />
       {/* LIVE REC BAR */}
       {liveRec && <div className="live-record-bar"><span className="rec-dot">⏺</span> RECORDING — Play pads to record <span className="rec-hits">{recHits.length} hits</span><button onClick={stopLiveRec}>⏹ Stop & Quantize</button></div>}
 
