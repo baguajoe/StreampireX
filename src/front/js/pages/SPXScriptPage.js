@@ -237,6 +237,13 @@ export default function SPXScriptPage() {
 
         {/* Drafts */}
         <div style={{ position: "relative" }}>
+          <button className="spx-script-topbtn" onClick={() => {
+            if(window.confirm('Start a new script? Unsaved changes will be lost.')) {
+              setScript({...DEFAULT_SCRIPT, title: 'UNTITLED', elements: [], scriptId: 'new_' + Date.now(), savedAt: null});
+              setComic({...DEFAULT_COMIC});
+              closeAllMenus();
+            }
+          }}>NEW</button>
           <button className="spx-script-topbtn" onClick={() => { setShowDrafts(!showDrafts); setShowExportMenu(false); setShowImportMenu(false); }}>DRAFTS</button>
           {showDrafts && (
             <div className="spx-script-drafts-dropdown">
