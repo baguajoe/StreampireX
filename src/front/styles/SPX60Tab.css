@@ -503,3 +503,14 @@
 /* DSP strip */
 .spx60-dsp-strip { background: #909088; border-top-color: #888078; }
 .spx60-dsp-badge { color: #4a4840; border-color: #706860; }
+
+/* ── SPX-60 readability fixes ── */
+.spx60-pad-num  { font-size: 0.72rem; color: #222; font-weight: 700; }
+.spx60-pad-name { font-size: 0.78rem; color: #111; font-weight: 600; }
+.spx60-pad-drop { font-size: 0.68rem; color: #555; }
+.spx60-knob-label { color: #222; font-size: 0.65rem; }
+.spx60-settings-title { color: #cc1100; font-size: 0.72rem; }
+.spx60-label { color: #222; font-size: 0.65rem; }
+.spx60-val   { color: #006600; font-size: 0.75rem; }
+.spx60-model { color: #111; }
+.spx60-brand { color: #444; }
