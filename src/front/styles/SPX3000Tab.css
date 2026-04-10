@@ -1518,3 +1518,8 @@
   border-color: #1a0e00;
 }
 
+
+/* ── SPX3000 pad text readability ── */
+.spx-pad-num  { font-size: 0.72rem; color: #aaaaaa; font-weight: 700; }
+.spx-pad-name { font-size: 0.7rem;  color: #dddddd; font-weight: 500; }
+.spx-drop-text { font-size: 0.62rem; color: #666666; letter-spacing: 0.08em; }

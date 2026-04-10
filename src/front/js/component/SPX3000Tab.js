@@ -1635,7 +1635,7 @@ const SPX3000Tab = ({
 
                     {/* Sample name */}
                     <span className="spx-pad-name">
-                      {pad.buffer ? pad.name : <span style={{fontSize:9,color:'#505050',letterSpacing:1}}>DROP AUDIO</span>}
+                      {pad.buffer ? pad.name : <span className='spx-drop-text'>DROP AUDIO</span>}
                     </span>
 
                     {/* Load button */}

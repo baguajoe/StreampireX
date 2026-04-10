@@ -250,13 +250,13 @@
 .spx60-pad.selected        { border-color: var(--red); box-shadow: 0 3px 0 #660000, inset 0 0 8px var(--red)22; }
 .spx60-pad.firing          { background: linear-gradient(170deg, var(--red) 0%, #aa1800 100%); border-color: var(--red2); box-shadow: 0 0 10px var(--red)88; }
 .spx60-pad.firing .spx60-pad-num,
-.spx60-pad.firing .spx60-pad-name { color: #fff; }
+.spx60-pad.firing 
 .spx60-pad.muted           { opacity: 0.35; }
 .spx60-pad:active          { box-shadow: none; transform: translateY(2px); }
 
-/* removed duplicate */
-/* removed duplicate */
-/* removed duplicate */
+
+
+
 
 /* ── Pad settings panel ── */
 .spx60-pad-settings {
@@ -338,14 +338,8 @@
   border-color: #cc1100 !important;
   background: linear-gradient(160deg, #1e1e1e 0%, #141414 100%) !important;
 }
-.spx60-pad-name {
-  font-size: 0.68rem !important;
-  color: #e0e0e0 !important;
-}
-.spx60-pad-num {
-  font-size: 0.58rem !important;
-  color: #666 !important;
-}
+
+
 /* LCD text bigger */
 .spx60-lcd-item {
   font-size: 0.75rem !important;
@@ -433,7 +427,7 @@
   box-shadow: 0 0 12px rgba(204,17,0,0.7);
 }
 .spx60-pad.firing .spx60-pad-num,
-.spx60-pad.firing .spx60-pad-name { color: #fff; }
+.spx60-pad.firing 
 .spx60-pad:active { box-shadow: none; transform: translateY(2px); }
 
 
@@ -505,9 +499,9 @@
 .spx60-dsp-badge { color: #4a4840; border-color: #706860; }
 
 /* ── SPX-60 readability fixes ── */
-.spx60-pad-num  { font-size: 0.72rem; color: #222; font-weight: 700; }
-.spx60-pad-name { font-size: 0.78rem; color: #111; font-weight: 600; }
-.spx60-pad-drop { font-size: 0.68rem; color: #555; }
+
+
+
 .spx60-knob-label { color: #222; font-size: 0.65rem; }
 .spx60-settings-title { color: #cc1100; font-size: 0.72rem; }
 .spx60-label { color: #222; font-size: 0.65rem; }
@@ -587,3 +581,10 @@
   background: #a0988a;
   border-radius: 4px;
 }
+
+/* ── SPX60 pad text — single authoritative rule ── */
+.spx60-pad-num  { font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; color: #ffffff; font-weight: 700; }
+.spx60-pad-name { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: #ffffff; font-weight: 600; text-align: center; }
+.spx60-pad-drop { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: #cccccc; }
+.spx60-pad.firing .spx60-pad-num,
+.spx60-pad.firing .spx60-pad-name { color: #ffffff; }
