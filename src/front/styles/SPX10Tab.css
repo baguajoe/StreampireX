@@ -542,3 +542,20 @@
 .spx10-key-black.mapped { background: linear-gradient(180deg, #003818 0%, #002010 100%); }
 .spx10-key-white.active { background: linear-gradient(180deg, var(--teal) 0%, #009070 100%); }
 .spx10-key-black.active { background: linear-gradient(180deg, var(--teal2) 0%, var(--teal) 100%); }
+
+/* ── Bigger more visible zones for SPX-10 ── */
+.spx10-zone-chip {
+  min-width:   100px !important;
+  min-height:  60px !important;
+  padding:     10px 14px !important;
+}
+.spx10-zone-name  { font-size: 0.72rem !important; color: #c0c8e0 !important; }
+.spx10-zone-range { font-size: 0.62rem !important; }
+
+.spx10-main { min-height: 160px; }
+
+.spx10-keyboard-info {
+  font-size: 0.68rem !important;
+  color:     #c0c8e0 !important;
+  padding:   8px 0 !important;
+}
