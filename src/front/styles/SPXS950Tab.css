@@ -302,3 +302,19 @@
   letter-spacing: 0.07em; padding: 1px 5px; border: 1px solid var(--border-dk); border-radius: 2px; text-transform: uppercase;
 }
 
+
+/* ── SPX-950 Rotary Knobs ── */
+.spxs950-range {
+  -webkit-appearance: none; appearance: none;
+  width: 48px; height: 48px; border-radius: 50%;
+  background-image: radial-gradient(circle at 50% 18%, #ffffff 2px, transparent 3px), radial-gradient(circle at center, #2a2018 58%, #1a1410 100%);
+  border: 2px solid #666; box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+  cursor: pointer; outline: none; padding: 0; margin: 0 4px;
+}
+.spxs950-range::-webkit-slider-thumb { -webkit-appearance: none; width: 0; height: 0; opacity: 0; }
+.spxs950-range::-moz-range-thumb { width: 0; height: 0; opacity: 0; border: none; }
+.spxs950-range:focus { border-color: #6aaad0; box-shadow: 0 0 6px rgba(106,170,208,0.5); }
+.spxs950-knob-row { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; }
+.spxs950-knob-label { font-family: var(--font-lcd); font-size: 0.55rem; color: #333; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; }
+.spxs950-val { font-family: var(--font-lcd); font-size: 0.62rem; color: #005588; text-align: center; min-width: 28px; }
+.spxs950-settings-grid { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; background: #c8c0a8; border-radius: 4px; }

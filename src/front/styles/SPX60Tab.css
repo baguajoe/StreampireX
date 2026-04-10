@@ -254,9 +254,9 @@
 .spx60-pad.muted           { opacity: 0.35; }
 .spx60-pad:active          { box-shadow: none; transform: translateY(2px); }
 
-.spx60-pad-num  { font-family: var(--font-lcd); font-size: 0.52rem; color: var(--text3); }
-.spx60-pad-name { font-family: var(--font-lcd); font-size: 0.58rem; color: var(--text2); text-align: center; padding: 0 4px; word-break: break-all; }
-.spx60-pad-drop { font-family: var(--font-lcd); font-size: 0.5rem; color: var(--text3); }
+/* removed duplicate */
+/* removed duplicate */
+/* removed duplicate */
 
 /* ── Pad settings panel ── */
 .spx60-pad-settings {
@@ -514,3 +514,76 @@
 .spx60-val   { color: #006600; font-size: 0.75rem; }
 .spx60-model { color: #111; }
 .spx60-brand { color: #444; }
+
+/* ── SPX-60 Rotary Knob (CSS-only) ── */
+.spx60-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background:
+    conic-gradient(
+      from 135deg,
+      #cc1100 calc(var(--val, 50) * 2.7deg),
+      #444 0deg 270deg,
+      transparent 270deg
+    ),
+    radial-gradient(circle at center, #2a2820 60%, #1a1814 100%);
+  border: 2px solid #555;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+  cursor: pointer;
+  outline: none;
+  position: relative;
+  padding: 0;
+  margin: 0 4px;
+  writing-mode: horizontal-tb;
+  /* Pointer dot */
+  background-image:
+    radial-gradient(circle at 50% 18%, #ffffff 2px, transparent 3px),
+    radial-gradient(circle at center, #2a2820 58%, #1a1814 100%);
+}
+
+.spx60-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0; height: 0; opacity: 0;
+}
+.spx60-range::-moz-range-thumb {
+  width: 0; height: 0; opacity: 0; border: none;
+}
+.spx60-range:focus {
+  border-color: #cc1100;
+  box-shadow: 0 0 6px rgba(204,17,0,0.5);
+}
+
+.spx60-knob-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+}
+.spx60-knob-label {
+  font-family: var(--font-lcd);
+  font-size: 0.55rem;
+  color: #4a4840;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+.spx60-val {
+  font-family: var(--font-lcd);
+  font-size: 0.62rem;
+  color: #44cc44;
+  text-align: center;
+  min-width: 28px;
+}
+.spx60-settings-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
+  background: #a0988a;
+  border-radius: 4px;
+}
