@@ -264,15 +264,6 @@ export default function SPX60Tab({ onExport, onSendToArrange, isEmbedded, master
       </div>
 
       <div className="spx60-controls">
-        <div className="spx60-ctrl-group spx60-master-knobs">
-          <div className="spx60-knob-row">
-            <label className="spx60-knob-label">MASTER</label>
-            <input className="spx60-range" type="range" min={0} max={1} step={0.01}
-              value={masterVol ?? 1}
-              onChange={e => setMasterVol && setMasterVol(+e.target.value)} />
-            <span className="spx60-val">{Math.round((masterVol ?? 1) * 100)}%</span>
-          </div>
-        </div>
         <div className="spx60-ctrl-group">
           <label className="spx60-label">BPM</label>
           <input className="spx60-range" type="range" min={40} max={240} value={bpm}

@@ -285,15 +285,6 @@ export default function SPXS950Tab({ onExport, onSendToArrange, isEmbedded, mast
       </div>
 
       <div className="spxs950-controls">
-        <div className="spxs950-ctrl-group spxs950-master-knobs">
-          <div className="spxs950-knob-row">
-            <label className="spxs950-knob-label">MASTER</label>
-            <input className="spxs950-range" type="range" min={0} max={1} step={0.01}
-              value={masterVol ?? 1}
-              onChange={e => setMasterVol && setMasterVol(+e.target.value)} />
-            <span className="spxs950-val">{Math.round((masterVol ?? 1) * 100)}%</span>
-          </div>
-        </div>
         <div className="spxs950-ctrl-group">
           <label className="spxs950-label">BPM</label>
           <input className="spxs950-range" type="range" min={40} max={240} value={bpm}

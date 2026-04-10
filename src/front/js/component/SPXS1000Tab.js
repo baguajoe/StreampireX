@@ -256,15 +256,6 @@ export default function SPXS1000Tab({ onExport, onSendToArrange, isEmbedded, mas
       </div>
 
       <div className="spxs1000-controls">
-        <div className="spxs1000-ctrl-group spxs1000-master-knobs">
-          <div className="spxs1000-knob-row">
-            <label className="spxs1000-knob-label">MASTER</label>
-            <input className="spxs1000-range" type="range" min={0} max={1} step={0.01}
-              value={masterVol ?? 1}
-              onChange={e => setMasterVol && setMasterVol(+e.target.value)} />
-            <span className="spxs1000-val">{Math.round((masterVol ?? 1) * 100)}%</span>
-          </div>
-        </div>
         <div className="spxs1000-ctrl-group">
           <label className="spxs1000-label">BPM</label>
           <input className="spxs1000-range" type="range" min={40} max={240} value={bpm}
