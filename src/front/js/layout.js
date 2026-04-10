@@ -52,6 +52,7 @@ import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import AIMasteringPage from "./pages/AIMasteringPage";
 import AIRadioDJPage from "./pages/AIRadioDJPage";
 import DJMixer from "./pages/DJMixer";
+import SPXScriptPage from "./pages/SPXScriptPage";
 import AIRadioDJ from "./component/AIRadioDJ";
 import AIContentWriter from "./pages/AIContentWriter";
 import AIStemSeparation from "./pages/AIStemSeparation";
@@ -542,6 +543,7 @@ const AppShell = ({ user }) => {
                                 <Route path="/airadio-dj-page" element={<AIRadioDJPage />} />
                                 <Route path="/airadio-dj" element={<AIRadioDJ />} />
                                 <Route path="/dj-mixer" element={<DJMixer />} />
+                                <Route path="/spx-script" element={<SPXScriptPage />} />
 
                                 {/* ---------------- Video / Reels / Live ---------------- */}
                                 <Route path="/browse-videos" element={<BrowseVideosPage />} />
@@ -646,7 +648,8 @@ const AppShell = ({ user }) => {
                                 <Route path="*" element={<Home />} />
 <Route path="/sell-plugin" element={<SellPluginPage />} />
 <Route path="/plugins/:pluginId" element={<PluginDetailPage />} />
-                            </Routes>
+                                            <Route path="/spx-script" element={<SPXScriptPage />} />
+                </Routes>
                         </div>
 
                         {!isComparePage && !isAuthPage && (

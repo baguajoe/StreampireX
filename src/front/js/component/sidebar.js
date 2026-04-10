@@ -299,6 +299,7 @@ const Sidebar = ({ user }) => {
         <SpxMenuItem to="/spx-beat-lab" className={isActive("/spx-beat-lab") ? "active" : ""}>🥁 <span className="sidebar-label">SPX Beat Lab</span></SpxMenuItem>
         <SpxMenuItem to="/podcast-studio" className={isActive("/podcast-studio") ? "active" : ""}>🎙️ <span className="sidebar-label">SPX Cast</span></SpxMenuItem>
         <SpxMenuItem to="/dj-mixer" className={isActive("/dj-mixer") ? "active" : ""}>🎚️ <span className="sidebar-label">SPX DJ Mixer</span></SpxMenuItem>
+        <SpxMenuItem to="/spx-script" className={isActive("/spx-script") ? "active" : ""}>📝 <span className="sidebar-label">SPX Script</span></SpxMenuItem>
       </>)}
 
 
