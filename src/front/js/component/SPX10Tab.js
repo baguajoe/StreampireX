@@ -504,7 +504,7 @@ export default function SPX10Tab({ onExport, onSendToArrange, isEmbedded, master
             </div>
           ))}
           {blackKeys.map((key,i)=>{
-            const pct=((key.wi+0.65)/36)*100;
+            const pct=((key.wi+0.65)/whiteKeys.length)*100;
             return(
               <div key={i}
                 className={`spx10-key-black${activeNotes.has(key.midi)?' active':''}${findZone(key.midi)?' mapped':''}`}
