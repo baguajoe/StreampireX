@@ -436,9 +436,9 @@
 .spx60-pad.firing .spx60-pad-name { color: #fff; }
 .spx60-pad:active { box-shadow: none; transform: translateY(2px); }
 
-.spx60-pad-num  { color: #4a4440; font-size: 0.6rem; }
-.spx60-pad-name { color: #1a1814; font-size: 0.68rem; }
-.spx60-pad-drop { color: #6a6458; }
+
+
+
 
 /* Pad LED — top right corner */
 .spx60-pad::before {

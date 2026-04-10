@@ -210,7 +210,7 @@
   user-select:     none;
   overflow:        hidden;
   box-shadow:      0 2px 0 var(--border-dk), inset 0 1px 0 #ffffff99;
-}
+  display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
 /* Pad inner content */
 .spxs1000-pad-inner {
