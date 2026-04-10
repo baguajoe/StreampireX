@@ -378,6 +378,9 @@ export default function SPX10Tab({ onExport, onSendToArrange, isEmbedded, master
             <div className="spx10-keyboard-info">
               <span>Zone {selectedZone+1}: {zones[selectedZone].name}</span>
               <button className="spx10-action-btn" onClick={()=>fileSelect(selectedZone)}>📂 LOAD SAMPLE</button>
+              {zones[selectedZone]?.processedBuffer && onChopRequest && (
+                <button className="spx10-action-btn" onClick={() => onChopRequest(zones[selectedZone].processedBuffer, (zi, data) => updateZone(zi, Object.keys(data)[0], Object.values(data)[0]), setZones)}>✂️ CHOP</button>
+              )}
               {zones[selectedZone].processedBuffer&&(
                 <button className="spx10-action-btn" onClick={()=>updateZone(selectedZone,'processedBuffer',null)}>✕ CLEAR</button>
               )}

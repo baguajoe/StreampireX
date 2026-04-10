@@ -83,7 +83,7 @@ const S = {
 const ChopView = ({ engine }) => {
   const pi = engine.chopIdx;
   const pad = engine.pads[pi];
-  const buffer = pad?.buffer;
+  const buffer = engine.hwBuffer ?? pad?.buffer;
 
   const canvasRef = useRef(null);
   const [hoveredSlice, setHoveredSlice] = useState(-1);
@@ -206,7 +206,7 @@ const ChopView = ({ engine }) => {
 
     const ctx = engine.initCtx();
     const src = ctx.createBufferSource();
-    src.buffer = buffer;
+    src.buffer = (engine.previewDsp && engine.ctxRef?.current) ? engine.previewDsp(engine.ctxRef.current, buffer) : buffer;
     const gain = ctx.createGain();
     gain.gain.value = (pad.volume || 0.8) * engine.masterVol;
     src.connect(gain);
@@ -239,7 +239,7 @@ const ChopView = ({ engine }) => {
         try { engine.activeSrc.current['chop_preview'].source.stop(); } catch (e) {}
       }
       const src = ctx.createBufferSource();
-      src.buffer = buffer;
+      src.buffer = (engine.previewDsp && engine.ctxRef?.current) ? engine.previewDsp(engine.ctxRef.current, buffer) : buffer;
       const gain = ctx.createGain();
       gain.gain.value = (pad.volume || 0.8) * engine.masterVol;
       src.connect(gain);
