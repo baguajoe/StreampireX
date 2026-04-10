@@ -31,6 +31,11 @@ import SPXS1000Tab     from './SPXS1000Tab';
 import { useSamplerMasterClock } from './samplerMasterClock';
 import TripleSamplerTab from './TripleSamplerTab';
 import StutterEngine from './StutterEngine';
+import AIBeatAssistant from './AIBeatAssistant';
+import ChordProgressionGenerator from './ChordProgressionGenerator';
+import HumToSong from './HumToSong';
+import VoiceMidiConverter from './VoiceMidiConverter';
+import TextToSongGenerator from './TextToSongGenerator';
 
 // =============================================================================
 // CONSTANTS
@@ -3181,7 +3186,10 @@ const SamplerBeatMaker = ({
         {/* ── CHORDS TAB ── */}
         {activeTab === 'chords' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
-            {chordsComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🎼 Chord Progression Generator — open via DAW Sampler view</div>}
+            {chordsComponent || <ChordProgressionGenerator
+              isEmbedded={true}
+              onSendToTrack={(chords) => console.log('chords:', chords)}
+            />}
           </div>
         )}
 
@@ -3202,28 +3210,49 @@ const SamplerBeatMaker = ({
         {/* ── AI BEATS TAB ── */}
         {activeTab === 'aibeats' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
-            {aiBeatsComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🤖 AI Beat Assistant — open via DAW Sampler view</div>}
+            {aiBeatsComponent || <AIBeatAssistant
+              bpm={bpm}
+              isEmbedded={true}
+              onApplyPattern={(pattern) => console.log('pattern:', pattern)}
+            />}
           </div>
         )}
 
         {/* ── VOICE MIDI TAB ── */}
         {activeTab === 'voicemidi' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
-            {voiceMidiComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🎤 Voice MIDI — open via DAW Sampler view</div>}
+            {voiceMidiComponent || <VoiceMidiConverter
+              audioContext={ctxRef.current}
+              isEmbedded={true}
+              onNote={(note) => console.log('voice note:', note)}
+              onAssignToPad={(note) => {
+                if (activePad !== null) console.log('assign note to pad', activePad, note);
+              }}
+            />}
           </div>
         )}
 
         {/* ── HUM TO SONG TAB ── */}
         {activeTab === 'humtosong' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
-            {humToSongComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🎵 Hum to Song — open via AI Tools sidebar</div>}
+            {humToSongComponent || <HumToSong
+              isEmbedded={true}
+            />}
           </div>
         )}
 
         {/* ── TEXT TO SONG TAB ── */}
         {activeTab === 'texttosong' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
-            {textToSongComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>✍️ Text to Song — open via AI Tools sidebar</div>}
+            {textToSongComponent || <TextToSongGenerator
+              isEmbedded={true}
+              onLoadSample={(buffer, name) => {
+                if (typeof onLoadSample === 'function') onLoadSample(buffer, name, null, null);
+              }}
+              onLoadToPad={(buffer, name) => {
+                if (activePad !== null) loadBufferToPad(activePad, buffer, name);
+              }}
+            />}
           </div>
         )}
 
