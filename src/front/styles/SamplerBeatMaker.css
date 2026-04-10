@@ -3586,3 +3586,9 @@
 .stems-load-all-btn:hover { background: rgba(0,255,200,0.18); }
 
 .stems-hint { font-size: 0.6rem; color: #3d5570; margin-top: 10px; text-align: center; font-style: italic; }
+/* SPX-950 and SPX-1000 tab label readability fix */
+.sbm-tab-btn[data-tab="spx950"] .sbm-tab-label,
+.sbm-tab-btn[data-tab="spx1000"] .sbm-tab-label {
+  color: #1a1a1a;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+}

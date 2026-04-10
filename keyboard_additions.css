@@ -1,0 +1,162 @@
+/* =============================================================================
+   Keyboard workstation additions for SPXEPSTab.css and SPX10Tab.css
+   Zone bar, zones view, params view, mapped key highlighting
+   Add these to the END of each respective CSS file
+   ============================================================================= */
+
+/* ── SPXEPS keyboard workstation additions ── */
+
+.spxeps-oct-btn {
+  padding: 3px 8px; background: var(--btn-face); border: 1px solid var(--border2);
+  border-radius: 2px; color: var(--text2); cursor: pointer;
+  font-family: var(--font-lcd); font-size: 0.6rem; transition: all 0.08s;
+}
+.spxeps-oct-btn:hover { border-color: var(--accent); color: var(--accent2); }
+
+.spxeps-main { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+
+/* Keyboard view */
+.spxeps-keyboard-view {
+  display: flex; flex-direction: column; flex: 1; padding: 8px; gap: 8px;
+  background: var(--chassis);
+}
+
+.spxeps-zone-bar {
+  display: flex; gap: 5px; flex-wrap: wrap;
+}
+
+.spxeps-zone-chip {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 6px 10px; background: var(--btn-face);
+  border: 1px solid var(--border2); border-radius: 4px;
+  cursor: pointer; min-width: 80px; transition: all 0.08s;
+}
+.spxeps-zone-chip:hover    { border-color: var(--accent); }
+.spxeps-zone-chip.loaded   { border-color: var(--lcd-fg)66; background: var(--panel2); }
+.spxeps-zone-chip.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent)44; }
+.spxeps-zone-name  { font-family: var(--font-lcd); font-size: 0.58rem; color: var(--text2); }
+.spxeps-zone-range { font-family: var(--font-lcd); font-size: 0.5rem; color: var(--lcd-fg); margin-top: 2px; }
+.spxeps-zone-drop  { font-family: var(--font-lcd); font-size: 0.5rem; color: var(--text3); }
+
+.spxeps-keyboard-info {
+  display: flex; align-items: center; gap: 10px; padding: 6px 0;
+  font-family: var(--font-lcd); font-size: 0.6rem; color: var(--text2);
+}
+
+/* Zones view */
+.spxeps-zones-view { flex: 1; overflow-y: auto; padding: 8px; background: var(--chassis); }
+.spxeps-zone-row {
+  display: flex; align-items: center; gap: 10px; padding: 6px 10px;
+  background: var(--btn-face); border: 1px solid var(--border2);
+  border-radius: 3px; margin-bottom: 4px; cursor: pointer; transition: all 0.08s;
+}
+.spxeps-zone-row:hover    { border-color: var(--accent); }
+.spxeps-zone-row.selected { border-color: var(--accent); background: var(--panel2); }
+.spxeps-zone-idx        { font-family: var(--font-lcd); font-size: 0.55rem; color: var(--text3); min-width: 16px; }
+.spxeps-zone-name-cell  { font-family: var(--font-lcd); font-size: 0.6rem; color: var(--text); flex: 1; }
+.spxeps-zone-range-cell { font-family: var(--font-lcd); font-size: 0.55rem; color: var(--lcd-fg); min-width: 80px; }
+.spxeps-zone-root       { font-family: var(--font-lcd); font-size: 0.55rem; color: var(--text2); min-width: 80px; }
+.spxeps-zone-status     { font-family: var(--font-lcd); font-size: 0.55rem; color: var(--text3); min-width: 70px; }
+.spxeps-zone-status.loaded { color: var(--lcd-fg); }
+
+/* Params view */
+.spxeps-params-view { flex: 1; overflow-y: auto; padding: 8px; background: var(--chassis); display: flex; flex-direction: column; gap: 8px; }
+.spxeps-params-zone-select { display: flex; gap: 4px; }
+.spxeps-param-zone-btn {
+  padding: 3px 8px; background: var(--btn-face); border: 1px solid var(--border2);
+  border-radius: 2px; color: var(--text3); cursor: pointer; font-family: var(--font-lcd); font-size: 0.58rem;
+}
+.spxeps-param-zone-btn.active { background: var(--accent); color: #000; border-color: var(--accent2); }
+.spxeps-params-grid { display: flex; flex-direction: column; gap: 5px; }
+.spxeps-params-title { font-family: var(--font-lcd); color: var(--accent2); font-size: 0.62rem; margin-bottom: 4px; }
+.spxeps-param-row { display: flex; align-items: center; gap: 8px; }
+.spxeps-param-label { font-family: var(--font-lcd); color: var(--text3); font-size: 0.52rem; min-width: 72px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* SEQ controls */
+.spxeps-seq { flex: 1; overflow-y: auto; padding: 8px; background: var(--chassis); display: flex; flex-direction: column; gap: 8px; }
+.spxeps-seq-controls { display: flex; gap: 12px; }
+.spxeps-seq-zone-btn {
+  width: 70px; min-width: 70px; padding: 2px 5px;
+  background: var(--btn-face); border: 1px solid var(--border2); border-radius: 2px;
+  color: var(--text3); cursor: pointer; font-family: var(--font-lcd); font-size: 0.52rem;
+  text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.spxeps-seq-zone-btn:hover { border-color: var(--accent); color: var(--accent2); }
+
+/* Keyboard mapped key highlight */
+.spxeps-key-white.mapped { background: linear-gradient(180deg, #e8ffe0 0%, #d8f0cc 100%); }
+.spxeps-key-black.mapped { background: linear-gradient(180deg, #1a3010 0%, #0e2008 100%); }
+.spxeps-key-white.active { background: linear-gradient(180deg, var(--accent) 0%, #aa3300 100%); }
+.spxeps-key-black.active { background: linear-gradient(180deg, var(--accent2) 0%, var(--accent) 100%); }
+
+/* ── SPX10 keyboard workstation additions ── */
+
+.spx10-main { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+
+.spx10-keyboard-view {
+  display: flex; flex-direction: column; flex: 1; padding: 8px; gap: 8px;
+  background: var(--chassis);
+}
+
+.spx10-zone-bar { display: flex; gap: 5px; flex-wrap: wrap; }
+
+.spx10-zone-chip {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 6px 10px; background: var(--btn-face);
+  border: 1px solid var(--border2); border-radius: 4px;
+  cursor: pointer; min-width: 80px; transition: all 0.08s;
+}
+.spx10-zone-chip:hover    { border-color: var(--teal); }
+.spx10-zone-chip.loaded   { border-color: var(--teal-dim); background: var(--panel2); }
+.spx10-zone-chip.selected { border-color: var(--teal); box-shadow: 0 0 0 1px var(--teal)44; }
+.spx10-zone-name  { font-family: var(--font-lcd); font-size: 0.58rem; color: var(--text2); }
+.spx10-zone-range { font-family: var(--font-lcd); font-size: 0.5rem; color: var(--teal); margin-top: 2px; }
+.spx10-zone-drop  { font-family: var(--font-lcd); font-size: 0.5rem; color: var(--text3); }
+
+.spx10-keyboard-info {
+  display: flex; align-items: center; gap: 10px; padding: 6px 0;
+  font-family: var(--font-lcd); font-size: 0.6rem; color: var(--text2);
+}
+
+.spx10-zones-view { flex: 1; overflow-y: auto; padding: 8px; background: var(--chassis); }
+.spx10-zone-row {
+  display: flex; align-items: center; gap: 10px; padding: 6px 10px;
+  background: var(--btn-face); border: 1px solid var(--border2);
+  border-radius: 3px; margin-bottom: 4px; cursor: pointer; transition: all 0.08s;
+}
+.spx10-zone-row:hover    { border-color: var(--teal); }
+.spx10-zone-row.selected { border-color: var(--teal); background: var(--panel2); }
+.spx10-zone-idx        { font-family: var(--font-lcd); font-size: 0.55rem; color: var(--text3); min-width: 16px; }
+.spx10-zone-name-cell  { font-family: var(--font-lcd); font-size: 0.6rem; color: var(--text); flex: 1; }
+.spx10-zone-range-cell { font-family: var(--font-lcd); font-size: 0.55rem; color: var(--teal); min-width: 80px; }
+.spx10-zone-root       { font-family: var(--font-lcd); font-size: 0.55rem; color: var(--text2); min-width: 80px; }
+.spx10-zone-status     { font-family: var(--font-lcd); font-size: 0.55rem; color: var(--text3); min-width: 70px; }
+.spx10-zone-status.loaded { color: var(--lcd-fg); }
+
+.spx10-params-view { flex: 1; overflow-y: auto; padding: 8px; background: var(--chassis); display: flex; flex-direction: column; gap: 8px; }
+.spx10-params-zone-select { display: flex; gap: 4px; }
+.spx10-param-zone-btn {
+  padding: 3px 8px; background: var(--btn-face); border: 1px solid var(--border2);
+  border-radius: 2px; color: var(--text3); cursor: pointer; font-family: var(--font-lcd); font-size: 0.58rem;
+}
+.spx10-param-zone-btn.active { background: var(--teal); color: #000; border-color: var(--teal2); }
+.spx10-params-grid { display: flex; flex-direction: column; gap: 5px; }
+.spx10-params-title { font-family: var(--font-lcd); color: var(--teal2); font-size: 0.62rem; margin-bottom: 4px; }
+.spx10-param-row { display: flex; align-items: center; gap: 8px; }
+.spx10-param-label { font-family: var(--font-lcd); color: var(--text3); font-size: 0.52rem; min-width: 72px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+.spx10-seq { flex: 1; overflow-y: auto; padding: 8px; background: var(--chassis); display: flex; flex-direction: column; gap: 8px; }
+.spx10-seq-controls { display: flex; gap: 12px; }
+.spx10-seq-zone-btn {
+  width: 70px; min-width: 70px; padding: 2px 5px;
+  background: var(--btn-face); border: 1px solid var(--border2); border-radius: 2px;
+  color: var(--text3); cursor: pointer; font-family: var(--font-lcd); font-size: 0.52rem;
+  text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.spx10-seq-zone-btn:hover { border-color: var(--teal); color: var(--teal2); }
+
+/* Keyboard mapped key highlight */
+.spx10-key-white.mapped { background: linear-gradient(180deg, #e0ffe8 0%, #ccf0d8 100%); }
+.spx10-key-black.mapped { background: linear-gradient(180deg, #003818 0%, #002010 100%); }
+.spx10-key-white.active { background: linear-gradient(180deg, var(--teal) 0%, #009070 100%); }
+.spx10-key-black.active { background: linear-gradient(180deg, var(--teal2) 0%, var(--teal) 100%); }
