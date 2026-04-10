@@ -3137,7 +3137,7 @@ const SamplerBeatMaker = ({
         {activeTab === 'vox' && (
           <VoxTab
             audioContext={ctxRef?.current}
-            outputNode={masterGainRef?.current}
+            outputNode={masterRef?.current}
           />
         )}
 
