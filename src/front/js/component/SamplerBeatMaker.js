@@ -2773,6 +2773,7 @@ const SamplerBeatMaker = ({
             <button className={view === 'pads' ? 'active' : ''} onClick={() => setView('pads')}>Pads</button>
             <button className={view === 'sequencer' ? 'active' : ''} onClick={() => setView('sequencer')}>Seq</button>
             <button className={view === 'split' ? 'active' : ''} onClick={() => setView('split')}>Split</button>
+            <button className={view === 'piano' ? 'active' : ''} onClick={() => setView('piano')}>🎹 Piano</button>
           </div>
 
           <div className="export-dropdown">
