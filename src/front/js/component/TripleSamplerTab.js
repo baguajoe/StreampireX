@@ -348,7 +348,7 @@ export default function TripleSamplerTab({ onExport, onSendToArrange, sp1200Pads
   const muteFns  = { sp1200: () => setMutedA(v => !v), spx3000: () => setMutedB(v => !v), digital: () => setMutedC(v => !v) };
   const soloFns  = { sp1200: () => setSoloA(v => !v),  spx3000: () => setSoloB(v => !v),  digital: () => setSoloC(v => !v) };
 
-  const ab = bankData[activeBank];
+  const ab = bankData[activeBank] || bankData[Object.keys(bankData)[0]];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#06060f', color: '#ccc', fontFamily: 'JetBrains Mono, monospace', overflow: 'hidden' }}>
