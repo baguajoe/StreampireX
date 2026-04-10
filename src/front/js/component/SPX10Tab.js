@@ -366,7 +366,9 @@ export default function SPX10Tab({ onExport, onSendToArrange, isEmbedded, master
                 <div key={zi}
                   className={`spx10-zone-chip${z.processedBuffer?' loaded':''}${selectedZone===zi?' selected':''}`}
                   onClick={()=>setSelectedZone(zi)}
-                  onDoubleClick={()=>fileSelect(zi)}>
+                  onDoubleClick={()=>fileSelect(zi)}
+                  onDragOver={e=>e.preventDefault()}
+                  onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)loadSample(zi,f);}}>  
                   <span className="spx10-zone-name">{z.name}</span>
                   {z.processedBuffer&&<span className="spx10-zone-range">{NOTES[z.loNote%12]}{Math.floor(z.loNote/12)}–{NOTES[z.hiNote%12]}{Math.floor(z.hiNote/12)}</span>}
                   {!z.processedBuffer&&<span className="spx10-zone-drop">DROP</span>}
