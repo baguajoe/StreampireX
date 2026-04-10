@@ -25,6 +25,7 @@ import SPX3000Tab from './SPX3000Tab';
 import SPXMidiMapPanel from './SPXMidiMapPanel';
 import SP1200Tab from './SP1200Tab';
 import SPX60Tab        from './SPX60Tab';
+import SPX10Tab        from './SPX10Tab';
 import SPXEPSTab       from './SPXEPSTab';
 import SPXS950Tab      from './SPXS950Tab';
 import SPXS1000Tab     from './SPXS1000Tab';
@@ -3049,6 +3050,17 @@ const SamplerBeatMaker = ({
         {activeTab === 'spx60' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             <SPX60Tab
+              onExport={onExport}
+              onSendToArrange={onSendToArrange}
+              isEmbedded={true}
+              masterClock={masterClock}
+              onSendToTriple={(padIdx, buffer, name) => { setActiveTab('triple'); }}
+            />
+          </div>
+        )}
+        {activeTab === 'spx10' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            <SPX10Tab
               onExport={onExport}
               onSendToArrange={onSendToArrange}
               isEmbedded={true}

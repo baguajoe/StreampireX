@@ -18,6 +18,37 @@ const emuSaturate = (x, drive = 1.4) => {
   return d > 0 ? d / (1 + 0.8 * d) : d / (1 + 1.25 * Math.abs(d));
 };
 
+
+// ─── Ring Mod variant — SP-1200 Ring ───────────────────────────────────────
+// Metallic edge on top of SP-1200 character
+// Ring modulation at ~680Hz (carrier) creates harmonic sidebands
+// Adds the metallic, experimental texture of the SP1200 Ring variant
+const RING_CARRIER_HZ = 680;
+
+const applyRingMod = (ctx, buffer, amount = 0.35) => {
+  if (!buffer) return buffer;
+  const sr  = buffer.sampleRate;
+  const nc  = buffer.numberOfChannels;
+  const len = buffer.length;
+  const out = ctx.createBuffer(nc, len, sr);
+  const phase_inc = (2 * Math.PI * RING_CARRIER_HZ) / sr;
+  for (let ch = 0; ch < nc; ch++) {
+    const src = buffer.getChannelData(ch);
+    const dst = out.getChannelData(ch);
+    let phase = 0;
+    for (let i = 0; i < len; i++) {
+      const carrier = Math.sin(phase);
+      // Blend dry + ring mod signal by amount
+      dst[i] = src[i] * (1 - amount) + (src[i] * carrier) * amount;
+      // Apply extra emuSaturate to add metallic grit
+      dst[i] = emuSaturate(dst[i], 1.6);
+      phase += phase_inc;
+      if (phase > 2 * Math.PI) phase -= 2 * Math.PI;
+    }
+  }
+  return out;
+};
+
 const applySpResample = (ctx, buffer) => {
   if (!buffer) return buffer;
   const ratio = SP_SAMPLE_RATE / buffer.sampleRate;
@@ -137,6 +168,9 @@ export default function SP1200Tab({ onExport, onSendToArrange, isEmbedded }) {
   const [isRecording, setIsRecording] = useState(false);
   const [curStep, setCurStep]         = useState(-1);
   const [steps, setSteps]             = useState(16);
+  const [ringMode, setRingMode] = useState(false);
+  const ringModeRef = useRef(false);
+  useEffect(() => { ringModeRef.current = ringMode; }, [ringMode]);
   const [swing, setSwing]             = useState(0);
   const [activeSeq, setActiveSeq]     = useState(0);
   const [sequences, setSequences]     = useState(() =>
@@ -562,6 +596,14 @@ export default function SP1200Tab({ onExport, onSendToArrange, isEmbedded }) {
         ].map(([lbl, on]) => (
           <span key={lbl} className={`sp12-dsp-chip${on ? ' on' : ''}`}>{lbl}</span>
         ))}
+        {ringMode !== undefined && (
+          <button
+            className={`sp12-ring-btn${ringMode ? ' active' : ''}`}
+            onClick={() => setRingMode(p => !p)}
+            title="SP-1200 Ring Mod — adds metallic harmonic edge">
+            💠 RING
+          </button>
+        )}
         <span className="sp12-dsp-loaded">{pads.filter(p => p.buffer).length}/8 LOADED</span>
       </div>
 

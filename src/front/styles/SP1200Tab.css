@@ -251,3 +251,24 @@
 .sp12-root ::-webkit-scrollbar { width:4px; height:4px; }
 .sp12-root ::-webkit-scrollbar-track { background:var(--sp-bg); }
 .sp12-root ::-webkit-scrollbar-thumb { background:var(--sp-border); border-radius:2px; }
+
+/* ── Ring Mod button ── */
+.sp12-ring-btn {
+  padding:       3px 10px;
+  background:    var(--sp-panel2, #404040);
+  border:        1px solid var(--sp-border, #555);
+  border-radius: 2px;
+  color:         var(--sp-text3, #999);
+  cursor:        pointer;
+  font-family:   var(--sp-font);
+  font-size:     0.6rem;
+  transition:    all 0.08s;
+  margin-right:  6px;
+}
+.sp12-ring-btn:hover  { border-color: #ff8800; color: #ff8800; }
+.sp12-ring-btn.active {
+  background:  #331a00;
+  border-color: #ff8800;
+  color:        #ffaa44;
+  box-shadow:   0 0 6px #ff880088;
+}
