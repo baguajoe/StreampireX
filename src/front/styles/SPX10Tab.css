@@ -421,12 +421,7 @@
 .spx10-key-white:active { background: linear-gradient(180deg, #d8d4cc 0%, #c8c4bc 100%); box-shadow: none; }
 .spx10-key-white.active { background: linear-gradient(180deg, var(--key-active) 0%, #009878 100%); }
 
-.spx10-key-note {
-  font-family: var(--font-lcd);
-  font-size:   0.45rem;
-  color:       #808880;
-  pointer-events: none;
-}
+.spx10-key-note { font-family: monospace; font-size: 0.52rem; color: #666; pointer-events: none; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); white-space: nowrap; }
 
 /* Black keys — absolute positioned over white keys */
 .spx10-key-black {

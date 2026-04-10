@@ -444,12 +444,7 @@
 .spxeps-key-white:hover { background: linear-gradient(180deg, #f8f5ee 0%, #f0ece4 100%); }
 .spxeps-key-white.active { background: linear-gradient(180deg, #e85500 0%, #aa3300 100%); }
 .spxeps-key-white.mapped { background: linear-gradient(180deg, #ffe8d0 0%, #ffd4b0 100%); }
-.spxeps-key-note {
-  font-family: Share Tech Mono, monospace;
-  font-size: 0.42rem;
-  color: #808880;
-  pointer-events: none;
-}
+.spxeps-key-note { font-family: monospace; font-size: 0.52rem; color: #666; pointer-events: none; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); white-space: nowrap; }
 .spxeps-key-black {
   position: absolute;
   width: 2.2%;
