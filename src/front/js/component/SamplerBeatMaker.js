@@ -2774,8 +2774,6 @@ const SamplerBeatMaker = ({
           {onOpenSampler && <button className="transport-btn" onClick={onOpenSampler} title="Open Sampler — load/chop samples">〰 Sampler</button>}
           {onSendToArrange && <button className="transport-btn" onClick={bounceToArrange} title="Bounce pattern/song to Arrange track">→🎚 Arrange</button>}
 
-
-
           <div className="export-dropdown">
             <button className="export-btn" onClick={() => setShowExportPanel(!showExportPanel)} disabled={exporting}>{exporting ? '⏳...' : '⬇ Export'}</button>
             <div className="export-menu">
