@@ -354,3 +354,152 @@
 .spx60-model {
   font-size: 2.2rem !important;
 }
+
+
+
+/* ── MPC60 Cream Hardware Look ── */
+.spx60-root {
+  --c-bg:        #1a1a1a;
+  --c-chassis:   #b8b0a0;
+  --c-panel:     #a8a098;
+  --c-panel2:    #c0b8a8;
+  --c-border:    #888078;
+  --c-border2:   #d0c8b8;
+  --c-pad-face:  #908880;
+  --c-accent:    #cc1100;
+  --c-accent2:   #ee2200;
+  --c-led-on:    #ff2200;
+  --c-led-dim:   #2a0800;
+  --c-lcd-bg:    #0a1a0a;
+  --c-lcd-fg:    #44cc44;
+  --c-text:      #1a1a1a;
+  --c-text2:     #3a3a3a;
+  --c-text3:     #666058;
+  background: #1a1a1a;
+}
+
+/* Main chassis area — cream */
+.spx60-pads { background: #b8b0a0; }
+.spx60-pads-wrap { background: #b8b0a0; }
+
+/* Header — cream with wood-style sides */
+.spx60-header {
+  background: #a8a098;
+  border-bottom: 2px solid #888078;
+}
+
+/* Logo on cream */
+.spx60-brand { color: #555048; }
+.spx60-model { color: #111111; text-shadow: none; }
+
+/* LCD — green on black like real MPC60 */
+.spx60-lcd {
+  background: #0a1a0a;
+  border-color: #061006;
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.8), 0 0 6px rgba(68,204,68,0.1);
+}
+.spx60-lcd-item { color: #44cc44; }
+
+/* Controls row — cream */
+.spx60-controls {
+  background: #a8a098;
+  border-bottom-color: #888078;
+}
+.spx60-label { color: #4a4840; }
+.spx60-val   { color: #44cc44; }
+
+/* Pads — warm gray like real MPC60 */
+.spx60-pad {
+  background: linear-gradient(160deg, #9a9288 0%, #888078 100%);
+  border: 2px solid #706860;
+  border-top: 2px solid #b0a898;
+  box-shadow: 0 4px 0 #484038, inset 0 1px 0 rgba(255,255,255,0.15);
+  min-height: 72px;
+}
+.spx60-pad:hover {
+  background: linear-gradient(160deg, #a89e94 0%, #968e84 100%);
+}
+.spx60-pad.loaded {
+  border-color: #8a6040;
+  background: linear-gradient(160deg, #9e9488 0%, #888078 100%);
+}
+.spx60-pad.selected {
+  border-color: #cc1100;
+  box-shadow: 0 4px 0 #660800, inset 0 0 8px rgba(204,17,0,0.2);
+}
+.spx60-pad.firing {
+  background: linear-gradient(160deg, #cc1100 0%, #aa0e00 100%);
+  border-color: #ee2200;
+  box-shadow: 0 0 12px rgba(204,17,0,0.7);
+}
+.spx60-pad.firing .spx60-pad-num,
+.spx60-pad.firing .spx60-pad-name { color: #fff; }
+.spx60-pad:active { box-shadow: none; transform: translateY(2px); }
+
+.spx60-pad-num  { color: #4a4440; font-size: 0.6rem; }
+.spx60-pad-name { color: #1a1814; font-size: 0.68rem; }
+.spx60-pad-drop { color: #6a6458; }
+
+/* Pad LED — top right corner */
+.spx60-pad::before {
+  background: #2a0800;
+}
+.spx60-pad.loaded::before {
+  background: #ff2200;
+  box-shadow: 0 0 5px #ff2200;
+}
+
+/* Transport buttons */
+.spx60-btn {
+  background: #888078;
+  border-color: #706860;
+  border-top-color: #a09088;
+  color: #2a2820;
+  box-shadow: 0 2px 0 #484038;
+}
+.spx60-btn:hover  { background: #968e84; color: #111; }
+.spx60-btn.active { background: #cc1100; color: #fff; border-color: #ee2200; box-shadow: 0 0 8px rgba(204,17,0,0.6); }
+
+/* Swing selector */
+.spx60-select {
+  background: #0a1a0a;
+  border-color: #061006;
+  color: #44cc44;
+}
+
+/* View buttons */
+.spx60-view-btn {
+  background: #888078;
+  border-color: #706860;
+  color: #3a3830;
+}
+.spx60-view-btn.active {
+  background: #cc1100;
+  color: #fff;
+  border-color: #ee2200;
+}
+
+/* Sync button */
+.spx60-sync-btn { background: #888078; border-color: #706860; color: #3a3830; }
+.spx60-sync-btn.active { background: #00ffc8; color: #000; border-color: #00ffc8; }
+
+/* Pad settings panel */
+.spx60-pad-settings { background: #a0988a; border-left-color: #706860; }
+.spx60-settings-title { color: #cc1100; border-bottom-color: #888078; }
+.spx60-knob-label { color: #4a4840; }
+.spx60-action-btn {
+  background: #888078; border-color: #706860; color: #2a2820;
+}
+.spx60-action-btn:hover { border-color: #cc1100; color: #cc1100; }
+
+/* Sequencer */
+.spx60-seq { background: #b0a898; }
+.spx60-seq-pad-btn { background: #888078; border-color: #706860; color: #2a2820; }
+.spx60-seq-pad-btn:hover { border-color: #cc1100; color: #cc1100; }
+.spx60-step { background: #888078; border-color: #706860; }
+.spx60-step.on { background: #cc1100; border-color: #ee2200; box-shadow: 0 0 4px rgba(204,17,0,0.6); }
+.spx60-step.current { outline-color: #ee2200; }
+
+/* DSP strip */
+.spx60-dsp-strip { background: #909088; border-top-color: #888078; }
+.spx60-dsp-badge { color: #4a4840; border-color: #706860; }

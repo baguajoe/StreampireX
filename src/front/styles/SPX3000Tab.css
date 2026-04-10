@@ -1442,3 +1442,78 @@
   border-color: #222 !important;
   color: #ff9000 !important;
 }
+
+
+
+/* ── MPC3000 Special Edition Black — variable override ── */
+.spx3000-root {
+  --spx-bg:         #111111;
+  --spx-surface:    #191919;
+  --spx-surface2:   #202020;
+  --spx-surface3:   #282828;
+  --spx-border:     #2a2a2a;
+  --spx-border2:    #363636;
+  --spx-amber:      #ff8c00;
+  --spx-amber-dim:  #3a1e00;
+  --spx-text:       #d8d8d0;
+  --spx-text2:      #808078;
+  --spx-text3:      #484840;
+  background: #111111;
+}
+
+/* Pad face — dark gray like real MPC3000 black pads */
+.spx3000-pad {
+  background: linear-gradient(160deg, #242424 0%, #181818 100%);
+  border: 1px solid #1a1a1a;
+  border-top: 1px solid #2e2e2e;
+  box-shadow: 0 3px 0 #080808, inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.spx3000-pad:hover {
+  background: linear-gradient(160deg, #2e2e2e 0%, #222222 100%);
+  border-color: #333;
+}
+.spx3000-pad.loaded {
+  border-color: #3a2000;
+  background: linear-gradient(160deg, #222222 0%, #181818 100%);
+}
+.spx3000-pad.active {
+  background: linear-gradient(160deg, #ff8c00 0%, #cc6600 100%);
+  border-color: #ffaa00;
+  box-shadow: 0 0 10px rgba(255,140,0,0.6);
+}
+
+/* Bank headers — dark with amber accent */
+.spx3000-bank-tab {
+  background: #141414;
+  border-color: #222;
+  color: #606058;
+}
+.spx3000-bank-tab.active {
+  background: #1e1e1e;
+  border-bottom-color: #ff8c00;
+  color: #ff8c00;
+}
+
+/* LCD — amber on black */
+.spx3000-lcd-display {
+  background: #0a0600;
+  border-color: #1a0e00;
+  color: #ff8c00;
+  box-shadow: 0 0 8px rgba(255,140,0,0.15), inset 0 0 6px rgba(0,0,0,0.8);
+}
+
+/* Transport buttons — dark gray */
+.spx3000-transport-btn {
+  background: #1e1e1e;
+  border-color: #2a2a2a;
+  color: #808078;
+}
+.spx3000-transport-btn:hover { border-color: #ff8c00; color: #ff8c00; }
+.spx3000-transport-btn.active { background: #cc2200; border-color: #ee3300; color: #fff; }
+
+/* BPM display */
+.spx3000-bpm-display {
+  color: #ff8c00;
+  background: #0a0600;
+  border-color: #1a0e00;
+}
