@@ -345,6 +345,7 @@ export default function SPXEPSTab({ onExport, onSendToArrange, isEmbedded, maste
 
       {view === 'pads' && (
         <div className="spxeps-pads-wrap">
+          <div className="spxeps-upper">
           <div className="spxeps-pads">
             {[3,2,1,0].map(row => (
               <div key={row} className="spxeps-pad-row">
@@ -409,6 +410,17 @@ export default function SPXEPSTab({ onExport, onSendToArrange, isEmbedded, maste
               </div>
             </div>
           )}
+          </div>
+          <div className="spxeps-keyboard">
+            {Array.from({ length: 28 }, (_, i) => {
+              const noteInOctave = i % 7;
+              const isBlackAfter = [0, 1, 3, 4, 5].includes(noteInOctave);
+              return (
+                <div key={i} className="spxeps-key"
+                  onMouseDown={() => triggerPad(i % 16, 0.8)} />
+              );
+            })}
+          </div>
         </div>
       )}
 

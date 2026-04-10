@@ -1,97 +1,127 @@
 /* =============================================================================
    SPXEPSTab.css — SPX-EPS
-   Layout: Pads left column, large parameter panel right, keyboard strip bottom.
-   Aesthetic: Ensoniq dark charcoal + lime green LEDs — industrial, slightly
-   rough, the lo-fi machine personality. Chunky borders, worn look.
+   Based on: Ensoniq EPS keyboard workstation
+   Dark navy/charcoal body, orange/red accent stripe across top panel,
+   keys strip at bottom (replaces lower pad rows), green LCD, chunky borders
    ============================================================================= */
 
 .spxeps-root {
-  --c-bg:        #0c0d08;
-  --c-chassis:   #131408;
-  --c-panel:     #1a1c10;
-  --c-panel2:    #222416;
-  --c-border:    #2e3018;
-  --c-accent:    #7acc00;
-  --c-accent2:   #99ee00;
-  --c-led-on:    #88dd00;
-  --c-led-dim:   #1a2200;
-  --c-lcd-bg:    #080a04;
-  --c-lcd-fg:    #aaee44;
-  --c-text:      #c8d0a0;
-  --c-text2:     #7a8860;
-  --c-text3:     #3a4028;
-  --c-sync:      #00ffc8;
-  --c-font:      'Share Tech Mono', 'Courier New', monospace;
-  background:    var(--c-bg);
-  color:         var(--c-text);
-  font-family:   var(--c-font);
-  font-size:     11px;
-  display:       flex;
-  flex-direction: column;
-  height:        100%;
-  min-height:    0;
-  overflow:      hidden;
-}
+  --bg:         #0e0f14;
+  --chassis:    #141520;
+  --panel:      #1a1c2a;
+  --panel2:     #1e2030;
+  --border:     #0a0b12;
+  --border2:    #2a2c3e;
+  --pad-face:   #1e2030;
+  --accent:     #e85500;
+  --accent2:    #ff6600;
+  --stripe:     #cc4400;
+  --lcd-bg:     #081408;
+  --lcd-fg:     #66cc33;
+  --lcd-border: #0a180a;
+  --btn-dark:   #181926;
+  --btn-face:   #222336;
+  --key-white:  #d8d8d8;
+  --key-black:  #1a1a1a;
+  --key-border: #888888;
+  --text:       #c0c4d8;
+  --text2:      #6870a0;
+  --text3:      #303348;
+  --sync:       #00ffc8;
+  --font-lcd:   'Share Tech Mono', 'Courier New', monospace;
+  --font-ui:    'Barlow Condensed', Arial, sans-serif;
 
-/* ── Header — thick industrial bar ── */
-.spxeps-header {
+  background:     var(--bg);
+  color:          var(--text);
+  font-family:    var(--font-ui);
+  font-size:      12px;
   display:        flex;
-  align-items:    center;
-  gap:            12px;
-  padding:        5px 14px;
-  background:     var(--c-chassis);
-  border-bottom:  3px solid var(--c-accent);
+  flex-direction: column;
+  height:         100%;
+  min-height:     0;
+  overflow:       hidden;
 }
 
-.spxeps-logo { display: flex; align-items: baseline; gap: 5px; }
+/* ── Header — orange accent stripe across full width ── */
+.spxeps-header {
+  display:       flex;
+  align-items:   center;
+  gap:           10px;
+  padding:       0;
+  background:    var(--chassis);
+  border-bottom: 3px solid var(--stripe);
+  position:      relative;
+}
+
+/* Orange top stripe */
+.spxeps-header::before {
+  content:    '';
+  position:   absolute;
+  top:        0;
+  left:       0;
+  right:      0;
+  height:     4px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 50%, var(--accent) 100%);
+}
+
+.spxeps-logo {
+  display:        flex;
+  flex-direction: column;
+  padding:        10px 14px 6px;
+  line-height:    1;
+}
 
 .spxeps-brand {
-  font-size:      0.55rem;
-  color:          var(--c-text3);
-  letter-spacing: 0.25em;
+  font-family:    var(--font-lcd);
+  font-size:      0.48rem;
+  color:          var(--text3);
+  letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
 .spxeps-model {
-  font-size:   1.5rem;
-  font-weight: 900;
-  color:       var(--c-accent);
+  font-family:    var(--font-ui);
+  font-size:      1.8rem;
+  font-weight:    900;
+  color:          var(--accent2);
   letter-spacing: 0.05em;
-  font-family: 'Barlow Condensed', Arial, sans-serif;
-  text-shadow: 0 0 8px var(--c-accent)88;
+  line-height:    1;
+  text-shadow:    0 0 12px var(--accent)66;
 }
 
 .spxeps-lcd {
-  display:      flex;
-  gap:          16px;
-  flex:         1;
-  background:   var(--c-lcd-bg);
-  border:       1px solid #1a1e08;
+  display:       flex;
+  gap:           16px;
+  align-items:   center;
+  flex:          1;
+  background:    var(--lcd-bg);
+  border:        1px solid var(--lcd-border);
   border-radius: 2px;
-  padding:      3px 10px;
-  margin:       0 6px;
+  padding:       4px 12px;
+  margin:        6px 0;
 }
 
-.spxeps-lcd-item { color: var(--c-lcd-fg); font-size: 0.62rem; }
-.spxeps-lcd-sync { color: var(--c-sync); animation: spxepsblink 0.8s step-start infinite; }
+.spxeps-lcd-item { font-family: var(--font-lcd); color: var(--lcd-fg); font-size: 0.65rem; letter-spacing: 0.05em; }
+.spxeps-lcd-sync { font-family: var(--font-lcd); color: var(--sync); font-size: 0.62rem; animation: spxepsblink 0.9s step-start infinite; }
 @keyframes spxepsblink { 50% { opacity: 0; } }
 
-.spxeps-transport { display: flex; gap: 5px; }
+.spxeps-transport { display: flex; gap: 5px; padding: 6px 12px 6px 0; }
 
 .spxeps-btn {
-  padding:      4px 10px;
-  background:   var(--c-panel);
-  border:       2px solid var(--c-border);
-  border-radius: 1px;
-  color:        var(--c-text2);
-  cursor:       pointer;
-  font-family:  var(--c-font);
-  font-size:    0.62rem;
-  transition:   all 0.1s;
+  padding:       4px 11px;
+  background:    var(--btn-face);
+  border:        1px solid var(--border2);
+  border-radius: 2px;
+  color:         var(--text2);
+  cursor:        pointer;
+  font-family:   var(--font-lcd);
+  font-size:     0.6rem;
+  transition:    all 0.08s;
+  box-shadow:    0 2px 0 var(--border);
 }
-
-.spxeps-btn:hover  { border-color: var(--c-accent); color: var(--c-accent); }
-.spxeps-btn.active { background: var(--c-accent); color: #000; border-color: var(--c-accent2); font-weight: 700; }
+.spxeps-btn:hover  { border-color: var(--accent); color: var(--accent2); }
+.spxeps-btn:active { box-shadow: none; transform: translateY(1px); }
+.spxeps-btn.active { background: var(--accent); color: #fff; border-color: var(--accent2); box-shadow: 0 0 8px var(--accent)88; }
 
 /* ── Controls ── */
 .spxeps-controls {
@@ -100,200 +130,196 @@
   align-items:   center;
   gap:           8px;
   padding:       4px 12px;
-  background:    var(--c-panel);
-  border-bottom: 1px solid var(--c-border);
+  background:    var(--panel);
+  border-bottom: 1px solid var(--border);
 }
 
 .spxeps-ctrl-group { display: flex; align-items: center; gap: 5px; }
-.spxeps-label { color: var(--c-text3); font-size: 0.53rem; letter-spacing: 0.12em; text-transform: uppercase; min-width: 30px; }
-.spxeps-val   { color: var(--c-lcd-fg); font-size: 0.62rem; min-width: 26px; }
-.spxeps-range { width: 70px; accent-color: var(--c-accent); }
-
-.spxeps-select {
-  background:   var(--c-lcd-bg);
-  border:       1px solid var(--c-border);
-  color:        var(--c-lcd-fg);
-  font-family:  var(--c-font);
-  font-size:    0.58rem;
-  border-radius: 1px;
-  padding:      2px 4px;
-}
+.spxeps-label  { font-family: var(--font-lcd); color: var(--text3); font-size: 0.53rem; letter-spacing: 0.1em; text-transform: uppercase; min-width: 28px; }
+.spxeps-val    { font-family: var(--font-lcd); color: var(--lcd-fg); font-size: 0.62rem; min-width: 26px; }
+.spxeps-range  { width: 68px; accent-color: var(--accent); }
+.spxeps-select { background: var(--lcd-bg); border: 1px solid var(--border2); color: var(--lcd-fg); font-family: var(--font-lcd); font-size: 0.58rem; border-radius: 2px; padding: 2px 4px; }
 
 .spxeps-sync-btn {
-  padding: 3px 8px; background: var(--c-panel); border: 2px solid var(--c-border);
-  color: var(--c-text3); cursor: pointer; font-family: var(--c-font); font-size: 0.58rem;
+  padding: 3px 8px; background: var(--btn-face); border: 1px solid var(--border2);
+  border-radius: 2px; color: var(--text3); cursor: pointer; font-family: var(--font-lcd); font-size: 0.56rem;
 }
-.spxeps-sync-btn.active { background: var(--c-sync); color: #000; border-color: var(--c-sync); }
+.spxeps-sync-btn.active { background: var(--sync); color: #000; border-color: var(--sync); font-weight: 700; }
 
 .spxeps-view-btn {
-  padding: 3px 10px; background: var(--c-panel); border: 2px solid var(--c-border);
-  color: var(--c-text3); cursor: pointer; font-family: var(--c-font); font-size: 0.58rem;
+  padding: 3px 9px; background: var(--btn-face); border: 1px solid var(--border2);
+  border-radius: 2px; color: var(--text3); cursor: pointer; font-family: var(--font-lcd); font-size: 0.56rem;
 }
-.spxeps-view-btn.active { background: var(--c-panel2); border-color: var(--c-accent); color: var(--c-accent); }
+.spxeps-view-btn.active { background: var(--panel2); border-color: var(--accent); color: var(--accent2); }
 
-/* ── Main area: pads LEFT + params RIGHT ── */
+/* ── Main layout: upper pads + settings ── */
 .spxeps-pads-wrap {
+  display:    flex;
+  flex:       1;
+  min-height: 0;
+  overflow:   hidden;
+  flex-direction: column;
+}
+
+/* Upper section: pads + param panel side by side */
+.spxeps-upper {
   display:    flex;
   flex:       1;
   min-height: 0;
   overflow:   hidden;
 }
 
-/* Pads take up left 60% */
 .spxeps-pads {
   display:        flex;
   flex-direction: column;
   gap:            4px;
   padding:        8px;
-  flex:           1.4;
-  background:     var(--c-chassis);
-  border-right:   2px solid var(--c-accent)44;
+  flex:           1;
+  background:     var(--chassis);
 }
 
+/* Only 2 rows of pads visible — keyboard takes bottom */
 .spxeps-pad-row { display: flex; gap: 4px; flex: 1; }
 
 .spxeps-pad {
   flex:            1;
   border-radius:   3px;
-  border:          2px solid var(--c-border);
-  background:      var(--c-panel);
+  border:          1px solid var(--border);
+  background:      linear-gradient(160deg, var(--pad-face) 0%, #161824 100%);
   cursor:          pointer;
   display:         flex;
   flex-direction:  column;
   align-items:     center;
   justify-content: center;
-  gap:             2px;
-  min-height:      50px;
+  gap:             3px;
+  min-height:      48px;
   transition:      all 0.07s;
   user-select:     none;
   position:        relative;
+  box-shadow:      0 2px 0 var(--border);
 }
 
-/* Corner LED per pad */
 .spxeps-pad::after {
   content:       '';
   position:      absolute;
-  bottom:        4px;
+  top:           4px;
   right:         4px;
   width:         4px;
   height:        4px;
-  border-radius: 1px;
-  background:    var(--c-led-dim);
+  border-radius: 50%;
+  background:    var(--border2);
 }
 
-.spxeps-pad.loaded::after  { background: var(--c-led-on); box-shadow: 0 0 4px var(--c-led-on); }
-.spxeps-pad:hover          { border-color: #3a4020; background: var(--c-panel2); }
-.spxeps-pad.loaded         { border-color: #2e3818; }
-.spxeps-pad.selected       { border-color: var(--c-accent); }
-.spxeps-pad.firing         { background: var(--c-accent); border-color: var(--c-accent2); }
+.spxeps-pad.loaded::after  { background: var(--lcd-fg); box-shadow: 0 0 4px var(--lcd-fg); }
+.spxeps-pad:hover          { border-color: var(--border2); background: linear-gradient(160deg, #242636 0%, #1a1c2a 100%); }
+.spxeps-pad.selected       { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent)44, 0 2px 0 var(--border); }
+.spxeps-pad.firing         { background: linear-gradient(160deg, var(--accent) 0%, var(--stripe) 100%); border-color: var(--accent2); box-shadow: 0 0 10px var(--accent)88; }
 .spxeps-pad.firing .spxeps-pad-num,
-.spxeps-pad.firing .spxeps-pad-name { color: #000; font-weight: 700; }
+.spxeps-pad.firing .spxeps-pad-name { color: #fff; }
 .spxeps-pad.muted          { opacity: 0.3; }
 
-.spxeps-pad-num  { font-size: 0.5rem; color: var(--c-text3); }
-.spxeps-pad-name { font-size: 0.58rem; color: var(--c-text2); text-align: center; padding: 0 3px; word-break: break-all; }
-.spxeps-pad-drop { font-size: 0.5rem; color: var(--c-text3); }
+.spxeps-pad-num  { font-family: var(--font-lcd); font-size: 0.5rem; color: var(--text3); }
+.spxeps-pad-name { font-family: var(--font-lcd); font-size: 0.56rem; color: var(--text2); text-align: center; padding: 0 3px; word-break: break-all; }
+.spxeps-pad-drop { font-family: var(--font-lcd); font-size: 0.48rem; color: var(--text3); }
 
-/* Parameter panel RIGHT — large sliders, different from other machines */
+/* ── Keyboard strip at bottom — EPS workstation signature ── */
+.spxeps-keyboard {
+  display:       flex;
+  align-items:   flex-end;
+  height:        56px;
+  background:    #0a0b12;
+  border-top:    2px solid var(--stripe);
+  padding:       0 8px;
+  position:      relative;
+  overflow:      hidden;
+}
+
+.spxeps-key {
+  position:  relative;
+  flex:      1;
+  max-width: 22px;
+  height:    50px;
+  background: var(--key-white);
+  border:    1px solid var(--key-border);
+  border-radius: 0 0 3px 3px;
+  cursor:    pointer;
+  transition: background 0.06s;
+  z-index:   1;
+}
+
+.spxeps-key:hover  { background: #eeeeee; }
+.spxeps-key:active { background: #bbbbbb; }
+
+.spxeps-key.black {
+  position:   absolute;
+  width:       13px;
+  height:      32px;
+  background:  var(--key-black);
+  border:      1px solid #000;
+  border-radius: 0 0 2px 2px;
+  z-index:     2;
+  top:         0;
+}
+.spxeps-key.black:hover  { background: #2a2a2a; }
+.spxeps-key.black:active { background: #444444; }
+
+/* ── Pad settings ── */
 .spxeps-pad-settings {
-  width:          220px;
-  min-width:      220px;
-  padding:        10px 12px;
-  background:     var(--c-panel2);
-  overflow-y:     auto;
-  display:        flex;
-  flex-direction: column;
-  gap:            6px;
+  width:       180px;
+  min-width:   180px;
+  padding:     8px;
+  background:  var(--panel2);
+  border-left: 1px solid var(--border);
+  overflow-y:  auto;
 }
 
 .spxeps-settings-title {
-  color:          var(--c-accent);
+  font-family:    var(--font-lcd);
+  color:          var(--accent2);
   font-size:      0.6rem;
-  border-bottom:  2px solid var(--c-accent)44;
-  padding-bottom: 5px;
-  margin-bottom:  2px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  margin-bottom:  6px;
+  border-bottom:  1px solid var(--border2);
+  padding-bottom: 4px;
+  letter-spacing: 0.06em;
 }
 
-.spxeps-settings-grid { display: flex; flex-direction: column; gap: 8px; }
+.spxeps-settings-grid { display: flex; flex-direction: column; gap: 6px; }
+.spxeps-knob-row      { display: flex; align-items: center; gap: 4px; }
+.spxeps-knob-label    { font-family: var(--font-lcd); color: var(--text3); font-size: 0.52rem; min-width: 36px; text-transform: uppercase; letter-spacing: 0.08em; }
 
-.spxeps-knob-row {
-  display:        flex;
-  flex-direction: column;
-  gap:            2px;
-}
-
-.spxeps-knob-label {
-  color:          var(--c-text3);
-  font-size:      0.5rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-}
-
-/* Full-width horizontal sliders — bigger, more prominent than other machines */
-.spxeps-knob-row input[type="range"] {
-  width:        100%;
-  accent-color: var(--c-accent);
-  height:       18px;
-}
-
-.spxeps-val {
-  color:     var(--c-lcd-fg);
-  font-size: 0.6rem;
-  text-align: right;
-}
-
-.spxeps-settings-actions {
-  display:    flex;
-  flex-wrap:  wrap;
-  gap:        4px;
-  margin-top: 6px;
-}
-
+.spxeps-settings-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
 .spxeps-action-btn {
-  flex:         1;
-  padding:      5px 6px;
-  background:   var(--c-panel);
-  border:       2px solid var(--c-border);
-  color:        var(--c-text2);
-  cursor:       pointer;
-  font-family:  var(--c-font);
-  font-size:    0.58rem;
-  text-align:   center;
-  transition:   all 0.1s;
+  padding: 3px 8px; background: var(--btn-face); border: 1px solid var(--border2);
+  border-radius: 2px; color: var(--text2); cursor: pointer; font-family: var(--font-lcd); font-size: 0.56rem;
 }
-.spxeps-action-btn:hover { border-color: var(--c-accent); color: var(--c-accent); }
+.spxeps-action-btn:hover { border-color: var(--accent); color: var(--accent2); }
 
 /* ── Sequencer ── */
-.spxeps-seq { flex: 1; overflow-y: auto; padding: 8px; background: var(--c-chassis); }
-.spxeps-seq-grid { display: flex; flex-direction: column; gap: 4px; }
-.spxeps-seq-row { display: flex; align-items: center; gap: 5px; }
-
+.spxeps-seq         { flex: 1; overflow-y: auto; padding: 8px; background: var(--chassis); }
+.spxeps-seq-grid    { display: flex; flex-direction: column; gap: 3px; }
+.spxeps-seq-row     { display: flex; align-items: center; gap: 5px; }
 .spxeps-seq-pad-btn {
-  width: 60px; min-width: 60px; padding: 2px 5px;
-  background: var(--c-panel); border: 2px solid var(--c-border);
-  color: var(--c-text3); cursor: pointer; font-family: var(--c-font); font-size: 0.53rem;
+  width: 58px; min-width: 58px; padding: 2px 4px;
+  background: var(--btn-face); border: 1px solid var(--border2); border-radius: 2px;
+  color: var(--text3); cursor: pointer; font-family: var(--font-lcd); font-size: 0.5rem;
   text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.spxeps-seq-pad-btn:hover { border-color: var(--c-accent); color: var(--c-accent); }
-
-.spxeps-seq-steps { display: flex; gap: 2px; }
-
+.spxeps-seq-pad-btn:hover { border-color: var(--accent); color: var(--accent2); }
+.spxeps-seq-steps   { display: flex; gap: 2px; }
 .spxeps-step {
-  width: 14px; height: 14px; border-radius: 1px;
-  background: var(--c-panel); border: 1px solid var(--c-border); cursor: pointer;
+  width: 14px; height: 14px; border-radius: 2px;
+  background: var(--btn-face); border: 1px solid var(--border2); cursor: pointer;
 }
-.spxeps-step.on      { background: var(--c-accent); border-color: var(--c-accent2); box-shadow: 0 0 3px var(--c-accent)88; }
-.spxeps-step.current { outline: 2px solid var(--c-accent2); outline-offset: 1px; }
-.spxeps-step.beat    { border-color: #2e3018; }
+.spxeps-step.on      { background: var(--accent); border-color: var(--accent2); box-shadow: 0 0 4px var(--accent)88; }
+.spxeps-step.current { outline: 2px solid var(--accent2); outline-offset: 1px; }
+.spxeps-step.beat    { border-color: var(--border2); }
 
 /* ── DSP strip ── */
 .spxeps-dsp-strip {
-  display: flex; gap: 5px; padding: 3px 12px;
-  background: #080a04; border-top: 1px solid var(--c-border); flex-wrap: wrap;
+  display: flex; gap: 5px; padding: 3px 10px;
+  background: var(--border); border-top: 1px solid var(--border2); flex-wrap: wrap;
 }
 .spxeps-dsp-badge {
-  font-size: 0.48rem; color: var(--c-text3); letter-spacing: 0.08em;
-  padding: 1px 5px; border: 1px solid var(--c-border); text-transform: uppercase;
+  font-family: var(--font-lcd); font-size: 0.47rem; color: var(--text3);
+  letter-spacing: 0.07em; padding: 1px 5px; border: 1px solid var(--border2); text-transform: uppercase;
 }

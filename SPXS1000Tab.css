@@ -1,97 +1,151 @@
 /* =============================================================================
    SPXS1000Tab.css — SPX-1000
-   Layout: Large pads dominate with sample name prominent, waveform preview
-   bar at pad bottom, minimal chrome — everything subordinate to the content.
-   Aesthetic: Clinical silver/white on near-black — the "too clean" machine.
-   High contrast, sparse, professional studio tool look.
+   Based on: Akai S1000 rack mount sampler
+   Light gray/silver chassis (lighter than S950), blue LCD,
+   clean minimal layout, professional studio tool, larger pads with
+   sample name dominant, subtle waveform indicator bar per pad
    ============================================================================= */
 
 .spxs1000-root {
-  --c-bg:        #0a0a0c;
-  --c-chassis:   #0e0e12;
-  --c-panel:     #141416;
-  --c-panel2:    #1c1c20;
-  --c-border:    #242428;
-  --c-accent:    #e0e4f0;
-  --c-accent2:   #ffffff;
-  --c-led-on:    #c0c8e0;
-  --c-led-dim:   #1a1a20;
-  --c-lcd-bg:    #060608;
-  --c-lcd-fg:    #b0b8d0;
-  --c-text:      #c0c4d0;
-  --c-text2:     #606470;
-  --c-text3:     #303038;
-  --c-sync:      #00ffc8;
-  --c-waveform:  #404880;
-  --c-font:      'Share Tech Mono', 'Courier New', monospace;
-  background:    var(--c-bg);
-  color:         var(--c-text);
-  font-family:   var(--c-font);
-  font-size:     11px;
-  display:       flex;
-  flex-direction: column;
-  height:        100%;
-  min-height:    0;
-  overflow:      hidden;
-}
+  --bg:          #1c1e22;
+  --chassis:     #d4d0c8;
+  --chassis2:    #c8c4bc;
+  --chassis3:    #dcdad4;
+  --panel:       #2c2e32;
+  --panel2:      #363840;
+  --border:      #aaa8a0;
+  --border-dk:   #909088;
+  --border-lt:   #e8e6e0;
+  --rack-ear:    #b8b4ac;
+  --lcd-bg:      #020810;
+  --lcd-fg:      #3a88ff;
+  --lcd-hi:      #70aaff;
+  --lcd-border:  #010408;
+  --btn-face:    #585858;
+  --btn-light:   #707070;
+  --btn-dark:    #404040;
+  --accent:      #1a6aff;
+  --accent2:     #4a8aff;
+  --wave-bar:    #1a3a88;
+  --text:        #181818;
+  --text-lt:     #d0d4e0;
+  --text2:       #484848;
+  --text3:       #909088;
+  --led-on:      #3a88ff;
+  --led-off:     #101828;
+  --sync:        #00ffc8;
+  --font-lcd:    'Share Tech Mono', 'Courier New', monospace;
+  --font-ui:     'Barlow Condensed', Arial, sans-serif;
 
-/* ── Header — minimal, flat ── */
-.spxs1000-header {
+  background:     var(--bg);
+  color:          var(--text);
+  font-family:    var(--font-ui);
+  font-size:      12px;
   display:        flex;
-  align-items:    center;
-  gap:            12px;
-  padding:        6px 16px;
-  background:     var(--c-chassis);
-  border-bottom:  1px solid var(--c-border);
+  flex-direction: column;
+  height:         100%;
+  min-height:     0;
+  overflow:       hidden;
 }
 
-.spxs1000-logo { display: flex; align-items: baseline; gap: 6px; }
+/* ── Rack unit header with ears ── */
+.spxs1000-header {
+  display:     flex;
+  align-items: stretch;
+  background:  var(--chassis);
+  border-bottom: 2px solid var(--border-dk);
+  min-height:  56px;
+}
+
+.spxs1000-logo {
+  display:         flex;
+  flex-direction:  column;
+  justify-content: center;
+  align-items:     center;
+  padding:         6px 14px;
+  background:      var(--rack-ear);
+  border-right:    2px solid var(--border-dk);
+  min-width:       56px;
+}
 
 .spxs1000-brand {
-  font-size:      0.55rem;
-  color:          var(--c-text3);
-  letter-spacing: 0.3em;
+  font-family:    var(--font-lcd);
+  font-size:      0.44rem;
+  color:          #585850;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
 }
 
 .spxs1000-model {
-  font-size:      1.4rem;
+  font-family:    var(--font-ui);
+  font-size:      1.5rem;
   font-weight:    300;
-  color:          var(--c-accent);
-  letter-spacing: 0.15em;
-  font-family:    'Barlow Condensed', Arial, sans-serif;
+  color:          #282828;
+  letter-spacing: 0.12em;
+  line-height:    1;
 }
 
+/* Full-width blue LCD — S1000 signature */
 .spxs1000-lcd {
-  display:      flex;
-  gap:          20px;
-  flex:         1;
-  background:   var(--c-lcd-bg);
-  border:       1px solid #1a1a1e;
+  display:       flex;
+  gap:           22px;
+  align-items:   center;
+  flex:          1;
+  background:    var(--lcd-bg);
+  border:        2px solid var(--lcd-border);
   border-radius: 2px;
-  padding:      4px 14px;
-  margin:       0 8px;
+  padding:       5px 18px;
+  margin:        8px 10px;
+  box-shadow:    0 0 14px var(--lcd-fg)18, inset 0 0 8px #00000099;
 }
 
-.spxs1000-lcd-item { color: var(--c-lcd-fg); font-size: 0.62rem; letter-spacing: 0.04em; }
-.spxs1000-lcd-sync { color: var(--c-sync); animation: spxs1000blink 0.8s step-start infinite; }
+.spxs1000-lcd-item {
+  font-family:    var(--font-lcd);
+  color:          var(--lcd-fg);
+  font-size:      0.68rem;
+  letter-spacing: 0.05em;
+}
+
+.spxs1000-lcd-sync {
+  font-family: var(--font-lcd);
+  color:       var(--sync);
+  font-size:   0.65rem;
+  animation:   spxs1000blink 0.9s step-start infinite;
+}
 @keyframes spxs1000blink { 50% { opacity: 0; } }
 
-.spxs1000-transport { display: flex; gap: 5px; }
+.spxs1000-transport {
+  display:     flex;
+  gap:         5px;
+  align-items: center;
+  padding:     0 12px;
+}
 
 .spxs1000-btn {
-  padding:      4px 12px;
-  background:   var(--c-panel);
-  border:       1px solid var(--c-border);
-  border-radius: 2px;
-  color:        var(--c-text2);
-  cursor:       pointer;
-  font-family:  var(--c-font);
-  font-size:    0.62rem;
-  transition:   all 0.1s;
+  padding:       4px 12px;
+  background:    var(--btn-face);
+  border:        1px solid var(--btn-dark);
+  border-top:    1px solid var(--btn-light);
+  border-radius: 3px;
+  color:         var(--text-lt);
+  cursor:        pointer;
+  font-family:   var(--font-lcd);
+  font-size:     0.6rem;
+  transition:    all 0.07s;
+  box-shadow:    0 2px 0 var(--btn-dark);
 }
-.spxs1000-btn:hover  { border-color: var(--c-led-on); color: var(--c-accent); }
-.spxs1000-btn.active { background: var(--c-accent); color: #000; border-color: var(--c-accent2); font-weight: 600; }
+.spxs1000-btn:hover  { background: var(--btn-light); }
+.spxs1000-btn:active { box-shadow: none; transform: translateY(1px); }
+.spxs1000-btn.active { background: var(--accent); color: #fff; border-color: var(--accent2); box-shadow: 0 0 8px var(--accent)66; }
+
+/* Right rack ear */
+.spxs1000-header::after {
+  content:     '';
+  display:     block;
+  width:       44px;
+  background:  var(--rack-ear);
+  border-left: 2px solid var(--border-dk);
+}
 
 /* ── Controls ── */
 .spxs1000-controls {
@@ -100,34 +154,29 @@
   align-items:   center;
   gap:           8px;
   padding:       4px 14px;
-  background:    var(--c-panel);
-  border-bottom: 1px solid var(--c-border);
+  background:    var(--chassis2);
+  border-bottom: 1px solid var(--border-dk);
 }
 
 .spxs1000-ctrl-group { display: flex; align-items: center; gap: 5px; }
-.spxs1000-label { color: var(--c-text3); font-size: 0.52rem; letter-spacing: 0.12em; text-transform: uppercase; min-width: 30px; }
-.spxs1000-val   { color: var(--c-lcd-fg); font-size: 0.62rem; min-width: 28px; }
-.spxs1000-range { width: 72px; accent-color: var(--c-accent); }
-
-.spxs1000-select {
-  background: var(--c-lcd-bg); border: 1px solid var(--c-border);
-  color: var(--c-lcd-fg); font-family: var(--c-font); font-size: 0.58rem;
-  border-radius: 2px; padding: 2px 4px;
-}
+.spxs1000-label  { font-family: var(--font-lcd); color: var(--text2); font-size: 0.52rem; letter-spacing: 0.1em; text-transform: uppercase; min-width: 30px; }
+.spxs1000-val    { font-family: var(--font-lcd); color: var(--lcd-fg); font-size: 0.62rem; min-width: 28px; }
+.spxs1000-range  { width: 72px; accent-color: var(--accent); }
+.spxs1000-select { background: var(--lcd-bg); border: 1px solid var(--lcd-border); color: var(--lcd-fg); font-family: var(--font-lcd); font-size: 0.58rem; border-radius: 2px; padding: 2px 5px; }
 
 .spxs1000-sync-btn {
-  padding: 3px 8px; background: var(--c-panel); border: 1px solid var(--c-border);
-  border-radius: 2px; color: var(--c-text3); cursor: pointer; font-family: var(--c-font); font-size: 0.58rem;
+  padding: 3px 8px; background: var(--btn-face); border: 1px solid var(--btn-dark);
+  border-radius: 2px; color: var(--text-lt); cursor: pointer; font-family: var(--font-lcd); font-size: 0.56rem;
 }
-.spxs1000-sync-btn.active { background: var(--c-sync); color: #000; border-color: var(--c-sync); }
+.spxs1000-sync-btn.active { background: var(--sync); color: #000; border-color: var(--sync); font-weight: 700; }
 
 .spxs1000-view-btn {
-  padding: 3px 10px; background: var(--c-panel); border: 1px solid var(--c-border);
-  border-radius: 2px; color: var(--c-text3); cursor: pointer; font-family: var(--c-font); font-size: 0.58rem;
+  padding: 3px 10px; background: var(--btn-face); border: 1px solid var(--btn-dark);
+  border-radius: 2px; color: var(--text-lt); cursor: pointer; font-family: var(--font-lcd); font-size: 0.56rem;
 }
-.spxs1000-view-btn.active { background: var(--c-panel2); border-color: var(--c-led-on); color: var(--c-accent); }
+.spxs1000-view-btn.active { background: var(--accent); color: #fff; border-color: var(--accent2); }
 
-/* ── Pads — large, content-first ── */
+/* ── Pads — large content-first on light chassis ── */
 .spxs1000-pads-wrap {
   display:    flex;
   flex:       1;
@@ -138,140 +187,124 @@
 .spxs1000-pads {
   display:        flex;
   flex-direction: column;
-  gap:            3px;
-  padding:        8px;
+  gap:            4px;
+  padding:        10px 14px;
   flex:           1;
-  background:     var(--c-chassis);
+  background:     var(--chassis3);
 }
 
-.spxs1000-pad-row { display: flex; gap: 3px; flex: 1; }
+.spxs1000-pad-row { display: flex; gap: 4px; flex: 1; }
 
 .spxs1000-pad {
   flex:            1;
-  border-radius:   2px;
-  border:          1px solid var(--c-border);
-  background:      var(--c-panel);
+  border-radius:   3px;
+  border:          1px solid var(--border-dk);
+  border-top:      1px solid var(--border-lt);
+  background:      linear-gradient(175deg, #eeebe4 0%, #dedad2 100%);
   cursor:          pointer;
   display:         flex;
   flex-direction:  column;
   align-items:     stretch;
-  justify-content: space-between;
   min-height:      58px;
   transition:      all 0.07s;
   user-select:     none;
   overflow:        hidden;
+  box-shadow:      0 2px 0 var(--border-dk), inset 0 1px 0 #ffffff99;
 }
 
-/* Waveform preview bar — bottom of each pad */
-.spxs1000-pad::after {
-  content:    '';
-  display:    block;
-  height:     6px;
-  background: var(--c-waveform);
-  opacity:    0;
-  transition: opacity 0.2s;
-}
-
-.spxs1000-pad.loaded::after  { opacity: 1; }
-.spxs1000-pad.firing::after  { background: var(--c-accent2); opacity: 1; }
-
-.spxs1000-pad:hover    { border-color: #303038; background: var(--c-panel2); }
-.spxs1000-pad.loaded   { border-color: #2a2a32; }
-.spxs1000-pad.selected { border-color: var(--c-led-on); }
-.spxs1000-pad.firing   { background: var(--c-panel2); border-color: var(--c-accent); }
-.spxs1000-pad.muted    { opacity: 0.3; }
-
+/* Pad inner content */
 .spxs1000-pad-inner {
   display:         flex;
   flex-direction:  column;
   align-items:     center;
   justify-content: center;
   flex:            1;
-  padding:         4px;
+  padding:         5px 4px 3px;
   gap:             2px;
 }
 
-.spxs1000-pad-num  { font-size: 0.48rem; color: var(--c-text3); align-self: flex-start; padding: 2px 4px; }
-.spxs1000-pad-name {
-  font-size:   0.62rem;
-  color:       var(--c-accent);
-  text-align:  center;
-  padding:     0 4px;
-  word-break:  break-all;
-  font-weight: 500;
-  letter-spacing: 0.02em;
+/* Waveform preview bar at bottom — S1000 clean studio aesthetic */
+.spxs1000-pad::after {
+  content:    '';
+  display:    block;
+  height:     5px;
+  background: var(--led-off);
+  transition: all 0.15s;
 }
-.spxs1000-pad-drop { font-size: 0.5rem; color: var(--c-text3); }
 
-/* Firing state — invert */
-.spxs1000-pad.firing .spxs1000-pad-name { color: var(--c-accent2); }
-.spxs1000-pad.firing .spxs1000-pad-num  { color: var(--c-text2); }
+.spxs1000-pad.loaded::after  { background: linear-gradient(90deg, var(--wave-bar) 0%, var(--led-on) 50%, var(--wave-bar) 100%); }
+.spxs1000-pad.firing::after  { background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 50%, var(--accent) 100%); box-shadow: 0 0 6px var(--accent); }
+
+.spxs1000-pad:hover          { background: linear-gradient(175deg, #f4f1ea 0%, #e6e2da 100%); }
+.spxs1000-pad.loaded         { background: linear-gradient(175deg, #e8e4dc 0%, #d8d4cc 100%); }
+.spxs1000-pad.selected       { border-color: var(--accent); border-top-color: var(--accent2); box-shadow: 0 0 0 1px var(--accent)44, 0 2px 0 var(--border-dk); }
+.spxs1000-pad.firing         { background: linear-gradient(175deg, #e0ecff 0%, #c8dcff 100%); border-color: var(--accent); box-shadow: 0 0 8px var(--accent)66; }
+.spxs1000-pad.muted          { opacity: 0.35; }
+.spxs1000-pad:active         { box-shadow: none; transform: translateY(1px); }
+
+.spxs1000-pad-num  { font-family: var(--font-lcd); font-size: 0.48rem; color: var(--text3); align-self: flex-start; }
+.spxs1000-pad-name { font-family: var(--font-lcd); font-size: 0.6rem; color: var(--text); text-align: center; padding: 0 3px; word-break: break-all; font-weight: 500; letter-spacing: 0.02em; }
+.spxs1000-pad-drop { font-family: var(--font-lcd); font-size: 0.48rem; color: var(--text3); }
+.spxs1000-pad.firing .spxs1000-pad-name { color: var(--accent); }
 
 /* ── Pad settings ── */
 .spxs1000-pad-settings {
-  width:       190px;
-  min-width:   190px;
+  width:       185px;
+  min-width:   185px;
   padding:     10px;
-  background:  var(--c-panel);
-  border-left: 1px solid var(--c-border);
+  background:  var(--panel2);
+  border-left: 2px solid var(--border-dk);
   overflow-y:  auto;
 }
 
 .spxs1000-settings-title {
-  color:          var(--c-accent);
+  font-family:    var(--font-lcd);
+  color:          var(--lcd-hi);
   font-size:      0.6rem;
   margin-bottom:  8px;
-  border-bottom:  1px solid var(--c-border);
+  border-bottom:  1px solid var(--panel);
   padding-bottom: 4px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
   font-weight:    300;
 }
 
 .spxs1000-settings-grid { display: flex; flex-direction: column; gap: 6px; }
-.spxs1000-knob-row { display: flex; align-items: center; gap: 5px; }
-.spxs1000-knob-label {
-  color: var(--c-text3); font-size: 0.52rem; min-width: 36px;
-  text-transform: uppercase; letter-spacing: 0.1em;
-}
+.spxs1000-knob-row      { display: flex; align-items: center; gap: 5px; }
+.spxs1000-knob-label    { font-family: var(--font-lcd); color: #585858; font-size: 0.52rem; min-width: 36px; text-transform: uppercase; letter-spacing: 0.1em; }
 
 .spxs1000-settings-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
-
 .spxs1000-action-btn {
-  padding: 3px 8px; background: var(--c-panel2); border: 1px solid var(--c-border);
-  border-radius: 2px; color: var(--c-text2); cursor: pointer; font-family: var(--c-font); font-size: 0.58rem;
+  padding: 3px 8px; background: var(--btn-face); border: 1px solid var(--btn-dark);
+  border-radius: 2px; color: var(--text-lt); cursor: pointer; font-family: var(--font-lcd); font-size: 0.56rem;
 }
-.spxs1000-action-btn:hover { border-color: var(--c-led-on); color: var(--c-accent); }
+.spxs1000-action-btn:hover { border-color: var(--accent); color: var(--lcd-hi); }
 
 /* ── Sequencer ── */
-.spxs1000-seq { flex: 1; overflow-y: auto; padding: 8px; background: var(--c-chassis); }
-.spxs1000-seq-grid { display: flex; flex-direction: column; gap: 3px; }
-.spxs1000-seq-row { display: flex; align-items: center; gap: 5px; }
-
+.spxs1000-seq         { flex: 1; overflow-y: auto; padding: 8px; background: var(--panel); }
+.spxs1000-seq-grid    { display: flex; flex-direction: column; gap: 3px; }
+.spxs1000-seq-row     { display: flex; align-items: center; gap: 5px; }
 .spxs1000-seq-pad-btn {
   width: 60px; min-width: 60px; padding: 2px 5px;
-  background: var(--c-panel); border: 1px solid var(--c-border); border-radius: 1px;
-  color: var(--c-text3); cursor: pointer; font-family: var(--c-font); font-size: 0.52rem;
+  background: var(--panel2); border: 1px solid var(--btn-dark); border-radius: 2px;
+  color: var(--text-lt); cursor: pointer; font-family: var(--font-lcd); font-size: 0.5rem;
   text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.spxs1000-seq-pad-btn:hover { border-color: var(--c-led-on); color: var(--c-accent); }
-
-.spxs1000-seq-steps { display: flex; gap: 2px; }
-
+.spxs1000-seq-pad-btn:hover { border-color: var(--accent); color: var(--lcd-hi); }
+.spxs1000-seq-steps   { display: flex; gap: 2px; }
 .spxs1000-step {
-  width: 14px; height: 14px; border-radius: 1px;
-  background: var(--c-panel); border: 1px solid var(--c-border); cursor: pointer;
+  width: 15px; height: 15px; border-radius: 2px;
+  background: var(--panel2); border: 1px solid var(--btn-dark); cursor: pointer;
 }
-.spxs1000-step.on      { background: var(--c-led-on); border-color: var(--c-accent); }
-.spxs1000-step.current { box-shadow: 0 0 0 2px var(--c-led-on); }
-.spxs1000-step.beat    { border-color: #2a2a30; }
+.spxs1000-step.on      { background: var(--accent); border-color: var(--accent2); box-shadow: 0 0 4px var(--accent)88; }
+.spxs1000-step.current { outline: 2px solid var(--accent2); outline-offset: 1px; }
+.spxs1000-step.beat    { border-color: var(--panel); }
 
-/* ── DSP strip ── */
+/* ── DSP strip — light gray, subtle ── */
 .spxs1000-dsp-strip {
-  display: flex; gap: 5px; padding: 3px 14px;
-  background: #060608; border-top: 1px solid var(--c-border); flex-wrap: wrap;
+  display: flex; gap: 5px; padding: 3px 12px;
+  background: var(--chassis2); border-top: 1px solid var(--border-dk); flex-wrap: wrap;
 }
 .spxs1000-dsp-badge {
-  font-size: 0.48rem; color: var(--c-text3); letter-spacing: 0.1em;
-  padding: 1px 5px; border: 1px solid var(--c-border); border-radius: 1px; text-transform: uppercase;
+  font-family: var(--font-lcd); font-size: 0.47rem; color: var(--text2);
+  letter-spacing: 0.08em; padding: 1px 5px; border: 1px solid var(--border-dk); border-radius: 2px; text-transform: uppercase;
 }
