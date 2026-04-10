@@ -308,9 +308,11 @@ export default function SPXS1000Tab({ onExport, onSendToArrange, isEmbedded, mas
                       onDragOver={e => e.preventDefault()}
                       onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) loadSample(pi, f); }}
                       onDoubleClick={() => fileSelect(pi)}>
-                      <span className="spxs1000-pad-num">{pi + 1}</span>
-                      {pad.name ? <span className="spxs1000-pad-name">{pad.name}</span>
-                                : <span className="spxs1000-pad-drop">DROP</span>}
+                      <div className="spxs1000-pad-inner">
+                        <span className="spxs1000-pad-num">{pi + 1}</span>
+                        {pad.name ? <span className="spxs1000-pad-name">{pad.name}</span>
+                                  : <span className="spxs1000-pad-drop">DROP</span>}
+                      </div>
                     </div>
                   );
                 })}
