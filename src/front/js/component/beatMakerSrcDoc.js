@@ -185,6 +185,7 @@ html,body{width:100%;height:100vh;background:#0d0f14;font-family:'Inter',system-
     <button class="vbtn on">⊞ Split</button>
     <button class="vbtn">⊡ Pads</button>
     <button class="vbtn">≡ Seq</button>
+    <button class="vbtn">🎹 Piano</button>
   </div>
 </div>
 
