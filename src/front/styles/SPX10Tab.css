@@ -394,7 +394,7 @@
   display:    flex;
   height:     72px;
   width:      100%;
-  overflow:   hidden;
+  overflow: visible;
 }
 
 /* White keys */

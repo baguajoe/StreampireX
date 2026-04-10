@@ -231,7 +231,7 @@
   border-top:    2px solid var(--stripe);
   padding:       0 8px;
   position:      relative;
-  overflow:      hidden;
+  overflow: visible;
 }
 
 .spxeps-key {
@@ -422,7 +422,7 @@
   display: flex;
   height: 72px;
   width: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 .spxeps-key-white {
   flex: 1;
