@@ -512,7 +512,7 @@ export default function SPXEPSTab({ onExport, onSendToArrange, isEmbedded, maste
             </div>
           ))}
           {blackKeys.map((key, i) => {
-            const pct = ((key.wi + 0.65) / WHITE_KEYS) * 100;
+            const pct = ((key.wi + 0.65) / whiteKeys.length) * 100;
             return (
               <div key={i}
                 className={`spxeps-key-black${activeNotes.has(key.midi) ? ' active' : ''}${findZone(key.midi) ? ' mapped' : ''}`}
