@@ -470,3 +470,14 @@
 .spxeps-zone-chip { min-width: 100px; min-height: 60px; padding: 10px 14px; }
 .spxeps-zone-name { font-size: 0.72rem; color: #c0c8e0; }
 .spxeps-main { min-height: 160px; }
+
+
+/* ── Keyboard overflow fix ── */
+.spxeps-keyboard-section { overflow-x: auto; }
+.spxeps-keyboard {
+  overflow: visible !important;
+  min-width: 600px;
+}
+.spxeps-key-black {
+  width: 1.8% !important;
+}

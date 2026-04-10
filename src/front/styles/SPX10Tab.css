@@ -559,3 +559,14 @@
   color:     #c0c8e0 !important;
   padding:   8px 0 !important;
 }
+
+
+/* ── Keyboard overflow fix ── */
+.spx10-keyboard-section { overflow-x: auto; }
+.spx10-keyboard {
+  overflow: visible !important;
+  min-width: 600px;
+}
+.spx10-key-black {
+  width: 1.8% !important;
+}

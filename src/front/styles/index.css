@@ -602,3 +602,31 @@ html { scroll-behavior: smooth; }
 .spx-right-tab.active { color:#00ffc8; border-bottom-color:#00ffc8; background:rgba(0,255,200,0.06); }
 .spx-right-content { flex:1; overflow-y:auto; padding:12px; }
 @import '../js/component/videoeditor/../../../styles/SPXCut.css';
+
+
+/* ── Hardware tab text readability ── */
+.spx60-label, .spxeps-label, .spx10-label,
+.spxs950-label, .spxs1000-label {
+  font-size: 0.62rem !important;
+  color: #888 !important;
+  letter-spacing: 0.08em !important;
+}
+.spx60-val, .spxeps-val, .spx10-val,
+.spxs950-val, .spxs1000-val {
+  font-size: 0.72rem !important;
+  min-width: 32px !important;
+}
+/* SPX-950 text on cream chassis */
+.spxs950-pad-name { color: #1a1a1a !important; font-size: 0.62rem !important; }
+.spxs950-pad-num  { color: #555 !important; }
+.spxs950-label    { color: #333 !important; }
+/* SPX-1000 text on light chassis */
+.spxs1000-pad-name { color: #1a1a1a !important; font-size: 0.62rem !important; }
+.spxs1000-pad-num  { color: #555 !important; }
+.spxs1000-label    { color: #333 !important; }
+/* EPS text */
+.spxeps-zone-name { font-size: 0.76rem !important; color: #d0d8f0 !important; }
+.spxeps-model     { font-size: 2rem !important; }
+/* SPX-10 text */
+.spx10-zone-name  { font-size: 0.76rem !important; color: #d0d8f0 !important; }
+.spx10-model      { font-size: 2rem !important; }

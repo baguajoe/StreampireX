@@ -325,3 +325,32 @@
   font-family: var(--font-lcd); font-size: 0.48rem; color: var(--text3);
   letter-spacing: 0.08em; padding: 1px 6px; border: 1px solid #303030; border-radius: 1px; text-transform: uppercase;
 }
+
+
+/* ── SPX-60 pad improvements ── */
+.spx60-pad {
+  min-height: 70px !important;
+  border-radius: 6px !important;
+  border-width: 2px !important;
+  box-shadow: 0 3px 0 #0a0a0a, inset 0 1px 0 rgba(255,255,255,0.06) !important;
+}
+.spx60-pad.loaded {
+  border-color: #cc1100 !important;
+  background: linear-gradient(160deg, #1e1e1e 0%, #141414 100%) !important;
+}
+.spx60-pad-name {
+  font-size: 0.68rem !important;
+  color: #e0e0e0 !important;
+}
+.spx60-pad-num {
+  font-size: 0.58rem !important;
+  color: #666 !important;
+}
+/* LCD text bigger */
+.spx60-lcd-item {
+  font-size: 0.75rem !important;
+  color: #aadd66 !important;
+}
+.spx60-model {
+  font-size: 2.2rem !important;
+}

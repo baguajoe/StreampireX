@@ -1414,3 +1414,31 @@
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.5; }
 }
+
+/* ── SPX3000 Special Edition Black — MPC3000 black hardware ── */
+.spx3000-root {
+  --spx-bg:         #080808 !important;
+  --spx-surface:    #0e0e0e !important;
+  --spx-surface2:   #141414 !important;
+  --spx-surface3:   #1a1a1a !important;
+  --spx-border:     #222222 !important;
+  --spx-border2:    #2e2e2e !important;
+  --spx-amber:      #ff9000 !important;
+  --spx-amber-dim:  #4a2800 !important;
+  --spx-text:       #e0e0d8 !important;
+  --spx-text2:      #909088 !important;
+}
+/* Pad face — dark charcoal like real MPC3000 black */
+.spx3000-pad {
+  background: linear-gradient(160deg, #1e1e1e 0%, #141414 100%) !important;
+  border-color: #1a1a1a !important;
+}
+.spx3000-pad:hover {
+  background: linear-gradient(160deg, #262626 0%, #1a1a1a 100%) !important;
+}
+/* Bank headers */
+.spx3000-bank-header {
+  background: #0a0a0a !important;
+  border-color: #222 !important;
+  color: #ff9000 !important;
+}
