@@ -561,11 +561,11 @@
 .daw-console-scroll {
   display: flex;
   flex-direction: row;
-  align-items: stretch;
+  align-items: flex-start;
   gap: 1px;
   padding: 8px 8px 0;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
   flex: 1;
   min-height: 0;
   background: #080a0d;
@@ -587,7 +587,6 @@
   transition: background 0.1s, border-color 0.1s;
   flex-shrink: 0;
   overflow: hidden;
-  align-self: flex-end;
 }
 .daw-channel:hover { background: #171b24; border-color: #252c38; }
 .daw-channel.selected { border-color: rgba(0,255,200,0.4); background: #101c1a; }
