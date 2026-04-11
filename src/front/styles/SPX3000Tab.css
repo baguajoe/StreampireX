@@ -431,12 +431,12 @@
 .spx3000-pad-grid {
   display:               grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows:    repeat(4, 80px);
+  grid-template-rows:    repeat(4, 1fr);
   gap:                   8px;
   width:                 100%;
-  max-width:             600px;
-  min-height:            320px;
-  max-height:            400px;
+  max-width:             none;
+  flex:                  1;
+  min-height:            0;
 }
 
 .spx3000-pad {
