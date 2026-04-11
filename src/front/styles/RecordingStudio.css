@@ -46,8 +46,7 @@
 .daw-topbar {
   display: flex;
   flex-direction: column;
-  height: auto;
-  min-height: 0;
+  width: 100%;
   background: #0e1016;
   border-bottom: 1px solid #1a1d24;
   padding: 0;
@@ -56,40 +55,50 @@
   flex-shrink: 0;
   z-index: 10;
 }
-.daw-topbar-transport-row {
+
+/* ── Row 1: file + transport + I/O ── */
+.daw-topbar-row1 {
   display: flex;
   align-items: center;
   height: 44px;
   padding: 0 10px;
   gap: 6px;
   border-bottom: 1px solid #161920;
+  overflow: hidden;
 }
+
+/* ── Row 2: tab bar ── */
+.daw-topbar-row2 {
+  display: flex;
+  align-items: stretch;
+  height: 34px;
+  background: #0b0d12;
+  border-bottom: 1px solid #1a1d24;
+  overflow: hidden;
+}
+
 .daw-topbar-left {
   display: flex;
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
 }
+
 .daw-topbar-center-tabs {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: visible;
-  gap: 0;
+  display: contents;
 }
+
 .daw-tabs-row {
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
   gap: 0;
-  height: 34px;
-  padding: 0 10px;
+  flex: 1;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
-  background: #0b0d12;
-  border-bottom: 1px solid #1a1d24;
 }
 .daw-tabs-row::-webkit-scrollbar { display: none; }
+
 .daw-topbar-right {
   display: flex;
   align-items: center;

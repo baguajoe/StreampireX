@@ -3539,6 +3539,7 @@ const RecordingStudio = ({ user }) => {
 
       {/* ═══════════════════ TOP BAR ═══════════════════ */}
       <div className="daw-topbar">
+        <div className="daw-topbar-row1">
         <div className="daw-topbar-left">
           <button className="daw-icon-btn" onClick={newProject} title="New">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -3649,10 +3650,9 @@ const RecordingStudio = ({ user }) => {
           </button>
 
           <button
-            className={`daw-transport-btn ${countIn ? "active" : ""}`}
+            className={`daw-transport-btn rs-transport-label ${countIn ? "active" : ""}`}
             onClick={() => setCountIn(!countIn)}
             title="Count-in"
-            className="rs-transport-label"
           >
             1234
           </button>
@@ -3698,30 +3698,26 @@ const RecordingStudio = ({ user }) => {
           </div>
         </div>
 
-        {/* ═══ View Tabs ═══ */}
-        <div className="daw-topbar-center-tabs">
-          {/* ── Collab + MIDI + WAM row ── */}
-          <div style={{display:'flex',alignItems:'center',gap:4,padding:'0 10px',height:44,borderBottom:'1px solid #161920'}}>
-            <CollabToolbar collab={collab} />
-            {midiEnabled && (
-              <MidiHardwareInput
-                drumMode={viewMode === "beatmaker" || viewMode === "sampler"}
-                onNoteOn={(note, vel) => { setStatus(`MIDI: Note ${note} vel ${vel}`); }}
-                onNoteOff={(note) => {}}
-                onCC={(cc, val) => {
-                  if (cc === 7)  tracks.forEach((t,i) => { if(selectedTrack===i) updateTrack(i, { volume: val/127 }); });
-                  if (cc === 10) tracks.forEach((t,i) => { if(selectedTrack===i) updateTrack(i, { pan: (val-64)/64 }); });
-                }}
-                onPadTrigger={(pad) => setStatus(`Pad ${pad} triggered`)}
-              />
-            )}
-            {wamPlugins.length > 0 && (
-              <div className="rs-wam-badge">
-                <span className="rs-wam-text">🔌 {wamPlugins.length} WAM plugin{wamPlugins.length>1?"s":""} loaded</span>
-              </div>
-            )}
-          </div>
-          {/* ── Tab row ── */}
+        </div>{/* end row1 */}
+        <div className="daw-topbar-row2">
+          {midiEnabled && (
+            <MidiHardwareInput
+              drumMode={viewMode === "beatmaker" || viewMode === "sampler"}
+              onNoteOn={(note, vel) => { setStatus(`MIDI: Note ${note} vel ${vel}`); }}
+              onNoteOff={(note) => {}}
+              onCC={(cc, val) => {
+                if (cc === 7)  tracks.forEach((t,i) => { if(selectedTrack===i) updateTrack(i, { volume: val/127 }); });
+                if (cc === 10) tracks.forEach((t,i) => { if(selectedTrack===i) updateTrack(i, { pan: (val-64)/64 }); });
+              }}
+              onPadTrigger={(pad) => setStatus(`Pad ${pad} triggered`)}
+            />
+          )}
+          <CollabToolbar collab={collab} />
+          {wamPlugins.length > 0 && (
+            <div className="rs-wam-badge">
+              <span className="rs-wam-text">🔌 {wamPlugins.length} WAM{wamPlugins.length>1?"s":""}</span>
+            </div>
+          )}
           <div className="daw-tabs-row">
             <button className={`daw-view-tab ${viewMode === "arrange" ? "active" : ""}`} onClick={() => setViewMode("arrange")}>Arrange</button>
             <button className={`daw-view-tab ${viewMode === "console" ? "active" : ""}`} onClick={() => setViewMode("console")}>Console</button>
@@ -3734,10 +3730,10 @@ const RecordingStudio = ({ user }) => {
             <MixDropdown viewMode={viewMode} setViewMode={setViewMode} />
             <ToolsDropdown viewMode={viewMode} setViewMode={setViewMode} />
           </div>
-        </div>
+        </div>{/* /row2 */}
 
-        {/* I/O & Status */}
-        <div className="daw-topbar-right">
+        {/* I/O & Status - stays in row1 via CSS absolute right */}
+        <div className="daw-topbar-right" style={{display:'none'}}>
           {/* Latency display */}
           {latencyMs > 0 && (
             <div style={{
@@ -4017,7 +4013,7 @@ const RecordingStudio = ({ user }) => {
             {/* ── Bottom pane: Mixer/Console ── */}
             <div className="rs-split-bottom" style={{ height: `${100 - splitTopH}%` }}>
               <span className="rs-split-pane-label">MIXER</span>
-              <div className="daw-console" className="rs-console-scroll">
+              <div className="daw-console rs-console-scroll">
                 <div className="daw-console-scroll">
                   {tracks.map((t, i) => {
                     const meter = meterLevels?.[i] || { left: 0, right: 0, peak: 0 };
@@ -4093,7 +4089,7 @@ const RecordingStudio = ({ user }) => {
                         <div className="daw-ch-meter-bar" style={{ height: `${Math.round((masterMeterLevel || 0) * 100)}%`, background: '#ff8a3d' }} />
                       </div>
                     </div>
-                    <div className="daw-ch-vol-readout" className="rs-orange">
+                    <div className="daw-ch-vol-readout rs-orange">
                       {(20 * Math.log10(masterVolume ?? 1)).toFixed(1)} dB
                     </div>
                     <div className="daw-ch-name daw-ch-name-bottom">
@@ -4106,7 +4102,7 @@ const RecordingStudio = ({ user }) => {
                           <option key={id} value={id}>{b.name}</option>
                         ))}
                       </select>
-                      <span className="daw-ch-track-label" className="rs-orange">MASTER</span>
+                      <span className="daw-ch-track-label rs-orange">MASTER</span>
                     </div>
                   </div>
                 </div>
@@ -4172,8 +4168,7 @@ const RecordingStudio = ({ user }) => {
                             ))}
                             {loaded.length < 8 && (
                               <div
-                                className="daw-ch-insert-slot empty"
-                                className="rs-relative"
+                                className="daw-ch-insert-slot empty rs-relative"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   const rect = e.currentTarget.getBoundingClientRect();
@@ -4311,7 +4306,7 @@ const RecordingStudio = ({ user }) => {
 
                 <div className="daw-ch-inserts">
                   <div className="daw-ch-inserts-label">Master</div>
-                  <div className="daw-ch-insert-slot empty" className="rs-insert-empty-text">
+                  <div className="daw-ch-insert-slot empty rs-insert-empty-text">
                     Stereo Bus
                   </div>
                 </div>
@@ -4719,7 +4714,7 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {viewMode === "piano" && (
-          <div className="daw-piano-view" className="rs-view-full">
+          <div className="daw-piano-view rs-view-full">
             <VirtualPiano audioContext={audioCtxRef.current} onRecordingComplete={() => { }} embedded={true} />
           </div>
         )}
@@ -4756,7 +4751,7 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {viewMode === "vocal" && (
-          <div className="daw-vocal-view" className="rs-view-scroll">
+          <div className="daw-vocal-view rs-view-scroll">
             <VocalProcessor
               audioContext={audioCtxRef.current}
               liveStream={micSimStream}
@@ -4825,7 +4820,7 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {showMicSimModal && (
-          <div className="daw-plugin-modal" className="rs-plugin-modal">
+          <div className="daw-plugin-modal rs-plugin-modal">
               <button onClick={() => setShowMicSimModal(false)} className="rs-modal-close">✕</button>
             <MicSimulator
               audioContext={audioCtxRef.current}
@@ -4879,7 +4874,7 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {viewMode === "aimix" && (
-          <div className="daw-aimix-view" className="rs-view-scroll">
+          <div className="daw-aimix-view rs-view-scroll">
             <AIMixAssistant
               tracks={tracks}
               projectId={projectId}
@@ -4896,7 +4891,7 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {showVocalModal && (
-          <div className="daw-plugin-modal" className="rs-plugin-modal">
+          <div className="daw-plugin-modal rs-plugin-modal">
               <button onClick={() => setShowVocalModal(false)} className="rs-modal-close">✕</button>
             <VocalProcessor
               audioContext={audioCtxRef.current}
@@ -5128,7 +5123,7 @@ const RecordingStudio = ({ user }) => {
         {/* ──────── VOICE MIDI VIEW ──────── */}
 
         {viewMode === "synth" && (
-          <div className="daw-synth-view" className="rs-view-auto">
+          <div className="daw-synth-view rs-view-auto">
             <SynthCreator
               onClose={() => setViewMode("arrange")}
               onAssignToTrack={(preset, audioBuffer) => {
@@ -5140,7 +5135,7 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {viewMode === "drumdesigner" && (
-          <div className="daw-drumdesigner-view" className="rs-view-auto">
+          <div className="daw-drumdesigner-view rs-view-auto">
             <DrumDesigner
               onClose={() => setViewMode("beatmaker")}
               onAssignToPad={(data) => {
@@ -5157,7 +5152,7 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {viewMode === "instrbuilder" && (
-          <div className="daw-instrbuilder-view" className="rs-view-auto">
+          <div className="daw-instrbuilder-view rs-view-auto">
             <InstrumentBuilder
               onClose={() => setViewMode("arrange")}
               onAssignToTrack={(preset, audioBuffer) => {
