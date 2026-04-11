@@ -1929,3 +1929,7 @@
   height: 100%;
 }
 
+
+/* Make channel sections uniform height so faders align */
+.daw-ch-inserts, .daw-ch-master-section { min-height: 80px; }
+.daw-ch-routing { min-height: 90px; }
