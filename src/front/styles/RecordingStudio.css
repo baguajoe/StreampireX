@@ -1932,3 +1932,12 @@
 /* Mixer channel strip alignment fix */
 .daw-ch-strip { align-items: flex-start; }
 .daw-ch-fader-area { justify-content: flex-start; }
+
+/* Fix mixer channel fader alignment */
+.daw-ch-fader-area {
+}
+.daw-ch-fader {
+  flex: 1;
+}
+.daw-ch-fader input[type=range] {
+}
