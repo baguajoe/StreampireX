@@ -301,20 +301,20 @@
 .spx60-seq-grid    { display: flex; flex-direction: column; gap: 3px; width: 100%; }
 .spx60-seq-row     { display: flex; align-items: center; gap: 5px; width: 100%; }
 .spx60-seq-pad-btn {
-  width: 60px; min-width: 60px; padding: 2px 5px;
+  width: 80px; min-width: 80px; padding: 4px 8px; height: 28px;
   background: var(--btn-dark); border: 1px solid var(--border2); border-radius: 2px;
-  color: var(--text3); cursor: pointer; font-family: var(--font-lcd); font-size: 0.52rem;
+  color: #ccddcc; cursor: pointer; font-family: var(--font-lcd); font-size: 0.65rem; font-weight:700;
   text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .spx60-seq-pad-btn:hover { border-color: var(--red); color: var(--text); }
 .spx60-seq-steps   { display: flex; gap: 2px; flex: 1; }
 .spx60-step {
-  width: 15px; height: 15px; border-radius: 2px;
+  height: 28px; border-radius: 2px; min-width: 0;
   background: var(--btn-dark); border: 1px solid var(--border2); cursor: pointer; transition: all 0.06s;
 }
 .spx60-step.on      { background: var(--red); border-color: var(--red2); box-shadow: 0 0 4px var(--red)88; }
 .spx60-step.current { outline: 2px solid var(--red2); outline-offset: 1px; }
-.spx60-step.beat    { border-color: var(--border2); }
+.spx60-step.beat    { border-color: var(--text3); border-left-width: 2px; }
 
 /* ── DSP strip ── */
 .spx60-dsp-strip {
@@ -625,3 +625,5 @@
 .spx60-mixer-label{font-size:9px;font-weight:800;font-family:var(--font-mono);}
 
 .spx60-step { flex: 1; min-width: 0; }
+
+.spx60-step:nth-child(4n+1) { border-left: 2px solid var(--text3); }
