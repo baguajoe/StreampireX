@@ -477,7 +477,7 @@ const SPX3000Tab = ({
   }));
   const [activeBank, setActiveBank]   = useState('A');
   const [splitView, setSplitView]     = useState(false);
-  const [selectedPad, setSelectedPad] = useState(null);
+  const [selectedPad, setSelectedPad] = useState(0);
   const [activePads, setActivePads]   = useState(new Set());
   const [dragPad, setDragPad]         = useState(null);
 
@@ -530,7 +530,7 @@ const SPX3000Tab = ({
 
   // ── UI State ──────────────────────────────────────────────────────────────
   const [view, setView]                 = useState('pads');   // pads | sequencer | song | mixer
-  const [padSettingsOpen, setPadSettingsOpen] = useState(false);
+  const [padSettingsOpen, setPadSettingsOpen] = useState(true);
   const [settingsTab, setSettingsTab]   = useState('main');
   const [statusMsg, setStatusMsg]       = useState('SPX3000 Ready');
   const [seqGridMode, setSeqGridMode]   = useState('steps'); // steps | piano
@@ -2024,8 +2024,8 @@ const SPX3000Tab = ({
       {/* ══════════════════════════════════════════════════════════════
           PAD SETTINGS PANEL
           ══════════════════════════════════════════════════════════════ */}
-      {padSettingsOpen && selectedPad !== null && (
-        <div className="spx3000-pad-settings">
+      {selectedPad !== null && (
+        <div className="spx3000-pad-settings spx3000-pad-settings-inline">
           <div className="spx3000-pad-settings-header">
             <span
               className="spx-settings-color"

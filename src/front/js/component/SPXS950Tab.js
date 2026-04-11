@@ -126,7 +126,7 @@ export default function SPXS950Tab({ onExport, onSendToArrange, isEmbedded, mast
   const [bpm, setBpm]                 = useState(90);
   const [swing, setSwing]             = useState(0);
   const [bars, setBars]               = useState(2);
-  const [selectedPad, setSelectedPad] = useState(null);
+  const [selectedPad, setSelectedPad] = useState(0);
   const [view, setView]               = useState('pads');
   const [syncToMaster, setSyncToMaster] = useState(false);
   const [activeSteps, setActiveSteps]   = useState([]);
