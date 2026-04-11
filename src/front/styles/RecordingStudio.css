@@ -65,6 +65,7 @@
   gap: 6px;
   border-bottom: 1px solid #161920;
   overflow: hidden;
+  width: 100%;
 }
 
 /* ── Row 2: tab bar ── */
@@ -75,6 +76,12 @@
   background: #0b0d12;
   border-bottom: 1px solid #1a1d24;
   overflow: hidden;
+}
+.daw-transport {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .daw-topbar-left {
@@ -609,6 +616,8 @@
   border-bottom: 1px solid #151b22;
   padding: 4px 6px;
   flex-shrink: 0;
+  position: relative;
+  z-index: 10;
 }
 .daw-ch-routing-label {
   font-size: 7px;

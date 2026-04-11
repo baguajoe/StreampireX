@@ -3732,8 +3732,8 @@ const RecordingStudio = ({ user }) => {
           </div>
         </div>{/* /row2 */}
 
-        {/* I/O & Status - stays in row1 via CSS absolute right */}
-        <div className="daw-topbar-right" style={{display:'none'}}>
+        {/* I/O & Status */}
+        <div className="daw-topbar-right">
           {/* Latency display */}
           {latencyMs > 0 && (
             <div style={{
