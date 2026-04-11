@@ -79,12 +79,12 @@
 .rs-flex-scroll-dark { display:flex; flex-direction:column; height:100%; overflow-y:auto; background:#0e1520; padding:12px; }
 .rs-flex-scroll-darker { display:flex; flex-direction:column; height:100%; overflow-y:auto; background:#0a1018; }
 .daw-console { display:flex; flex-direction:column; height:100%; overflow:hidden; background:#0f1520; }
-.daw-console-scroll { display:flex; flex-direction:row; align-items:stretch; gap:2px; padding:8px; overflow-x:auto; overflow-y:hidden; height:100%; background:#0c111c; }
-.daw-channel { display:flex; flex-direction:column; align-items:center; background:#181e2d; border:1px solid #243048; border-radius:6px; cursor:pointer; flex-shrink:0; padding-bottom:8px; position:relative; width:100px; min-width:100px; transition:border-color .15s, background .15s; }
+.daw-console-scroll { display:flex; flex-direction:row; align-items:flex-start; gap:2px; padding:8px; overflow-x:auto; overflow-y:hidden; height:100%; background:#0c111c; }
+.daw-channel { display:flex; flex-direction:column; align-items:center; background:#181e2d; border:1px solid #243048; border-radius:6px; cursor:pointer; flex-shrink:0; width:100px; min-width:100px; height:560px; transition:border-color .15s, background .15s; overflow:hidden; }
 .daw-channel:hover { border-color:#2e3d5a; background:#1e263a; }
 .daw-channel.selected { border-color:var(--rs-teal); background:rgba(0,255,200,.04); }
 .daw-channel.armed { border-color:rgba(255,59,48,.6); }
-.daw-channel.master-channel { width:114px; min-width:114px; border-color:rgba(255,102,0,.3); }
+.daw-channel.master-channel { width:114px; min-width:114px; height:560px; border-color:rgba(255,102,0,.3); }
 .daw-channel.master-channel.selected { border-color:var(--rs-orange); }
 .daw-ch-colorbar { width:100%; height:5px; border-radius:5px 5px 0 0; flex-shrink:0; }
 .daw-ch-header { display:flex; align-items:center; gap:4px; padding:5px 6px; width:100%; }
@@ -92,7 +92,7 @@
 .daw-ch-header-num { color:var(--rs-text2); font-size:10px; font-weight:700; }
 .daw-ch-routing { padding:0 6px 3px; width:100%; }
 .daw-ch-routing-value { color:var(--rs-text2); font-size:9px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; }
-.daw-ch-inserts { padding:3px 4px; width:100%; }
+.daw-ch-inserts { padding:3px 4px; width:100%; height:90px; min-height:90px; max-height:90px; overflow-y:auto; flex-shrink:0; }
 .daw-ch-inserts-label { color:var(--rs-text2); font-size:8px; letter-spacing:1px; text-transform:uppercase; padding:0 2px 3px; display:block; }
 .daw-ch-insert-slot { border-radius:3px; cursor:pointer; font-size:9px; margin-bottom:2px; overflow:hidden; padding:3px 6px; text-overflow:ellipsis; white-space:nowrap; border:1px solid; transition:all .1s; }
 .daw-ch-insert-slot.empty { background:rgba(255,255,255,.02); border-color:var(--rs-border2); color:var(--rs-text3); }
@@ -113,9 +113,9 @@
 .daw-ch-btn.solo.active { background:#003a2a; border-color:#008060; color:var(--rs-teal); }
 .daw-ch-pan { display:flex; flex-direction:column; align-items:center; padding:4px 0; gap:2px; }
 .daw-ch-pan-val { color:var(--rs-text2); font-weight:600; font-size:9px; }
-.daw-ch-fader-area { display:flex; flex-direction:column; align-items:center; padding:4px; width:100%; }
-.daw-ch-fader-row { display:flex; align-items:flex-end; gap:5px; flex:1; width:100%; justify-content:center; min-height:180px; }
-.daw-ch-fader { display:flex; align-items:flex-end; justify-content:center; flex:1; height:180px; }
+.daw-ch-fader-area { display:flex; flex-direction:column; align-items:center; padding:4px; width:100%; height:220px; min-height:220px; flex-shrink:0; margin-top:auto; }
+.daw-ch-fader-row { display:flex; align-items:flex-end; gap:5px; width:100%; justify-content:center; height:180px; flex-shrink:0; }
+.daw-ch-fader { display:flex; align-items:flex-end; justify-content:center; height:180px; flex-shrink:0; }
 .daw-ch-fader input[type="range"] { appearance:none; writing-mode:vertical-lr; direction:rtl; width:28px; height:180px; cursor:pointer; background:#090d14; border-radius:2px; border:1px solid #1a2536; }
 .daw-ch-fader input[type="range"]::-webkit-slider-thumb {
   appearance:none;
@@ -269,17 +269,7 @@
 
 
 
-.daw-ch-db-scale {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 180px;
-  padding: 0;
-  margin-left: 3px;
-  flex-shrink: 0;
-  pointer-events: none;
-  width: 14px;
-}
+.daw-ch-db-scale { display:flex; flex-direction:column; justify-content:space-between; height:180px; padding:0; margin-left:3px; flex-shrink:0; pointer-events:none; width:14px; }
 .daw-ch-db-scale span {
   font-size: 7px;
   color: #3d5570;
