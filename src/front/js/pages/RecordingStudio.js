@@ -4216,6 +4216,9 @@ const RecordingStudio = ({ user }) => {
                       </select>
                     </div>
                     </div>
+                    <div className="daw-ch-meter" style={{visibility:'hidden'}}>
+                      <div className="daw-ch-meter-bar" />
+                    </div>
                     <div className="daw-ch-fader-area">
                       <input
                         type="range" min={0} max={1} step={0.01}
