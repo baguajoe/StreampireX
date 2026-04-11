@@ -4194,14 +4194,29 @@ const RecordingStudio = ({ user }) => {
                   })}
                   {/* Master channel */}
                   <div className="daw-channel master-channel daw-master">
-                    <div className="daw-ch-name">
-                      <span style={{ fontSize: 11, fontWeight: 800, color: '#ff8a3d', letterSpacing: '0.08em' }}>MASTER</span>
-                    <div style={{ padding: '2px 4px', borderBottom: '1px solid #1e2030' }}>
-                      <select
-                        style={{ width: '100%', background: '#0d1117', border: '1px solid #21262d',
-                          color: (CONSOLE_BOARDS[masterConsoleChar]||{color:'#555'}).color,
-                          borderRadius: 3, fontSize: 9, padding: '1px 2px',
-                          fontFamily: 'Share Tech Mono, monospace' }}
+                    <div className="daw-ch-controls">
+                      <button className="daw-ch-btn" title="Master">M</button>
+                      <button className="daw-ch-btn" title="Master">S</button>
+                    </div>
+                    <div className="daw-ch-fader-meter-row">
+                      <div className="daw-ch-fader-area">
+                        <input
+                          type="range" min={0} max={1} step={0.01}
+                          value={masterVolume ?? 1}
+                          className="daw-ch-fader"
+                          orient="vertical"
+                          onChange={e => setMasterVolume(parseFloat(e.target.value))}
+                        />
+                      </div>
+                      <div className="daw-ch-meter">
+                        <div className="daw-ch-meter-bar" style={{ height: `${Math.round((masterMeterLevel || 0) * 100)}%`, background: '#ff8a3d' }} />
+                      </div>
+                    </div>
+                    <div className="daw-ch-vol-readout" style={{ color: '#ff8a3d' }}>
+                      {(20 * Math.log10(masterVolume ?? 1)).toFixed(1)} dB
+                    </div>
+                    <div className="daw-ch-name daw-ch-name-bottom">
+                      <select className="daw-ch-console-select"
                         value={masterConsoleChar}
                         onChange={e => setMasterConsoleChar(e.target.value)}
                         title="Master bus console character"
@@ -4210,22 +4225,7 @@ const RecordingStudio = ({ user }) => {
                           <option key={id} value={id}>{b.name}</option>
                         ))}
                       </select>
-                    </div>
-                    </div>
-                    <div className="daw-ch-meter" style={{visibility:'hidden'}}>
-                      <div className="daw-ch-meter-bar" />
-                    </div>
-                    <div className="daw-ch-fader-area">
-                      <input
-                        type="range" min={0} max={1} step={0.01}
-                        value={masterVolume ?? 1}
-                        className="daw-ch-fader"
-                        orient="vertical"
-                        onChange={e => setMasterVolume(parseFloat(e.target.value))}
-                      />
-                    </div>
-                    <div style={{ fontSize: 10, textAlign: 'center', color: '#ff8a3d', padding: '2px 0', fontWeight: 700 }}>
-                      {Math.round((masterVolume ?? 1) * 100)}
+                      <span className="daw-ch-track-label" style={{ color: '#ff8a3d' }}>MASTER</span>
                     </div>
                   </div>
                 </div>

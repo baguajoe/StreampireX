@@ -2045,3 +2045,12 @@
 /* Uniform section sizing between track and master */
 .daw-ch-inserts,
 .daw-ch-master-bus { min-height: 70px; }
+
+/* Vol readout centered and correct */
+.daw-ch-vol-readout {
+  text-align: center !important;
+  width: 100% !important;
+  display: block !important;
+}
+/* Master channel same structure as track */
+.daw-master .daw-ch-fader-meter-row { flex: 1; min-height: 180px; }
