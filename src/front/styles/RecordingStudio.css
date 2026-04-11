@@ -266,22 +266,26 @@
 .pan-knob-wrap { display:inline-flex; flex-direction:column; align-items:center; cursor:ns-resize; user-select:none; }
 .pan-knob-label { font-size:9px; color:var(--rs-text2); font-family:var(--rs-font); margin-top:-2px; font-weight:600; }
 
-/* dB scale on fader */
-.daw-ch-fader-row { position: relative; }
-.daw-ch-fader { position: relative; }
-.daw-ch-fader::after {
-  content: "+6\A 0\A-6\A-12\A-18\A-24\A-∞";
+
+/* dB scale left of fader */
+.daw-ch-fader {
+  position: relative;
+}
+.daw-ch-fader::before {
+  content: "+6\A  0\A -6\A-12\A-18\A-∞";
   white-space: pre;
   position: absolute;
-  right: -22px;
-  top: 0;
-  height: 100%;
+  left: -18px;
+  top: 4px;
+  bottom: 4px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   font-size: 7px;
-  color: var(--rs-text3);
+  color: #3a5068;
   font-family: var(--rs-font);
   pointer-events: none;
+  text-align: right;
   line-height: 1;
+  width: 16px;
 }

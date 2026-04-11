@@ -1838,10 +1838,8 @@ const RecordingStudio = ({ user }) => {
                 </div>
                 <div className="daw-ch-routing"><span className="daw-ch-routing-value">Stereo Out</span></div>
                 <div className="daw-ch-inserts">
-                  <div className="daw-ch-inserts-label">MASTER BUS</div>
-                  <div className="daw-ch-insert-slot empty" onClick={() => setViewMode("mastering")}>🎚 Mastering Chain</div>
-                  <div className="daw-ch-insert-slot empty" onClick={() => setViewMode("multiband")}>📊 Multiband</div>
-                  <div className="daw-ch-insert-slot empty" onClick={() => setViewMode("speakersim")}>🔊 Mix Translator</div>
+                  <div className="daw-ch-inserts-label">INSERTS</div>
+                  <div className="daw-ch-insert-slot empty" onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setInsertPickerState({ trackIndex: -1, x: rect.right + 4, y: rect.top }); }}>+ Insert</div>
                 </div>
                 <div className="daw-ch-controls">
                   <div className="daw-ch-badge">M</div>
