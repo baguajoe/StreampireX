@@ -1945,3 +1945,13 @@
 /* Mixer strips — align faders to bottom like real console */
 .daw-ch-col { justify-content: flex-end; display: flex; flex-direction: column; }
 .daw-ch-fader-area { margin-top: auto; }
+
+/* daw-channel strip bottom-align faders */
+.daw-channel {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.daw-channel .daw-ch-fader-area {
+  margin-top: auto;
+}
