@@ -301,23 +301,23 @@ const LayerDetail = ({ layer, onUpdate, color }) => {
         ))}
       </div>
       <div className="ib-knob-row">
-        <Knob value={layer.oct} min={-2} max={2} step={1} onChange={v=>onUpdate('oct',v)} label="OCT" size={52} color={lc} bipolar/>
-        <Knob value={layer.semi} min={-12} max={12} step={1} onChange={v=>onUpdate('semi',v)} label="SEMI" size={52} color={lc} bipolar/>
-        <Knob value={layer.detune} min={-100} max={100} step={1} onChange={v=>onUpdate('detune',v)} label="DETUNE" unit="¢" size={52} color={lc} bipolar/>
+        <Knob value={layer.oct} min={-2} max={2} step={1} onChange={v=>onUpdate('oct',v)} label="OCT" size={64} color={lc} bipolar/>
+        <Knob value={layer.semi} min={-12} max={12} step={1} onChange={v=>onUpdate('semi',v)} label="SEMI" size={64} color={lc} bipolar/>
+        <Knob value={layer.detune} min={-100} max={100} step={1} onChange={v=>onUpdate('detune',v)} label="DETUNE" unit="¢" size={64} color={lc} bipolar/>
       </div>
       <div className="ib-knob-row" style={{ marginTop: 12 }}>
-        <Knob value={layer.attack} min={0.001} max={4} step={0.001} log onChange={v=>onUpdate('attack',v)} label="ATTACK" unit="s" size={52} color={lc}/>
-        <Knob value={layer.decay} min={0.01} max={4} step={0.01} log onChange={v=>onUpdate('decay',v)} label="DECAY" unit="s" size={52} color={lc}/>
-        <Knob value={layer.sustain} min={0} max={1} step={0.01} onChange={v=>onUpdate('sustain',v)} label="SUSTAIN" size={52} color={lc}/>
-        <Knob value={layer.release} min={0.01} max={8} step={0.01} log onChange={v=>onUpdate('release',v)} label="RELEASE" unit="s" size={52} color={lc}/>
+        <Knob value={layer.attack} min={0.001} max={4} step={0.001} log onChange={v=>onUpdate('attack',v)} label="ATTACK" unit="s" size={64} color={lc}/>
+        <Knob value={layer.decay} min={0.01} max={4} step={0.01} log onChange={v=>onUpdate('decay',v)} label="DECAY" unit="s" size={64} color={lc}/>
+        <Knob value={layer.sustain} min={0} max={1} step={0.01} onChange={v=>onUpdate('sustain',v)} label="SUSTAIN" size={64} color={lc}/>
+        <Knob value={layer.release} min={0.01} max={8} step={0.01} log onChange={v=>onUpdate('release',v)} label="RELEASE" unit="s" size={64} color={lc}/>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
         <LEDToggle value={layer.filterOn} onChange={v=>onUpdate('filterOn',v)} label="FILTER" color={lc}/>
         {layer.filterOn && <>
           <PillGroup options={['lowpass','highpass','bandpass'].map(t=>({label:t.slice(0,2).toUpperCase(),value:t}))}
             value={layer.filterType} onChange={v=>onUpdate('filterType',v)} color={lc}/>
-          <Knob value={layer.filterCutoff} min={20} max={20000} step={1} log onChange={v=>onUpdate('filterCutoff',v)} label="CUTOFF" unit="Hz" size={48} color="#5ac8fa"/>
-          <Knob value={layer.filterRes} min={0.1} max={20} step={0.1} onChange={v=>onUpdate('filterRes',v)} label="Q" size={48} color="#5ac8fa"/>
+          <Knob value={layer.filterCutoff} min={20} max={20000} step={1} log onChange={v=>onUpdate('filterCutoff',v)} label="CUTOFF" unit="Hz" size={60} color="#5ac8fa"/>
+          <Knob value={layer.filterRes} min={0.1} max={20} step={0.1} onChange={v=>onUpdate('filterRes',v)} label="Q" size={60} color="#5ac8fa"/>
         </>}
       </div>
     </div>
@@ -340,8 +340,8 @@ const LayerDetail = ({ layer, onUpdate, color }) => {
         <div>
           <div style={{ fontSize: '0.62rem', color: '#00ffcc', marginBottom: 10 }}>✓ {layer.fileName}</div>
           <div className="ib-knob-row">
-            <Knob value={layer.pitch} min={-24} max={24} step={1} onChange={v=>onUpdate('pitch',v)} label="PITCH" unit="st" size={52} color={lc} bipolar/>
-            <Knob value={layer.rootNote} min={0} max={127} step={1} onChange={v=>onUpdate('rootNote',v)} label="ROOT" size={52} color={lc}/>
+            <Knob value={layer.pitch} min={-24} max={24} step={1} onChange={v=>onUpdate('pitch',v)} label="PITCH" unit="st" size={64} color={lc} bipolar/>
+            <Knob value={layer.rootNote} min={0} max={127} step={1} onChange={v=>onUpdate('rootNote',v)} label="ROOT" size={64} color={lc}/>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
             <LEDToggle value={layer.loopOn} onChange={v=>onUpdate('loopOn',v)} label="LOOP" color={lc}/>
@@ -353,10 +353,10 @@ const LayerDetail = ({ layer, onUpdate, color }) => {
             </label>
           </div>
           <div className="ib-knob-row" style={{ marginTop: 12 }}>
-            <Knob value={layer.attack} min={0.001} max={4} step={0.001} log onChange={v=>onUpdate('attack',v)} label="ATTACK" unit="s" size={52} color={lc}/>
-            <Knob value={layer.decay} min={0.01} max={4} step={0.01} log onChange={v=>onUpdate('decay',v)} label="DECAY" unit="s" size={52} color={lc}/>
-            <Knob value={layer.sustain} min={0} max={1} step={0.01} onChange={v=>onUpdate('sustain',v)} label="SUSTAIN" size={52} color={lc}/>
-            <Knob value={layer.release} min={0.01} max={8} step={0.01} log onChange={v=>onUpdate('release',v)} label="RELEASE" unit="s" size={52} color={lc}/>
+            <Knob value={layer.attack} min={0.001} max={4} step={0.001} log onChange={v=>onUpdate('attack',v)} label="ATTACK" unit="s" size={64} color={lc}/>
+            <Knob value={layer.decay} min={0.01} max={4} step={0.01} log onChange={v=>onUpdate('decay',v)} label="DECAY" unit="s" size={64} color={lc}/>
+            <Knob value={layer.sustain} min={0} max={1} step={0.01} onChange={v=>onUpdate('sustain',v)} label="SUSTAIN" size={64} color={lc}/>
+            <Knob value={layer.release} min={0.01} max={8} step={0.01} log onChange={v=>onUpdate('release',v)} label="RELEASE" unit="s" size={64} color={lc}/>
           </div>
         </div>
       )}
@@ -365,11 +365,11 @@ const LayerDetail = ({ layer, onUpdate, color }) => {
 
   if (layer.type === 'sub') return (
     <div className="ib-knob-row">
-      <Knob value={layer.oct} min={-3} max={-1} step={1} onChange={v=>onUpdate('oct',v)} label="OCT" size={52} color={lc}/>
-      <Knob value={layer.attack} min={0.001} max={0.5} step={0.001} log onChange={v=>onUpdate('attack',v)} label="ATTACK" unit="s" size={52} color={lc}/>
-      <Knob value={layer.decay} min={0.01} max={2} step={0.01} log onChange={v=>onUpdate('decay',v)} label="DECAY" unit="s" size={52} color={lc}/>
-      <Knob value={layer.sustain} min={0} max={1} step={0.01} onChange={v=>onUpdate('sustain',v)} label="SUSTAIN" size={52} color={lc}/>
-      <Knob value={layer.release} min={0.01} max={4} step={0.01} log onChange={v=>onUpdate('release',v)} label="RELEASE" unit="s" size={52} color={lc}/>
+      <Knob value={layer.oct} min={-3} max={-1} step={1} onChange={v=>onUpdate('oct',v)} label="OCT" size={64} color={lc}/>
+      <Knob value={layer.attack} min={0.001} max={0.5} step={0.001} log onChange={v=>onUpdate('attack',v)} label="ATTACK" unit="s" size={64} color={lc}/>
+      <Knob value={layer.decay} min={0.01} max={2} step={0.01} log onChange={v=>onUpdate('decay',v)} label="DECAY" unit="s" size={64} color={lc}/>
+      <Knob value={layer.sustain} min={0} max={1} step={0.01} onChange={v=>onUpdate('sustain',v)} label="SUSTAIN" size={64} color={lc}/>
+      <Knob value={layer.release} min={0.01} max={4} step={0.01} log onChange={v=>onUpdate('release',v)} label="RELEASE" unit="s" size={64} color={lc}/>
     </div>
   );
 
@@ -377,18 +377,18 @@ const LayerDetail = ({ layer, onUpdate, color }) => {
     <div>
       <PillGroup options={NOISE_TYPES} value={layer.noiseType} onChange={v=>onUpdate('noiseType',v)} color={lc}/>
       <div className="ib-knob-row" style={{ marginTop: 12 }}>
-        <Knob value={layer.attack} min={0.001} max={2} step={0.001} log onChange={v=>onUpdate('attack',v)} label="ATTACK" unit="s" size={52} color={lc}/>
-        <Knob value={layer.decay} min={0.01} max={4} step={0.01} log onChange={v=>onUpdate('decay',v)} label="DECAY" unit="s" size={52} color={lc}/>
-        <Knob value={layer.sustain} min={0} max={1} step={0.01} onChange={v=>onUpdate('sustain',v)} label="SUSTAIN" size={52} color={lc}/>
-        <Knob value={layer.release} min={0.01} max={4} step={0.01} log onChange={v=>onUpdate('release',v)} label="RELEASE" unit="s" size={52} color={lc}/>
+        <Knob value={layer.attack} min={0.001} max={2} step={0.001} log onChange={v=>onUpdate('attack',v)} label="ATTACK" unit="s" size={64} color={lc}/>
+        <Knob value={layer.decay} min={0.01} max={4} step={0.01} log onChange={v=>onUpdate('decay',v)} label="DECAY" unit="s" size={64} color={lc}/>
+        <Knob value={layer.sustain} min={0} max={1} step={0.01} onChange={v=>onUpdate('sustain',v)} label="SUSTAIN" size={64} color={lc}/>
+        <Knob value={layer.release} min={0.01} max={4} step={0.01} log onChange={v=>onUpdate('release',v)} label="RELEASE" unit="s" size={64} color={lc}/>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
         <LEDToggle value={layer.filterOn} onChange={v=>onUpdate('filterOn',v)} label="FILTER" color={lc}/>
         {layer.filterOn && <>
           <PillGroup options={['lowpass','highpass','bandpass'].map(t=>({label:t.slice(0,2).toUpperCase(),value:t}))}
             value={layer.filterType} onChange={v=>onUpdate('filterType',v)} color={lc}/>
-          <Knob value={layer.filterCutoff} min={100} max={16000} step={10} log onChange={v=>onUpdate('filterCutoff',v)} label="CUTOFF" unit="Hz" size={48} color="#5ac8fa"/>
-          <Knob value={layer.filterRes} min={0.1} max={20} step={0.1} onChange={v=>onUpdate('filterRes',v)} label="Q" size={48} color="#5ac8fa"/>
+          <Knob value={layer.filterCutoff} min={100} max={16000} step={10} log onChange={v=>onUpdate('filterCutoff',v)} label="CUTOFF" unit="Hz" size={60} color="#5ac8fa"/>
+          <Knob value={layer.filterRes} min={0.1} max={20} step={0.1} onChange={v=>onUpdate('filterRes',v)} label="Q" size={60} color="#5ac8fa"/>
         </>}
       </div>
     </div>
@@ -863,8 +863,8 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
                   <LEDToggle value={fx.chorus.on} onChange={v=>setFxParam('chorus','on',v)} label="CHORUS" color="#34d399"/>
                 </div>
                 {fx.chorus.on && <div className="ib-knob-row">
-                  <Knob value={fx.chorus.rate} min={0.1} max={10} step={0.1} onChange={v=>setFxParam('chorus','rate',v)} label="RATE" unit="Hz" size={42} color="#34d399"/>
-                  <Knob value={fx.chorus.mix} min={0} max={1} step={0.01} onChange={v=>setFxParam('chorus','mix',v)} label="MIX" size={42} color="#34d399"/>
+                  <Knob value={fx.chorus.rate} min={0.1} max={10} step={0.1} onChange={v=>setFxParam('chorus','rate',v)} label="RATE" unit="Hz" size={56} color="#34d399"/>
+                  <Knob value={fx.chorus.mix} min={0} max={1} step={0.01} onChange={v=>setFxParam('chorus','mix',v)} label="MIX" size={56} color="#34d399"/>
                 </div>}
               </div>
               {/* Delay */}
@@ -873,9 +873,9 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
                   <LEDToggle value={fx.delay.on} onChange={v=>setFxParam('delay','on',v)} label="DELAY" color="#fb923c"/>
                 </div>
                 {fx.delay.on && <div className="ib-knob-row">
-                  <Knob value={fx.delay.time} min={0.01} max={2} step={0.01} onChange={v=>setFxParam('delay','time',v)} label="TIME" unit="s" size={42} color="#fb923c"/>
-                  <Knob value={fx.delay.feedback} min={0} max={0.9} step={0.01} onChange={v=>setFxParam('delay','feedback',v)} label="FB" size={42} color="#fb923c"/>
-                  <Knob value={fx.delay.mix} min={0} max={1} step={0.01} onChange={v=>setFxParam('delay','mix',v)} label="MIX" size={42} color="#fb923c"/>
+                  <Knob value={fx.delay.time} min={0.01} max={2} step={0.01} onChange={v=>setFxParam('delay','time',v)} label="TIME" unit="s" size={56} color="#fb923c"/>
+                  <Knob value={fx.delay.feedback} min={0} max={0.9} step={0.01} onChange={v=>setFxParam('delay','feedback',v)} label="FB" size={56} color="#fb923c"/>
+                  <Knob value={fx.delay.mix} min={0} max={1} step={0.01} onChange={v=>setFxParam('delay','mix',v)} label="MIX" size={56} color="#fb923c"/>
                 </div>}
               </div>
               {/* Reverb */}
@@ -884,8 +884,8 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
                   <LEDToggle value={fx.reverb.on} onChange={v=>setFxParam('reverb','on',v)} label="REVERB" color="#a78bfa"/>
                 </div>
                 {fx.reverb.on && <div className="ib-knob-row">
-                  <Knob value={fx.reverb.decay} min={0.1} max={10} step={0.1} onChange={v=>setFxParam('reverb','decay',v)} label="DECAY" unit="s" size={42} color="#a78bfa"/>
-                  <Knob value={fx.reverb.mix} min={0} max={1} step={0.01} onChange={v=>setFxParam('reverb','mix',v)} label="MIX" size={42} color="#a78bfa"/>
+                  <Knob value={fx.reverb.decay} min={0.1} max={10} step={0.1} onChange={v=>setFxParam('reverb','decay',v)} label="DECAY" unit="s" size={56} color="#a78bfa"/>
+                  <Knob value={fx.reverb.mix} min={0} max={1} step={0.01} onChange={v=>setFxParam('reverb','mix',v)} label="MIX" size={56} color="#a78bfa"/>
                 </div>}
               </div>
             </div>
