@@ -337,18 +337,9 @@ const TrackHeader = React.memo(({
         >●</button>
       </div>
 
-      {/* Volume mini-fader */}
-      <div className="arr-th-fader-wrap" onClick={e => e.stopPropagation()}>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={track.volume ?? 0.8}
-          className="arr-th-fader"
-          onChange={e => onUpdate(index, { volume: parseFloat(e.target.value) })}
-          title={`Volume: ${Math.round((track.volume ?? 0.8) * 100)}%`}
-        />
+      {/* Volume readout — no slider */}
+      <div className="arr-th-vol-readout" onClick={e => e.stopPropagation()} title="Volume">
+        <span className="arr-th-vol-db">{(track.volume??0.8)>0?(20*Math.log10(track.volume??0.8)).toFixed(1):"-∞"} dB</span>
       </div>
 
       {/* Action buttons */}

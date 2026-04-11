@@ -424,3 +424,5 @@
   background: transparent; border: none; color: var(--arr-text3); cursor: pointer; font-size: 14px;
 }
 .arr-automation-close:hover { color: var(--arr-text); }
+.arr-th-vol-readout{display:flex;align-items:center;padding:1px 4px;}
+.arr-th-vol-db{font-size:9px;font-weight:700;color:#5a8aaa;font-family:'JetBrains Mono',monospace;white-space:nowrap;}

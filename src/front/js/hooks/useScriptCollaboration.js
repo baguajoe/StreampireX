@@ -133,7 +133,7 @@ export function useScriptCollaboration(scriptId, userId, userName) {
 
   const send = useCallback((msg) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(msg));
+      try { wsRef.current.send(JSON.stringify(msg)); } catch(e) {}
     }
   }, []);
 
@@ -213,7 +213,7 @@ export function useScriptCollaboration(scriptId, userId, userName) {
     return () => {
       clearTimeout(reconnectTimer.current);
       if (wsRef.current) {
-        wsRef.current.send(JSON.stringify({ type: "leave", userId, scriptId }));
+        if (wsRef.current.readyState === WebSocket.OPEN) { try { wsRef.current.send(JSON.stringify({ type: "leave", userId, scriptId })); } catch(e) {} }
         wsRef.current.close();
       }
     };
