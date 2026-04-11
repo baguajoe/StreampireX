@@ -8,6 +8,9 @@ import SPXCollabBar from "../components/spx-script/SPXCollabBar";
 import SPXOfflineIndicator from "../components/spx-script/SPXOfflineIndicator";
 import { useScriptCollaboration } from "../hooks/useScriptCollaboration";
 import { useScriptOffline } from "../hooks/useScriptOffline";
+import SPXWorldNav from "../components/spx-script/SPXWorldNav";
+import SPXBiblePanel from "../components/spx-script/SPXBiblePanel";
+import SPXWorldMap from "../components/spx-script/SPXWorldMap";
 import { downloadFDX, downloadFountain, readFDXFile, readFountainFile } from "../utils/fdxUtils";
 import "../../styles/spx-script.css";
 
@@ -78,6 +81,13 @@ const DEFAULT_COMIC = {
   }],
 };
 
+const DEFAULT_WORLD_DATA = {
+  characters: [],
+  locations: [],
+  factions: [],
+  lore: [],
+};
+
 function getCurrentUser() {
   try {
     const token = localStorage.getItem("token");
@@ -114,6 +124,10 @@ export default function SPXScriptPage() {
   ]);
   const [generatedPanels, setGeneratedPanels] = useState([]);
   const [generating, setGenerating] = useState(false);
+  const [scriptMode, setScriptMode] = useState("script"); // "script" | "world"
+  const [worldData, setWorldData] = useState(DEFAULT_WORLD_DATA);
+  const [selectedEntry, setSelectedEntry] = useState(null);
+  const [mapPins, setMapPins] = useState([]);
 
   const closeAllMenus = () => { setShowExportMenu(false); setShowImportMenu(false); setShowDrafts(false); };
 
@@ -228,6 +242,22 @@ export default function SPXScriptPage() {
           listLocalScripts={listLocalScripts} onLoadLocalScript={() => { const l = loadLocal(); if (l) setScript(l); }} />
 
         <div className="spx-script-credits-badge">⬡ {credits} Credits</div>
+        <div className="spx-script-vsep" />
+        <button
+          className={`spx-script-main-tab ${scriptMode === "script" ? "active" : ""}`}
+          onClick={() => setScriptMode("script")}
+          title="Script writing mode"
+        >
+          ✏️ SCRIPT
+        </button>
+        <button
+          className={`spx-script-main-tab ${scriptMode === "world" ? "active" : ""}`}
+          style={{ color: scriptMode === "world" ? "#FF6600" : undefined, borderBottomColor: scriptMode === "world" ? "#FF6600" : undefined }}
+          onClick={() => setScriptMode("world")}
+          title="World building mode"
+        >
+          🌍 WORLD
+        </button>
 
         <SPXCollabBar connected={connected} collaborators={collaborators} comments={comments}
           onAddComment={addComment} onReplyToComment={replyToComment}
@@ -304,22 +334,39 @@ export default function SPXScriptPage() {
 
       {/* WORKSPACE */}
       <div className="spx-script-workspace">
-        {mainTab !== "gen" && (
+        {mainTab !== "gen" && scriptMode === "script" && (
           <SPXScriptNav mainTab={mainTab} script={script} comic={comic}
             selectedIssueId={selectedIssueId} selectedPageId={selectedPageId}
             onSelectPage={setSelectedPageId} onSelectIssue={setSelectedIssueId} drafts={drafts} />
         )}
+        {scriptMode === "world" && (
+          <SPXWorldNav
+            worldData={worldData}
+            setWorldData={setWorldData}
+            selectedEntry={selectedEntry}
+            setSelectedEntry={setSelectedEntry}
+            onSelectEntry={(entry) => { setSelectedEntry(entry); }}
+          />
+        )}
 
-        {mainTab === "script" && (
+        {mainTab === "script" && scriptMode === "script" && (
           <SPXScriptEditor script={script} setScript={setScript} format={format}
             broadcastEdit={broadcastEdit} broadcastCursor={broadcastCursor}
             collaborators={collaborators} onAddComment={addComment} />
         )}
-        {mainTab === "comic" && (
+        {mainTab === "comic" && scriptMode === "script" && (
           <SPXComicEditor comic={comic} setComic={setComic}
             selectedIssueId={selectedIssueId} selectedPageId={selectedPageId}
             setSelectedPageId={setSelectedPageId} selectedPanelId={selectedPanelId}
             setSelectedPanelId={setSelectedPanelId} />
+        )}
+        {scriptMode === "world" && mainTab !== "gen" && (
+          <SPXWorldMap
+            worldData={worldData}
+            mapPins={mapPins}
+            setMapPins={setMapPins}
+            onSelectEntry={(entry) => setSelectedEntry(entry)}
+          />
         )}
         {mainTab === "gen" && (
           <SPXComicGenerator credits={credits} setCredits={setCredits}
@@ -330,11 +377,20 @@ export default function SPXScriptPage() {
             selectedPanelId={selectedPanelId} />
         )}
 
-        {mainTab !== "gen" && (
+        {mainTab !== "gen" && scriptMode === "script" && (
           <SPXScriptRightPanel mainTab={mainTab} rpTab={rpTab} setRpTab={setRpTab}
             script={script} comic={comic} setComic={setComic}
             selectedIssueId={selectedIssueId} selectedPageId={selectedPageId}
             selectedPanelId={selectedPanelId} />
+        )}
+        {scriptMode === "world" && (
+          <SPXBiblePanel
+            selectedEntry={selectedEntry}
+            worldData={worldData}
+            setWorldData={setWorldData}
+            onOpenCanvas={() => window.open('/spx-canvas', '_blank')}
+            on3DModel={() => window.open('/spx-3d-mesh', '_blank')}
+          />
         )}
       </div>
     </div>
