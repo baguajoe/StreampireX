@@ -3586,7 +3586,7 @@ const RecordingStudio = ({ user }) => {
             className={`daw-transport-btn ${countIn ? "active" : ""}`}
             onClick={() => setCountIn(!countIn)}
             title="Count-in"
-            style={{ fontSize: "0.7rem", fontWeight: 800 }}
+            className="rs-transport-label"
           >
             1234
           </button>
@@ -3604,9 +3604,7 @@ const RecordingStudio = ({ user }) => {
             onOctaveChange={instrumentEngine.setKeyboardOctave}
           />
           {/* ── Monitor Speaker Simulator ── */}
-          <div style={{ display:'flex', alignItems:'center', gap:4, marginLeft:8,
-            background:'rgba(0,255,200,0.05)', border:'1px solid rgba(0,255,200,0.15)',
-            borderRadius:4, padding:'2px 6px' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:4, marginLeft:8, background:'rgba(0,255,200,0.05)', border:'1px solid rgba(0,255,200,0.15)', borderRadius:4, padding:'2px 6px' }}>
             <span style={{ fontSize:9, color:'#00ffc8', fontFamily:'Share Tech Mono,monospace',
               letterSpacing:1, whiteSpace:'nowrap' }}>🔊 MON</span>
             <select
@@ -3928,7 +3926,7 @@ const RecordingStudio = ({ user }) => {
       {/* ═══════════════════ MAIN VIEW AREA ═══════════════════ */}
       <div className="daw-main">
         {!splitScreen && viewMode === "arrange" && (
-          <div style={{ position: "relative" }}>
+          <div className="rs-relative">
           <ArrangerView
             cycleEnabled={cycleEnabled}
             cycleStart={cycleStart}
@@ -4052,7 +4050,7 @@ const RecordingStudio = ({ user }) => {
                 <input type="range" min={0} max={100} step={1}
                   value={latencyCompMs}
                   onChange={e => setLatencyCompMs(Number(e.target.value))}
-                  style={{width:'100%',accentColor:'#00ffc8'}}
+                  className="rs-range-teal"
                 />
               </div>
 
@@ -4212,7 +4210,7 @@ const RecordingStudio = ({ user }) => {
                         <div className="daw-ch-meter-bar" style={{ height: `${Math.round((masterMeterLevel || 0) * 100)}%`, background: '#ff8a3d' }} />
                       </div>
                     </div>
-                    <div className="daw-ch-vol-readout" style={{ color: '#ff8a3d' }}>
+                    <div className="daw-ch-vol-readout" className="rs-orange">
                       {(20 * Math.log10(masterVolume ?? 1)).toFixed(1)} dB
                     </div>
                     <div className="daw-ch-name daw-ch-name-bottom">
@@ -4225,7 +4223,7 @@ const RecordingStudio = ({ user }) => {
                           <option key={id} value={id}>{b.name}</option>
                         ))}
                       </select>
-                      <span className="daw-ch-track-label" style={{ color: '#ff8a3d' }}>MASTER</span>
+                      <span className="daw-ch-track-label" className="rs-orange">MASTER</span>
                     </div>
                   </div>
                 </div>
@@ -4292,7 +4290,7 @@ const RecordingStudio = ({ user }) => {
                             {loaded.length < 8 && (
                               <div
                                 className="daw-ch-insert-slot empty"
-                                style={{ position: "relative" }}
+                                className="rs-relative"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   const rect = e.currentTarget.getBoundingClientRect();
@@ -5089,7 +5087,7 @@ const RecordingStudio = ({ user }) => {
         {viewMode === 'analog' && (
           <div className="rs-flex-scroll-darker">
             <div className="rs-analog-scale">
-            <div style={{display:'flex',background:'#0d1117',borderBottom:'1px solid #21262d',padding:'0 12px'}}>
+            <div className="rs-analog-tabs">
               {[['ampsim','🎸 Amp Sim'],['tape','📼 Tape & Harmonic'],['pedals','🎛️ Pedal Chain'],['console','🎚️ Console']].map(([id,label])=>(
                 <button key={id} onClick={()=>setAnalogSubview(id)} style={{
                   padding:'10px 16px',background:'transparent',border:'none',
@@ -5100,76 +5098,76 @@ const RecordingStudio = ({ user }) => {
               ))}
             </div>
             {analogSubview==='ampsim'&&(
-              <div style={{padding:24}}>
-                <h3 style={{color:'#e6edf3',fontWeight:800,fontSize:20,margin:'0 0 6px'}}>🎸 Guitar & Bass Amp Simulator</h3>
-                <p style={{color:'#8b949e',fontSize:14,margin:'0 0 20px'}}>6 amp models · Cabinet sim · Pedal chain · Web Audio processing</p>
-                <div style={{transform:'scale(1.25)',transformOrigin:'top left',width:'80%'}}>
+              <div className="rs-amp-panel">
+                <h3 className="rs-amp-heading">🎸 Guitar & Bass Amp Simulator</h3>
+                <p className="rs-amp-subtext">6 amp models · Cabinet sim · Pedal chain · Web Audio processing</p>
+                <div className="rs-amp-scale">
                 <AmpSimPlugin audioContext={null} inputNode={null} outputNode={null}/>
                 </div>
               </div>
             )}
             {analogSubview==='tape'&&(
-              <div style={{padding:24,maxWidth:560,display:'flex',flexDirection:'column',gap:20}}>
-                <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:12,padding:20}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-                    <div><h4 style={{color:'#e6edf3',fontWeight:800,margin:'0 0 4px'}}>📼 Tape Saturation</h4>
-                    <p style={{color:'#8b949e',fontSize:12,margin:0}}>Analog warmth via waveshaper + lowpass filter</p></div>
-                    <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}>
+              <div className="rs-settings-panel">
+                <div className="rs-dark-card">
+                  <div className="rs-card-header">
+                    <div><h4 className="rs-card-title">📼 Tape Saturation</h4>
+                    <p className="rs-card-subtitle">Analog warmth via waveshaper + lowpass filter</p></div>
+                    <label className="rs-toggle-label">
                       <input type="checkbox" checked={tapeEnabled} onChange={e=>{setTapeEnabled(e.target.checked);setFx(f=>({...f,tapeSaturation:{...f.tapeSaturation,enabled:e.target.checked}}));if (audioCtxRef.current) { tracks.forEach(t => { const old = trackNodesRef.current.get(t.id); if (old) { ['input','preGain','panNode','fader','meter'].forEach(k => { try { old[k].disconnect(); } catch(_){} }); (old.fxNodes||[]).forEach(n => { try { n.disconnect(); } catch(_){} }); } trackNodesRef.current.delete(t.id); ensureTrackGraph(t); }); }}}/>
                       <span style={{color:tapeEnabled?'#ff6600':'#4e6a82',fontWeight:700,fontSize:12}}>{tapeEnabled?'ON':'OFF'}</span>
                     </label>
                   </div>
                   {[['DRIVE',tapeDrive,setTapeDrive,'drive'],['WARMTH',tapeWarmth,setTapeWarmth,'warmth']].map(([lbl,val,setter,key])=>(
-                    <div key={lbl} style={{marginBottom:12}}>
-                      <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#4e6a82',marginBottom:5}}>
+                    <div key={lbl} className="rs-param-row">
+                      <div className="rs-param-header">
                         <span>{lbl}</span><span style={{color:'#ff6600'}}>{(val*100).toFixed(0)}%</span>
                       </div>
-                      <input type="range" min={0} max={1} step={0.01} value={val} style={{width:'100%',accentColor:'#ff6600'}}
+                      <input type="range" min={0} max={1} step={0.01} value={val} className="rs-range-orange"
                         onChange={e=>{const v=parseFloat(e.target.value);setter(v);setFx(f=>({...f,tapeSaturation:{...f.tapeSaturation,[key]:v}}));rebuildFxChain();}}/>
                     </div>
                   ))}
                 </div>
-                <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:12,padding:20}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-                    <div><h4 style={{color:'#e6edf3',fontWeight:800,margin:'0 0 4px'}}>⚡ Harmonic Exciter</h4>
-                    <p style={{color:'#8b949e',fontSize:12,margin:0}}>Aphex-style presence enhancer — adds air and harmonic overtones</p></div>
-                    <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}>
+                <div className="rs-dark-card">
+                  <div className="rs-card-header">
+                    <div><h4 className="rs-card-title">⚡ Harmonic Exciter</h4>
+                    <p className="rs-card-subtitle">Aphex-style presence enhancer — adds air and harmonic overtones</p></div>
+                    <label className="rs-toggle-label">
                       <input type="checkbox" checked={harmonicEnabled} onChange={e=>{setHarmonicEnabled(e.target.checked);setFx(f=>({...f,exciter:{...f.exciter,enabled:e.target.checked}}));rebuildFxChain();}}/>
                       <span style={{color:harmonicEnabled?'#ffd60a':'#4e6a82',fontWeight:700,fontSize:12}}>{harmonicEnabled?'ON':'OFF'}</span>
                     </label>
                   </div>
-                  <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#4e6a82',marginBottom:5}}>
+                  <div className="rs-param-header">
                     <span>AMOUNT</span><span style={{color:'#ffd60a'}}>{(harmonicAmount*100).toFixed(0)}%</span>
                   </div>
-                  <input type="range" min={0} max={1} step={0.01} value={harmonicAmount} style={{width:'100%',accentColor:'#ffd60a'}}
+                  <input type="range" min={0} max={1} step={0.01} value={harmonicAmount} className="rs-range-yellow"
                     onChange={e=>{const v=parseFloat(e.target.value);setHarmonicAmount(v);setFx(f=>({...f,exciter:{...f.exciter,amount:v}}));rebuildFxChain();}}/>
                 </div>
               </div>
             )}
             {analogSubview==='pedals'&&(
-              <div style={{padding:24}}>
+              <div className="rs-amp-panel">
                 <h4 style={{color:'#e6edf3',fontWeight:800,marginBottom:8}}>🎛️ Signal Chain</h4>
                 <p style={{color:'#8b949e',fontSize:12,marginBottom:20}}>Analog-modeled effects in series — Tuner → Compressor → Overdrive → Chorus → Delay → Reverb</p>
-                <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+                <div className="rs-chain-grid">
                   {[['🎵','Tuner'],['🗜️','Compressor'],['🔥','Overdrive'],['🌊','Chorus'],['⏱️','Delay'],['🏔️','Reverb']].map(([icon,name])=>(
-                    <div key={name} style={{width:100,height:120,background:'#0d1117',border:'1px solid #21262d',borderRadius:10,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,cursor:'pointer'}}
+                    <div key={name} className="rs-effect-card"
                       onMouseEnter={e=>e.currentTarget.style.borderColor='#ff6600'}
                       onMouseLeave={e=>e.currentTarget.style.borderColor='#21262d'}>
-                      <span style={{fontSize:28}}>{icon}</span>
-                      <span style={{fontSize:10,fontWeight:700,color:'#8b949e'}}>{name}</span>
-                      <div style={{width:22,height:22,borderRadius:'50%',border:'2px solid #ff6600',background:'#161b22'}}/>
+                      <span className="rs-effect-icon">{icon}</span>
+                      <span className="rs-effect-name">{name}</span>
+                      <div className="rs-effect-knob"/>
                     </div>
                   ))}
                 </div>
-                <p style={{color:'#4e6a82',fontSize:11,marginTop:16}}>Full pedal chain in Amp Sim tab → Pedal Chain section</p>
+                <p className="rs-hint-sm">Full pedal chain in Amp Sim tab → Pedal Chain section</p>
               </div>
             )}
             {analogSubview==='console'&&(
-              <div style={{padding:16}}>
-                <div style={{fontSize:11,color:'#00ffc8',fontFamily:'Share Tech Mono,monospace',letterSpacing:1,marginBottom:12}}>
+              <div className="rs-console-panel">
+                <div className="rs-console-label">
                   CONSOLE CHARACTER — Applied to each track and master bus
                 </div>
-                <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}>
+                <div className="rs-console-btn-row">
                   {Object.entries(CONSOLE_BOARDS).map(([id,b]) => (
                     <button key={id}
                       onClick={() => {
@@ -5184,8 +5182,8 @@ const RecordingStudio = ({ user }) => {
                     </button>
                   ))}
                 </div>
-                <div style={{fontSize:10,color:'#4e6a82',marginBottom:8}}>MASTER BUS</div>
-                <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}>
+                <div className="rs-master-bus-label">MASTER BUS</div>
+                <div className="rs-console-btn-row">
                   {Object.entries(CONSOLE_BOARDS).map(([id,b]) => (
                     <button key={id}
                       onClick={() => setMasterConsoleChar(id)}
@@ -5198,7 +5196,7 @@ const RecordingStudio = ({ user }) => {
                     </button>
                   ))}
                 </div>
-                <div style={{fontSize:10,color:'#4e6a82',fontFamily:'Share Tech Mono,monospace'}}>
+                <div className="rs-console-hint">
                   Per-track: Use the Console tab dropdown on each channel strip
                 </div>
               </div>
@@ -5247,7 +5245,7 @@ const RecordingStudio = ({ user }) => {
         {/* ──────── VOICE MIDI VIEW ──────── */}
 
         {viewMode === "synth" && (
-          <div className="daw-synth-view" style={{ flex: 1, overflow: "auto", height: "100%" }}>
+          <div className="daw-synth-view" className="rs-view-auto">
             <SynthCreator
               onClose={() => setViewMode("arrange")}
               onAssignToTrack={(preset, audioBuffer) => {
@@ -5259,7 +5257,7 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {viewMode === "drumdesigner" && (
-          <div className="daw-drumdesigner-view" style={{ flex: 1, overflow: "auto", height: "100%" }}>
+          <div className="daw-drumdesigner-view" className="rs-view-auto">
             <DrumDesigner
               onClose={() => setViewMode("beatmaker")}
               onAssignToPad={(data) => {
@@ -5276,7 +5274,7 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {viewMode === "instrbuilder" && (
-          <div className="daw-instrbuilder-view" style={{ flex: 1, overflow: "auto", height: "100%" }}>
+          <div className="daw-instrbuilder-view" className="rs-view-auto">
             <InstrumentBuilder
               onClose={() => setViewMode("arrange")}
               onAssignToTrack={(preset, audioBuffer) => {
@@ -5627,8 +5625,8 @@ const RecordingStudio = ({ user }) => {
               </div>
             ))}
             {/* ── PLUGIN LIBRARY — 106 legacy plugins ── */}
-            <div style={{ borderTop: "2px solid #1a2a3a", margin: "6px 0 2px", padding: "4px 10px 2px" }}>
-              <div style={{ fontSize: "0.55rem", color: "#ff9800", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>
+            <div className="rs-sidebar-section-header">
+              <div className="rs-sidebar-section-label">
                 🎛 Plugin Library — 106 Plugins
               </div>
             </div>
@@ -5643,7 +5641,7 @@ const RecordingStudio = ({ user }) => {
                   if (!catPlugins.length) return null;
                   return (
                     <div key={cat}>
-                      <div style={{ padding: "5px 10px 2px", fontSize: "0.52rem", color: "#ff9800", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      <div className="rs-sidebar-item-label">
                         {CAT_ICONS[cat] || "🎛"} {cat}
                       </div>
                       {catPlugins.map(plug => {
@@ -5669,7 +5667,7 @@ const RecordingStudio = ({ user }) => {
                               setStatus(`${plug.name} added — Track ${insertPickerState.trackIndex + 1}`);
                             }}
                           >
-                            <span style={{ fontSize: 8, background: "#ff9800", color: "#000", borderRadius: 2, padding: "1px 3px", fontWeight: 800 }}>LIB</span>
+                            <span className="rs-lib-badge">LIB</span>
                             {alreadyLoaded ? `✓ ${plug.name}` : plug.name}
                           </div>
                         );
@@ -5679,9 +5677,9 @@ const RecordingStudio = ({ user }) => {
                 });
               } catch(e) { return null; }
             })()}
-            <div style={{ borderTop: "1px solid #0f1820", margin: "4px 0" }} />
+            <div className="rs-divider" />
             <div
-              style={{ padding: "4px 14px", fontSize: "0.65rem", color: "#e53935", cursor: "pointer" }}
+              className="rs-remove-item"
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "rgba(229,57,53,0.1)";
               }}
@@ -5770,7 +5768,7 @@ const MotionButton = ({ url }) => {
   };
 
   return (
-    <button onClick={handleSend} style={{ marginTop: 10 }}>
+    <button onClick={handleSend} className="rs-send-btn">
       Send to Motion Studio 🎬
     </button>
   );

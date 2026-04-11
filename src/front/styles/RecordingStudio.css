@@ -2091,3 +2091,44 @@
 .rs-console-scroll { height:100%; overflow:auto; }
 .rs-insert-empty-text { font-size:0.55rem; color:#5a7088; }
 .rs-master-label { font-weight:700; font-size:0.62rem; color:#ddeeff; }
+
+
+/* ── RecordingStudio inline style extractions pass 2 ── */
+.rs-amp-panel { padding:24px; }
+.rs-amp-heading { color:#e6edf3; font-weight:800; font-size:20px; margin:0 0 6px; }
+.rs-amp-subtext { color:#8b949e; font-size:14px; margin:0 0 20px; }
+.rs-amp-scale { transform:scale(1.25); transform-origin:top left; width:80%; }
+.rs-settings-panel { padding:24px; max-width:560px; display:flex; flex-direction:column; gap:20px; }
+.rs-dark-card { background:#0d1117; border:1px solid #21262d; border-radius:12px; padding:20px; }
+.rs-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+.rs-card-title { color:#e6edf3; font-weight:800; margin:0 0 4px; }
+.rs-card-subtitle { color:#8b949e; font-size:12px; margin:0; }
+.rs-toggle-label { display:flex; align-items:center; gap:6px; cursor:pointer; }
+.rs-param-row { margin-bottom:12px; }
+.rs-param-header { display:flex; justify-content:space-between; font-size:11px; color:#4e6a82; margin-bottom:5px; }
+.rs-range-orange { width:100%; accent-color:#ff6600; }
+.rs-range-yellow { width:100%; accent-color:#ffd60a; }
+.rs-range-teal { width:100%; accent-color:#00ffc8; }
+.rs-chain-grid { display:flex; gap:12px; flex-wrap:wrap; }
+.rs-effect-card { width:100px; height:120px; background:#0d1117; border:1px solid #21262d; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:pointer; }
+.rs-effect-icon { font-size:28px; }
+.rs-effect-name { font-size:10px; font-weight:700; color:#8b949e; }
+.rs-effect-knob { width:22px; height:22px; border-radius:50%; border:2px solid #ff6600; background:#161b22; }
+.rs-hint-sm { color:#4e6a82; font-size:11px; margin-top:16px; }
+.rs-console-panel { padding:16px; }
+.rs-console-label { font-size:11px; color:#00ffc8; font-family:"Share Tech Mono",monospace; letter-spacing:1px; margin-bottom:12px; }
+.rs-console-btn-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+.rs-master-bus-label { font-size:10px; color:#4e6a82; margin-bottom:8px; }
+.rs-console-hint { font-size:10px; color:#4e6a82; font-family:"Share Tech Mono",monospace; }
+.rs-analog-tabs { display:flex; background:#0d1117; border-bottom:1px solid #21262d; padding:0 12px; }
+.rs-view-auto { flex:1; overflow:auto; height:100%; }
+.rs-sidebar-section-header { border-top:2px solid #1a2a3a; margin:6px 0 2px; padding:4px 10px 2px; }
+.rs-sidebar-section-label { font-size:0.55rem; color:#ff9800; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+.rs-sidebar-item-label { padding:5px 10px 2px; font-size:0.52rem; color:#ff9800; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+.rs-lib-badge { font-size:8px; background:#ff9800; color:#000; border-radius:2px; padding:1px 3px; font-weight:800; }
+.rs-divider { border-top:1px solid #0f1820; margin:4px 0; }
+.rs-remove-item { padding:4px 14px; font-size:0.65rem; color:#e53935; cursor:pointer; }
+.rs-send-btn { margin-top:10px; }
+.rs-relative { position:relative; }
+.rs-orange { color:#ff8a3d; }
+.rs-transport-label { font-size:0.7rem; font-weight:800; }
