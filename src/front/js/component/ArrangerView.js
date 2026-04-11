@@ -462,7 +462,8 @@ const CycleRuler = React.memo(({
     }
 
     if (dragging.current === "seek") {
-      onCycleChange && onCycleChange(Math.max(0, beat), cycleEnd);
+      dragStartVals.current = { cycleStart: Math.max(0, beat), cycleEnd: Math.max(0, beat) + 4 };
+      onCycleChange && onCycleChange(Math.max(0, beat), Math.max(0, beat) + 4);
     }
 
     const handleMove = (e2) => {
@@ -472,6 +473,11 @@ const CycleRuler = React.memo(({
       if      (dragging.current === "loop-left")  onCycleChange && onCycleChange(Math.max(0, cs + dBeat), ce);
       else if (dragging.current === "loop-right") onCycleChange && onCycleChange(cs, Math.max(cs + 1, ce + dBeat));
       else if (dragging.current === "loop-move")  onCycleChange && onCycleChange(Math.max(0, cs + dBeat), Math.max(1, ce + dBeat));
+      else if (dragging.current === "seek") {
+        const newEnd = Math.max(dragStartVals.current.cycleStart + 0.5, dragStartVals.current.cycleStart + dBeat);
+        onCycleChange && onCycleChange(dragStartVals.current.cycleStart, newEnd);
+        onCycleToggle && !cycleEnabled && onCycleToggle();
+      }
     };
     const handleUp = () => {
       dragging.current = null;
@@ -515,13 +521,16 @@ const GridOverlay = React.memo(({ totalBeats, zoom, timeSignatureTop, trackCount
     c.clearRect(0, 0, W, H);
 
     const beatsPerBar = timeSignatureTop || 4;
+    // Sub-grid: show 1/2 beat lines when zoomed in enough
+    const subDiv = zoom >= 80 ? 0.5 : zoom >= 160 ? 0.25 : 1;
 
-    for (let beat = 0; beat <= visibleBeats; beat++) {
+    for (let beat = 0; beat <= visibleBeats; beat += subDiv) {
       const x       = beatToPx(beat, zoom) - scrollLeft;
       if (x < 0 || x > W) continue;
-      const isBar   = beat % beatsPerBar === 0;
-      c.strokeStyle = isBar ? "#1e2d3d" : "#131b26";
-      c.lineWidth   = isBar ? 1 : 0.5;
+      const isBar   = beat % beatsPerBar === 0 && Number.isInteger(beat / beatsPerBar);
+      const isBeat  = Number.isInteger(beat);
+      c.strokeStyle = isBar ? "#243040" : isBeat ? "#182030" : "#0f1820";
+      c.lineWidth   = isBar ? 1 : isBeat ? 0.5 : 0.3;
       c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke();
     }
 
@@ -661,7 +670,7 @@ const ArrangerView = ({
   onCycleChange, onCycleToggle,
   instrumentEngine,
   onBrowseSounds, onOpenPianoRoll, onTimelineDoubleClick,
-  MidiRegionPreview,
+  MidiRegionPreview, onAddTrack,
 }) => {
   // ── State ──
   const [zoom,          setZoom]          = useState(DEFAULT_ZOOM);
@@ -1029,7 +1038,7 @@ const ArrangerView = ({
           {/* Add track button */}
           <div className="arr-add-track-row">
             <AddTrackDropdown
-              onAdd={addTrack}
+              onAdd={onAddTrack ? () => onAddTrack() : addTrack}
               disabled={maxTracks > 0 && tracks.length >= maxTracks}
             />
           </div>

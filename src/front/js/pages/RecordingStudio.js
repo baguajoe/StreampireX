@@ -1636,7 +1636,8 @@ const RecordingStudio = ({ user }) => {
               onToggleFx={handleToggleFx} onBounce={mixDownProject} onSave={saveProject} saving={saving}
               instrumentEngine={instrumentEngine} onBrowseSounds={handleBrowseSounds}
               onOpenPianoRoll={onOpenPianoRoll} onTimelineDoubleClick={handleTimelineDoubleClick}
-              MidiRegionPreview={MidiRegionPreview}/>
+              MidiRegionPreview={MidiRegionPreview}
+              onAddTrack={() => setShowAddTrackDialog(true)}/>
             <CollabOverlay collab={collab} tracks={tracks} trackHeight={48}/>
           </div>
         )}
