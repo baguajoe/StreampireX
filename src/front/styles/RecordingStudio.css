@@ -605,9 +605,6 @@
     0 0 0 1px rgba(255,138,61,0.04),
     0 0 18px rgba(255,138,61,0.08),
     var(--rs-shadow-md);
-  height: 680px !important;
-  min-height: 680px !important;
-  max-height: 680px !important;
 }
 
 .daw-ch-routing,
