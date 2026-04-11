@@ -1839,7 +1839,9 @@ const RecordingStudio = ({ user }) => {
                 <div className="daw-ch-routing"><span className="daw-ch-routing-value">Stereo Out</span></div>
                 <div className="daw-ch-inserts">
                   <div className="daw-ch-inserts-label">MASTER BUS</div>
-                  <div className="daw-ch-insert-slot empty">Stereo Out</div>
+                  <div className="daw-ch-insert-slot empty" onClick={() => setViewMode("mastering")}>🎚 Mastering Chain</div>
+                  <div className="daw-ch-insert-slot empty" onClick={() => setViewMode("multiband")}>📊 Multiband</div>
+                  <div className="daw-ch-insert-slot empty" onClick={() => setViewMode("speakersim")}>🔊 Mix Translator</div>
                 </div>
                 <div className="daw-ch-controls">
                   <div className="daw-ch-badge">M</div>

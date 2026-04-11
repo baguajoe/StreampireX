@@ -63,7 +63,7 @@ const PanKnob = ({ value = 0, onChange, size = 32, disabled = false }) => {
         <circle cx={cx} cy={cy} r={2} fill="#5a7088" />
         <line x1={cx} y1={cy} x2={px} y2={py} stroke={disabled ? "#5a7088" : "#ddeeff"} strokeWidth={1.5} strokeLinecap="round" />
       </svg>
-      <span className="pan-knob-label">{label}</span>
+      
     </div>
   );
 };
