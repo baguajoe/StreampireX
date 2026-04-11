@@ -28,6 +28,42 @@ function MixDropdown({ viewMode, setViewMode }) {
     </div>
   );
 }
+// ToolsDropdown — Key Finder, Voice MIDI, Take Lanes, AI Beats, Plugins, Plugin Store
+function ToolsDropdown({ viewMode, setViewMode }) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef(null);
+  const items = [
+    ["keyfinder",    "Key Finder"],
+    ["voicemidi",    "Voice MIDI"],
+    ["takelanes",    "Take Lanes"],
+    ["aibeat",       "AI Beats"],
+    ["plugins",      "Plugins"],
+    ["plugin-store", "Plugin Store"],
+  ];
+  const isActive = items.some(([m]) => m === viewMode);
+  React.useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+  const active = items.find(([m]) => m === viewMode);
+  return (
+    <div ref={ref} className="daw-mix-dropdown">
+      <button className={"daw-mix-dropdown-btn" + (isActive ? " active" : "")} onClick={() => setOpen(o => !o)}>
+        {isActive && active ? active[1] : "Tools"} ▾
+      </button>
+      {open && (
+        <div className="daw-mix-dropdown-menu">
+          {items.map(([m, l]) => (
+            <button key={m} className={"daw-mix-dropdown-item" + (viewMode === m ? " active" : "")}
+              onClick={() => { setViewMode(m); setOpen(false); }}>{l}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // =============================================================================
 // RecordingStudio.js - Multi-Track DAW (Cubase-Inspired)
 // =============================================================================
@@ -3664,50 +3700,40 @@ const RecordingStudio = ({ user }) => {
 
         {/* ═══ View Tabs ═══ */}
         <div className="daw-topbar-center-tabs">
-          {/* ── Collab Toolbar ── */}
-          <CollabToolbar collab={collab} />
-
-          {/* ── MIDI Hardware Input ── */}
-          {midiEnabled && (
-            <MidiHardwareInput
-              drumMode={viewMode === "beatmaker" || viewMode === "sampler"}
-              onNoteOn={(note, vel) => {
-                setStatus(`MIDI: Note ${note} vel ${vel}`);
-                // trigger piano roll / sampler pad
-              }}
-              onNoteOff={(note) => {}}
-              onCC={(cc, val) => {
-                // map CC to faders/knobs
-                if (cc === 7)  tracks.forEach((t,i) => { if(selectedTrack===i) updateTrack(i, { volume: val/127 }); });
-                if (cc === 10) tracks.forEach((t,i) => { if(selectedTrack===i) updateTrack(i, { pan: (val-64)/64 }); });
-              }}
-              onPadTrigger={(pad) => setStatus(`Pad ${pad} triggered`)}
-            />
-          )}
-
-          {/* ── WAM Plugins loaded ── */}
-          {wamPlugins.length > 0 && (
-            <div className="rs-wam-badge">
-              <span className="rs-wam-text">🔌 {wamPlugins.length} WAM plugin{wamPlugins.length>1?"s":""} loaded</span>
-            </div>
-          )}
-          <button
-            className={`daw-view-tab ${viewMode === "arrange" ? "active" : ""}`}
-            onClick={() => setViewMode("arrange")}
-          >⊞ Arrange</button>
-          <button
-            className={`daw-view-tab ${viewMode === "console" ? "active" : ""}`}
-            onClick={() => setViewMode("console")}
-          >🎚️ Console</button>
-          <button
-            className={`daw-view-tab ${viewMode === "pianoroll" ? "active" : ""}`}
-            onClick={() => setViewMode("pianoroll")}
-          >🎹 Piano Roll</button>
-          <button
-            className={`daw-view-tab ${viewMode === 'score' ? 'active' : ''}`}
-            onClick={() => setViewMode('score')}
-          >🎼 Score</button>
-          <MixDropdown viewMode={viewMode} setViewMode={setViewMode} />
+          {/* ── Collab + MIDI + WAM row ── */}
+          <div style={{display:'flex',alignItems:'center',gap:4,padding:'0 10px',height:44,borderBottom:'1px solid #161920'}}>
+            <CollabToolbar collab={collab} />
+            {midiEnabled && (
+              <MidiHardwareInput
+                drumMode={viewMode === "beatmaker" || viewMode === "sampler"}
+                onNoteOn={(note, vel) => { setStatus(`MIDI: Note ${note} vel ${vel}`); }}
+                onNoteOff={(note) => {}}
+                onCC={(cc, val) => {
+                  if (cc === 7)  tracks.forEach((t,i) => { if(selectedTrack===i) updateTrack(i, { volume: val/127 }); });
+                  if (cc === 10) tracks.forEach((t,i) => { if(selectedTrack===i) updateTrack(i, { pan: (val-64)/64 }); });
+                }}
+                onPadTrigger={(pad) => setStatus(`Pad ${pad} triggered`)}
+              />
+            )}
+            {wamPlugins.length > 0 && (
+              <div className="rs-wam-badge">
+                <span className="rs-wam-text">🔌 {wamPlugins.length} WAM plugin{wamPlugins.length>1?"s":""} loaded</span>
+              </div>
+            )}
+          </div>
+          {/* ── Tab row ── */}
+          <div className="daw-tabs-row">
+            <button className={`daw-view-tab ${viewMode === "arrange" ? "active" : ""}`} onClick={() => setViewMode("arrange")}>Arrange</button>
+            <button className={`daw-view-tab ${viewMode === "console" ? "active" : ""}`} onClick={() => setViewMode("console")}>Console</button>
+            <button className={`daw-view-tab ${viewMode === "pianoroll" ? "active" : ""}`} onClick={() => setViewMode("pianoroll")}>Piano Roll</button>
+            <button className={`daw-view-tab ${viewMode === "score" ? "active" : ""}`} onClick={() => setViewMode("score")}>Score</button>
+            <button className={`daw-view-tab ${viewMode === "beatmaker" ? "active" : ""}`} onClick={() => setViewMode("beatmaker")}>Beat Maker</button>
+            <button className={`daw-view-tab ${viewMode === "piano" ? "active" : ""}`} onClick={() => setViewMode("piano")}>Piano</button>
+            <button className={`daw-view-tab ${viewMode === "chords" ? "active" : ""}`} onClick={() => setViewMode("chords")}>Chords</button>
+            <button className={`daw-view-tab ${viewMode === "sounds" ? "active" : ""}`} onClick={() => setViewMode("sounds")}>Sounds</button>
+            <MixDropdown viewMode={viewMode} setViewMode={setViewMode} />
+            <ToolsDropdown viewMode={viewMode} setViewMode={setViewMode} />
+          </div>
         </div>
 
         {/* I/O & Status */}

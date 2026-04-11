@@ -45,33 +45,51 @@
 /* ── Top bar ───────────────────────────────────────────────── */
 .daw-topbar {
   display: flex;
-  align-items: center;
-  height: 48px;
-  min-height: 48px;
-  background: var(--rs-bg-2);
-  border-bottom: 1px solid var(--rs-border);
-  padding: 0 8px;
-  gap: 6px;
-  overflow: hidden;
+  flex-direction: column;
+  height: auto;
+  min-height: 0;
+  background: #0e1016;
+  border-bottom: 1px solid #1a1d24;
+  padding: 0;
+  gap: 0;
+  overflow: visible;
   flex-shrink: 0;
   z-index: 10;
 }
-
+.daw-topbar-transport-row {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 10px;
+  gap: 6px;
+  border-bottom: 1px solid #161920;
+}
 .daw-topbar-left {
   display: flex;
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
 }
-
 .daw-topbar-center-tabs {
   display: flex;
-  align-items: center;
-  gap: 3px;
+  flex-direction: column;
   flex: 1;
-  overflow: hidden;
+  overflow: visible;
+  gap: 0;
 }
-
+.daw-tabs-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  height: 34px;
+  padding: 0 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  background: #0b0d12;
+  border-bottom: 1px solid #1a1d24;
+}
+.daw-tabs-row::-webkit-scrollbar { display: none; }
 .daw-topbar-right {
   display: flex;
   align-items: center;
@@ -142,103 +160,117 @@
 .daw-view-tab {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--rs-radius-sm);
-  color: var(--rs-text-faint);
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: #5a6070;
   cursor: pointer;
-  font-family: inherit;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 4px 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0 14px;
+  height: 34px;
   white-space: nowrap;
-  transition: all 0.15s;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
   flex-shrink: 0;
 }
 .daw-view-tab:hover {
-  background: rgba(255,255,255,0.05);
-  color: var(--rs-text);
-  border-color: var(--rs-border);
+  color: #9aa0b0;
+  background: rgba(255,255,255,0.03);
+  border-bottom-color: #2e3240;
 }
 .daw-view-tab.active {
-  background: rgba(0,255,200,0.1);
-  border-color: rgba(0,255,200,0.35);
-  color: var(--rs-teal);
+  color: #00ffc8;
+  border-bottom-color: #00ffc8;
+  background: rgba(0,255,200,0.05);
 }
 .daw-view-tab.ai-tab.active {
-  background: rgba(167,139,250,0.12);
-  border-color: rgba(167,139,250,0.4);
   color: var(--rs-purple);
+  border-bottom-color: var(--rs-purple);
+  background: rgba(167,139,250,0.06);
 }
-
-/* Mix dropdown tab */
 .daw-mix-dropdown {
   position: relative;
   flex-shrink: 0;
+  height: 34px;
+  display: flex;
+  align-items: center;
 }
 .daw-mix-dropdown-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--rs-radius-sm);
-  color: var(--rs-text-faint);
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: #5a6070;
   cursor: pointer;
-  font-family: inherit;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 4px 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0 14px;
+  height: 34px;
   white-space: nowrap;
-  transition: all 0.15s;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
 }
-.daw-mix-dropdown-btn:hover,
+.daw-mix-dropdown-btn:hover {
+  color: #9aa0b0;
+  background: rgba(255,255,255,0.03);
+  border-bottom-color: #2e3240;
+}
 .daw-mix-dropdown-btn.active {
-  background: rgba(0,255,200,0.1);
-  border-color: rgba(0,255,200,0.35);
-  color: var(--rs-teal);
+  color: #00ffc8;
+  border-bottom-color: #00ffc8;
+  background: rgba(0,255,200,0.05);
 }
 .daw-mix-dropdown-menu {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 2px);
   left: 0;
-  background: var(--rs-bg-4);
-  border: 1px solid var(--rs-border-2);
-  border-radius: var(--rs-radius);
-  box-shadow: var(--rs-shadow-lg);
-  min-width: 180px;
-  z-index: 100;
+  background: #12141c;
+  border: 1px solid #252830;
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+  min-width: 190px;
+  z-index: 200;
   padding: 4px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 .daw-mix-dropdown-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   background: transparent;
   border: none;
-  border-radius: var(--rs-radius-sm);
-  color: var(--rs-text-dim);
+  border-radius: 4px;
+  color: #7a8090;
   cursor: pointer;
-  font-family: inherit;
-  font-size: 11px;
-  padding: 6px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 7px 12px;
   text-align: left;
   width: 100%;
   transition: all 0.1s;
 }
 .daw-mix-dropdown-item:hover {
-  background: rgba(255,255,255,0.06);
-  color: var(--rs-text);
+  background: rgba(255,255,255,0.05);
+  color: #cdd9e5;
 }
 .daw-mix-dropdown-item.active {
-  background: rgba(0,255,200,0.1);
-  color: var(--rs-teal);
+  background: rgba(0,255,200,0.08);
+  color: #00ffc8;
 }
 
 /* ── Input meter ───────────────────────────────────────────── */
