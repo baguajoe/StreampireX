@@ -1698,7 +1698,7 @@ const SPX3000Tab = ({
               <span>{noiseAmt}%</span>
             </div>
             </div>
-        </div>
+          </div>
           {selectedPad !== null && (
             <div className="spx3000-pad-settings" style={{position:'relative',width:220,minWidth:220,height:'100%',overflowY:'auto',background:'#1a1200',borderLeft:'2px solid #FF6600',display:'flex',flexDirection:'column',flexShrink:0}}>
               <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px',borderBottom:'1px solid #FF6600',background:'#221500',flexShrink:0}}>
@@ -1717,16 +1717,31 @@ const SPX3000Tab = ({
               <div style={{flex:1,overflowY:'auto',padding:'8px'}}>
                 {settingsTab === 'main' && (
                   <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                    {[['Volume',0,100,curPads[selectedPad].volume,'volume',null],['Tune',-50,50,curPads[selectedPad].tune,'tune','¢'],['Semitone',-12,12,curPads[selectedPad].semitone||0,'semitone','st'],['Pan',-50,50,curPads[selectedPad].pan||0,'pan',null]].map(([label,mn,mx,val,key,unit])=>(
-                      <div key={key} style={{display:'flex',flexDirection:'column',gap:2}}>
-                        <div style={{display:'flex',justifyContent:'space-between'}}>
-                          <span style={{fontSize:9,color:'#cc6600'}}>{label}</span>
-                          <span style={{fontSize:9,color:'#FF6600',fontFamily:'monospace'}}>{val}{unit||''}</span>
+                    {[['VOL',0,100,curPads[selectedPad].volume,'volume',null],['TUNE',-50,50,curPads[selectedPad].tune,'tune','¢'],['SEMI',-12,12,curPads[selectedPad].semitone||0,'semitone','st'],['PAN',-50,50,curPads[selectedPad].pan||0,'pan',null]].map(([label,mn,mx,val,key,unit])=>{
+                      const pct=(val-mn)/(mx-mn);
+                      const deg=-135+pct*270;
+                      return (
+                        <div key={key} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,position:'relative'}}>
+                          <div style={{width:40,height:40,borderRadius:'50%',background:'radial-gradient(circle at 35% 35%, #3a2800, #1a1000)',border:'2px solid #FF6600',position:'relative',cursor:'pointer',flexShrink:0}}
+                            onMouseDown={e=>{
+                              const startY=e.clientY,startVal=val;
+                              const onMove=mv=>{
+                                const dy=startY-mv.clientY;
+                                const newVal=Math.max(mn,Math.min(mx,startVal+dy*(mx-mn)/100));
+                                updatePad(activeBank,selectedPad,{[key]:key==='volume'?Math.round(newVal):parseFloat(newVal.toFixed(1))});
+                                if(key==='tune'||key==='semitone')invalidateDacCache(activeBank,selectedPad);
+                              };
+                              const onUp=()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp);};
+                              window.addEventListener('mousemove',onMove);
+                              window.addEventListener('mouseup',onUp);
+                            }}>
+                            <div style={{position:'absolute',bottom:4,left:'50%',width:3,height:12,background:'#FF6600',borderRadius:2,transformOrigin:'50% 100%',transform:`translateX(-50%) rotate(${deg}deg)`}}/>
+                          </div>
+                          <span style={{fontSize:8,color:'#cc6600',fontWeight:700,letterSpacing:1}}>{label}</span>
+                          <span style={{fontSize:8,color:'#FF6600',fontFamily:'monospace'}}>{val}{unit||''}</span>
                         </div>
-                        <input type="range" min={mn} max={mx} value={val} style={{width:'100%',accentColor:'#FF6600'}}
-                          onChange={e=>{updatePad(activeBank,selectedPad,{[key]:+e.target.value});if(key==='tune'||key==='semitone')invalidateDacCache(activeBank,selectedPad);}}/>
-                      </div>
-                    ))}
+                      );
+                    })}
                     <div style={{display:'flex',flexDirection:'column',gap:2}}>
                       <span style={{fontSize:9,color:'#cc6600'}}>Loop Mode</span>
                       <div style={{display:'flex',gap:3}}>

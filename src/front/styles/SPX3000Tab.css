@@ -1531,3 +1531,14 @@
 /* ── SPX3000 full-width pad grid fix ── */
 .spx3000-pad-grid-fullwidth { width:100% !important; }
 .spx3000-pad-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; width:100%; flex:1; }
+
+/* ── SPX3000 pads layout — matches SPX60 pattern ── */
+.spx3000-pads-view { display:flex !important; flex-direction:row !important; flex:1; overflow:hidden; min-height:0; padding:0 !important; gap:0 !important; }
+.spx3000-pads-view > div:first-child { flex:1 !important; display:flex !important; flex-direction:column !important; overflow:auto !important; padding:12px !important; gap:12px !important; min-width:0 !important; min-height:0; }
+.spx3000-pad-grid { display:grid !important; grid-template-columns:repeat(4,1fr) !important; gap:6px !important; width:100% !important; flex:1; min-height:0; }
+.spx3000-pad { min-height:80px !important; }
+
+/* ── SPX3000 pad grid fills full width ── */
+.spx3000-pads-view > div:first-child { flex:1 !important; min-width:0 !important; }
+.spx3000-pad-grid { display:grid !important; grid-template-columns:repeat(4,1fr) !important; flex:1 !important; width:100% !important; }
+.spx3000-pad { aspect-ratio:unset !important; min-height:100px !important; }
