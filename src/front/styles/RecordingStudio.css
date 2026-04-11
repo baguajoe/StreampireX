@@ -732,6 +732,13 @@
 .daw-ch-fader input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 36px; height: 14px;
+  background: linear-gradient(to bottom, #4a5868, #3a4858);
+  border-radius: 3px;
+  border: 1px solid #5a6878;
+  border-top: 2px solid #7a9ab8;
+  cursor: grab;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
 .daw-ch-fader input[type="range"]::-webkit-slider-thumb:active { cursor: grabbing; background: #4a5868; }
 .daw-ch-fader input[type="range"]::-moz-range-track { width: 4px; background: #141e2c; border-radius: 2px; }
 .daw-ch-fader input[type="range"]::-moz-range-thumb { width: 40px; height: 12px; background: #3a4858; border-radius: 2px; border: 1px solid #5a6878; cursor: grab; }
@@ -1122,3 +1129,48 @@
   overflow: hidden;
   background: #06060f;
 }
+
+/* ══ PROFESSIONAL CHANNEL STRIP v2 ══ */
+.daw-channel {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+  background: #1a1d24 !important;
+  border-right: 1px solid #252830 !important;
+  flex-shrink: 0 !important;
+  overflow: visible !important;
+  position: relative !important;
+  cursor: pointer !important;
+  transition: background 0.1s !important;
+  height: 100% !important;
+}
+.daw-channel:hover { background: #1e2128 !important; }
+.daw-channel.selected { background: #1a2535 !important; border-right-color: #00ffc8 !important; }
+.daw-channel.armed { background: #2a1a1a !important; }
+.master-channel {
+  width: 88px !important; min-width: 88px !important; max-width: 88px !important;
+  background: #1e1a14 !important;
+  border-left: 2px solid #3a2c14 !important;
+  border-right: none !important;
+}
+.daw-ch-colorbar { height: 4px; width: 100%; flex-shrink: 0; }
+.daw-ch-header { display: flex; align-items: center; justify-content: space-between; padding: 3px 5px; background: #14161c; border-bottom: 1px solid #252830; flex-shrink: 0; }
+.daw-ch-header-num { font-size: 9px; font-weight: 800; color: #404858; font-family: 'JetBrains Mono', monospace; }
+.daw-ch-pan-val { font-size: 8px; color: #5a7088; text-align: center; display: block; margin-top: 1px; font-family: 'JetBrains Mono', monospace; }
+.daw-ch-fader-area { display: flex !important; flex-direction: column !important; flex: none !important; height: 220px !important; background: #0c0e12 !important; padding: 8px 4px 4px !important; }
+.daw-ch-fader-row { display: flex !important; flex-direction: row !important; align-items: stretch !important; justify-content: center !important; flex: 1 !important; gap: 4px !important; }
+.daw-ch-fader { display: flex !important; align-items: center !important; justify-content: center !important; flex: 1 !important; }
+.daw-ch-fader input[type="range"] { -webkit-appearance: none !important; appearance: none !important; writing-mode: vertical-lr !important; direction: rtl !important; width: 38px !important; height: 100% !important; background: transparent !important; cursor: pointer !important; }
+.daw-ch-fader input[type="range"]::-webkit-slider-runnable-track { width: 4px !important; background: linear-gradient(to top, #111820, #1e2a3a) !important; border-radius: 2px !important; border: 1px solid #1a2530 !important; }
+.daw-ch-fader input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none !important; width: 38px !important; height: 16px !important; background: linear-gradient(to bottom, #5a6878 0%, #3a4858 40%, #3a4858 60%, #5a6878 100%) !important; border-radius: 3px !important; border: 1px solid #6a7888 !important; border-top: 2px solid #8aaac8 !important; cursor: grab !important; box-shadow: 0 2px 4px rgba(0,0,0,0.6) !important; }
+.daw-ch-fader input[type="range"]::-webkit-slider-thumb:active { cursor: grabbing !important; }
+.daw-ch-vol-display { display: flex !important; align-items: center !important; justify-content: center !important; padding: 3px 0 !important; background: #080a0e !important; border-top: 1px solid #1a2030 !important; flex-shrink: 0 !important; }
+.daw-ch-vol-val { font-size: 9px !important; font-weight: 700 !important; color: #7a9ab8 !important; font-family: 'JetBrains Mono', monospace !important; text-align: center !important; }
+.master-channel .daw-ch-vol-val { color: #cc8840 !important; }
+.daw-ch-name { display: flex !important; flex-direction: column !important; align-items: center !important; gap: 3px !important; padding: 5px 4px !important; background: #14161c !important; border-top: 1px solid #252830 !important; flex-shrink: 0 !important; }
+.daw-ch-name-input { background: transparent !important; border: none !important; color: #c8d8f0 !important; font-family: 'JetBrains Mono', monospace !important; font-size: 10px !important; font-weight: 700 !important; text-align: center !important; outline: none !important; width: 100% !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+.daw-ch-name-input:focus { background: rgba(0,255,200,0.05) !important; border-radius: 2px !important; color: #00ffc8 !important; }
+.daw-ch-console-select { width: 100% !important; background: #0a0c10 !important; border: 1px solid #1a2028 !important; border-radius: 2px !important; font-size: 7px !important; padding: 1px 2px !important; font-family: inherit !important; color: #3a4858 !important; }
+.daw-console-scroll { display: flex !important; flex-direction: row !important; align-items: flex-start !important; gap: 1px !important; padding: 0 !important; overflow-x: auto !important; overflow-y: auto !important; flex: 1 !important; min-height: 0 !important; background: #0f1114 !important; }
