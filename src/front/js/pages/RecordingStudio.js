@@ -480,8 +480,8 @@ const MicModelSelector = React.memo(({ trackIndex, currentModel, onApply }) => {
               }}
               title={mic?.desc || ""}
             >
-              <div style={{ fontWeight: 700 }}>{mic?.name || key}</div>
-              <div style={{ fontSize: "0.65rem", opacity: 0.75 }}>{mic?.desc || ""}</div>
+              <div className="rs-mic-name">{mic?.name || key}</div>
+              <div className="rs-mic-desc">{mic?.desc || ""}</div>
             </div>
           ))}
         </div>
@@ -3659,8 +3659,8 @@ const RecordingStudio = ({ user }) => {
 
           {/* ── WAM Plugins loaded ── */}
           {wamPlugins.length > 0 && (
-            <div style={{display:"flex",alignItems:"center",gap:6,padding:"2px 8px",background:"rgba(124,58,237,0.08)",borderRadius:6,border:"1px solid rgba(124,58,237,0.2)"}}>
-              <span style={{fontSize:10,color:"#a78bfa",fontWeight:700}}>🔌 {wamPlugins.length} WAM plugin{wamPlugins.length>1?"s":""} loaded</span>
+            <div className="rs-wam-badge">
+              <span className="rs-wam-text">🔌 {wamPlugins.length} WAM plugin{wamPlugins.length>1?"s":""} loaded</span>
             </div>
           )}
           <button
@@ -3982,14 +3982,14 @@ const RecordingStudio = ({ user }) => {
               padding:28,minWidth:380,fontFamily:'JetBrains Mono,monospace',
             }} onClick={e => e.stopPropagation()}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
-                <span style={{color:'#e6edf3',fontWeight:800,fontSize:14,letterSpacing:'0.1em'}}>AUDIO SETTINGS</span>
-                <button onClick={() => setShowAudioSettings(false)} style={{background:'none',border:'none',color:'#6e7681',cursor:'pointer',fontSize:16}}>✕</button>
+                <span className="rs-settings-title">AUDIO SETTINGS</span>
+                <button onClick={() => setShowAudioSettings(false)} className="rs-close-btn">✕</button>
               </div>
 
               {/* Buffer Size */}
-              <div style={{marginBottom:16}}>
-                <label style={{color:'#6e7681',fontSize:11,display:'block',marginBottom:6}}>BUFFER SIZE</label>
-                <div style={{display:'flex',gap:6}}>
+              <div className="rs-settings-section">
+                <label className="rs-settings-label">BUFFER SIZE</label>
+                <div className="rs-settings-row">
                   {[64,128,256,512,1024,2048].map(size => (
                     <button key={size}
                       onClick={() => recreateAudioContext(size, audioSampleRate)}
@@ -4003,16 +4003,16 @@ const RecordingStudio = ({ user }) => {
                     >{size}</button>
                   ))}
                 </div>
-                <div style={{color:'#484f58',fontSize:10,marginTop:4}}>
+                <div className="rs-hint">
                   {audioBufferSize <= 128 ? '⚡ Low latency (may crackle)' :
                    audioBufferSize <= 512 ? '✓ Balanced' : '🔇 High stability (higher latency)'}
                 </div>
               </div>
 
               {/* Sample Rate */}
-              <div style={{marginBottom:16}}>
-                <label style={{color:'#6e7681',fontSize:11,display:'block',marginBottom:6}}>SAMPLE RATE</label>
-                <div style={{display:'flex',gap:6}}>
+              <div className="rs-settings-section">
+                <label className="rs-settings-label">SAMPLE RATE</label>
+                <div className="rs-settings-row">
                   {[44100,48000,96000].map(sr => (
                     <button key={sr}
                       onClick={() => recreateAudioContext(audioBufferSize, sr)}
@@ -4029,24 +4029,24 @@ const RecordingStudio = ({ user }) => {
               </div>
 
               {/* Latency display */}
-              <div style={{marginBottom:16,padding:'10px 14px',background:'#080c12',borderRadius:8,border:'1px solid #1c2128'}}>
-                <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
-                  <span style={{color:'#6e7681',fontSize:11}}>Measured Latency</span>
-                  <span style={{color:'#00ffc8',fontWeight:700,fontSize:12}}>{latencyMs}ms</span>
+              <div className="rs-latency-box">
+                <div className="rs-stat-row">
+                  <span className="rs-stat-label">Measured Latency</span>
+                  <span className="rs-stat-val-teal">{latencyMs}ms</span>
                 </div>
-                <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
-                  <span style={{color:'#6e7681',fontSize:11}}>Sample Rate</span>
-                  <span style={{color:'#cdd9e5',fontSize:11}}>{audioSampleRate}Hz</span>
+                <div className="rs-stat-row">
+                  <span className="rs-stat-label">Sample Rate</span>
+                  <span className="rs-stat-val">{audioSampleRate}Hz</span>
                 </div>
-                <div style={{display:'flex',justifyContent:'space-between'}}>
-                  <span style={{color:'#6e7681',fontSize:11}}>Scheduler Lookahead</span>
-                  <span style={{color:'#cdd9e5',fontSize:11}}>{audioLookahead}ms</span>
+                <div className="rs-stat-row-last">
+                  <span className="rs-stat-label">Scheduler Lookahead</span>
+                  <span className="rs-stat-val">{audioLookahead}ms</span>
                 </div>
               </div>
 
               {/* Latency compensation */}
-              <div style={{marginBottom:16}}>
-                <label style={{color:'#6e7681',fontSize:11,display:'block',marginBottom:6}}>
+              <div className="rs-settings-section">
+                <label className="rs-settings-label">
                   LATENCY COMPENSATION: {latencyCompMs}ms
                 </label>
                 <input type="range" min={0} max={100} step={1}
@@ -4056,7 +4056,7 @@ const RecordingStudio = ({ user }) => {
                 />
               </div>
 
-              <div style={{color:'#484f58',fontSize:10,textAlign:'center'}}>
+              <div className="rs-hint-center">
                 Changes take effect immediately. May cause brief audio interruption.
               </div>
             </div>
@@ -4136,7 +4136,7 @@ const RecordingStudio = ({ user }) => {
             {/* ── Bottom pane: Mixer/Console ── */}
             <div className="rs-split-bottom" style={{ height: `${100 - splitTopH}%` }}>
               <span className="rs-split-pane-label">MIXER</span>
-              <div className="daw-console" style={{ height: '100%', overflow: 'auto' }}>
+              <div className="daw-console" className="rs-console-scroll">
                 <div className="daw-console-scroll">
                   {tracks.map((t, i) => {
                     const meter = meterLevels?.[i] || { left: 0, right: 0, peak: 0 };
@@ -4430,7 +4430,7 @@ const RecordingStudio = ({ user }) => {
 
                 <div className="daw-ch-inserts">
                   <div className="daw-ch-inserts-label">Master</div>
-                  <div className="daw-ch-insert-slot empty" style={{ fontSize: "0.55rem", color: "#5a7088" }}>
+                  <div className="daw-ch-insert-slot empty" className="rs-insert-empty-text">
                     Stereo Bus
                   </div>
                 </div>
@@ -4480,7 +4480,7 @@ const RecordingStudio = ({ user }) => {
                 </div>
 
                 <div className="daw-ch-name">
-                  <div style={{ fontWeight: 700, fontSize: "0.62rem", color: "#ddeeff" }}>MASTER</div>
+                  <div className="rs-master-label">MASTER</div>
                   <div className="daw-ch-number">Stereo Out</div>
                 </div>
               </div>
@@ -4838,7 +4838,7 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {viewMode === "piano" && (
-          <div className="daw-piano-view" style={{flex:1,width:'100%',height:'100%',display:'flex',flexDirection:'column'}}>
+          <div className="daw-piano-view" className="rs-view-full">
             <VirtualPiano audioContext={audioCtxRef.current} onRecordingComplete={() => { }} embedded={true} />
           </div>
         )}
@@ -4875,7 +4875,7 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {viewMode === "vocal" && (
-          <div className="daw-vocal-view" style={{display:'flex',flexDirection:'column',width:'100%',height:'100%',overflow:'auto'}}>
+          <div className="daw-vocal-view" className="rs-view-scroll">
             <VocalProcessor
               audioContext={audioCtxRef.current}
               liveStream={micSimStream}
@@ -4910,17 +4910,17 @@ const RecordingStudio = ({ user }) => {
               onClose={() => setViewMode("arrange")}
               isEmbedded={true}
             />
-            <div style={{padding:'12px 16px',borderTop:'1px solid #30363d',display:'flex',alignItems:'center',gap:12}}>
-              <button onClick={() => setShowMicBuilder(true)} style={{background:'rgba(0,255,200,0.1)',color:'#00ffc8',border:'1px solid rgba(0,255,200,0.3)',borderRadius:8,padding:'8px 16px',cursor:'pointer',fontSize:'0.85rem',fontWeight:600}}>
+            <div className="rs-bottom-toolbar">
+              <button onClick={() => setShowMicBuilder(true)} className="rs-action-btn-teal">
                 🔧 Build Custom Mic
               </button>
               {customMicProfiles.length > 0 && (
-                <span style={{fontSize:'0.78rem',color:'#8b949e'}}>{customMicProfiles.length} custom profile{customMicProfiles.length > 1 ? 's' : ''} saved</span>
+                <span className="rs-muted-text">{customMicProfiles.length} custom profile{customMicProfiles.length > 1 ? 's' : ''} saved</span>
               )}
             </div>
             {showMicBuilder && (
-              <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                <div style={{width:'90%',maxWidth:900,maxHeight:'90vh',overflow:'auto',background:'#161b22',borderRadius:12,border:'1px solid #30363d',boxShadow:'0 24px 64px rgba(0,0,0,0.6)'}}>
+              <div className="rs-modal-overlay">
+                <div className="rs-modal-panel">
                   <CustomMicBuilder
                     onSave={(profileId, profile) => {
                       setCustomMicProfiles(prev => [...prev.filter(p => p.id !== profileId), {id: profileId, ...profile}]);
@@ -4944,8 +4944,8 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {showMicSimModal && (
-          <div className="daw-plugin-modal" style={{position:'fixed',top:60,right:20,zIndex:900,width:'min(900px,60vw)',maxHeight:'80vh',overflowY:'auto'}}>
-              <button onClick={() => setShowMicSimModal(false)} style={{position:'absolute',top:8,right:12,background:'none',border:'none',color:'#fff',fontSize:'18px',cursor:'pointer',zIndex:10}}>✕</button>
+          <div className="daw-plugin-modal" className="rs-plugin-modal">
+              <button onClick={() => setShowMicSimModal(false)} className="rs-modal-close">✕</button>
             <MicSimulator
               audioContext={audioCtxRef.current}
               liveStream={micSimStream}
@@ -4973,17 +4973,17 @@ const RecordingStudio = ({ user }) => {
               onClose={() => setViewMode("arrange")}
               isEmbedded={true}
             />
-            <div style={{padding:'12px 16px',borderTop:'1px solid #30363d',display:'flex',alignItems:'center',gap:12}}>
-              <button onClick={() => setShowMicBuilder(true)} style={{background:'rgba(0,255,200,0.1)',color:'#00ffc8',border:'1px solid rgba(0,255,200,0.3)',borderRadius:8,padding:'8px 16px',cursor:'pointer',fontSize:'0.85rem',fontWeight:600}}>
+            <div className="rs-bottom-toolbar">
+              <button onClick={() => setShowMicBuilder(true)} className="rs-action-btn-teal">
                 🔧 Build Custom Mic
               </button>
               {customMicProfiles.length > 0 && (
-                <span style={{fontSize:'0.78rem',color:'#8b949e'}}>{customMicProfiles.length} custom profile{customMicProfiles.length > 1 ? 's' : ''} saved</span>
+                <span className="rs-muted-text">{customMicProfiles.length} custom profile{customMicProfiles.length > 1 ? 's' : ''} saved</span>
               )}
             </div>
             {showMicBuilder && (
-              <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                <div style={{width:'90%',maxWidth:900,maxHeight:'90vh',overflow:'auto',background:'#161b22',borderRadius:12,border:'1px solid #30363d',boxShadow:'0 24px 64px rgba(0,0,0,0.6)'}}>
+              <div className="rs-modal-overlay">
+                <div className="rs-modal-panel">
                   <CustomMicBuilder
                     onSave={(profileId, profile) => {
                       setCustomMicProfiles(prev => [...prev.filter(p => p.id !== profileId), {id: profileId, ...profile}]);
@@ -4998,7 +4998,7 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {viewMode === "aimix" && (
-          <div className="daw-aimix-view" style={{display:'flex',flexDirection:'column',width:'100%',height:'100%',overflow:'auto'}}>
+          <div className="daw-aimix-view" className="rs-view-scroll">
             <AIMixAssistant
               tracks={tracks}
               projectId={projectId}
@@ -5015,8 +5015,8 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {showVocalModal && (
-          <div className="daw-plugin-modal" style={{position:'fixed',top:60,right:20,zIndex:900,width:'min(900px,60vw)',maxHeight:'80vh',overflowY:'auto'}}>
-              <button onClick={() => setShowVocalModal(false)} style={{position:'absolute',top:8,right:12,background:'none',border:'none',color:'#fff',fontSize:'18px',cursor:'pointer',zIndex:10}}>✕</button>
+          <div className="daw-plugin-modal" className="rs-plugin-modal">
+              <button onClick={() => setShowVocalModal(false)} className="rs-modal-close">✕</button>
             <VocalProcessor
               audioContext={audioCtxRef.current}
               isEmbedded={true}
@@ -5043,7 +5043,7 @@ const RecordingStudio = ({ user }) => {
         )}
         {/* ──────── PLUGIN RACK VIEW ──────── */}
         {viewMode === "plugins" && (
-          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div className="rs-flex-hidden">
             <UnifiedFXChain
               track={tracks[selectedTrackIndex]}
               trackIndex={selectedTrackIndex}
@@ -5057,7 +5057,7 @@ const RecordingStudio = ({ user }) => {
 
         {/* ──────── MULTIBAND EFFECTS VIEW ──────── */}
         {viewMode === 'multiband' && (
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: '#06090f' }}>
+          <div className="rs-flex-scroll-dark">
             <MultibandEffects
               audioContext={audioCtxRef.current}
               inputNode={
@@ -5073,7 +5073,7 @@ const RecordingStudio = ({ user }) => {
         )}
         {/* ──────── FX CHAIN VIEW ──────── */}
         {viewMode === 'fx' && (
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: '#06090f' }}>
+          <div className="rs-flex-scroll-dark">
             <UnifiedFXChain
               track={tracks[selectedTrackIndex]}
               trackIndex={selectedTrackIndex}
@@ -5087,8 +5087,8 @@ const RecordingStudio = ({ user }) => {
 
         {/* ──────── MASTERING VIEW ──────── */}
         {viewMode === 'analog' && (
-          <div style={{flex:1,minHeight:0,overflowY:'auto',background:'#06060f'}}>
-            <div style={{transform:'scale(1.2)',transformOrigin:'top left',width:'83.33%',minHeight:'100%'}}>
+          <div className="rs-flex-scroll-darker">
+            <div className="rs-analog-scale">
             <div style={{display:'flex',background:'#0d1117',borderBottom:'1px solid #21262d',padding:'0 12px'}}>
               {[['ampsim','🎸 Amp Sim'],['tape','📼 Tape & Harmonic'],['pedals','🎛️ Pedal Chain'],['console','🎚️ Console']].map(([id,label])=>(
                 <button key={id} onClick={()=>setAnalogSubview(id)} style={{
@@ -5210,7 +5210,7 @@ const RecordingStudio = ({ user }) => {
           <SpeakerSimulator audioContext={audioCtxRef.current} inputNode={masterConsoleOutRef.current || masterGainRef.current} />
         )}
         {viewMode === 'mastering' && (
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: '#06090f' }}>
+          <div className="rs-flex-scroll-dark">
             <MasteringChain
               audioContext={audioCtxRef.current}
               inputNode={masterConsoleOutRef.current || masterGainRef.current}
@@ -5224,7 +5224,7 @@ const RecordingStudio = ({ user }) => {
 
         {/* ──────── LOOPERMAN VIEW ──────── */}
         {viewMode === 'looperman' && (
-          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div className="rs-flex-hidden">
             <LoopermanBrowser
               audioContext={audioCtxRef.current}
               onSoundSelect={(audioBuffer, name, audioUrl) => {
@@ -5345,7 +5345,7 @@ const RecordingStudio = ({ user }) => {
 
         {/* ──────── TAKE LANES VIEW ──────── */}
         {viewMode === "takelanes" && (
-          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div className="rs-flex-hidden">
             <TakeLanes
               audioContext={audioCtxRef.current}
               bpm={bpm}
