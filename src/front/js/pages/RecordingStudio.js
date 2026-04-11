@@ -3698,8 +3698,7 @@ const RecordingStudio = ({ user }) => {
           </div>
         </div>
 
-        </div>{/* end row1 */}
-        <div className="daw-topbar-row2">
+          <CollabToolbar collab={collab} />
           {midiEnabled && (
             <MidiHardwareInput
               drumMode={viewMode === "beatmaker" || viewMode === "sampler"}
@@ -3712,12 +3711,13 @@ const RecordingStudio = ({ user }) => {
               onPadTrigger={(pad) => setStatus(`Pad ${pad} triggered`)}
             />
           )}
-          <CollabToolbar collab={collab} />
           {wamPlugins.length > 0 && (
-            <div className="rs-wam-badge">
-              <span className="rs-wam-text">🔌 {wamPlugins.length} WAM{wamPlugins.length>1?"s":""}</span>
-            </div>
+            <span className="rs-wam-badge" style={{fontSize:9,color:'#4a6a8a',marginRight:4}}>
+              🔌 {wamPlugins.length} WAM
+            </span>
           )}
+        </div>{/* /row1 */}
+        <div className="daw-topbar-row2">
           <div className="daw-tabs-row">
             <button className={`daw-view-tab ${viewMode === "arrange" ? "active" : ""}`} onClick={() => setViewMode("arrange")}>Arrange</button>
             <button className={`daw-view-tab ${viewMode === "console" ? "active" : ""}`} onClick={() => setViewMode("console")}>Console</button>

@@ -579,7 +579,8 @@
   width: 76px;
   min-width: 76px;
   max-width: 76px;
-  height: fit-content;
+  height: auto;
+  align-self: flex-start;
   background: #161c24;
   border: 1px solid #1e2830;
   border-radius: 6px;
@@ -750,9 +751,8 @@
 .daw-ch-fader-area {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 140px;
-  max-height: 180px;
+  flex: none;
+  height: 140px;
   background: #0e1218;
   padding: 6px 4px 4px;
   gap: 3px;
