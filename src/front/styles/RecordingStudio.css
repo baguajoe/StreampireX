@@ -1872,8 +1872,9 @@
 /* Fader area fills all remaining space after the header sections */
 .master-channel .daw-ch-fader-area,
 .daw-master .daw-ch-fader-area {
-  flex: 1 1 auto;
-  min-height: 0;
+  height: 330px;
+  min-height: 330px;
+  max-height: 330px;
   display: flex;
   flex-direction: column;
 }
