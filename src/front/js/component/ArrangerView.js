@@ -991,12 +991,14 @@ const ArrangerView = ({
             {saving ? "Saving…" : "💾 Save"}
           </button>
 
-          {/* Track height */}
+          {/* Vertical zoom */}
           <div className="arr-trackh-wrap">
-            <span className="arr-label">🔍</span>
+            <span className="arr-label">H</span>
+            <button className="arr-zoom-btn" onClick={() => setTrackHeight(h => Math.max(48, h - 8))} title="Shorter tracks">−</button>
             <input type="range" min={48} max={120} step={8} value={trackHeight}
               className="arr-zoom-slider"
               onChange={e => setTrackHeight(Number(e.target.value))}/>
+            <button className="arr-zoom-btn" onClick={() => setTrackHeight(h => Math.min(120, h + 8))} title="Taller tracks">+</button>
           </div>
         </div>
       </div>
@@ -1037,10 +1039,14 @@ const ArrangerView = ({
 
           {/* Add track button */}
           <div className="arr-add-track-row">
-            <AddTrackDropdown
-              onAdd={onAddTrack ? () => onAddTrack() : addTrack}
+            <button
+              className="arr-add-track-btn"
+              onClick={() => onAddTrack ? onAddTrack() : addTrack("audio")}
               disabled={maxTracks > 0 && tracks.length >= maxTracks}
-            />
+              title="Add Track"
+            >
+              + Add Track
+            </button>
           </div>
         </div>
 
