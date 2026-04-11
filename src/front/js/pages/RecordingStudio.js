@@ -1647,19 +1647,12 @@ const RecordingStudio = ({ user }) => {
           <div ref={splitContainerRef} className="rs-split-screen">
             <div className="rs-split-top" style={{height:`${splitTopH}%`}}>
               <span className="rs-split-pane-label">ARRANGE</span>
-              {viewMode!=="arrange"?(
-                <div className="daw-split-prompt">
-                  <span>Switch to Arrange to see timeline here</span>
-                  <button className="daw-split-prompt-btn" onClick={()=>setViewMode('arrange')}>Go to Arrange</button>
-                </div>
-              ):(
-                <ArrangerView tracks={tracks} bpm={bpm} currentTime={currentTime} isPlaying={isPlaying}
+              <ArrangerView tracks={tracks} bpm={bpm} currentTime={currentTime} isPlaying={isPlaying}
                   selectedTrack={selectedTrack} onSelectTrack={setSelectedTrack} zoom={zoom} onZoomChange={setZoom}
                   onBrowseSounds={handleBrowseSounds} onOpenPianoRoll={onOpenPianoRoll}
                   onTimelineDoubleClick={handleTimelineDoubleClick} MidiRegionPreview={MidiRegionPreview}/>
-              )}
-              <div className="rs-split-handle" onMouseDown={handleSplitMouseDown} title="Drag to resize"/>
             </div>
+            <div className="rs-split-handle" onMouseDown={handleSplitMouseDown} title="Drag to resize"/>
             <div className="rs-split-bottom" style={{height:`${100-splitTopH}%`}}>
               <span className="rs-split-pane-label">MIXER</span>
               <div className="daw-console"><div className="daw-console-scroll">
@@ -1677,7 +1670,7 @@ const RecordingStudio = ({ user }) => {
                         </div>
                         <div className="daw-ch-meter"><div className="daw-ch-meter-bar" style={{height:`${Math.round((meter.left||0)*100)}%`,background:meter.peak>0.9?'#ff3b30':'#00ffc8'}}/></div>
                       </div></div>
-                      <div className="daw-ch-vol-display"><div className="daw-ch-vol-readout">{Math.round((t.volume??0.8)*100)}</div></div>
+                      <div className="daw-ch-vol-display"><div className="daw-ch-vol-readout">{t.volume>0?(20*Math.log10(t.volume)).toFixed(1):"-∞"}</div></div>
                       <div className="daw-ch-name daw-ch-name-bottom">
                         <select className="daw-ch-console-select" value={trackConsoleChar[t.id]||'none'} onChange={e=>setTrackConsoleChar(prev=>({...prev,[t.id]:e.target.value}))}>
                           {Object.entries(CONSOLE_BOARDS).map(([id,b])=><option key={id} value={id}>{b.name}</option>)}
@@ -1695,7 +1688,7 @@ const RecordingStudio = ({ user }) => {
                     <div className="daw-ch-fader"><input type="range" min={0} max={1} step={0.01} value={masterVolume??1} orient="vertical" onChange={e=>setMasterVolume(parseFloat(e.target.value))}/></div>
                     <div className="daw-ch-meter"><div className="daw-ch-meter-bar" style={{height:`${Math.round((masterMeterLevels?.left||0)*100)}%`,background:'#ff8a3d'}}/></div>
                   </div></div>
-                  <div className="daw-ch-vol-display"><div className="daw-ch-vol-readout rs-orange">{(20*Math.log10(masterVolume??1)).toFixed(1)} dB</div></div>
+                  <div className="daw-ch-vol-display"><div className="daw-ch-vol-readout rs-orange">{masterVolume>0?(20*Math.log10(masterVolume)).toFixed(1):"-∞"} dB</div></div>
                   <div className="daw-ch-name daw-ch-name-bottom">
                     <select className="daw-ch-console-select" value={masterConsoleChar} onChange={e=>setMasterConsoleChar(e.target.value)}>
                       {Object.entries(CONSOLE_BOARDS).map(([id,b])=><option key={id} value={id}>{b.name}</option>)}
