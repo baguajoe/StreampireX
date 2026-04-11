@@ -1941,3 +1941,7 @@
 }
 .daw-ch-fader input[type=range] {
 }
+
+/* Mixer strips — align faders to bottom like real console */
+.daw-ch-col { justify-content: flex-end; display: flex; flex-direction: column; }
+.daw-ch-fader-area { margin-top: auto; }
