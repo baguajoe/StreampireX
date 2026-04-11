@@ -1,65 +1,48 @@
-// =============================================================================
-// ArrangerView.js — DAW Arranger / Timeline View for StreamPireX Recording Studio
-// =============================================================================
-// Horizontal multi-track timeline with:
-//   • Cycle/Loop ruler — click-drag top half of ruler to set loop region (Logic/Cubase-style)
-//   • Instrument track type — MIDI tracks with built-in instrument routing
-//   • Track type: Audio (records/plays waveforms) or Instrument (MIDI → built-in synth)
-//   • Tier-based track limits (Free=4, Starter=8, Creator=24, Pro=Unlimited)
-//   • Draggable audio regions with waveform visualization
-//   • Playhead, ruler, zoom, snap-to-grid
-//   • Track controls: mute, solo, arm, volume, pan, FX, color
-//   • Add/remove/reorder tracks
-//   • Region operations: move, resize, split, delete
-// =============================================================================
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import '../../styles/ArrangerView.css';
-import AutomationLane, { AUTO_PARAMS, getValueAtTime } from './AutomationLane';
-
+// ═══ AV_part1.js ═══
+// =============================================================================
+// ArrangerView.js — Part 1/4
+// Imports · Constants · Helpers · WaveformMini · MidiRegionMini · Region
+// =============================================================================
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import "../../styles/ArrangerView.css";
+import AutomationLane, { AUTO_PARAMS, getValueAtTime } from "./AutomationLane";
 
 // =============================================================================
-// TIER CONFIGURATION — matches seed_pricing_plans.py
+// CONSTANTS
 // =============================================================================
 const STUDIO_TIER_LIMITS = {
-  free:    { maxTracks: 4,  maxDuration: 180,  label: 'Free',    color: '#666' },
-  starter: { maxTracks: 8,  maxDuration: 600,  label: 'Starter', color: '#007aff' },
-  creator: { maxTracks: 24, maxDuration: 3600, label: 'Creator', color: '#ff9500' },
-  pro:     { maxTracks: -1, maxDuration: -1,   label: 'Pro',     color: '#34c759' },
+  free:    { maxTracks: 4,  label: "Free",    color: "#666"    },
+  starter: { maxTracks: 8,  label: "Starter", color: "#007aff" },
+  creator: { maxTracks: 24, label: "Creator", color: "#ff9500" },
+  pro:     { maxTracks: -1, label: "Pro",     color: "#34c759" },
 };
 
 const TRACK_COLORS = [
-  '#e8652b', '#1a4d7c', '#10b981', '#f59e0b',
-  '#7c3aed', '#06b6d4', '#f43f5e', '#84cc16',
-  '#ec4899', '#14b8a6', '#f97316', '#8b5cf6',
-  '#0ea5e9', '#ef4444', '#22c55e', '#a855f7',
-  '#eab308', '#3b82f6', '#d946ef', '#64748b',
-  '#fb923c', '#2dd4bf', '#c084fc', '#f472b6',
+  "#e8652b","#1a4d7c","#10b981","#f59e0b","#7c3aed","#06b6d4","#f43f5e","#84cc16",
+  "#ec4899","#14b8a6","#f97316","#8b5cf6","#0ea5e9","#ef4444","#22c55e","#a855f7",
+  "#eab308","#3b82f6","#d946ef","#64748b","#fb923c","#2dd4bf","#c084fc","#f472b6",
 ];
 
-// =============================================================================
-// TRACK TYPES — Audio vs Instrument (like Cubase)
-// =============================================================================
 const TRACK_TYPES = [
-  { value: 'audio',      label: 'Audio',      icon: '🎤', color: '#34c759', desc: 'Record/play audio waveforms' },
-  { value: 'instrument', label: 'Instrument',  icon: '🎹', color: '#af52de', desc: 'MIDI → built-in instrument' },
+  { value: "audio",      label: "Audio",      icon: "🎤", color: "#34c759" },
+  { value: "instrument", label: "Instrument", icon: "🎹", color: "#af52de" },
 ];
 
-// Instrument sources available on Instrument tracks — these map to DAW built-in engines
 const INSTRUMENT_SOURCES = [
-  { value: 'piano',      label: 'Piano',       icon: '🎹' },
-  { value: 'sampler',    label: 'Sampler',      icon: '🎛️' },
-  { value: 'beat_maker', label: 'Beat Maker',   icon: '🥁' },
-  { value: 'synth',      label: 'Synth (Basic)', icon: '🎵' },
+  { value: "piano",      label: "Piano",       icon: "🎹" },
+  { value: "sampler",    label: "Sampler",     icon: "🎛️" },
+  { value: "beat_maker", label: "Beat Maker",  icon: "🥁" },
+  { value: "synth",      label: "Synth",       icon: "🎵" },
 ];
 
 const SNAP_VALUES = [
-  { label: 'Off',    value: 0 },
-  { label: '1 Bar',  value: 1 },
-  { label: '1/2',    value: 0.5 },
-  { label: '1/4',    value: 0.25 },
-  { label: '1/8',    value: 0.125 },
-  { label: '1/16',   value: 0.0625 },
+  { label: "Off",  value: 0      },
+  { label: "1 Bar",value: 1      },
+  { label: "1/2",  value: 0.5   },
+  { label: "1/4",  value: 0.25  },
+  { label: "1/8",  value: 0.125 },
+  { label: "1/16", value: 0.0625},
 ];
 
 const MIN_ZOOM = 20;
@@ -69,8 +52,8 @@ const DEFAULT_ZOOM = 60;
 // =============================================================================
 // HELPERS
 // =============================================================================
-const beatToPx = (beat, zoom) => beat * zoom;
-const pxToBeat = (px, zoom) => px / zoom;
+const beatToPx    = (beat, zoom) => beat * zoom;
+const pxToBeat    = (px, zoom)   => px / zoom;
 
 const snapBeat = (beat, snapValue, timeSignatureTop) => {
   if (!snapValue) return beat;
@@ -80,42 +63,33 @@ const snapBeat = (beat, snapValue, timeSignatureTop) => {
 
 const formatBeatTime = (beat, bpm) => {
   const seconds = (beat / bpm) * 60;
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  const ms = Math.floor((seconds % 1) * 100);
-  return `${m}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+  const m   = Math.floor(seconds / 60);
+  const s   = Math.floor(seconds % 60);
+  const ms  = Math.floor((seconds % 1) * 100);
+  return `${m}:${s.toString().padStart(2, "0")}.${ms.toString().padStart(2, "0")}`;
 };
 
 const formatBarBeat = (beat, timeSignatureTop) => {
-  const bar = Math.floor(beat / timeSignatureTop) + 1;
+  const bar       = Math.floor(beat / timeSignatureTop) + 1;
   const beatInBar = Math.floor(beat % timeSignatureTop) + 1;
   return `${bar}.${beatInBar}`;
 };
 
 // =============================================================================
-// WAVEFORM MINI RENDERER (Canvas-based)
+// WAVEFORM MINI
 // =============================================================================
 const WaveformMini = React.memo(({ audioUrl, color, width, height }) => {
-  const canvasRef = useRef(null);
+  const canvasRef  = useRef(null);
   const [waveData, setWaveData] = useState(null);
-
-  // ── Per-track automation ─────────────────────────────────────────────────
-  const [automation, setAutomation] = React.useState({}); // { trackId: { paramKey: [points] } }
-  const [autoParams, setAutoParams] = React.useState({}); // { trackId: paramKey }
-  const [autoRead,   setAutoRead]   = React.useState({}); // { trackId: bool }
-  const [autoWrite,  setAutoWrite]  = React.useState({}); // { trackId: bool }
-  const [autoCollapsed, setAutoCollapsed] = React.useState({}); // { trackId: bool }
-  // ────────────────────────────────────────────────────────────────────────
-
 
   useEffect(() => {
     if (!audioUrl) return;
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     fetch(audioUrl)
-      .then(r => r.arrayBuffer())
+      .then(r  => r.arrayBuffer())
       .then(buf => ctx.decodeAudioData(buf))
       .then(decoded => {
-        const raw = decoded.getChannelData(0);
+        const raw     = decoded.getChannelData(0);
         const samples = Math.min(width * 2, 512);
         const blockSize = Math.floor(raw.length / samples);
         const peaks = [];
@@ -133,28 +107,28 @@ const WaveformMini = React.memo(({ audioUrl, color, width, height }) => {
   useEffect(() => {
     if (!waveData || !canvasRef.current) return;
     const canvas = canvasRef.current;
-    const c = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
+    const c      = canvas.getContext("2d");
+    const dpr    = window.devicePixelRatio || 1;
+    canvas.width  = width  * dpr;
     canvas.height = height * dpr;
     c.scale(dpr, dpr);
     c.clearRect(0, 0, width, height);
-    const max = Math.max(...waveData, 0.01);
+    const max  = Math.max(...waveData, 0.01);
     const barW = width / waveData.length;
-    const mid = height / 2;
-    c.fillStyle = color || '#34c759';
-    c.globalAlpha = 0.7;
+    const mid  = height / 2;
+    c.fillStyle   = color || "#34c759";
+    c.globalAlpha = 0.75;
     waveData.forEach((v, i) => {
       const h = (v / max) * mid * 0.9;
       c.fillRect(i * barW, mid - h, Math.max(barW - 0.5, 0.5), h * 2);
     });
   }, [waveData, width, height, color]);
 
-  return <canvas ref={canvasRef} style={{ width, height, display: 'block' }} className="arranger-waveform-canvas" />;
+  return <canvas ref={canvasRef} className="arranger-waveform-canvas" />;
 });
 
 // =============================================================================
-// MIDI REGION MINI — shows piano-roll style note blocks for instrument tracks
+// MIDI REGION MINI
 // =============================================================================
 const MidiRegionMini = React.memo(({ notes, width, height, color }) => {
   const canvasRef = useRef(null);
@@ -162,14 +136,13 @@ const MidiRegionMini = React.memo(({ notes, width, height, color }) => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !notes || notes.length === 0) return;
-    const c = canvas.getContext('2d');
+    const c   = canvas.getContext("2d");
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
+    canvas.width  = width  * dpr;
     canvas.height = height * dpr;
     c.scale(dpr, dpr);
     c.clearRect(0, 0, width, height);
 
-    // Find note range
     let minNote = 127, maxNote = 0, maxBeat = 0;
     notes.forEach(n => {
       if (n.note < minNote) minNote = n.note;
@@ -179,9 +152,9 @@ const MidiRegionMini = React.memo(({ notes, width, height, color }) => {
     });
     if (minNote > maxNote) return;
     const noteRange = Math.max(maxNote - minNote + 1, 12);
-    const noteH = Math.max(height / noteRange, 1.5);
+    const noteH     = Math.max(height / noteRange, 1.5);
 
-    c.fillStyle = color || '#af52de';
+    c.fillStyle   = color || "#af52de";
     c.globalAlpha = 0.8;
     notes.forEach(n => {
       const x = maxBeat > 0 ? ((n.startBeat || 0) / maxBeat) * width : 0;
@@ -191,1043 +164,994 @@ const MidiRegionMini = React.memo(({ notes, width, height, color }) => {
     });
   }, [notes, width, height, color]);
 
-  return <canvas ref={canvasRef} style={{ width, height, display: 'block' }} className="arranger-midi-canvas" />;
+  return <canvas ref={canvasRef} className="arranger-midi-canvas" />;
 });
 
 // =============================================================================
-// REGION COMPONENT — A single audio/MIDI clip on the timeline
+// REGION COMPONENT
 // =============================================================================
 const Region = React.memo(({
   region, trackColor, trackType, zoom, snapValue, timeSignatureTop,
-  onMove, onResize, onSelect, isSelected, onContextMenu, trackHeight
+  onMove, onResize, onSelect, isSelected, onContextMenu, trackHeight,
 }) => {
   const [dragging, setDragging] = useState(null);
   const dragStart = useRef({ x: 0, startBeat: 0, duration: 0 });
 
-  const left = beatToPx(region.startBeat, zoom);
+  const left  = beatToPx(region.startBeat, zoom);
   const width = Math.max(beatToPx(region.duration, zoom), 8);
 
   const handleMouseDown = (e, action) => {
-    e.stopPropagation();
-    e.preventDefault();
+    e.stopPropagation(); e.preventDefault();
     onSelect(region.id);
     setDragging(action);
     dragStart.current = { x: e.clientX, startBeat: region.startBeat, duration: region.duration };
 
     const handleMouseMove = (e2) => {
-      const dx = e2.clientX - dragStart.current.x;
+      const dx     = e2.clientX - dragStart.current.x;
       const dBeats = pxToBeat(dx, zoom);
-      if (action === 'move') {
-        let newStart = dragStart.current.startBeat + dBeats;
-        newStart = snapBeat(Math.max(0, newStart), snapValue, timeSignatureTop);
+      if (action === "move") {
+        const newStart = snapBeat(Math.max(0, dragStart.current.startBeat + dBeats), snapValue, timeSignatureTop);
         onMove(region.id, newStart);
-      } else if (action === 'resize-right') {
-        let newDur = dragStart.current.duration + dBeats;
-        newDur = Math.max(snapBeat(newDur, snapValue, timeSignatureTop), snapValue * timeSignatureTop || 0.25);
+      } else if (action === "resize-right") {
+        const newDur = Math.max(snapBeat(dragStart.current.duration + dBeats, snapValue, timeSignatureTop), snapValue * timeSignatureTop || 0.25);
         onResize(region.id, region.startBeat, newDur);
-      } else if (action === 'resize-left') {
-        let newStart = dragStart.current.startBeat + dBeats;
-        newStart = snapBeat(Math.max(0, newStart), snapValue, timeSignatureTop);
-        const newDur = dragStart.current.duration - (newStart - dragStart.current.startBeat);
+      } else if (action === "resize-left") {
+        const newStart = snapBeat(Math.max(0, dragStart.current.startBeat + dBeats), snapValue, timeSignatureTop);
+        const newDur   = dragStart.current.duration - (newStart - dragStart.current.startBeat);
         if (newDur > 0.25) onResize(region.id, newStart, newDur);
       }
     };
 
     const handleMouseUp = () => {
       setDragging(null);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup",   handleMouseUp);
     };
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup",   handleMouseUp);
   };
 
-  const isInstrument = trackType === 'instrument';
-  const fadeIn  = region.fadeIn  ?? 0;
-  const fadeOut = region.fadeOut ?? 0;
-
-
-  // ── Apply automation to track audio nodes ────────────────────────────────
-  React.useEffect(() => {
-    if (!isPlaying) return;
-    const interval = setInterval(() => {
-      tracks.forEach((t, i) => {
-        const tId = t.id ?? i;
-        if (!autoRead[tId]) return;
-        const tAuto  = automation[tId] ?? {};
-        const paramK = autoParams[tId] ?? 'volume';
-        const param  = AUTO_PARAMS.find(p => p.key === paramK);
-        if (!param) return;
-        const pts = (tAuto[paramK] ?? []).sort((a,b) => a.time - b.time);
-        const val = getValueAtTime(pts, currentTime, param);
-        if (t.gainNode) t.gainNode.gain.setTargetAtTime(val, 0, 0.01);
-      });
-    }, 50);
-    // Render crossfade overlays
-  const fadeInWidth  = Math.min(fadeIn  * zoom * 4, width / 2);
-  const fadeOutWidth = Math.min(fadeOut * zoom * 4, width / 2);
-
-  return () => clearInterval(interval);
-  }, [isPlaying, tracks, automation, autoRead, autoParams, currentTime]);
-  // ────────────────────────────────────────────────────────────────────────
+  const isInstrument = trackType === "instrument";
+  const regionBg     = isInstrument
+    ? "linear-gradient(180deg, rgba(167,139,250,.28), rgba(167,139,250,.1))"
+    : `linear-gradient(180deg, ${trackColor}44, ${trackColor}18)`;
+  const regionBorder = isInstrument ? "rgba(167,139,250,.4)" : `${trackColor}88`;
 
   return (
     <div
-      className={`arr-region ${isSelected ? 'selected' : ''} ${dragging ? 'dragging' : ''} ${isInstrument ? 'instrument' : ''}`}
+      className={"arr-region" + (isSelected ? " selected" : "") + (dragging ? " dragging" : "") + (isInstrument ? " instrument" : "")}
       style={{
-        '--region-color': trackColor,
-        left: `${left}px`,
-        width: `${width}px`,
-        height: `${trackHeight - 8}px`,
+        left:             `${left}px`,
+        width:            `${width}px`,
+        height:           `${trackHeight - 8}px`,
+        background:       regionBg,
+        borderColor:      regionBorder,
       }}
-      onMouseDown={(e) => handleMouseDown(e, 'move')}
+      onMouseDown={(e) => handleMouseDown(e, "move")}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, region); }}
     >
-      <div className="arr-region-handle left" onMouseDown={(e) => handleMouseDown(e, 'resize-left')} />
+      <div className="arr-region-handle left" onMouseDown={(e) => handleMouseDown(e, "resize-left")}/>
       <div className="arr-region-content">
-        <span className="arr-region-label">{region.name || (isInstrument ? 'MIDI' : 'Audio')}</span>
+        <span className="arr-region-label">{region.name || (isInstrument ? "MIDI" : "Audio")}</span>
         {!isInstrument && region.audioUrl && (
-          <WaveformMini audioUrl={region.audioUrl} color={trackColor} width={Math.max(width - 8, 20)} height={trackHeight - 20} />
+          <WaveformMini audioUrl={region.audioUrl} color={trackColor} width={Math.max(width - 16, 20)} height={trackHeight - 28}/>
         )}
         {isInstrument && region.notes && region.notes.length > 0 && (
-          <MidiRegionMini notes={region.notes} color={trackColor} width={Math.max(width - 8, 20)} height={trackHeight - 20} />
+          <MidiRegionMini notes={region.notes} color={trackColor} width={Math.max(width - 16, 20)} height={trackHeight - 28}/>
         )}
         {!region.audioUrl && !(isInstrument && region.notes?.length) && (
-          <div className="arr-region-empty-wave" />
+          <div className="arr-region-empty-wave"/>
         )}
       </div>
-      <div className="arr-region-handle right" onMouseDown={(e) => handleMouseDown(e, 'resize-right')} />
+      <div className="arr-region-handle right" onMouseDown={(e) => handleMouseDown(e, "resize-right")}/>
     </div>
   );
 });
 
+
+// ═══ AV_part2.js ═══
 // =============================================================================
-// TRACK HEADER — Left-side strip with controls + track type & instrument selector
+// ArrangerView.js — Part 2/4
+// TrackHeader · CycleRuler · GridOverlay
+// =============================================================================
+
+// =============================================================================
+// TRACK HEADER
 // =============================================================================
 const TrackHeader = React.memo(({
-  track, index, onUpdate, onDelete, onToggleFx, onBrowseSounds, isActive, onSelect, canDelete
+  track, index, isSelected, onSelect, onUpdate, onRemove,
+  onToggleMute, onToggleSolo, onToggleArm, onToggleFx,
+  onImport, onClear, onFreeze, onUnfreeze, onFlexPitch, onBrowseSounds,
+  hasSolo, onOpenPianoRoll, instrumentEngine,
 }) => {
-  const isInstrument = track.trackType === 'instrument';
+  const [renaming, setRenaming] = useState(false);
+  const [nameVal, setNameVal]   = useState(track.name || `Track ${index + 1}`);
+  const nameRef = useRef(null);
+
+  useEffect(() => { setNameVal(track.name || `Track ${index + 1}`); }, [track.name, index]);
+
+  const commitRename = () => {
+    if (nameVal.trim()) onUpdate(index, { name: nameVal.trim() });
+    setRenaming(false);
+  };
+
+  const isAudible = !track.muted && (!hasSolo || track.solo);
+  const isInstrument = track.trackType === "instrument" || track.trackType === "midi";
 
   return (
     <div
-      className={`arr-track-header ${isActive ? 'active' : ''} ${track.muted ? 'muted' : ''} ${track.solo ? 'soloed' : ''}`}
+      className={"arr-track-header" + (isSelected ? " selected" : "") + (track.armed ? " armed" : "")}
       onClick={() => onSelect(index)}
     >
-      {/* Color indicator — purple tint for instrument tracks */}
-      <div className="arr-track-color" style={{ background: isInstrument ? '#af52de' : track.color }} />
+      {/* Color bar */}
+      <div className="arr-th-colorbar" style={{ background: track.color || TRACK_COLORS[index % TRACK_COLORS.length] }}/>
 
-      {/* Track number + name row */}
-      <div className="arr-track-info">
-        <span className="arr-track-number">{index + 1}</span>
-        <input
-          className="arr-track-name"
-          value={track.name}
-          onChange={(e) => onUpdate(index, { name: e.target.value })}
-          onClick={(e) => e.stopPropagation()}
-          spellCheck={false}
-          title="Double-click to rename"
-        />
-        {canDelete && (
-          <button className="arr-track-delete-btn" onClick={(e) => { e.stopPropagation(); onDelete(index); }} title="Delete Track">✕</button>
-        )}
+      {/* Track number + type icon */}
+      <div className="arr-th-index">
+        <span className="arr-th-num">{index + 1}</span>
+        <span className="arr-th-icon">{isInstrument ? "🎹" : "🎤"}</span>
       </div>
 
-      {/* Track type badge + instrument selector for instrument tracks */}
-      <div className="arr-track-type-row">
-        <select
-          className={`arr-track-type-select ${isInstrument ? 'instrument' : 'audio'}`}
-          value={track.trackType || 'audio'}
-          onChange={(e) => {
-            const newType = e.target.value;
-            const updates = { trackType: newType };
-            if (newType === 'instrument' && !track.instrumentSource) {
-              updates.instrumentSource = 'piano';
-              updates.name = track.name.startsWith('Audio') ? `Instrument ${index + 1}` : track.name;
-            } else if (newType === 'audio' && track.name.startsWith('Instrument')) {
-              updates.name = `Audio ${index + 1}`;
-            }
-            onUpdate(index, updates);
-          }}
-          onClick={(e) => e.stopPropagation()}
-          title="Track Type"
-        >
-          {TRACK_TYPES.map(tt => (
-            <option key={tt.value} value={tt.value}>{tt.icon} {tt.label}</option>
-          ))}
-        </select>
-        {isInstrument && (
-          <select
-            className="arr-instrument-select"
-            value={track.instrumentSource || 'piano'}
-            onChange={(e) => onUpdate(index, { instrumentSource: e.target.value })}
-            onClick={(e) => e.stopPropagation()}
-            title="Instrument Source — sound engine for this track"
+      {/* Name */}
+      <div className="arr-th-name-wrap">
+        {renaming ? (
+          <input
+            ref={nameRef}
+            className="arr-th-name-input"
+            value={nameVal}
+            onChange={e => setNameVal(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={e => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") setRenaming(false); }}
+            autoFocus
+            onClick={e => e.stopPropagation()}
+          />
+        ) : (
+          <span
+            className="arr-th-name"
+            style={{ color: track.color || TRACK_COLORS[index % TRACK_COLORS.length] }}
+            onDoubleClick={e => { e.stopPropagation(); setRenaming(true); }}
+            title="Double-click to rename"
           >
-            {INSTRUMENT_SOURCES.map(is => (
-              <option key={is.value} value={is.value}>{is.icon} {is.label}</option>
-            ))}
-          </select>
+            {track.name || `Track ${index + 1}`}
+            {track.frozen ? " ❄" : ""}
+          </span>
         )}
       </div>
 
-      {/* R M S FX buttons */}
-      <div className="arr-track-badges">
-        <button className={`arr-badge r ${track.armed ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); onUpdate(index, { armed: !track.armed }); }} title="Record Arm">R</button>
-        <button className={`arr-badge m ${track.muted ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); onUpdate(index, { muted: !track.muted }); }} title="Mute">M</button>
-        <button className={`arr-badge s ${track.solo ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); onUpdate(index, { solo: !track.solo }); }} title="Solo">S</button>
-        <button className="arr-badge fx" onClick={(e) => { e.stopPropagation(); onToggleFx(index); }} title="Effects">FX</button>
-        <button className="arr-badge fx" onClick={(e) => { e.stopPropagation(); onBrowseSounds?.(index); }} title="Browse Sounds" style={{ color: '#5ac8fa', fontSize: '0.55rem' }}>🔍</button>
+      {/* MSR badges */}
+      <div className="arr-th-badges">
+        <button
+          className={"arr-th-badge mute" + (track.muted ? " on" : "")}
+          onClick={e => { e.stopPropagation(); onToggleMute(index); }}
+          title="Mute"
+        >M</button>
+        <button
+          className={"arr-th-badge solo" + (track.solo ? " on" : "")}
+          onClick={e => { e.stopPropagation(); onToggleSolo(index); }}
+          title="Solo"
+        >S</button>
+        <button
+          className={"arr-th-badge rec" + (track.armed ? " on" : "")}
+          onClick={e => { e.stopPropagation(); onToggleArm(index); }}
+          title="Record arm"
+        >●</button>
       </div>
 
-      {/* Volume */}
-      <div className="arr-track-vol-row">
-        <span className="arr-vol-icon">🔊</span>
-        <input type="range" min="0" max="1" step="0.01" value={track.volume} onChange={(e) => onUpdate(index, { volume: parseFloat(e.target.value) })} className="arr-vol-slider" onClick={(e) => e.stopPropagation()} />
-        <span className="arr-vol-val">{Math.round(track.volume * 100)}</span>
+      {/* Volume mini-fader */}
+      <div className="arr-th-fader-wrap" onClick={e => e.stopPropagation()}>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={track.volume ?? 0.8}
+          className="arr-th-fader"
+          onChange={e => onUpdate(index, { volume: parseFloat(e.target.value) })}
+          title={`Volume: ${Math.round((track.volume ?? 0.8) * 100)}%`}
+        />
       </div>
 
-      {/* Pan */}
-      <div className="arr-track-pan-row">
-        <span className="arr-pan-icon">⟷</span>
-        <input type="range" min="-1" max="1" step="0.01" value={track.pan} onChange={(e) => onUpdate(index, { pan: parseFloat(e.target.value) })} className="arr-pan-slider" onClick={(e) => e.stopPropagation()} />
-        <span className="arr-pan-val">{track.pan === 0 ? 'C' : track.pan < 0 ? `L${Math.round(Math.abs(track.pan) * 100)}` : `R${Math.round(track.pan * 100)}`}</span>
+      {/* Action buttons */}
+      <div className="arr-th-actions" onClick={e => e.stopPropagation()}>
+        {isInstrument ? (
+          <>
+            <button className="arr-th-action-btn" onClick={() => onBrowseSounds && onBrowseSounds(index)} title="Browse sounds">🎵</button>
+            <button className="arr-th-action-btn" onClick={() => onToggleFx && onToggleFx(index)} title="FX">FX</button>
+          </>
+        ) : (
+          <>
+            {track.audioBuffer || track.audio_url
+              ? <button className="arr-th-action-btn clear" onClick={() => onClear(index)} title="Clear track">✕</button>
+              : <button className="arr-th-action-btn import" onClick={() => onImport && onImport(index)} title="Import audio">⤵</button>
+            }
+            <button className="arr-th-action-btn" onClick={() => onToggleFx && onToggleFx(index)} title="FX">FX</button>
+            {track.audioBuffer && !track.frozen && (
+              <button className="arr-th-action-btn freeze" onClick={() => onFreeze && onFreeze(index)} title="Freeze track">❄</button>
+            )}
+            {track.frozen && (
+              <button className="arr-th-action-btn unfreeze" onClick={() => onUnfreeze && onUnfreeze(index)} title="Unfreeze">🔥</button>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
 });
 
 // =============================================================================
-// CYCLE RULER — Bar numbers + cycle/loop region (Logic-style yellow strip)
+// CYCLE RULER (Logic-style yellow loop region on ruler)
 // =============================================================================
 const CycleRuler = React.memo(({
-  zoom, bpm, timeSignatureTop, scrollLeft, width, playheadBeat,
-  cycleStart, cycleEnd, cycleEnabled,
-  onSeek, onCycleChange, onCycleToggle,
-  snapValue,
+  totalBeats, zoom, timeSignatureTop, bpm,
+  cycleEnabled, cycleStart, cycleEnd,
+  onCycleChange, onCycleToggle,
+  scrollLeft,
 }) => {
-  const canvasRef = useRef(null);
-  const isDraggingRef = useRef(null); // 'create' | 'move' | 'resize-left' | 'resize-right' | null
-  const dragOriginRef = useRef({ x: 0, startBeat: 0, endBeat: 0 });
-  const RULER_HEIGHT = 36;
-  const CYCLE_ZONE_HEIGHT = 14; // top 14px is the cycle drag zone
+  const canvasRef  = useRef(null);
+  const dragging   = useRef(null); // "loop-left" | "loop-right" | "loop-move" | "seek"
+  const dragStartX = useRef(0);
+  const dragStartVals = useRef({});
 
-  // ── Draw ruler ──
+  const visibleBeats = totalBeats + 8;
+
+  // Draw ruler
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const c = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const w = width;
-    const h = RULER_HEIGHT;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
-    c.scale(dpr, dpr);
-    c.clearRect(0, 0, w, h);
+    const canvas = canvasRef.current; if (!canvas) return;
+    const dpr    = window.devicePixelRatio || 1;
+    const W      = canvas.offsetWidth;
+    const H      = canvas.offsetHeight;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    const c = canvas.getContext("2d"); c.scale(dpr, dpr);
+    c.clearRect(0, 0, W, H);
 
-    const totalBeats = Math.ceil(w / zoom) + timeSignatureTop;
+    // Background
+    c.fillStyle = "#0d1219"; c.fillRect(0, 0, W, H);
 
-    // ── Draw cycle region strip (Logic = yellow, we use teal/gold) ──
-    if (cycleEnabled && cycleStart != null && cycleEnd != null && cycleEnd > cycleStart) {
-      const cxL = beatToPx(cycleStart, zoom) - scrollLeft;
-      const cxR = beatToPx(cycleEnd, zoom) - scrollLeft;
-      // Full-height tinted background
-      c.fillStyle = 'rgba(255, 204, 0, 0.08)';
-      c.fillRect(cxL, 0, cxR - cxL, h);
-      // Top cycle strip (the draggable yellow bar like Logic)
-      const grad = c.createLinearGradient(0, 0, 0, CYCLE_ZONE_HEIGHT);
-      grad.addColorStop(0, 'rgba(255, 204, 0, 0.85)');
-      grad.addColorStop(1, 'rgba(255, 180, 0, 0.65)');
-      c.fillStyle = grad;
-      c.fillRect(cxL, 0, cxR - cxL, CYCLE_ZONE_HEIGHT);
-      // Cycle text label
-      const startBar = Math.floor(cycleStart / timeSignatureTop) + 1;
-      const endBar = Math.floor(cycleEnd / timeSignatureTop) + 1;
-      c.font = 'bold 9px "JetBrains Mono", monospace';
-      c.fillStyle = '#1a1a1a';
-      c.textAlign = 'center';
-      const midX = (cxL + cxR) / 2;
-      if (cxR - cxL > 50) {
-        c.fillText(`⟲ ${startBar}–${endBar}`, midX, 10);
-      }
-      c.textAlign = 'left';
-      // Left/right edge handles (visual)
-      c.fillStyle = 'rgba(255,204,0,1)';
-      c.fillRect(cxL, 0, 3, CYCLE_ZONE_HEIGHT);
-      c.fillRect(cxR - 3, 0, 3, CYCLE_ZONE_HEIGHT);
-    } else if (!cycleEnabled && cycleStart != null && cycleEnd != null && cycleEnd > cycleStart) {
-      // Dimmed cycle region when disabled
-      const cxL = beatToPx(cycleStart, zoom) - scrollLeft;
-      const cxR = beatToPx(cycleEnd, zoom) - scrollLeft;
-      c.fillStyle = 'rgba(255, 204, 0, 0.03)';
-      c.fillRect(cxL, 0, cxR - cxL, CYCLE_ZONE_HEIGHT);
-      c.strokeStyle = 'rgba(255,204,0,0.15)';
-      c.lineWidth = 1;
-      c.strokeRect(cxL, 0, cxR - cxL, CYCLE_ZONE_HEIGHT);
+    // Cycle region
+    if (cycleEnabled) {
+      const x1 = beatToPx(cycleStart, zoom) - scrollLeft;
+      const x2 = beatToPx(cycleEnd,   zoom) - scrollLeft;
+      c.fillStyle = "rgba(255,204,0,.22)"; c.fillRect(x1, 0, x2 - x1, H);
+      c.fillStyle = "#ffd700"; c.fillRect(x1, 0, 2, H); c.fillRect(x2 - 1, 0, 2, H);
+      // Loop handles
+      c.beginPath(); c.moveTo(x1, 0); c.lineTo(x1 + 8, 0); c.lineTo(x1, 10); c.closePath(); c.fillStyle = "#ffd700"; c.fill();
+      c.beginPath(); c.moveTo(x2, 0); c.lineTo(x2 - 8, 0); c.lineTo(x2, 10); c.closePath(); c.fillStyle = "#ffd700"; c.fill();
     }
 
-    // ── Draw beat lines & bar numbers ──
-    for (let beat = 0; beat < totalBeats; beat++) {
+    // Bar lines + labels
+    const beatsPerBar = timeSignatureTop || 4;
+    c.font = '10px "JetBrains Mono","Consolas",monospace';
+
+    for (let beat = 0; beat <= visibleBeats; beat++) {
       const x = beatToPx(beat, zoom) - scrollLeft;
-      if (x < -50 || x > w + 50) continue;
-      const isBar = beat % timeSignatureTop === 0;
-      const bar = Math.floor(beat / timeSignatureTop) + 1;
+      if (x < -20 || x > W + 20) continue;
+      const isBar = beat % beatsPerBar === 0;
 
       if (isBar) {
-        c.strokeStyle = 'rgba(255,255,255,0.12)';
-        c.lineWidth = 1;
-        c.beginPath(); c.moveTo(x, CYCLE_ZONE_HEIGHT); c.lineTo(x, h); c.stroke();
-
-        c.font = '600 10px "JetBrains Mono", monospace';
-        c.fillStyle = '#888';
-        c.fillText(`${bar}`, x + 4, CYCLE_ZONE_HEIGHT + 12);
-
-        if ((bar - 1) % 4 === 0) {
-          c.font = '500 8px "JetBrains Mono", monospace';
-          c.fillStyle = '#555';
-          c.fillText(formatBeatTime(beat, bpm), x + 4, CYCLE_ZONE_HEIGHT + 24);
-        }
+        c.strokeStyle = "#2a3848"; c.lineWidth = 1;
+        c.beginPath(); c.moveTo(x, H * 0.3); c.lineTo(x, H); c.stroke();
+        const bar = Math.floor(beat / beatsPerBar) + 1;
+        c.fillStyle = "#6d8a9a"; c.fillText(String(bar), x + 3, H - 4);
       } else {
-        c.strokeStyle = 'rgba(255,255,255,0.04)';
-        c.lineWidth = 0.5;
-        c.beginPath(); c.moveTo(x, CYCLE_ZONE_HEIGHT + 10); c.lineTo(x, h); c.stroke();
+        c.strokeStyle = "#1a2530"; c.lineWidth = 0.5;
+        c.beginPath(); c.moveTo(x, H * 0.65); c.lineTo(x, H); c.stroke();
       }
     }
 
-    // ── Draw playhead triangle ──
-    const phX = beatToPx(playheadBeat, zoom) - scrollLeft;
-    if (phX >= 0 && phX <= w) {
-      c.fillStyle = '#34c759';
-      c.beginPath(); c.moveTo(phX - 6, CYCLE_ZONE_HEIGHT); c.lineTo(phX + 6, CYCLE_ZONE_HEIGHT); c.lineTo(phX, CYCLE_ZONE_HEIGHT + 8); c.closePath(); c.fill();
-      c.strokeStyle = '#34c759';
-      c.lineWidth = 1.5;
-      c.beginPath(); c.moveTo(phX, CYCLE_ZONE_HEIGHT + 8); c.lineTo(phX, h); c.stroke();
-    }
-  }, [zoom, bpm, timeSignatureTop, scrollLeft, width, playheadBeat, cycleStart, cycleEnd, cycleEnabled]);
+    // Top border
+    c.strokeStyle = "#1e2d3d"; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(0, H - 0.5); c.lineTo(W, H - 0.5); c.stroke();
+  }, [totalBeats, zoom, timeSignatureTop, cycleEnabled, cycleStart, cycleEnd, scrollLeft, visibleBeats]);
 
-  // ── Mouse interaction for cycle ruler ──
-  const getHitZone = useCallback((clientX, clientY) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { zone: 'seek', beat: 0 };
-    const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-    const beat = pxToBeat(x + scrollLeft, zoom);
+  const handleMouseDown = (e) => {
+    const canvas  = canvasRef.current; if (!canvas) return;
+    const rect    = canvas.getBoundingClientRect();
+    const x       = e.clientX - rect.left;
+    const beat    = pxToBeat(x + scrollLeft, zoom);
 
-    // Top zone = cycle manipulation
-    if (y <= CYCLE_ZONE_HEIGHT) {
-      if (cycleStart != null && cycleEnd != null && cycleEnd > cycleStart) {
-        const cxL = beatToPx(cycleStart, zoom) - scrollLeft;
-        const cxR = beatToPx(cycleEnd, zoom) - scrollLeft;
-        const handleSize = 8;
-        if (Math.abs(x - cxL) <= handleSize) return { zone: 'resize-left', beat };
-        if (Math.abs(x - cxR) <= handleSize) return { zone: 'resize-right', beat };
-        if (x >= cxL && x <= cxR) return { zone: 'move', beat };
-      }
-      return { zone: 'create', beat };
-    }
-    // Bottom zone = seek
-    return { zone: 'seek', beat };
-  }, [scrollLeft, zoom, cycleStart, cycleEnd]);
-
-  const handleMouseDown = useCallback((e) => {
-    if (e.button !== 0) return;
-    const { zone, beat } = getHitZone(e.clientX, e.clientY);
-
-    if (zone === 'seek') {
-      const snapped = snapValue ? snapBeat(Math.max(0, beat), snapValue, timeSignatureTop) : Math.max(0, beat);
-      onSeek(snapped);
-      return;
+    if (cycleEnabled) {
+      const x1 = beatToPx(cycleStart, zoom) - scrollLeft;
+      const x2 = beatToPx(cycleEnd,   zoom) - scrollLeft;
+      if (Math.abs(x - x1) < 10)      { dragging.current = "loop-left";  dragStartX.current = e.clientX; dragStartVals.current = { cycleStart, cycleEnd }; }
+      else if (Math.abs(x - x2) < 10) { dragging.current = "loop-right"; dragStartX.current = e.clientX; dragStartVals.current = { cycleStart, cycleEnd }; }
+      else if (x > x1 && x < x2)      { dragging.current = "loop-move";  dragStartX.current = e.clientX; dragStartVals.current = { cycleStart, cycleEnd }; }
+      else                             { dragging.current = "seek"; }
+    } else {
+      dragging.current = "seek";
     }
 
-    // Cycle interactions
-    isDraggingRef.current = zone;
-    dragOriginRef.current = {
-      x: e.clientX,
-      startBeat: cycleStart ?? beat,
-      endBeat: cycleEnd ?? beat,
-      clickBeat: beat,
+    if (dragging.current === "seek") {
+      onCycleChange && onCycleChange(Math.max(0, beat), cycleEnd);
+    }
+
+    const handleMove = (e2) => {
+      const dx    = e2.clientX - dragStartX.current;
+      const dBeat = pxToBeat(dx, zoom);
+      const { cycleStart: cs, cycleEnd: ce } = dragStartVals.current;
+      if      (dragging.current === "loop-left")  onCycleChange && onCycleChange(Math.max(0, cs + dBeat), ce);
+      else if (dragging.current === "loop-right") onCycleChange && onCycleChange(cs, Math.max(cs + 1, ce + dBeat));
+      else if (dragging.current === "loop-move")  onCycleChange && onCycleChange(Math.max(0, cs + dBeat), Math.max(1, ce + dBeat));
     };
-
-    if (zone === 'create') {
-      const snapped = snapBeat(Math.max(0, beat), snapValue || 0.25, timeSignatureTop);
-      onCycleChange(snapped, snapped);
-      if (!cycleEnabled) onCycleToggle(true);
-    }
-
-    const handleMouseMove = (e2) => {
-      const rect = canvasRef.current.getBoundingClientRect();
-      const x2 = e2.clientX - rect.left;
-      const currentBeat = pxToBeat(x2 + scrollLeft, zoom);
-      const snap = snapValue || 0.25;
-      const snapped = snapBeat(Math.max(0, currentBeat), snap, timeSignatureTop);
-
-      const dragType = isDraggingRef.current;
-      const origin = dragOriginRef.current;
-
-      if (dragType === 'create') {
-        const originSnapped = snapBeat(Math.max(0, origin.clickBeat), snap, timeSignatureTop);
-        const left = Math.min(originSnapped, snapped);
-        const right = Math.max(originSnapped, snapped);
-        if (right > left) onCycleChange(left, right);
-      } else if (dragType === 'move') {
-        const dx = e2.clientX - origin.x;
-        const dBeats = pxToBeat(dx, zoom);
-        const len = origin.endBeat - origin.startBeat;
-        let newStart = snapBeat(Math.max(0, origin.startBeat + dBeats), snap, timeSignatureTop);
-        onCycleChange(newStart, newStart + len);
-      } else if (dragType === 'resize-left') {
-        const newStart = Math.min(snapped, (cycleEnd || 4) - snap * timeSignatureTop);
-        onCycleChange(Math.max(0, newStart), cycleEnd);
-      } else if (dragType === 'resize-right') {
-        const newEnd = Math.max(snapped, (cycleStart || 0) + snap * timeSignatureTop);
-        onCycleChange(cycleStart, newEnd);
-      }
+    const handleUp = () => {
+      dragging.current = null;
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup",   handleUp);
     };
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup",   handleUp);
+  };
 
-    const handleMouseUp = () => {
-      isDraggingRef.current = null;
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-  }, [getHitZone, onSeek, onCycleChange, onCycleToggle, cycleStart, cycleEnd, cycleEnabled, snapValue, timeSignatureTop, zoom, scrollLeft]);
-
-  // Double-click top zone toggles cycle on/off
-  const handleDoubleClick = useCallback((e) => {
-    const { zone } = getHitZone(e.clientX, e.clientY);
-    if (zone !== 'seek') {
-      onCycleToggle(!cycleEnabled);
-    }
-  }, [getHitZone, cycleEnabled, onCycleToggle]);
-
-  // Cursor hint
-  const handleMouseMoveHover = useCallback((e) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const { zone } = getHitZone(e.clientX, e.clientY);
-    if (zone === 'resize-left' || zone === 'resize-right') canvas.style.cursor = 'ew-resize';
-    else if (zone === 'move') canvas.style.cursor = 'grab';
-    else if (zone === 'create') canvas.style.cursor = 'crosshair';
-    else canvas.style.cursor = 'pointer';
-  }, [getHitZone]);
+  const handleDoubleClick = (e) => {
+    onCycleToggle && onCycleToggle();
+  };
 
   return (
     <canvas
       ref={canvasRef}
-      className="arr-ruler-canvas arr-cycle-ruler"
+      className="arr-cycle-ruler"
       onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
-      onMouseMove={handleMouseMoveHover}
+      title={cycleEnabled ? "Cycle ON — drag handles to adjust, dbl-click to toggle" : "Dbl-click to enable cycle"}
     />
   );
 });
 
 // =============================================================================
-// GRID OVERLAY — Beat lines behind regions
+// GRID OVERLAY
 // =============================================================================
-const GridOverlay = React.memo(({ zoom, timeSignatureTop, scrollLeft, width, height }) => {
-  const lines = [];
-  const totalBeats = Math.ceil((width + scrollLeft) / zoom) + 1;
-  for (let beat = 0; beat < totalBeats; beat++) {
-    const x = beatToPx(beat, zoom) - scrollLeft;
-    if (x < -2 || x > width + 2) continue;
-    const isBar = beat % timeSignatureTop === 0;
-    lines.push(<div key={beat} className={`arr-grid-line ${isBar ? 'bar' : 'beat'}`} style={{ left: `${x}px` }} />);
-  }
-  return <div className="arr-grid-overlay" style={{ height }}>{lines}</div>;
+const GridOverlay = React.memo(({ totalBeats, zoom, timeSignatureTop, trackCount, trackHeight, scrollLeft }) => {
+  const canvasRef    = useRef(null);
+  const visibleBeats = totalBeats + 8;
+
+  useEffect(() => {
+    const canvas = canvasRef.current; if (!canvas) return;
+    const dpr    = window.devicePixelRatio || 1;
+    const W      = canvas.offsetWidth;
+    const H      = canvas.offsetHeight;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    const c = canvas.getContext("2d"); c.scale(dpr, dpr);
+    c.clearRect(0, 0, W, H);
+
+    const beatsPerBar = timeSignatureTop || 4;
+
+    for (let beat = 0; beat <= visibleBeats; beat++) {
+      const x       = beatToPx(beat, zoom) - scrollLeft;
+      if (x < 0 || x > W) continue;
+      const isBar   = beat % beatsPerBar === 0;
+      c.strokeStyle = isBar ? "#1e2d3d" : "#131b26";
+      c.lineWidth   = isBar ? 1 : 0.5;
+      c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke();
+    }
+
+    // Track lane dividers
+    for (let t = 0; t <= trackCount; t++) {
+      const y = t * trackHeight;
+      c.strokeStyle = t === 0 ? "#1e2d3d" : "#111820";
+      c.lineWidth   = 1;
+      c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke();
+    }
+  }, [totalBeats, zoom, timeSignatureTop, trackCount, trackHeight, scrollLeft, visibleBeats]);
+
+  return <canvas ref={canvasRef} className="arr-grid-overlay" />;
 });
+
+
+// ═══ AV_part3.js ═══
+// =============================================================================
+// ArrangerView.js — Part 3/4
+// ContextMenu · TierBadge · AddTrackDropdown · ArrangerView state + callbacks
+// =============================================================================
 
 // =============================================================================
 // CONTEXT MENU
 // =============================================================================
-const ContextMenu = ({ x, y, items, onClose }) => {
-  const ref = useRef(null);
+const ContextMenu = React.memo(({ x, y, items, onClose }) => {
+  const menuRef = useRef(null);
+
   useEffect(() => {
-    const handleClick = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
-    window.addEventListener('mousedown', handleClick);
-    return () => window.removeEventListener('mousedown', handleClick);
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, [onClose]);
 
   return (
-    <div ref={ref} className="arr-context-menu" style={{ left: x, top: y }}>
+    <div ref={menuRef} className="arr-ctx-menu" style={{ left: x, top: y }}>
       {items.map((item, i) =>
-        item.divider ? <div key={i} className="arr-ctx-divider" /> : (
-          <button key={i} className={`arr-ctx-item ${item.danger ? 'danger' : ''}`} onClick={() => { item.action(); onClose(); }} disabled={item.disabled}>
-            <span className="arr-ctx-icon">{item.icon}</span>
-            <span>{item.label}</span>
-            {item.shortcut && <span className="arr-ctx-shortcut">{item.shortcut}</span>}
+        item === "---" ? (
+          <div key={i} className="arr-ctx-divider" />
+        ) : (
+          <button
+            key={i}
+            className={"arr-ctx-item" + (item.danger ? " danger" : "")}
+            onClick={() => { item.action(); onClose(); }}
+            disabled={item.disabled}
+          >
+            {item.icon && <span className="arr-ctx-icon">{item.icon}</span>}
+            {item.label}
           </button>
         )
       )}
     </div>
   );
-};
+});
 
 // =============================================================================
 // TIER BADGE
 // =============================================================================
-const TierBadge = ({ tier, trackCount, maxTracks }) => {
-  const cfg = STUDIO_TIER_LIMITS[tier] || STUDIO_TIER_LIMITS.free;
-  const isUnlimited = maxTracks === -1;
-  const nearLimit = !isUnlimited && trackCount >= maxTracks - 1;
-  const atLimit = !isUnlimited && trackCount >= maxTracks;
+const TierBadge = React.memo(({ userTier, trackCount, maxTracks }) => {
+  const tier = STUDIO_TIER_LIMITS[userTier] || STUDIO_TIER_LIMITS.free;
+  const atLimit = maxTracks > 0 && trackCount >= maxTracks;
   return (
-    <div className={`arr-tier-badge ${atLimit ? 'at-limit' : nearLimit ? 'near-limit' : ''}`}>
-      <span className="arr-tier-dot" style={{ background: cfg.color }} />
-      <span className="arr-tier-label">{cfg.label}</span>
-      <span className="arr-tier-count">{trackCount}/{isUnlimited ? '∞' : maxTracks} tracks</span>
+    <div className={"arr-tier-badge" + (atLimit ? " at-limit" : "")} style={{ borderColor: tier.color, color: tier.color }}>
+      {tier.label}: {trackCount}/{maxTracks < 0 ? "∞" : maxTracks}
     </div>
   );
-};
+});
 
 // =============================================================================
-// ADD TRACK DROPDOWN — lets user pick Audio or Instrument when adding
+// ADD TRACK DROPDOWN
 // =============================================================================
-const AddTrackDropdown = ({ onAdd, canAdd }) => {
+const AddTrackDropdown = React.memo(({ onAdd, disabled }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
-    if (!open) return;
-    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    window.addEventListener('mousedown', close);
-    return () => window.removeEventListener('mousedown', close);
-  }, [open]);
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
 
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
+    <div ref={ref} className="arr-add-track-dropdown">
       <button
-        style={{ width: 24, height: 22, border: '1px solid #555', borderRadius: 3, background: 'rgba(0,255,200,0.08)', color: '#00ffc8', fontSize: '1rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        onClick={() => canAdd && setOpen(!open)}
-        disabled={!canAdd}
-        title="Add Track"
-      >+</button>
+        className="arr-add-track-btn"
+        onClick={() => !disabled && setOpen(o => !o)}
+        disabled={disabled}
+        title="Add track"
+      >
+        + Track ▾
+      </button>
       {open && (
-        <div style={{
-          position: 'absolute', top: 26, left: 0, background: '#1a2332', border: '1px solid #2a3a4a',
-          borderRadius: 6, padding: 4, zIndex: 100, minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-        }}>
+        <div className="arr-add-track-menu">
           {TRACK_TYPES.map(tt => (
-            <button key={tt.value} onClick={() => { onAdd(tt.value); setOpen(false); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px',
-                background: 'transparent', border: 'none', color: '#ccc', cursor: 'pointer',
-                borderRadius: 4, fontSize: '0.8rem', textAlign: 'left',
-              }}
-              onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.05)'}
-              onMouseLeave={(e) => e.target.style.background = 'transparent'}
+            <button
+              key={tt.value}
+              className="arr-add-track-item"
+              onClick={() => { onAdd(tt.value); setOpen(false); }}
             >
-              <span style={{ fontSize: '1.1rem' }}>{tt.icon}</span>
-              <span><strong style={{ color: tt.color }}>{tt.label}</strong><br /><span style={{ fontSize: '0.65rem', color: '#888' }}>{tt.desc}</span></span>
+              <span className="arr-add-track-icon">{tt.icon}</span>
+              <span>{tt.label}</span>
             </button>
           ))}
         </div>
       )}
     </div>
   );
-};
+});
 
 // =============================================================================
-// MAIN ARRANGER VIEW
+// PLAYHEAD
+// =============================================================================
+const Playhead = React.memo(({ beat, zoom, height, scrollLeft }) => {
+  const x = beatToPx(beat, zoom) - scrollLeft;
+  if (x < 0) return null;
+  return (
+    <div className="arr-playhead" style={{ left: `${x}px`, height: `${height}px` }}>
+      <div className="arr-playhead-head" />
+    </div>
+  );
+});
+
+// =============================================================================
+// ARRANGER VIEW — STATE + CALLBACKS
 // =============================================================================
 const ArrangerView = ({
-  tracks = [],
-  setTracks,
-  bpm = 120,
-  timeSignatureTop = 4,
-  timeSignatureBottom = 4,
-  masterVolume = 0.8,
-  onMasterVolumeChange,
-  projectName = 'Untitled',
-  userTier = 'free',
-  playheadBeat = 0,
-  isPlaying = false,
-  isRecording = false,
-  onPlay,
-  onStop,
-  onRecord,
-  onSeek,
-  onBpmChange,
-  onTimeSignatureChange,
-  onToggleFx,
-  onBounce,
-  onSave,
-  saving = false,
-  // Browse Sounds callback
-  onBrowseSounds,
-  // ── Bar selection → loop region ────────────────────────────────────────
-  // Shift+click on a bar number in the ruler sets loop start
-  // Shift+click+drag selects a range and sets cycle region
-  // Double-click on cycle region toggles cycle on/off
-
-  // Cycle/loop callbacks — parent (RecordingStudio) manages the actual loop logic
-  cycleStart: cycleStartProp,
-  cycleEnd: cycleEndProp,
-  cycleEnabled: cycleEnabledProp,
-  onCycleChange: onCycleChangeProp,
-  onCycleToggle: onCycleToggleProp,
+  tracks = [], setTracks,
+  bpm = 120, timeSignatureTop = 4, timeSignatureBottom = 4,
+  masterVolume = 0.8, onMasterVolumeChange,
+  projectName = "Untitled", userTier = "free",
+  playheadBeat = 0, isPlaying = false, isRecording = false,
+  onPlay, onStop, onRecord, onSeek, onBpmChange, onTimeSignatureChange,
+  onToggleFx, onBounce, onSave, saving = false,
+  cycleEnabled = false, cycleStart = 0, cycleEnd = 8,
+  onCycleChange, onCycleToggle,
+  instrumentEngine,
+  onBrowseSounds, onOpenPianoRoll, onTimelineDoubleClick,
+  MidiRegionPreview,
 }) => {
-  // ── State ─────────────────────────────────────────────────
-  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
-  const [snapValue, setSnapValue] = useState(0.25);
-  const [scrollLeft, setScrollLeft] = useState(0);
-  const [activeTrack, setActiveTrack] = useState(0);
-  const [selectedRegion, setSelectedRegion] = useState(null);
-  const [contextMenu, setContextMenu] = useState(null);
-  const [trackHeight, setTrackHeight] = useState(110);
+  // ── State ──
+  const [zoom,          setZoom]          = useState(DEFAULT_ZOOM);
+  const [snapIndex,     setSnapIndex]     = useState(2);     // 1/2 bar default
+  const [scrollLeft,    setScrollLeft]    = useState(0);
+  const [scrollTop,     setScrollTop]     = useState(0);
+  const [selectedTrack, setSelectedTrack] = useState(0);
+  const [selectedRegion,setSelectedRegion]= useState(null);
+  const [contextMenu,   setContextMenu]   = useState(null);
+  const [showAutoTrack, setShowAutoTrack] = useState(null);  // track index
+  const [autoParam,     setAutoParam]     = useState("volume");
+  const [automation,    setAutomation]    = useState({});
+  const [trackHeight,   setTrackHeight]   = useState(72);
 
-  // ── Internal cycle state (used if parent doesn't provide) ──
-  const [internalCycleStart, setInternalCycleStart] = useState(null);
-  const [internalCycleEnd, setInternalCycleEnd] = useState(null);
-  const [internalCycleEnabled, setInternalCycleEnabled] = useState(false);
+  const timelineRef  = useRef(null);
+  const scrollRef    = useRef(null);
 
-  const cycleStart = cycleStartProp ?? internalCycleStart;
-  const cycleEnd = cycleEndProp ?? internalCycleEnd;
-  const cycleEnabled = cycleEnabledProp ?? internalCycleEnabled;
+  const snapValue  = SNAP_VALUES[snapIndex]?.value ?? 0.5;
+  const maxTracks  = STUDIO_TIER_LIMITS[userTier]?.maxTracks ?? 4;
+  const hasSolo    = tracks.some(t => t.solo);
 
-  const handleCycleChange = useCallback((start, end) => {
-    if (onCycleChangeProp) onCycleChangeProp(start, end);
-    else { setInternalCycleStart(start); setInternalCycleEnd(end); }
-  }, [onCycleChangeProp]);
-
-  const handleCycleToggle = useCallback((enabled) => {
-    if (onCycleToggleProp) onCycleToggleProp(enabled);
-    else setInternalCycleEnabled(enabled);
-  }, [onCycleToggleProp]);
-
-  const timelineRef = useRef(null);
-  const scrollContainerRef = useRef(null);
-
-  // ── Tier logic ──
-  const tierConfig = STUDIO_TIER_LIMITS[userTier] || STUDIO_TIER_LIMITS.free;
-  const maxTracks = tierConfig.maxTracks;
-  const canAddTrack = maxTracks === -1 || tracks.length < maxTracks;
-
-  // ── Timeline width ──
-  const timelineWidth = useMemo(() => {
-    let maxBeat = 32 * timeSignatureTop;
+  // Total visible beats
+  const totalBeats = useMemo(() => {
+    let maxBeat = 16;
     tracks.forEach(t => {
       (t.regions || []).forEach(r => {
-        const end = r.startBeat + r.duration;
-        if (end > maxBeat) maxBeat = end + 4 * timeSignatureTop;
+        const end = (r.startBeat || 0) + (r.duration || 0);
+        if (end > maxBeat) maxBeat = end;
       });
     });
-    return beatToPx(maxBeat, zoom) + 400;
-  }, [tracks, zoom, timeSignatureTop]);
+    return Math.ceil(maxBeat + 16);
+  }, [tracks]);
 
-  const handleScroll = useCallback((e) => setScrollLeft(e.currentTarget.scrollLeft), []);
-
-  // ── Zoom ──
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    const handleWheel = (e) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        setZoom(prev => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev + (e.deltaY > 0 ? -5 : 5))));
-      }
-    };
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    return () => container.removeEventListener('wheel', handleWheel);
+  // ── Scroll sync ──
+  const handleScroll = useCallback((e) => {
+    setScrollLeft(e.target.scrollLeft);
+    setScrollTop(e.target.scrollTop);
   }, []);
 
-  // ── Keyboard shortcuts ──
-  useEffect(() => {
-    const handleKey = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      switch (e.key) {
-        case ' ': e.preventDefault(); isPlaying ? onStop?.() : onPlay?.(); break;
-        case 'r': case 'R': if (!e.metaKey && !e.ctrlKey) onRecord?.(); break;
-        case 'c': case 'C':
-          if (!e.metaKey && !e.ctrlKey) handleCycleToggle(!cycleEnabled);
-          break;
-        case 'Delete': case 'Backspace': if (selectedRegion) deleteRegion(selectedRegion); break;
-        case '=': case '+': setZoom(prev => Math.min(MAX_ZOOM, prev + 10)); break;
-        case '-': setZoom(prev => Math.max(MIN_ZOOM, prev - 10)); break;
-        default: break;
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [isPlaying, selectedRegion, onPlay, onStop, onRecord, cycleEnabled, handleCycleToggle]);
+  // ── Zoom ──
+  const handleWheel = useCallback((e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      setZoom(z => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z - e.deltaY * 0.4)));
+    }
+  }, []);
 
-  // ── Auto-scroll ──
-  useEffect(() => {
-    if (!isPlaying || !scrollContainerRef.current) return;
-    const phX = beatToPx(playheadBeat, zoom);
-    const container = scrollContainerRef.current;
-    const viewRight = container.scrollLeft + container.clientWidth - 220;
-    if (phX > viewRight - 100) container.scrollLeft = phX - container.clientWidth / 2;
-  }, [playheadBeat, isPlaying, zoom]);
-
-  // ── Track CRUD ──
-  const addTrack = useCallback((type = 'audio') => {
-    if (!canAddTrack) return;
-    const idx = tracks.length;
-    const isInstr = type === 'instrument';
-    const newTrack = {
-      name: isInstr ? `Instrument ${idx + 1}` : `Audio ${idx + 1}`,
-      trackType: type,
-      instrumentSource: isInstr ? 'piano' : undefined,
-      volume: 0.8, pan: 0, muted: false, solo: false, armed: false,
-      audio_url: null, color: TRACK_COLORS[idx % TRACK_COLORS.length],
-      regions: [], fx: { eq: false, comp: false, reverb: false, delay: false },
-    };
-    setTracks([...tracks, newTrack]);
-    setActiveTrack(idx);
-  }, [tracks, canAddTrack, setTracks]);
-
-  const deleteTrack = useCallback((index) => {
-    if (tracks.length <= 1) return;
-    const next = [...tracks]; next.splice(index, 1); setTracks(next);
-    if (activeTrack >= next.length) setActiveTrack(next.length - 1);
-  }, [tracks, activeTrack, setTracks]);
-
+  // ── Track mutations ──
   const updateTrack = useCallback((index, updates) => {
-    const next = [...tracks]; next[index] = { ...next[index], ...updates }; setTracks(next);
-  }, [tracks, setTracks]);
+    setTracks(prev => prev.map((t, i) => i === index ? { ...t, ...updates } : t));
+  }, [setTracks]);
 
-  // ── Region CRUD ──
-  const moveRegion = useCallback((regionId, newStartBeat) => {
-    setTracks(tracks.map(t => ({ ...t, regions: (t.regions || []).map(r => r.id === regionId ? { ...r, startBeat: newStartBeat } : r) })));
-  }, [tracks, setTracks]);
+  const addTrack = useCallback((type = "audio") => {
+    if (maxTracks > 0 && tracks.length >= maxTracks) return;
+    const i = tracks.length;
+    setTracks(prev => [...prev, {
+      id: `trk_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      name: `${type === "instrument" ? "MIDI" : "Audio"} ${i + 1}`,
+      trackType: type,
+      volume: 0.8, pan: 0,
+      muted: false, solo: false, armed: false,
+      color: TRACK_COLORS[i % TRACK_COLORS.length],
+      regions: [],
+    }]);
+    setSelectedTrack(i);
+  }, [tracks.length, maxTracks, setTracks]);
 
-  const resizeRegion = useCallback((regionId, newStart, newDuration) => {
-    setTracks(tracks.map(t => ({ ...t, regions: (t.regions || []).map(r => r.id === regionId ? { ...r, startBeat: newStart, duration: newDuration } : r) })));
-  }, [tracks, setTracks]);
+  const removeTrack = useCallback((index) => {
+    if (tracks.length <= 1) return;
+    setTracks(prev => prev.filter((_, i) => i !== index));
+    setSelectedTrack(prev => Math.max(0, Math.min(prev, tracks.length - 2)));
+  }, [tracks.length, setTracks]);
 
-  const deleteRegion = useCallback((regionId) => {
-    setTracks(tracks.map(t => ({ ...t, regions: (t.regions || []).filter(r => r.id !== regionId) })));
+  const toggleMute = useCallback((index) => {
+    setTracks(prev => prev.map((t, i) => i === index ? { ...t, muted: !t.muted } : t));
+  }, [setTracks]);
+
+  const toggleSolo = useCallback((index) => {
+    setTracks(prev => prev.map((t, i) => i === index ? { ...t, solo: !t.solo } : t));
+  }, [setTracks]);
+
+  const toggleArm = useCallback((index) => {
+    setTracks(prev => prev.map((t, i) => ({
+      ...t,
+      armed: i === index ? !t.armed : false,
+    })));
+  }, [setTracks]);
+
+  // ── Region mutations ──
+  const moveRegion = useCallback((trackIndex, regionId, newStart) => {
+    setTracks(prev => prev.map((t, i) => {
+      if (i !== trackIndex) return t;
+      return { ...t, regions: (t.regions || []).map(r => r.id === regionId ? { ...r, startBeat: newStart } : r) };
+    }));
+  }, [setTracks]);
+
+  const resizeRegion = useCallback((trackIndex, regionId, newStart, newDuration) => {
+    setTracks(prev => prev.map((t, i) => {
+      if (i !== trackIndex) return t;
+      return { ...t, regions: (t.regions || []).map(r => r.id === regionId ? { ...r, startBeat: newStart, duration: newDuration } : r) };
+    }));
+  }, [setTracks]);
+
+  const deleteRegion = useCallback((trackIndex, regionId) => {
+    setTracks(prev => prev.map((t, i) => {
+      if (i !== trackIndex) return t;
+      return { ...t, regions: (t.regions || []).filter(r => r.id !== regionId) };
+    }));
     setSelectedRegion(null);
-  }, [tracks, setTracks]);
+  }, [setTracks]);
 
-  const duplicateRegion = useCallback((regionId) => {
-    setTracks(tracks.map(t => {
+  const duplicateRegion = useCallback((trackIndex, regionId) => {
+    setTracks(prev => prev.map((t, i) => {
+      if (i !== trackIndex) return t;
       const region = (t.regions || []).find(r => r.id === regionId);
       if (!region) return t;
-      const dup = { ...region, id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, startBeat: region.startBeat + region.duration, name: `${region.name} (copy)` };
-      return { ...t, regions: [...(t.regions || []), dup] };
+      const newRegion = {
+        ...region,
+        id: `rgn_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        startBeat: region.startBeat + region.duration,
+        name: (region.name || "Region") + " copy",
+      };
+      return { ...t, regions: [...t.regions, newRegion] };
     }));
-  }, [tracks, setTracks]);
+  }, [setTracks]);
 
-  const splitRegion = useCallback((regionId, splitBeat) => {
-    setTracks(tracks.map(t => {
-      const idx = (t.regions || []).findIndex(r => r.id === regionId);
-      if (idx === -1) return t;
-      const region = t.regions[idx];
-      if (splitBeat <= region.startBeat || splitBeat >= region.startBeat + region.duration) return t;
-      const leftDur = splitBeat - region.startBeat;
-      const rightDur = region.duration - leftDur;
-      const left = { ...region, duration: leftDur };
-      const right = { ...region, id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, startBeat: splitBeat, duration: rightDur, name: `${region.name} (R)` };
-      const regions = [...t.regions]; regions.splice(idx, 1, left, right);
-      return { ...t, regions };
+  const splitRegion = useCallback((trackIndex, regionId, splitBeat) => {
+    setTracks(prev => prev.map((t, i) => {
+      if (i !== trackIndex) return t;
+      const region = (t.regions || []).find(r => r.id === regionId);
+      if (!region) return t;
+      const relSplit = splitBeat - region.startBeat;
+      if (relSplit <= 0 || relSplit >= region.duration) return t;
+      const left  = { ...region, duration: relSplit };
+      const right = {
+        ...region,
+        id: `rgn_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        startBeat: splitBeat,
+        duration: region.duration - relSplit,
+        name: (region.name || "Region") + " 2",
+      };
+      return { ...t, regions: [...t.regions.filter(r => r.id !== regionId), left, right] };
     }));
-  }, [tracks, setTracks]);
+  }, [setTracks]);
 
-  // ── Add empty region on double-click ──
+  // ── Timeline click → seek ──
+  const handleTimelineClick = useCallback((e) => {
+    if (!timelineRef.current) return;
+    const rect  = timelineRef.current.getBoundingClientRect();
+    const x     = e.clientX - rect.left + scrollLeft;
+    const beat  = Math.max(0, pxToBeat(x, zoom));
+    onSeek && onSeek(beat);
+  }, [zoom, scrollLeft, onSeek]);
+
+  // ── Timeline double-click → add region ──
   const handleTimelineDoubleClick = useCallback((e, trackIndex) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left + scrollLeft;
-    let startBeat = snapBeat(pxToBeat(x, zoom), snapValue, timeSignatureTop);
-    const isInstr = tracks[trackIndex]?.trackType === 'instrument';
+    if (onTimelineDoubleClick) onTimelineDoubleClick(e, trackIndex);
+  }, [onTimelineDoubleClick]);
 
-    const newRegion = {
-      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      name: isInstr ? 'MIDI Region' : 'New Region',
-      startBeat,
-      duration: timeSignatureTop * 4,
-      audioUrl: isInstr ? null : (pendingDropUrl || null),
-      notes: isInstr ? [] : undefined,  // MIDI regions get empty notes array
-      color: tracks[trackIndex]?.color,
-    };
-
-    const next = [...tracks];
-    if (!next[trackIndex].regions) next[trackIndex].regions = [];
-    next[trackIndex].regions.push(newRegion);
-    setTracks(next);
-    setSelectedRegion(newRegion.id);
-  }, [tracks, zoom, snapValue, timeSignatureTop, scrollLeft, setTracks]);
-
-  const handleRegionContextMenu = useCallback((e, region) => {
+  // ── Region context menu ──
+  const handleRegionContextMenu = useCallback((e, region, trackIndex) => {
+    e.preventDefault(); e.stopPropagation();
+    const clickBeat = pxToBeat(e.clientX - timelineRef.current?.getBoundingClientRect().left + scrollLeft, zoom);
     setContextMenu({
       x: e.clientX, y: e.clientY,
       items: [
-        { icon: '✂️', label: 'Split at Playhead', shortcut: 'S', action: () => splitRegion(region.id, playheadBeat), disabled: playheadBeat <= region.startBeat || playheadBeat >= region.startBeat + region.duration },
-        { icon: '📋', label: 'Duplicate', shortcut: 'Ctrl+D', action: () => duplicateRegion(region.id) },
-        { divider: true },
-        { icon: '🔇', label: 'Mute Region', action: () => {
-          setTracks(tracks.map(t => ({
-            ...t,
-            regions: (t.regions||[]).map(r => r.id === region.id ? {...r, muted:!r.muted} : r)
-          })));
-        }},
-        { icon: '🎨', label: 'Change Color', action: () => {} },
-        { icon: '◀▶', label: 'Trim Start', action: () => {
-          const trimBeats = 0.5;
-          setTracks(tracks.map(t => ({
-            ...t,
-            regions: (t.regions||[]).map(r => r.id === region.id
-              ? {...r, startBeat: r.startBeat + trimBeats, duration: Math.max(0.5, r.duration - trimBeats), trimStart: (r.trimStart||0) + trimBeats}
-              : r)
-          })));
-        }},
-        { icon: '▶◀', label: 'Trim End', action: () => {
-          const trimBeats = 0.5;
-          setTracks(tracks.map(t => ({
-            ...t,
-            regions: (t.regions||[]).map(r => r.id === region.id
-              ? {...r, duration: Math.max(0.5, r.duration - trimBeats)}
-              : r)
-          })));
-        }},
-        { icon: '〜', label: 'Add Crossfade', action: () => {
-          setTracks(tracks.map(t => ({
-            ...t,
-            regions: (t.regions||[]).map(r => r.id === region.id
-              ? {...r, fadeIn: (r.fadeIn||0) > 0 ? 0 : 0.5, fadeOut: (r.fadeOut||0) > 0 ? 0 : 0.5}
-              : r)
-          })));
-        }},
-        { divider: true },
-        { icon: '🗑️', label: 'Delete', shortcut: 'Del', danger: true, action: () => deleteRegion(region.id) },
+        { label: "Duplicate",   icon: "⧉", action: () => duplicateRegion(trackIndex, region.id) },
+        { label: "Split here",  icon: "✂", action: () => splitRegion(trackIndex, region.id, clickBeat) },
+        ...(tracks[trackIndex]?.trackType === "instrument" && region.notes
+          ? [{ label: "Edit in Piano Roll", icon: "🎹", action: () => onOpenPianoRoll && onOpenPianoRoll(trackIndex, region.id) }]
+          : []
+        ),
+        "---",
+        { label: "Delete",      icon: "🗑", danger: true, action: () => deleteRegion(trackIndex, region.id) },
       ],
     });
-  }, [playheadBeat, splitRegion, duplicateRegion, deleteRegion]);
+  }, [zoom, scrollLeft, tracks, duplicateRegion, splitRegion, deleteRegion, onOpenPianoRoll]);
 
-  const handleTimelineClick = useCallback((e) => {
-    if (e.detail === 2) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left + scrollLeft;
-    const beat = snapBeat(pxToBeat(x, zoom), snapValue, timeSignatureTop);
-    onSeek?.(Math.max(0, beat));
-  }, [zoom, scrollLeft, snapValue, timeSignatureTop, onSeek]);
+  // ── Track context menu ──
+  const handleTrackContextMenu = useCallback((e, trackIndex) => {
+    e.preventDefault(); e.stopPropagation();
+    setContextMenu({
+      x: e.clientX, y: e.clientY,
+      items: [
+        { label: "Rename",    icon: "✏", action: () => { const n = window.prompt("Rename:", tracks[trackIndex]?.name); if (n?.trim()) updateTrack(trackIndex, { name: n.trim() }); } },
+        { label: "Duplicate track", icon: "⧉", action: () => { const t = tracks[trackIndex]; setTracks(prev => [...prev, { ...t, id: `trk_${Date.now()}`, name: t.name + " copy", regions: [] }]); } },
+        "---",
+        { label: "Remove track", icon: "🗑", danger: true, action: () => removeTrack(trackIndex), disabled: tracks.length <= 1 },
+      ],
+    });
+  }, [tracks, updateTrack, removeTrack, setTracks]);
 
-  const playheadLeft = beatToPx(playheadBeat, zoom) - scrollLeft;
+// ═══ AV_part4.js ═══
+// =============================================================================
+// ArrangerView.js — Part 4/4
+// Full JSX render + export default
+// =============================================================================
 
-  // =============================================================================
-  // RENDER
-  // =============================================================================
+// NOTE: This is the closing of the ArrangerView component started in Part 3.
+// The JSX return block below replaces the dangling closing brace at end of Part 3.
+// The install script concatenates all 4 parts; the component declaration
+// opened in Part 3 is closed here with the export at the bottom.
+
+  // ── Keyboard shortcuts ──
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      switch (e.code) {
+        case "Space":      e.preventDefault(); isPlaying ? onStop?.() : onPlay?.(); break;
+        case "KeyR":       if (!e.metaKey) onRecord?.(); break;
+        case "Equal":      setZoom(z => Math.min(MAX_ZOOM, z + 10)); break;
+        case "Minus":      setZoom(z => Math.max(MIN_ZOOM, z - 10)); break;
+        case "Delete":
+        case "Backspace":
+          if (selectedRegion) {
+            const ti = tracks.findIndex(t => (t.regions || []).some(r => r.id === selectedRegion));
+            if (ti !== -1) deleteRegion(ti, selectedRegion);
+          }
+          break;
+        default: break;
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isPlaying, onPlay, onStop, onRecord, selectedRegion, tracks, deleteRegion]);
+
+  // ── Dismiss context menu on outside click ──
+  useEffect(() => {
+    if (!contextMenu) return;
+    const h = () => setContextMenu(null);
+    window.addEventListener("mousedown", h);
+    return () => window.removeEventListener("mousedown", h);
+  }, [contextMenu]);
+
+  // ── Timeline total width ──
+  const timelineWidth = beatToPx(totalBeats + 8, zoom);
+
   return (
-    <div className="arranger">
-      {/* ─── TOP TOOLBAR ─────────────────────────────────── */}
+    <div className="arr-root" onWheel={handleWheel}>
+
+      {/* ══════ TOOLBAR ══════ */}
       <div className="arr-toolbar">
         <div className="arr-toolbar-left">
           {/* Transport */}
-          <div className="arr-transport-group">
-            <button className="arr-transport-btn" onClick={() => onSeek?.(0)} title="Return to Start">⏮</button>
-            <button className="arr-transport-btn" onClick={() => onSeek?.(Math.max(0, playheadBeat - timeSignatureTop * 2))} title="Rewind 2 bars">⏪</button>
-            <button className={`arr-transport-btn play ${isPlaying ? 'active' : ''}`} onClick={() => isPlaying ? onStop?.() : onPlay?.()} title={isPlaying ? 'Stop' : 'Play'}>{isPlaying ? '⏹' : '▶'}</button>
-            <button className="arr-transport-btn" onClick={() => onSeek?.(playheadBeat + timeSignatureTop * 2)} title="Forward 2 bars">⏩</button>
-            <button className={`arr-transport-btn rec ${isRecording ? 'active' : ''}`} onClick={onRecord} title="Record"><span className="arr-rec-dot" /></button>
+          <button className="arr-transport-btn" onClick={onStop} title="Stop">■</button>
+          <button className={"arr-transport-btn play" + (isPlaying && !isRecording ? " active" : "")}
+            onClick={() => isPlaying ? onStop?.() : onPlay?.()} title={isPlaying ? "Pause" : "Play"}>
+            {isPlaying && !isRecording ? "⏸" : "▶"}
+          </button>
+          <button className={"arr-transport-btn rec" + (isRecording ? " active" : "")}
+            onClick={onRecord} title={isRecording ? "Stop recording" : "Record"}>
+            <span className="arr-rec-dot"/>
+          </button>
 
-            {/* ── Cycle/Loop toggle button ── */}
-            <button
-              className={`arr-transport-btn cycle ${cycleEnabled ? 'active' : ''}`}
-              onClick={() => handleCycleToggle(!cycleEnabled)}
-              title={`Cycle/Loop ${cycleEnabled ? 'ON' : 'OFF'} (C)`}
-              style={cycleEnabled ? { background: 'rgba(255,204,0,0.15)', borderColor: '#ffcc00', color: '#ffcc00' } : {}}
-            >
-              ⟲
-            </button>
-          </div>
-
-          {/* LCD Display */}
-          <div className="arr-lcd">
-            <span className="arr-lcd-position">{formatBarBeat(playheadBeat, timeSignatureTop)}</span>
-            <span className="arr-lcd-sep">│</span>
-            <span className="arr-lcd-time">{formatBeatTime(playheadBeat, bpm)}</span>
-          </div>
+          <div className="arr-toolbar-divider"/>
 
           {/* BPM */}
-          <div className="arr-bpm-group">
-            <label className="arr-bpm-label">BPM</label>
-            <input type="number" className="arr-bpm-input" value={bpm} onChange={(e) => onBpmChange?.(parseInt(e.target.value) || 120)} min={40} max={300} />
+          <div className="arr-bpm-wrap">
+            <span className="arr-label">BPM</span>
+            <input
+              type="number" min={20} max={300}
+              value={bpm}
+              className="arr-bpm-input"
+              onChange={e => onBpmChange?.(Math.max(20, Math.min(300, parseInt(e.target.value) || 120)))}
+            />
           </div>
 
-          {/* Time Signature */}
-          <div className="arr-ts-group">
-            <select className="arr-ts-select" value={`${timeSignatureTop}/${timeSignatureBottom}`} onChange={(e) => { const [t, b] = e.target.value.split('/').map(Number); onTimeSignatureChange?.(t, b); }}>
-              <option value="4/4">4/4</option>
-              <option value="3/4">3/4</option>
-              <option value="6/8">6/8</option>
-              <option value="2/4">2/4</option>
-              <option value="5/4">5/4</option>
-              <option value="7/8">7/8</option>
-            </select>
+          {/* Time sig */}
+          <div className="arr-timesig-wrap">
+            <span className="arr-label">TIME</span>
+            <input type="number" min={1} max={16} value={timeSignatureTop}
+              className="arr-timesig-input"
+              onChange={e => onTimeSignatureChange?.(parseInt(e.target.value) || 4, timeSignatureBottom)}/>
+            <span className="arr-timesig-slash">/</span>
+            <input type="number" min={1} max={16} value={timeSignatureBottom}
+              className="arr-timesig-input"
+              onChange={e => onTimeSignatureChange?.(timeSignatureTop, parseInt(e.target.value) || 4)}/>
           </div>
-        </div>
 
-        <div className="arr-toolbar-right">
+          <div className="arr-toolbar-divider"/>
+
           {/* Snap */}
-          <div className="arr-snap-group">
-            <label className="arr-snap-label">Snap</label>
-            <select className="arr-snap-select" value={snapValue} onChange={(e) => setSnapValue(parseFloat(e.target.value))}>
-              {SNAP_VALUES.map(sv => <option key={sv.value} value={sv.value}>{sv.label}</option>)}
+          <div className="arr-snap-wrap">
+            <span className="arr-label">SNAP</span>
+            <select value={snapIndex} onChange={e => setSnapIndex(Number(e.target.value))} className="arr-snap-select">
+              {SNAP_VALUES.map((s, i) => <option key={i} value={i}>{s.label}</option>)}
             </select>
           </div>
 
           {/* Zoom */}
-          <div className="arr-zoom-group">
-            <button className="arr-zoom-btn" onClick={() => setZoom(prev => Math.max(MIN_ZOOM, prev - 10))}>−</button>
-            <div className="arr-zoom-bar"><div className="arr-zoom-fill" style={{ width: `${((zoom - MIN_ZOOM) / (MAX_ZOOM - MIN_ZOOM)) * 100}%` }} /></div>
-            <button className="arr-zoom-btn" onClick={() => setZoom(prev => Math.min(MAX_ZOOM, prev + 10))}>+</button>
+          <div className="arr-zoom-wrap">
+            <button className="arr-zoom-btn" onClick={() => setZoom(z => Math.max(MIN_ZOOM, z - 10))} title="Zoom out">−</button>
+            <input type="range" min={MIN_ZOOM} max={MAX_ZOOM} step={5} value={zoom}
+              className="arr-zoom-slider" onChange={e => setZoom(Number(e.target.value))}/>
+            <button className="arr-zoom-btn" onClick={() => setZoom(z => Math.min(MAX_ZOOM, z + 10))} title="Zoom in">+</button>
           </div>
+
+          {/* Cycle */}
+          <button className={"arr-cycle-btn" + (cycleEnabled ? " active" : "")} onClick={onCycleToggle} title="Toggle cycle">
+            ⟳ CYCLE
+          </button>
+        </div>
+
+        <div className="arr-toolbar-right">
+          {/* Master vol */}
+          <div className="arr-master-wrap">
+            <span className="arr-label">MASTER</span>
+            <input type="range" min={0} max={1} step={0.01} value={masterVolume}
+              className="arr-master-fader"
+              onChange={e => onMasterVolumeChange?.(parseFloat(e.target.value))}/>
+            <span className="arr-master-val">{Math.round(masterVolume * 100)}%</span>
+          </div>
+
+          <TierBadge userTier={userTier} trackCount={tracks.length} maxTracks={maxTracks}/>
+
+          <button className="arr-toolbar-btn" onClick={onBounce} title="Bounce to WAV">⤓ Bounce</button>
+          <button className={"arr-toolbar-btn save" + (saving ? " saving" : "")} onClick={onSave} disabled={saving} title="Save project">
+            {saving ? "Saving…" : "💾 Save"}
+          </button>
 
           {/* Track height */}
-          <div className="arr-height-group">
-            <button className={`arr-height-btn ${trackHeight === 48 ? 'active' : ''}`} onClick={() => setTrackHeight(48)} title="Small">S</button>
-            <button className={`arr-height-btn ${trackHeight === 110 ? 'active' : ''}`} onClick={() => setTrackHeight(110)} title="Medium">M</button>
-            <button className={`arr-height-btn ${trackHeight === 140 ? 'active' : ''}`} onClick={() => setTrackHeight(140)} title="Large">L</button>
+          <div className="arr-trackh-wrap">
+            <span className="arr-label">🔍</span>
+            <input type="range" min={48} max={120} step={8} value={trackHeight}
+              className="arr-zoom-slider"
+              onChange={e => setTrackHeight(Number(e.target.value))}/>
           </div>
-
-          <TierBadge tier={userTier} trackCount={tracks.length} maxTracks={maxTracks} />
-
-          <button className={`arr-save-btn ${saving ? 'saving' : ''}`} onClick={onSave} disabled={saving}>{saving ? '⏳ Saving...' : '💾 Save'}</button>
-          <button className="arr-save-btn" onClick={onBounce} disabled={isPlaying || isRecording} title="Bounce / Mixdown" style={{ background: 'rgba(0,255,200,0.08)', borderColor: 'rgba(0,255,200,0.2)' }}>⏏ Bounce</button>
         </div>
       </div>
 
-      {/* ─── Cycle info bar (shown when cycle is active) ──── */}
-      {cycleEnabled && cycleStart != null && cycleEnd != null && cycleEnd > cycleStart && (
-        <div className="arr-cycle-info-bar">
-          <span style={{ color: '#ffcc00', fontWeight: 600 }}>⟲ CYCLE</span>
-          <span>Bar {Math.floor(cycleStart / timeSignatureTop) + 1} → Bar {Math.floor(cycleEnd / timeSignatureTop) + 1}</span>
-          <span style={{ color: '#888' }}>({formatBeatTime(cycleEnd - cycleStart, bpm)})</span>
-          <button onClick={() => handleCycleToggle(false)} style={{ background: 'none', border: '1px solid #ffcc0040', color: '#ffcc00', borderRadius: 4, padding: '1px 8px', cursor: 'pointer', fontSize: '0.65rem' }}>OFF</button>
-        </div>
-      )}
-
-      {/* ─── MAIN ARRANGER BODY ──────────────────────────── */}
+      {/* ══════ BODY (headers + timeline) ══════ */}
       <div className="arr-body">
-        {/* Track Headers */}
-        <div className="arr-headers">
-          <div className="arr-ruler-spacer">
-            <span className="arr-ruler-spacer-label">TRACKS</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <AddTrackDropdown onAdd={addTrack} canAdd={canAddTrack} />
-              <button
-                style={{ width: 24, height: 22, border: '1px solid #555', borderRadius: 3, background: 'rgba(255,68,68,0.08)', color: '#ff4444', fontSize: '1rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: tracks.length <= 1 ? 0.3 : 1 }}
-                onClick={() => deleteTrack(activeTrack)} disabled={tracks.length <= 1} title="Remove Selected Track"
-              >−</button>
-              <span style={{ fontSize: '0.6rem', fontWeight: 600, color: '#666', fontFamily: 'monospace' }}>{tracks.length}/{maxTracks === -1 ? '∞' : maxTracks}</span>
-            </div>
-          </div>
 
-          <div className="arr-headers-list" style={{ overflowY: 'auto' }}>
-            {tracks.map((track, i) => (
-              <div key={i} style={{ height: trackHeight }}>
-                <TrackHeader track={track} index={i} onUpdate={updateTrack} onDelete={deleteTrack} onToggleFx={onToggleFx} onBrowseSounds={onBrowseSounds} isActive={activeTrack === i} onSelect={setActiveTrack} canDelete={tracks.length > 1} />
-                 </div>
-            ))}
+        {/* ── TRACK HEADERS COLUMN ── */}
+        <div className="arr-headers-col" style={{ transform: `translateY(-${scrollTop}px)` }}>
+          {tracks.map((track, index) => (
+            <div key={track.id || index}
+              style={{ height: trackHeight }}
+              onContextMenu={(e) => handleTrackContextMenu(e, index)}
+            >
+              <TrackHeader
+                track={track}
+                index={index}
+                isSelected={selectedTrack === index}
+                onSelect={setSelectedTrack}
+                onUpdate={updateTrack}
+                onRemove={removeTrack}
+                onToggleMute={toggleMute}
+                onToggleSolo={toggleSolo}
+                onToggleArm={toggleArm}
+                onToggleFx={onToggleFx}
+                onImport={null}
+                onClear={(i) => updateTrack(i, { audioBuffer: null, audio_url: null, regions: [] })}
+                onFreeze={null}
+                onUnfreeze={null}
+                onFlexPitch={null}
+                onBrowseSounds={onBrowseSounds}
+                hasSolo={hasSolo}
+                onOpenPianoRoll={onOpenPianoRoll}
+                instrumentEngine={instrumentEngine}
+              />
+            </div>
+          ))}
+
+          {/* Add track button */}
+          <div className="arr-add-track-row">
+            <AddTrackDropdown
+              onAdd={addTrack}
+              disabled={maxTracks > 0 && tracks.length >= maxTracks}
+            />
           </div>
         </div>
 
-        {/* Timeline */}
-        <div className="arr-timeline-wrapper" ref={scrollContainerRef} onScroll={handleScroll}>
-          {/* Cycle Ruler (replaces old Ruler) */}
-          <div className="arr-ruler-row" style={{ width: timelineWidth }}>
+        {/* ── TIMELINE COLUMN ── */}
+        <div className="arr-timeline-col">
+
+          {/* Ruler */}
+          <div className="arr-ruler-wrap">
             <CycleRuler
-              zoom={zoom} bpm={bpm} timeSignatureTop={timeSignatureTop}
-              scrollLeft={scrollLeft} width={timelineWidth} playheadBeat={playheadBeat}
-              cycleStart={cycleStart} cycleEnd={cycleEnd} cycleEnabled={cycleEnabled}
-              onSeek={(beat) => onSeek?.(beat)}
-              onCycleChange={handleCycleChange}
-              onCycleToggle={handleCycleToggle}
-              snapValue={snapValue}
+              totalBeats={totalBeats}
+              zoom={zoom}
+              timeSignatureTop={timeSignatureTop}
+              bpm={bpm}
+              cycleEnabled={cycleEnabled}
+              cycleStart={cycleStart}
+              cycleEnd={cycleEnd}
+              onCycleChange={onCycleChange}
+              onCycleToggle={onCycleToggle}
+              scrollLeft={scrollLeft}
             />
           </div>
 
-          {/* Track lanes */}
-          <div className="arr-lanes" style={{ width: timelineWidth }}>
-            {tracks.map((track, i) => (
-              <div
-                key={i}
-                className={`arr-lane ${track.muted ? 'muted' : ''} ${track.solo ? 'soloed' : ''} ${activeTrack === i ? 'active' : ''} ${track.trackType === 'instrument' ? 'instrument-lane' : ''}`}
-                style={{ height: trackHeight, '--track-color': track.trackType === 'instrument' ? '#af52de' : track.color }}
-                onClick={handleTimelineClick}
-                onDoubleClick={(e) => handleTimelineDoubleClick(e, i)}
-              >
-                <GridOverlay zoom={zoom} timeSignatureTop={timeSignatureTop} scrollLeft={scrollLeft} width={timelineWidth} height={trackHeight} />
+          {/* Scrollable track lanes */}
+          <div
+            ref={scrollRef}
+            className="arr-lanes-scroll"
+            onScroll={handleScroll}
+          >
+            <div className="arr-lanes-inner" style={{ width: timelineWidth, height: tracks.length * trackHeight }}>
 
-                {/* Cycle region highlight on lanes */}
-                {cycleEnabled && cycleStart != null && cycleEnd != null && cycleEnd > cycleStart && (
-                  <div
-                    className="arr-cycle-lane-highlight arr-cycle-active"
-                    style={{
-                      left: `${beatToPx(cycleStart, zoom)}px`,
-                      width: `${beatToPx(cycleEnd - cycleStart, zoom)}px`,
-                      height: '100%',
-                    }}
-                  />
-                )}
+              {/* Grid */}
+              <GridOverlay
+                totalBeats={totalBeats}
+                zoom={zoom}
+                timeSignatureTop={timeSignatureTop}
+                trackCount={tracks.length}
+                trackHeight={trackHeight}
+                scrollLeft={scrollLeft}
+              />
 
-                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
-              onDrop={(e) => {
-                e.preventDefault();
-                const file = e.dataTransfer.files?.[0];
-                const url = URL.createObjectURL(file);
-                const rect = e.currentTarget.getBoundingClientRect();
-                const px = e.clientX - rect.left;
-                const beat = Math.max(0, Math.round((px / (zoom * 80)) * 1) / 1);
-                const trackIndex = tracks.indexOf(track);
-                if (trackIndex === -1) return;
-                const nr = { id: Date.now() + Math.random(), name: file.name.replace(/\.[^.]+$/, ""), startBeat: beat, duration: 4, audioUrl: url, muted: false, fadeIn: 0, fadeOut: 0 };
-              }}
-              {(track.regions || []).map(region => (
-                  <Region
-                    key={region.id} region={region} trackColor={track.trackType === 'instrument' ? '#af52de' : track.color}
-                    trackType={track.trackType || 'audio'}
-                    zoom={zoom} snapValue={snapValue} timeSignatureTop={timeSignatureTop}
-                    onMove={moveRegion} onResize={resizeRegion} onSelect={setSelectedRegion}
-                    isSelected={selectedRegion === region.id} onContextMenu={handleRegionContextMenu} trackHeight={trackHeight}
-                  />
-                ))}
+              {/* Click target for seek */}
+              <div ref={timelineRef} className="arr-seek-layer" onClick={handleTimelineClick}/>
 
-                {playheadLeft >= 0 && <div className="arr-playhead-line" style={{ left: `${beatToPx(playheadBeat, zoom)}px` }} />}
-              </div>
-            ))}
+              {/* Track lanes */}
+              {tracks.map((track, trackIndex) => (
+                <div
+                  key={track.id || trackIndex}
+                  className={"arr-lane" + (selectedTrack === trackIndex ? " selected" : "")}
+                  style={{ top: trackIndex * trackHeight, height: trackHeight }}
+                  onClick={() => setSelectedTrack(trackIndex)}
+                  onDoubleClick={(e) => handleTimelineDoubleClick(e, trackIndex)}
+                >
+                  {(track.regions || []).map(region => (
+                    <Region
+                      key={region.id}
+                      region={region}
+                      trackColor={track.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length]}
+                      trackType={track.trackType}
+                      zoom={zoom}
+                      snapValue={snapValue}
+                      timeSignatureTop={timeSignatureTop}
+                      onMove={(regionId, newStart) => moveRegion(trackIndex, regionId, newStart)}
+                      onResize={(regionId, newStart, newDur) => resizeRegion(trackIndex, regionId, newStart, newDur)}
+                      onSelect={setSelectedRegion}
+                      isSelected={selectedRegion === region.id}
+                      onContextMenu={(e, r) => handleRegionContextMenu(e, r, trackIndex)}
+                      trackHeight={trackHeight}
+                    />
+                  ))}
+                </div>
+              ))}
 
-            {/* Grid fill */}
-            <div className="arr-lane arr-lane-fill" style={{ minHeight: 'calc(100vh - 300px)', '--track-color': 'transparent' }} onDoubleClick={() => canAddTrack && addTrack('audio')}>
-              <GridOverlay zoom={zoom} timeSignatureTop={timeSignatureTop} scrollLeft={scrollLeft} width={timelineWidth} height={800} />
+              {/* Playhead */}
+              <Playhead
+                beat={playheadBeat}
+                zoom={zoom}
+                height={tracks.length * trackHeight}
+                scrollLeft={scrollLeft}
+              />
             </div>
           </div>
         </div>
-
-              {/* ── Automation Lane (below each track) ── */}
-              {typeof automation !== 'undefined' && (
-                <AutomationLane
-                  trackIndex={i}
-                  trackColor={track.trackType === 'instrument' ? '#af52de' : (track.color ?? '#00ffc8')}
-                  trackName={track.name ?? `Track ${i + 1}`}
-                  duration={Math.max(30, (tracks.reduce((mx, t) => Math.max(mx, ...(t.regions || []).map(r => (r.startBeat || 0) + (r.duration || 0))), 0) * (60 / (bpm || 120))) || 30)}
-                  zoom={zoom ?? 1}
-                  currentTime={(playheadBeat ?? 0) * (60 / (bpm || 120))}
-                  isPlaying={isPlaying}
-                  readMode={!!autoRead?.[track.id ?? i]}
-                  writeMode={!!autoWrite?.[track.id ?? i]}
-                  points={(automation?.[track.id ?? i]?.[autoParams?.[track.id ?? i] ?? 'volume']) ?? []}
-                  paramKey={autoParams?.[track.id ?? i] ?? 'volume'}
-                  onChange={pts => setAutomation(prev => ({
-                    ...prev,
-                    [track.id ?? i]: { ...(prev?.[track.id ?? i] ?? {}), [autoParams?.[track.id ?? i] ?? 'volume']: pts },
-                  }))}
-                  onParamChange={pk => setAutoParams(prev => ({ ...prev, [track.id ?? i]: pk }))}
-                  onReadToggle={() => setAutoRead(prev => ({ ...prev, [track.id ?? i]: !prev?.[track.id ?? i] }))}
-                  onWriteToggle={() => setAutoWrite(prev => ({ ...prev, [track.id ?? i]: !prev?.[track.id ?? i] }))}
-                  collapsed={!!autoCollapsed?.[track.id ?? i]}
-                  onCollapse={() => setAutoCollapsed(prev => ({ ...prev, [track.id ?? i]: !prev?.[track.id ?? i] }))}
-                />
-              )}
       </div>
 
-      {contextMenu && <ContextMenu x={contextMenu.x} y={contextMenu.y} items={contextMenu.items} onClose={() => setContextMenu(null)} />}
+      {/* ══════ AUTOMATION ══════ */}
+      {showAutoTrack !== null && tracks[showAutoTrack] && (
+        <div className="arr-automation-panel">
+          <div className="arr-automation-header">
+            <span className="arr-automation-title">
+              AUTOMATION — {tracks[showAutoTrack].name}
+            </span>
+            <select value={autoParam} onChange={e => setAutoParam(e.target.value)} className="arr-automation-param-select">
+              {AUTO_PARAMS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+            </select>
+            <button className="arr-automation-close" onClick={() => setShowAutoTrack(null)}>✕</button>
+          </div>
+          <AutomationLane
+            trackId={tracks[showAutoTrack].id || showAutoTrack}
+            paramKey={autoParam}
+            automation={automation}
+            setAutomation={setAutomation}
+            zoom={zoom}
+            scrollLeft={scrollLeft}
+            totalBeats={totalBeats}
+            bpm={bpm}
+            currentBeat={playheadBeat}
+            isPlaying={isPlaying}
+          />
+        </div>
+      )}
+
+      {/* ══════ CONTEXT MENU ══════ */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={contextMenu.items}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 };
