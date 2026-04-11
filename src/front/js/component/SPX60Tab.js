@@ -104,6 +104,9 @@ export default function SPX60Tab({ onExport, onSendToArrange, isEmbedded, master
   const [view, setView]               = useState('pads');
   const [syncToMaster, setSyncToMaster] = useState(false);
   const [activeSteps, setActiveSteps]   = useState([]);
+  const [songBlocks, setSongBlocks]     = useState([]);
+  const [songMode, setSongMode]         = useState(false);
+  const [songPos, setSongPos]           = useState(0);
 
   const ctxRef    = useRef(null);
   const stepRef   = useRef(0);
@@ -300,6 +303,8 @@ export default function SPX60Tab({ onExport, onSendToArrange, isEmbedded, master
         <div className="spx60-ctrl-group">
           <button className={`spx60-view-btn${view === 'pads' ? ' active' : ''}`} onClick={() => setView('pads')}>PADS</button>
           <button className={`spx60-view-btn${view === 'seq' ? ' active' : ''}`} onClick={() => setView('seq')}>SEQ</button>
+          <button className={`spx60-view-btn${view === 'song' ? ' active' : ''}`} onClick={() => setView('song')}>SONG</button>
+          <button className={`spx60-view-btn${view === 'mixer' ? ' active' : ''}`} onClick={() => setView('mixer')}>MIXER</button>
         </div>
       </div>
 
@@ -391,6 +396,77 @@ export default function SPX60Tab({ onExport, onSendToArrange, isEmbedded, master
                       onClick={() => toggleStep(si, pi)} />
                   ))}
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {view === 'song' && (
+        <div className="spx60-song-view">
+          <div className="spx60-song-header">
+            <span className="spx60-song-title">SONG MODE</span>
+            <button
+              className={`spx60-view-btn${songMode ? ' active' : ''}`}
+              onClick={() => setSongMode(p => !p)}
+            >{songMode ? '● SONG ON' : 'SONG OFF'}</button>
+            <span className="spx60-song-info">{songBlocks.length} blocks</span>
+          </div>
+          <div className="spx60-song-add">
+            <span style={{fontSize:10,color:'#88cc44'}}>Add sequence:</span>
+            {sequences.map((s, i) => (
+              <button key={i} className="spx60-song-add-btn"
+                onClick={() => setSongBlocks(p => [...p, {seqIdx:i, reps:1}])}>
+                + SEQ {i+1}
+              </button>
+            ))}
+          </div>
+          <div className="spx60-song-blocks">
+            {songBlocks.length === 0 ? (
+              <div className="spx60-song-empty">Add sequences above to build your song</div>
+            ) : songBlocks.map((block, bi) => (
+              <div key={bi} className={`spx60-song-block${songMode && playing && songPos === bi ? ' playing' : ''}`}>
+                <span className="spx60-song-block-num">{bi+1}</span>
+                <span className="spx60-song-block-name">SEQ {block.seqIdx+1}</span>
+                <div className="spx60-song-reps">
+                  <button onClick={() => setSongBlocks(p => p.map((b,i) => i===bi ? {...b,reps:Math.max(1,b.reps-1)} : b))}>−</button>
+                  <span>×{block.reps}</span>
+                  <button onClick={() => setSongBlocks(p => p.map((b,i) => i===bi ? {...b,reps:Math.min(99,b.reps+1)} : b))}>+</button>
+                </div>
+                <div className="spx60-song-block-actions">
+                  {bi > 0 && <button onClick={() => setSongBlocks(p => { const u=[...p]; [u[bi-1],u[bi]]=[u[bi],u[bi-1]]; return u; })}>↑</button>}
+                  {bi < songBlocks.length-1 && <button onClick={() => setSongBlocks(p => { const u=[...p]; [u[bi],u[bi+1]]=[u[bi+1],u[bi]]; return u; })}>↓</button>}
+                  <button onClick={() => setSongBlocks(p => p.filter((_,i) => i !== bi))}>✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {songBlocks.length > 0 && (
+            <button className="spx60-song-clear" onClick={() => setSongBlocks([])}>🗑️ Clear Song</button>
+          )}
+        </div>
+      )}
+
+      {view === 'mixer' && (
+        <div className="spx60-mixer-view">
+          <div className="spx60-mixer-grid">
+            {pads.map((pad, pi) => (
+              <div key={pi} className={`spx60-mixer-ch${!pad.processedBuffer ? ' empty' : ''}`}>
+                <div className="spx60-mixer-meter">
+                  <div className="spx60-mixer-meter-fill" style={{height:`${activeSteps.includes(pi) ? 75 : 0}%`}}/>
+                </div>
+                <input type="range" className="spx60-mixer-fader" orient="vertical"
+                  min={0} max={1} step={0.01} value={pad.volume ?? 1}
+                  onChange={e => setPads(p => p.map((pd,i) => i===pi ? {...pd, volume:+e.target.value} : pd))}/>
+                <span className="spx60-mixer-vol">{Math.round((pad.volume??1)*100)}</span>
+                <input type="range" className="spx60-mixer-pan"
+                  min={-1} max={1} step={0.01} value={pad.pan ?? 0}
+                  onChange={e => setPads(p => p.map((pd,i) => i===pi ? {...pd, pan:+e.target.value} : pd))}/>
+                <button
+                  className={`spx60-mixer-mute${pad.muted ? ' on' : ''}`}
+                  onClick={() => setPads(p => p.map((pd,i) => i===pi ? {...pd, muted:!pd.muted} : pd))}
+                >M</button>
+                <div className="spx60-mixer-label" style={{color: pad.color || '#88cc44'}}>{pi+1}</div>
               </div>
             ))}
           </div>

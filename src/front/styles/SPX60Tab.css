@@ -298,8 +298,8 @@
 
 /* ── Sequencer ── */
 .spx60-seq         { flex: 1; overflow-y: auto; padding: 8px; background: var(--chassis); }
-.spx60-seq-grid    { display: flex; flex-direction: column; gap: 3px; }
-.spx60-seq-row     { display: flex; align-items: center; gap: 5px; }
+.spx60-seq-grid    { display: flex; flex-direction: column; gap: 3px; width: 100%; }
+.spx60-seq-row     { display: flex; align-items: center; gap: 5px; width: 100%; }
 .spx60-seq-pad-btn {
   width: 60px; min-width: 60px; padding: 2px 5px;
   background: var(--btn-dark); border: 1px solid var(--border2); border-radius: 2px;
@@ -307,7 +307,7 @@
   text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .spx60-seq-pad-btn:hover { border-color: var(--red); color: var(--text); }
-.spx60-seq-steps   { display: flex; gap: 2px; }
+.spx60-seq-steps   { display: flex; gap: 2px; flex: 1; }
 .spx60-step {
   width: 15px; height: 15px; border-radius: 2px;
   background: var(--btn-dark); border: 1px solid var(--border2); cursor: pointer; transition: all 0.06s;
@@ -588,3 +588,40 @@
 .spx60-pad-drop { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: #cccccc; }
 .spx60-pad.firing .spx60-pad-num,
 .spx60-pad.firing .spx60-pad-name { color: #ffffff; }
+
+/* ── SPX-60 Song Mode ── */
+.spx60-song-view{display:flex;flex-direction:column;flex:1;overflow:auto;padding:12px;gap:10px;background:var(--chassis);}
+.spx60-song-header{display:flex;align-items:center;gap:10px;padding:8px;background:var(--panel);border-radius:4px;}
+.spx60-song-title{font-size:11px;font-weight:800;color:var(--lcd-fg);letter-spacing:2px;font-family:var(--font-mono);}
+.spx60-song-info{font-size:10px;color:var(--lcd-fg);margin-left:auto;font-family:var(--font-mono);}
+.spx60-song-add{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px;}
+.spx60-song-add-btn{padding:3px 10px;font-size:10px;background:var(--panel);border:1px solid var(--lcd-fg);color:var(--lcd-fg);border-radius:3px;cursor:pointer;font-family:var(--font-mono);}
+.spx60-song-add-btn:hover{background:var(--lcd-fg);color:#000;}
+.spx60-song-blocks{display:flex;flex-direction:column;gap:4px;flex:1;}
+.spx60-song-empty{padding:20px;text-align:center;color:var(--border2);font-size:11px;font-family:var(--font-mono);}
+.spx60-song-block{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--panel);border:1px solid var(--border2);border-radius:3px;}
+.spx60-song-block.playing{border-color:var(--lcd-fg);background:rgba(136,204,68,0.1);}
+.spx60-song-block-num{font-size:10px;color:var(--border2);font-family:var(--font-mono);width:20px;}
+.spx60-song-block-name{font-size:11px;font-weight:700;color:var(--lcd-fg);font-family:var(--font-mono);flex:1;}
+.spx60-song-reps{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--lcd-fg);font-family:var(--font-mono);}
+.spx60-song-reps button{width:18px;height:18px;background:var(--panel2);border:1px solid var(--border2);color:var(--lcd-fg);cursor:pointer;border-radius:2px;font-size:11px;display:flex;align-items:center;justify-content:center;}
+.spx60-song-block-actions{display:flex;gap:4px;}
+.spx60-song-block-actions button{padding:2px 6px;font-size:10px;background:var(--panel2);border:1px solid var(--border2);color:var(--border2);cursor:pointer;border-radius:2px;}
+.spx60-song-block-actions button:hover{border-color:var(--lcd-fg);color:var(--lcd-fg);}
+.spx60-song-clear{align-self:flex-start;padding:4px 12px;font-size:10px;background:transparent;border:1px solid #cc4400;color:#cc4400;cursor:pointer;border-radius:3px;font-family:var(--font-mono);}
+
+/* ── SPX-60 Mixer ── */
+.spx60-mixer-view{display:flex;flex:1;overflow:hidden;padding:12px;background:var(--chassis);}
+.spx60-mixer-grid{display:flex;flex-direction:row;gap:4px;flex:1;align-items:stretch;overflow-x:auto;}
+.spx60-mixer-ch{display:flex;flex-direction:column;align-items:center;gap:3px;width:52px;min-width:52px;background:var(--panel);border:1px solid var(--border2);border-radius:3px;padding:6px 4px;}
+.spx60-mixer-ch.empty{opacity:0.5;}
+.spx60-mixer-meter{width:12px;flex:1;min-height:60px;background:#0a0a0a;border:1px solid var(--border);border-radius:1px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;}
+.spx60-mixer-meter-fill{width:100%;background:linear-gradient(to top,#44aa00,#88cc00,#ccaa00,#cc4400);transition:height .05s;}
+.spx60-mixer-fader{writing-mode:vertical-lr;direction:rtl;width:28px;height:80px;accent-color:var(--lcd-fg);}
+.spx60-mixer-vol{font-size:8px;color:var(--lcd-fg);font-family:var(--font-mono);}
+.spx60-mixer-pan{width:44px;accent-color:var(--lcd-fg);}
+.spx60-mixer-mute{width:28px;height:16px;font-size:8px;font-weight:800;background:var(--panel2);border:1px solid var(--border2);color:var(--border2);cursor:pointer;border-radius:2px;}
+.spx60-mixer-mute.on{background:#cc2200;border-color:#ff4400;color:#fff;}
+.spx60-mixer-label{font-size:9px;font-weight:800;font-family:var(--font-mono);}
+
+.spx60-step { flex: 1; min-width: 0; }
