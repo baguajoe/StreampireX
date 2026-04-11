@@ -1955,3 +1955,24 @@
 .daw-channel .daw-ch-fader-area {
   margin-top: auto;
 }
+
+/* Force all mixer channels same height, fader always at same position */
+.daw-channel {
+  overflow: hidden;
+}
+.daw-ch-name,
+.daw-ch-routing,
+.daw-ch-inserts,
+.daw-ch-sends,
+.daw-ch-controls {
+  flex-shrink: 0;
+}
+.daw-channel .daw-ch-fader-area {
+  position: absolute;
+  bottom: 80px;
+  left: 0;
+  right: 0;
+}
+.daw-channel {
+  position: relative;
+}
