@@ -4260,7 +4260,7 @@ const RecordingStudio = ({ user }) => {
                       />
                     </div>
                     <div className="daw-ch-inserts">
-                      <div className="daw-ch-inserts-label">Inserts</div>
+                      <div className="daw-ch-inserts-label daw-ch-track-name-top">{t.name || `Track ${i + 1}`}</div>
                       {(() => {
                         const ALL_FX = ALL_FX_EXTENDED;
                         const loaded = ALL_FX.filter((fx) => t.effects?.[fx.key]?.enabled);

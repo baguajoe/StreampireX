@@ -1993,3 +1993,55 @@
   max-width: 100%;
   text-align: center;
 }
+
+/* ── Mixer polish ── */
+
+/* Brighter channel strips */
+.daw-channel {
+  background: #131820 !important;
+  border-color: #2a3040 !important;
+}
+.daw-channel.selected {
+  background: #161e2a !important;
+  border-color: #00ffc8 !important;
+}
+
+/* Track name at top of inserts */
+.daw-ch-track-name-top {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #cdd9e5 !important;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 2px 0 !important;
+}
+
+/* Fader meter row fills available space */
+.daw-ch-fader-meter-row {
+  flex: 1 !important;
+  min-height: 180px !important;
+}
+
+/* Vol readout */
+.daw-ch-vol-readout {
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  color: #cdd9e5;
+  padding: 3px 0;
+  background: #0d1117;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* Make routing/inserts sections lighter */
+.daw-ch-routing,
+.daw-ch-inserts {
+  background: rgba(255,255,255,0.04) !important;
+}
+
+/* Uniform section sizing between track and master */
+.daw-ch-inserts,
+.daw-ch-master-bus { min-height: 70px; }
