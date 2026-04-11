@@ -587,24 +587,8 @@
   height: 680px !important;
   min-height: 680px !important;
   max-height: 680px !important;
-  display: grid;
-  grid-template-rows:
-    auto
-    auto
-    auto
-    auto
-    1fr
-    auto
-    auto
-    auto;
-  gap: 9px;
-  padding: 11px;
-  border-radius: 16px;
-  background:
-    linear-gradient(180deg, rgba(22,34,50,0.97), rgba(10,16,24,0.99));
-  border: 1px solid rgba(255,255,255,0.07);
-  box-shadow: var(--rs-shadow-md);
-  color: var(--rs-text);
+  display: flex;
+  flex-direction: column;
 }
 
 .daw-channel.selected {
