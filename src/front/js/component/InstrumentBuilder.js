@@ -826,7 +826,7 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
           </div>
         </div>
 
-        {/* DETAIL */}
+        {/* DETAIL — center column: layer params only */}
         <div className="ib-detail">
           {editLayer ? (
             <>
@@ -847,7 +847,10 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
             </div>
           )}
 
-          {/* MASTER FX */}
+        </div>
+
+        {/* RIGHT PANEL — FX + Assign */}
+        <div className="ib-right-panel">
           <Panel title="MASTER FX" color="#34d399">
             <div className="ib-fx-grid">
               {/* Chorus */}

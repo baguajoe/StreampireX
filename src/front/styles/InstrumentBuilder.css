@@ -159,7 +159,7 @@
 /* ── BODY LAYOUT ── */
 .ib-body {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 220px 1fr 260px;
   flex: 1;
   min-height: 400px;
   overflow: hidden;
@@ -592,4 +592,23 @@
   .ib-body    { grid-template-columns: 1fr; }
   .ib-layers  { max-height: 220px; border-right: none; border-bottom: 1px solid #0d1826; }
   .ib-fx-grid { grid-template-columns: 1fr; }
+}
+/* ── 3-COLUMN LAYOUT ── */
+.ib-right-panel {
+  background: #060b14;
+  border-left: 1px solid #0d1826;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 14px;
+  gap: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #1a2d45 transparent;
+}
+.ib-detail {
+  border-right: 1px solid #0d1826;
+}
+.ib-keyboard-row {
+  border-top: 1px solid #0d1826;
+  background: #060b14;
 }
