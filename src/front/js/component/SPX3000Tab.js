@@ -2018,13 +2018,8 @@ const SPX3000Tab = ({
               <div className="spx3000-mixer-label master-label">MST</div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════
-          PAD SETTINGS PANEL
-          ══════════════════════════════════════════════════════════════ */}
-      {selectedPad !== null && (
+          {/* PAD SETTINGS — permanent right column */}
+          {selectedPad !== null && (
         <div className="spx3000-pad-settings spx3000-pad-settings-inline">
           <div className="spx3000-pad-settings-header">
             <span

@@ -380,12 +380,12 @@
    PADS VIEW
    ══════════════════════════════════════════════════════ */
 .spx3000-pads-view {
-  flex:     1;
-  overflow: auto;
-  padding:  12px;
-  display:  flex;
-  flex-direction: column;
-  gap:      12px;
+  flex:           1;
+  overflow:       hidden;
+  display:        flex;
+  flex-direction: row;
+  gap:            0;
+  min-height:     0;
 }
 
 /* Bank selector */
@@ -1116,19 +1116,17 @@
    PAD SETTINGS PANEL
    ══════════════════════════════════════════════════════ */
 .spx3000-pad-settings {
-  position:      absolute;
-  bottom:        0;
-  right:         0;
-  width:         340px;
-  max-height:    70%;
-  overflow:      auto;
-  background:    var(--spx-surface);
-  border:        1px solid var(--spx-border2);
-  border-radius: 4px 0 0 0;
-  box-shadow:    -4px -4px 20px rgba(0,0,0,0.5);
-  z-index:       50;
-  display:       flex;
-  flex-direction:column;
+  position:       relative;
+  width:          200px;
+  min-width:      200px;
+  max-width:      200px;
+  height:         100%;
+  overflow-y:     auto;
+  background:     #1a1200;
+  border-left:    2px solid #FF6600;
+  display:        flex;
+  flex-direction: column;
+  flex-shrink:    0;
 }
 .spx3000-pad-settings-header {
   display:       flex;
@@ -1523,3 +1521,9 @@
 .spx-pad-num  { font-size: 0.72rem; color: #aaaaaa; font-weight: 700; }
 .spx-pad-name { font-size: 0.7rem;  color: #dddddd; font-weight: 500; }
 .spx-drop-text { font-size: 0.62rem; color: #666666; letter-spacing: 0.08em; }
+
+/* ── SPX3000 inline right panel layout ── */
+.spx3000-pads-view > div:first-child { flex:1; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:12px; min-width:0; }
+.spx3000-pad-settings-inline { width:200px !important; min-width:200px !important; position:relative !important; border-left:2px solid #FF6600 !important; background:#1a1200 !important; }
+.spx3000-pad-settings-header { background:#221500 !important; border-bottom:1px solid #FF6600 !important; color:#FF6600 !important; font-size:10px !important; }
+.spx-settings-close { color:#FF6600 !important; }
