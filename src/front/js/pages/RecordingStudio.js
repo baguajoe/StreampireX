@@ -152,6 +152,7 @@ import "../../styles/VocalTools.css";
 import { useDAWCollaboration, CollabToolbar, CollabOverlay, CollabChatPanel } from "../component/hooks/useDAWCollaboration";
 import MidiHardwareInput from "../component/MidiHardwareInput";
 import { installWAMPlugin, getInstalledWAMPlugins } from "../component/audio/plugins/WAMPluginHost";
+import AddTrackDialog from "../component/AddTrackDialog";
 
 // =============================================================================
 // CONSTANTS
@@ -547,6 +548,7 @@ const RecordingStudio = ({ user }) => {
   const [pluginRackTrack, setPluginRackTrack] = useState(null);
   const [trackPlugins, setTrackPlugins] = useState({});
   const [chordsList, setChordsList] = useState([]);
+  const [showAddTrackDialog, setShowAddTrackDialog] = useState(false);
 
   // ── Audio refs ──
   const audioCtxRef = useRef(null);
@@ -1035,7 +1037,8 @@ const RecordingStudio = ({ user }) => {
     if (tracks.length >= maxTracks) { setStatus(`⚠ ${userTier} tier limit: ${maxTracks} tracks.`); return; }
     const i = tracks.length;
     setTracks(prev => [...prev, DEFAULT_TRACK(i, newTrackType)]);
-    setSelectedTrackIndex(i); setStatus(`Track ${i + 1} added`);
+    setSelectedTrackIndex(i);
+    setStatus(`Track ${i + 1} added`);
   };
 
   const removeTrack = (idx) => {
@@ -1474,7 +1477,7 @@ const RecordingStudio = ({ user }) => {
       case "transport:record": isRecording ? stopRecording() : startRecording(); break;
       case "transport:rewind": rewind(); break;
       case "transport:tapTempo": tapTempo(); break;
-      case "track:add": addTrack(); break;
+      case "track:add": setShowAddTrackDialog(true); break;
       case "track:remove": removeTrack(sel); break;
       case "track:arm": toggleArmSelected(); break;
       case "track:mute": toggleMuteSelected(); break;
@@ -2054,6 +2057,22 @@ const RecordingStudio = ({ user }) => {
           onCancel={() => { setShowSaveAsModal(false); setSaveAsData(null); }}/>
 
         <CollabChatPanel collab={collab}/>
+        {showAddTrackDialog && (
+          <AddTrackDialog
+            onAdd={(type, trackName) => {
+              if (tracks.length >= maxTracks) return;
+              const i = tracks.length;
+              const t = { ...DEFAULT_TRACK(i, type) };
+              if (trackName) t.name = trackName;
+              setTracks(prev => [...prev, t]);
+              setSelectedTrackIndex(i);
+              setStatus("✓ " + t.name + " added");
+            }}
+            onClose={() => setShowAddTrackDialog(false)}
+            maxTracks={maxTracks}
+            currentCount={tracks.length}
+          />
+        )}
       </div>
     </div>
   );
