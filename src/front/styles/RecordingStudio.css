@@ -1928,3 +1928,7 @@
   align-items: center;
   height: 100%;
 }
+
+/* Mixer channel strip alignment fix */
+.daw-ch-strip { align-items: flex-start; }
+.daw-ch-fader-area { justify-content: flex-start; }
