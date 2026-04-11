@@ -1527,3 +1527,7 @@
 .spx3000-pad-settings-inline { width:200px !important; min-width:200px !important; position:relative !important; border-left:2px solid #FF6600 !important; background:#1a1200 !important; }
 .spx3000-pad-settings-header { background:#221500 !important; border-bottom:1px solid #FF6600 !important; color:#FF6600 !important; font-size:10px !important; }
 .spx-settings-close { color:#FF6600 !important; }
+
+/* ── SPX3000 full-width pad grid fix ── */
+.spx3000-pad-grid-fullwidth { width:100% !important; }
+.spx3000-pad-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; width:100%; flex:1; }

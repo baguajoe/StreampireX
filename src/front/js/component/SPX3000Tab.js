@@ -1593,7 +1593,7 @@ const SPX3000Tab = ({
           </div>
 
           {/* 4×4 Pad Grid — MPC3000 layout */}
-          <div className="spx3000-pad-grid">
+          <div className="spx3000-pad-grid spx3000-pad-grid-fullwidth">
             {PAD_LAYOUT.map((row, rowIdx) =>
               row.map((padIdx) => {
                 const pad = curPads[padIdx];
