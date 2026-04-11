@@ -1699,6 +1699,107 @@ const SPX3000Tab = ({
             </div>
             </div>
         </div>
+          {selectedPad !== null && (
+            <div className="spx3000-pad-settings" style={{position:'relative',width:220,minWidth:220,height:'100%',overflowY:'auto',background:'#1a1200',borderLeft:'2px solid #FF6600',display:'flex',flexDirection:'column',flexShrink:0}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px',borderBottom:'1px solid #FF6600',background:'#221500',flexShrink:0}}>
+                <span style={{width:12,height:12,borderRadius:'50%',background:curPads[selectedPad].color,flexShrink:0,display:'inline-block'}}/>
+                <span style={{fontSize:10,color:'#FF6600',fontFamily:'Share Tech Mono,monospace',letterSpacing:1,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>BANK {activeBank} · PAD {selectedPad + 1}</span>
+              </div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:2,padding:'6px 8px',borderBottom:'1px solid #3a2800'}}>
+                {['main','envelope','filter','choke','character','copy'].map(t => (
+                  <button key={t} onClick={() => setSettingsTab(t)} style={{padding:'2px 6px',fontSize:9,fontWeight:700,fontFamily:'Share Tech Mono,monospace',background:settingsTab===t?'#FF6600':'#2a1800',color:settingsTab===t?'#000':'#FF6600',border:'1px solid #FF6600',borderRadius:2,cursor:'pointer'}}>{t.toUpperCase()}</button>
+                ))}
+              </div>
+              <div style={{display:'flex',gap:4,padding:'6px 8px',borderBottom:'1px solid #3a2800'}}>
+                <button onClick={() => fileSelect(activeBank, selectedPad)} style={{flex:1,padding:'3px 0',fontSize:9,background:'#2a1800',color:'#FF6600',border:'1px solid #FF6600',borderRadius:2,cursor:'pointer'}}>📂 Load</button>
+                <button onClick={() => clearPad(activeBank, selectedPad)} style={{flex:1,padding:'3px 0',fontSize:9,background:'#2a1800',color:'#FF6600',border:'1px solid #FF6600',borderRadius:2,cursor:'pointer'}}>🗑 Clear</button>
+              </div>
+              <div style={{flex:1,overflowY:'auto',padding:'8px'}}>
+                {settingsTab === 'main' && (
+                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                    {[['Volume',0,100,curPads[selectedPad].volume,'volume',null],['Tune',-50,50,curPads[selectedPad].tune,'tune','¢'],['Semitone',-12,12,curPads[selectedPad].semitone||0,'semitone','st'],['Pan',-50,50,curPads[selectedPad].pan||0,'pan',null]].map(([label,mn,mx,val,key,unit])=>(
+                      <div key={key} style={{display:'flex',flexDirection:'column',gap:2}}>
+                        <div style={{display:'flex',justifyContent:'space-between'}}>
+                          <span style={{fontSize:9,color:'#cc6600'}}>{label}</span>
+                          <span style={{fontSize:9,color:'#FF6600',fontFamily:'monospace'}}>{val}{unit||''}</span>
+                        </div>
+                        <input type="range" min={mn} max={mx} value={val} style={{width:'100%',accentColor:'#FF6600'}}
+                          onChange={e=>{updatePad(activeBank,selectedPad,{[key]:+e.target.value});if(key==='tune'||key==='semitone')invalidateDacCache(activeBank,selectedPad);}}/>
+                      </div>
+                    ))}
+                    <div style={{display:'flex',flexDirection:'column',gap:2}}>
+                      <span style={{fontSize:9,color:'#cc6600'}}>Loop Mode</span>
+                      <div style={{display:'flex',gap:3}}>
+                        {['off','forward','pingpong'].map(m=>(
+                          <button key={m} onClick={()=>updatePad(activeBank,selectedPad,{loopMode:m})} style={{flex:1,padding:'2px 0',fontSize:8,background:curPads[selectedPad].loopMode===m?'#FF6600':'#2a1800',color:curPads[selectedPad].loopMode===m?'#000':'#FF6600',border:'1px solid #FF6600',borderRadius:2,cursor:'pointer'}}>{m==='off'?'Off':m==='forward'?'→Fwd':'↔PP'}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{display:'flex',gap:4,marginTop:4}}>
+                      <button onClick={()=>updatePad(activeBank,selectedPad,{muted:!curPads[selectedPad].muted})} style={{flex:1,padding:'3px 0',fontSize:9,background:curPads[selectedPad].muted?'#FF6600':'#2a1800',color:curPads[selectedPad].muted?'#000':'#FF6600',border:'1px solid #FF6600',borderRadius:2,cursor:'pointer'}}>{curPads[selectedPad].muted?'MUTED':'MUTE'}</button>
+                      <button onClick={()=>updatePad(activeBank,selectedPad,{soloed:!curPads[selectedPad].soloed})} style={{flex:1,padding:'3px 0',fontSize:9,background:curPads[selectedPad].soloed?'#FF6600':'#2a1800',color:curPads[selectedPad].soloed?'#000':'#FF6600',border:'1px solid #FF6600',borderRadius:2,cursor:'pointer'}}>{curPads[selectedPad].soloed?'SOLOED':'SOLO'}</button>
+                    </div>
+                  </div>
+                )}
+                {settingsTab === 'envelope' && (
+                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                    <span style={{fontSize:9,color:'#888',fontStyle:'italic'}}>MPC3000: Attack + Release only</span>
+                    {[['Attack (ms)',0,500,curPads[selectedPad].attack||0,'attack','ms'],['Release (ms)',0,5000,curPads[selectedPad].release||0,'release','ms']].map(([label,mn,mx,val,key,unit])=>(
+                      <div key={key} style={{display:'flex',flexDirection:'column',gap:2}}>
+                        <div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontSize:9,color:'#cc6600'}}>{label}</span><span style={{fontSize:9,color:'#FF6600',fontFamily:'monospace'}}>{val}{unit}</span></div>
+                        <input type="range" min={mn} max={mx} value={val} style={{width:'100%',accentColor:'#FF6600'}} onChange={e=>updatePad(activeBank,selectedPad,{[key]:+e.target.value})}/>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {settingsTab === 'filter' && (
+                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <span style={{fontSize:9,color:'#cc6600'}}>Filter</span>
+                      <button onClick={()=>updatePad(activeBank,selectedPad,{filterOn:!curPads[selectedPad].filterOn})} style={{padding:'2px 8px',fontSize:9,background:curPads[selectedPad].filterOn?'#FF6600':'#2a1800',color:curPads[selectedPad].filterOn?'#000':'#FF6600',border:'1px solid #FF6600',borderRadius:2,cursor:'pointer'}}>{curPads[selectedPad].filterOn?'ON':'OFF'}</button>
+                    </div>
+                    {curPads[selectedPad].filterOn && (
+                      <div style={{display:'flex',flexDirection:'column',gap:2}}>
+                        <div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontSize:9,color:'#cc6600'}}>Cutoff</span><span style={{fontSize:9,color:'#FF6600',fontFamily:'monospace'}}>{curPads[selectedPad].filterFreq}Hz</span></div>
+                        <input type="range" min={200} max={20000} value={curPads[selectedPad].filterFreq} style={{width:'100%',accentColor:'#FF6600'}} onChange={e=>updatePad(activeBank,selectedPad,{filterFreq:+e.target.value})}/>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {settingsTab === 'choke' && (
+                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                    <span style={{fontSize:9,color:'#888',fontStyle:'italic'}}>Pads in same group cut each other</span>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:3}}>
+                      <button onClick={()=>updatePad(activeBank,selectedPad,{chokeGroup:0})} style={{padding:'2px 6px',fontSize:9,background:curPads[selectedPad].chokeGroup===0?'#FF6600':'#2a1800',color:curPads[selectedPad].chokeGroup===0?'#000':'#FF6600',border:'1px solid #FF6600',borderRadius:2,cursor:'pointer'}}>NONE</button>
+                      {Array.from({length:8},(_,i)=>(
+                        <button key={i+1} onClick={()=>updatePad(activeBank,selectedPad,{chokeGroup:i+1})} style={{padding:'2px 6px',fontSize:9,background:curPads[selectedPad].chokeGroup===i+1?'#FF6600':'#2a1800',color:curPads[selectedPad].chokeGroup===i+1?'#000':'#FF6600',border:'1px solid #FF6600',borderRadius:2,cursor:'pointer'}}>{i+1}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {settingsTab === 'character' && (
+                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <span style={{fontSize:9,color:'#cc6600'}}>12-bit DAC</span>
+                      <button onClick={()=>{updatePad(activeBank,selectedPad,{dacOn:!curPads[selectedPad].dacOn});invalidateDacCache(activeBank,selectedPad);}} style={{padding:'2px 8px',fontSize:9,background:curPads[selectedPad].dacOn?'#FF6600':'#2a1800',color:curPads[selectedPad].dacOn?'#000':'#FF6600',border:'1px solid #FF6600',borderRadius:2,cursor:'pointer'}}>{curPads[selectedPad].dacOn?'ON':'OFF'}</button>
+                    </div>
+                  </div>
+                )}
+                {settingsTab === 'copy' && (
+                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                    <span style={{fontSize:9,color:'#888',fontStyle:'italic'}}>Copy pad to another bank</span>
+                    {SPX_BANKS.filter(b=>b!==activeBank).map(destBank=>(
+                      <button key={destBank} onClick={()=>copyPadToBank(activeBank,selectedPad,destBank)} style={{padding:'4px',fontSize:9,background:'#2a1800',color:'#FF6600',border:'1px solid #FF6600',borderRadius:2,cursor:'pointer'}}>Copy → Bank {destBank}</button>
+                    ))}
+                    <div style={{display:'flex',flexDirection:'column',gap:2,marginTop:4}}>
+                      <span style={{fontSize:9,color:'#cc6600'}}>Name</span>
+                      <input type="text" maxLength={24} value={curPads[selectedPad].name} onChange={e=>updatePad(activeBank,selectedPad,{name:e.target.value})} style={{background:'#1a1200',border:'1px solid #FF6600',color:'#FF6600',fontSize:10,padding:'3px 6px',fontFamily:'Share Tech Mono,monospace'}}/>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
