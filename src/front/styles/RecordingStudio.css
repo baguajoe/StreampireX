@@ -743,6 +743,8 @@
   gap: 8px;
   padding: 8px;
   min-height: 330px;
+  height: 330px;
+  flex: 1;
 }
 
 .daw-ch-fader-row {
