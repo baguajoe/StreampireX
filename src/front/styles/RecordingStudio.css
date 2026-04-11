@@ -288,3 +288,33 @@
   display: block;
   text-align: left;
 }
+
+/* Hardware fader cap override */
+.daw-ch-fader input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 54px !important;
+  height: 16px !important;
+  border-radius: 3px !important;
+  background:
+    linear-gradient(180deg, transparent 48%, #222 48%, #222 52%, transparent 52%),
+    linear-gradient(180deg,
+      #e8ecf0 0%,
+      #c0c8d0 15%,
+      #98a8b8 40%,
+      #78909a 50%,
+      #98a8b8 60%,
+      #c0c8d0 85%,
+      #e0e4e8 100%
+    ) !important;
+  border-top: 2px solid #f0f4f8 !important;
+  border-bottom: 2px solid #384858 !important;
+  border-left: 1px solid #607080 !important;
+  border-right: 1px solid #607080 !important;
+  box-shadow: 0 3px 10px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.4) !important;
+  cursor: grab !important;
+}
+.daw-ch-fader input[type="range"]:active::-webkit-slider-thumb {
+  cursor: grabbing !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,.9) !important;
+}
