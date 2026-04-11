@@ -4146,26 +4146,6 @@ const RecordingStudio = ({ user }) => {
                         className={`daw-channel${i === selectedTrack ? ' selected' : ''}`}
                         onClick={() => setSelectedTrack(i)}
                       >
-                        <div className="daw-ch-name">
-                        <div style={{ padding: '2px 4px', borderBottom: '1px solid #1e2030' }}>
-                          <select
-                            style={{ width: '100%', background: '#0d1117', border: '1px solid #21262d',
-                              color: (CONSOLE_BOARDS[trackConsoleChar[t.id]||'none']||{color:'#555'}).color,
-                              borderRadius: 3, fontSize: 9, padding: '1px 2px',
-                              fontFamily: 'Share Tech Mono, monospace' }}
-                            value={trackConsoleChar[t.id] || 'none'}
-                            onChange={e => setTrackConsoleChar(prev => ({ ...prev, [t.id]: e.target.value }))}
-                            title="Console character"
-                          >
-                            {Object.entries(CONSOLE_BOARDS).map(([id, b]) => (
-                              <option key={id} value={id}>{b.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: t.color || '#cdd9e5', letterSpacing: '0.04em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {t.name || `Track ${i + 1}`}
-                          </span>
-                        </div>
                         <div className="daw-ch-controls">
                           <button
                             className={`daw-ch-btn mute${t.muted ? ' active' : ''}`}
@@ -4178,20 +4158,36 @@ const RecordingStudio = ({ user }) => {
                             title="Solo"
                           >S</button>
                         </div>
-                        <div className="daw-ch-fader-area">
-                          <input
-                            type="range" min={0} max={1} step={0.01}
-                            value={t.volume ?? 0.8}
-                            className="daw-ch-fader"
-                            orient="vertical"
-                            onChange={e => updateTrack(i, { volume: parseFloat(e.target.value) })}
-                          />
+                        <div className="daw-ch-fader-meter-row">
+                          <div className="daw-ch-fader-area">
+                            <input
+                              type="range" min={0} max={1} step={0.01}
+                              value={t.volume ?? 0.8}
+                              className="daw-ch-fader"
+                              orient="vertical"
+                              onChange={e => updateTrack(i, { volume: parseFloat(e.target.value) })}
+                            />
+                          </div>
+                          <div className="daw-ch-meter">
+                            <div className="daw-ch-meter-bar" style={{ height: `${Math.round((meter.left || 0) * 100)}%`, background: meter.peak > 0.9 ? '#ff3b30' : '#00ffc8' }} />
+                          </div>
                         </div>
-                        <div className="daw-ch-meter">
-                          <div className="daw-ch-meter-bar" style={{ height: `${Math.round((meter.left || 0) * 100)}%`, background: meter.peak > 0.9 ? '#ff3b30' : '#00ffc8' }} />
-                        </div>
-                        <div style={{ fontSize: 10, textAlign: 'center', color: '#6e7681', padding: '2px 0' }}>
+                        <div className="daw-ch-vol-readout">
                           {Math.round((t.volume ?? 0.8) * 100)}
+                        </div>
+                        <div className="daw-ch-name daw-ch-name-bottom">
+                          <select className="daw-ch-console-select"
+                            value={trackConsoleChar[t.id] || 'none'}
+                            onChange={e => setTrackConsoleChar(prev => ({ ...prev, [t.id]: e.target.value }))}
+                            title="Console character"
+                          >
+                            {Object.entries(CONSOLE_BOARDS).map(([id, b]) => (
+                              <option key={id} value={id}>{b.name}</option>
+                            ))}
+                          </select>
+                          <span className="daw-ch-track-label" style={{ color: t.color || '#cdd9e5' }}>
+                            {t.name || `Track ${i + 1}`}
+                          </span>
                         </div>
                       </div>
                     );

@@ -1937,3 +1937,75 @@
 /* Equalize inserts vs master section height */
 .daw-ch-inserts { min-height: 88px; }
 .daw-master .daw-ch-routing { min-height: 88px; }
+
+/* ── Cubase-style mixer channel strip ── */
+.daw-channel {
+  display: flex;
+  flex-direction: column;
+}
+.daw-ch-fader-meter-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  flex: 1;
+  min-height: 200px;
+  gap: 4px;
+  padding: 4px;
+}
+.daw-ch-fader-area {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  min-height: 200px;
+  height: auto;
+}
+.daw-ch-fader-area input[type=range] {
+  height: 100%;
+  width: 28px;
+}
+.daw-ch-meter {
+  width: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: #0a0d14;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.daw-ch-vol-readout {
+  font-size: 10px;
+  text-align: center;
+  color: #6e7681;
+  padding: 2px 0;
+  flex-shrink: 0;
+}
+.daw-ch-name-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-top: 1px solid #1e2030;
+  flex-shrink: 0;
+}
+.daw-ch-console-select {
+  width: 100%;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 3px;
+  font-size: 9px;
+  padding: 1px 2px;
+  font-family: Share Tech Mono, monospace;
+  color: #555;
+}
+.daw-ch-track-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+}
