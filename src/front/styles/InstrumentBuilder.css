@@ -501,6 +501,9 @@
   border-top: 1px solid #0d1826;
   padding: 10px 14px 12px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .ib-kbd-controls {
   display: flex;

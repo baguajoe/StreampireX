@@ -728,7 +728,7 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
   };
 
   // Keyboard
-  const OCTAVES = [3, 4, 5]; const WW = 22, WH = 70, BW = 14, BH = 44;
+  const OCTAVES = [2, 3, 4, 5, 6]; const WW = 28, WH = 90, BW = 18, BH = 56;
   const KPO = [{b:false,m:0},{b:true,m:1},{b:false,m:2},{b:true,m:3},{b:false,m:4},{b:false,m:5},{b:true,m:6},{b:false,m:7},{b:true,m:8},{b:false,m:9},{b:true,m:10},{b:false,m:11}];
 
   const renderKeyboard = () => {
@@ -760,6 +760,10 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
     );
   };
 
+  // Auto-select first layer if none selected
+  React.useEffect(() => {
+    if (!editLayerId && layers.length > 0) setEditLayerId(layers[0].id);
+  }, [layers, editLayerId]);
   const editLayer = layers.find(l => l.id === editLayerId);
 
   return (
@@ -918,7 +922,7 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
           <button className="ib-btn" onClick={() => setOctaveShift(o => Math.min(2, o+1))}>▶</button>
           <span style={{ fontSize: '0.48rem', color: '#1e3050', marginLeft: 6 }}>QWERTY PLAYABLE</span>
         </div>
-        <div style={{ overflowX: 'auto' }}>{renderKeyboard()}</div>
+        <div style={{ overflowX: 'auto', width: '100%' }}>{renderKeyboard()}</div>
       </div>
 
       {/* SAVE MODAL */}
