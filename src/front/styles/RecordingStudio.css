@@ -556,7 +556,7 @@
   flex-direction: column;
   flex: 1;
   overflow: hidden;
-  background: #0c0e12;
+  background: #111520;
 }
 .daw-console-scroll {
   display: flex;
@@ -568,7 +568,7 @@
   overflow-y: auto;
   flex: 1;
   min-height: 0;
-  background: #080a0d;
+  background: #0f1218;
 }
 
 /* ── Channel strip ── */
@@ -578,8 +578,8 @@
   width: 96px;
   min-width: 96px;
   max-width: 96px;
-  background: #13161d;
-  border: 1px solid #1c2028;
+  background: #1e2330;
+  border: 1px solid #2e3548;
   border-radius: 6px 6px 0 0;
   padding: 0;
   gap: 0;
@@ -604,29 +604,29 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  background: #0e1018;
-  border-bottom: 1px solid #1c2028;
+  background: #181e2a;
+  border-bottom: 1px solid #2e3548;
   padding: 3px 6px;
   flex-shrink: 0;
   position: relative;
   z-index: 20;
 }
-.daw-ch-routing-label { font-size: 7px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #2a3848; }
-.daw-ch-routing-value { font-size: 8px; color: #4a5a70; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.daw-ch-routing-label { font-size: 7px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6a8aaa; }
+.daw-ch-routing-value { font-size: 8px; color: #7a9ab8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── Inserts section ── */
 .daw-ch-inserts {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  background: #0f1218;
-  border-bottom: 1px solid #1c2028;
+  background: #161d28;
+  border-bottom: 1px solid #2e3548;
   padding: 4px 5px;
   min-height: 40px;
   flex-shrink: 0;
 }
-.daw-ch-inserts-label { font-size: 7px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #2a3848; margin-bottom: 1px; }
-.daw-ch-track-name-top { font-size: 9px; font-weight: 600; color: #7080a0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.daw-ch-inserts-label { font-size: 7px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6a8aaa; margin-bottom: 1px; }
+.daw-ch-track-name-top { font-size: 9px; font-weight: 600; color: #aabdd4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .daw-ch-insert-slot { font-size: 8px; padding: 2px 4px; border-radius: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .daw-ch-insert-slot.active { background: rgba(0,180,140,0.1); border: 1px solid rgba(0,200,150,0.2); color: #50a890; }
 .daw-ch-insert-slot.empty { color: #283848; border: 1px dashed #1a2838; text-align: center; }
@@ -640,8 +640,8 @@
   justify-content: center;
   gap: 3px;
   padding: 4px 4px;
-  background: #0e1018;
-  border-bottom: 1px solid #1c2028;
+  background: #181e2a;
+  border-bottom: 1px solid #2e3548;
   flex-shrink: 0;
 }
 .daw-ch-badge,
@@ -650,9 +650,9 @@
   display: flex; align-items: center; justify-content: center;
   border-radius: 2px;
   font-size: 8px; font-weight: 800;
-  background: #1a2030;
-  border: 1px solid #252c3a;
-  color: #404a5a;
+  background: #252e42;
+  border: 1px solid #3a4560;
+  color: #7a8faa;
   cursor: pointer;
   transition: all 0.1s;
   flex-shrink: 0;
@@ -674,7 +674,7 @@
 .daw-ch-pan {
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0; padding: 3px 0;
-  background: #0e1018; border-bottom: 1px solid #1c2028;
+  background: #181e2a; border-bottom: 1px solid #2e3548;
 }
 
 /* ── Fader + meter ── */
@@ -697,7 +697,7 @@
   width: 40px; height: 100%; background: transparent; cursor: pointer;
 }
 .daw-ch-fader input[type="range"]::-webkit-slider-runnable-track {
-  width: 4px; background: #141e2c; border-radius: 2px;
+  width: 4px; background: #2a3a50; border-radius: 2px;
 }
 .daw-ch-fader input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -733,11 +733,11 @@
 .daw-ch-vol-display {
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0; padding: 2px 0;
-  background: #0a0c10; border-top: 1px solid #141e2c;
+  background: #0f1520; border-top: 1px solid #2a3848;
 }
 .daw-ch-vol-val,
 .daw-ch-vol-readout {
-  font-size: 9px; font-weight: 600; color: #4a5a70;
+  font-size: 9px; font-weight: 600; color: #8aaac8;
   text-align: center; background: transparent; border: none;
   padding: 1px 4px; min-width: 44px;
 }
@@ -748,14 +748,14 @@
 .daw-ch-automation {
   display: flex; align-items: center; gap: 3px;
   justify-content: center; flex-shrink: 0;
-  padding: 3px 4px; background: #0e1018; border-top: 1px solid #1c2028;
+  padding: 3px 4px; background: #181e2a; border-top: 1px solid #2e3548;
 }
 .daw-ch-rw {
   width: 20px; height: 14px;
   display: flex; align-items: center; justify-content: center;
   font-size: 8px; font-weight: 800;
-  background: #141e2c; border: 1px solid #1e2838;
-  border-radius: 2px; color: #303848; cursor: pointer;
+  background: #1e2c40; border: 1px solid #2e3e58;
+  border-radius: 2px; color: #6a8aaa; cursor: pointer;
 }
 .daw-ch-rw.active { background: rgba(255,102,0,0.15); border-color: #884400; color: #ff8800; }
 
@@ -767,12 +767,12 @@
 .daw-ch-name-bottom {
   display: flex; flex-direction: column; align-items: center;
   gap: 2px; padding: 4px 4px 5px;
-  background: #0e1018; border-top: 1px solid #1c2028;
+  background: #181e2a; border-top: 1px solid #2e3548;
   flex-shrink: 0;
 }
 .daw-ch-name-input {
   background: transparent; border: none;
-  color: #c0cce0; font-family: inherit;
+  color: #ddeeff; font-family: inherit;
   font-size: 10px; font-weight: 700;
   text-align: center; outline: none; width: 100%;
   letter-spacing: 0.03em;
@@ -784,7 +784,7 @@
 .daw-ch-track-label {
   font-size: 10px; font-weight: 700; letter-spacing: 0.03em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 100%; text-align: center; color: #c0cce0;
+  max-width: 100%; text-align: center; color: #ddeeff;
 }
 .rs-master-label { font-weight: 800; font-size: 9px; color: #cc8840; letter-spacing: 0.05em; }
 .daw-ch-console-select {
