@@ -556,81 +556,109 @@
   flex-direction: column;
   flex: 1;
   overflow: hidden;
-  background: #111520;
+  background: #1a1c20;
 }
 .daw-console-scroll {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
-  gap: 1px;
-  padding: 8px 8px 0;
+  align-items: stretch;
+  gap: 2px;
+  padding: 0;
   overflow-x: auto;
-  overflow-y: auto;
+  overflow-y: hidden;
   flex: 1;
   min-height: 0;
-  background: #0f1218;
+  background: #141618;
 }
+.daw-console-scroll::-webkit-scrollbar { height: 8px; }
+.daw-console-scroll::-webkit-scrollbar-track { background: #0e1012; }
+.daw-console-scroll::-webkit-scrollbar-thumb { background: #2a2e36; border-radius: 4px; }
 
-/* ── Channel strip ── */
+/* ══ CHANNEL STRIP — Studio One style ══ */
 .daw-channel {
   display: flex;
   flex-direction: column;
-  width: 96px;
-  min-width: 96px;
-  max-width: 96px;
-  background: #1e2330;
-  border: 1px solid #2e3548;
-  border-radius: 6px 6px 0 0;
+  width: 72px;
+  min-width: 72px;
+  max-width: 72px;
+  background: #1e2028;
+  border-right: 1px solid #2a2d35;
   padding: 0;
   gap: 0;
   cursor: pointer;
-  transition: background 0.1s, border-color 0.1s;
+  transition: background 0.1s;
   flex-shrink: 0;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
 }
-.daw-channel:hover { background: #171b24; border-color: #252c38; }
-.daw-channel.selected { border-color: rgba(0,255,200,0.4); background: #101c1a; }
+.daw-channel:hover { background: #22252e; }
+.daw-channel.selected { background: #1c2430; border-right-color: #00ffc8; }
 .master-channel {
-  width: 104px;
-  min-width: 104px;
-  max-width: 104px;
-  background: #161210;
-  border-color: #2a2018;
+  width: 80px;
+  min-width: 80px;
+  max-width: 80px;
+  background: #201e18;
+  border-left: 2px solid #3a3020;
+  border-right: 1px solid #3a3020;
 }
-.master-channel:hover { background: #1a1610; border-color: #3a2a18; }
+.master-channel:hover { background: #252218; }
+
+/* ── Color bar top ── */
+.daw-channel::before {
+  content: '';
+  display: block;
+  height: 3px;
+  background: var(--ch-color, #4a90d9);
+  flex-shrink: 0;
+}
 
 /* ── Routing header ── */
 .daw-ch-routing {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  background: #181e2a;
-  border-bottom: 1px solid #2e3548;
-  padding: 3px 6px;
+  background: #181a22;
+  border-bottom: 1px solid #2a2d35;
+  padding: 3px 5px;
   flex-shrink: 0;
   position: relative;
   z-index: 20;
 }
-.daw-ch-routing-label { font-size: 7px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6a8aaa; }
-.daw-ch-routing-value { font-size: 8px; color: #7a9ab8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.daw-ch-routing-label { font-size: 7px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #505870; }
+.daw-ch-routing-value { font-size: 8px; color: #8090a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── Inserts section ── */
 .daw-ch-inserts {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  background: #161d28;
-  border-bottom: 1px solid #2e3548;
-  padding: 4px 5px;
-  min-height: 40px;
+  gap: 1px;
+  background: #181a22;
+  border-bottom: 1px solid #2a2d35;
+  padding: 3px 4px;
+  min-height: 80px;
   flex-shrink: 0;
 }
-.daw-ch-inserts-label { font-size: 7px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6a8aaa; margin-bottom: 1px; }
-.daw-ch-track-name-top { font-size: 9px; font-weight: 600; color: #aabdd4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.daw-ch-insert-slot { font-size: 8px; padding: 2px 4px; border-radius: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.daw-ch-insert-slot.active { background: rgba(0,180,140,0.1); border: 1px solid rgba(0,200,150,0.2); color: #50a890; }
-.daw-ch-insert-slot.empty { color: #283848; border: 1px dashed #1a2838; text-align: center; }
-.daw-ch-insert-slot.empty:hover { border-color: rgba(0,255,200,0.2); color: #00bb88; }
+.daw-ch-inserts-label {
+  font-size: 7px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: #505870; margin-bottom: 2px;
+}
+.daw-ch-track-name-top {
+  font-size: 9px; font-weight: 700; color: #c8d8f0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+.daw-ch-insert-slot {
+  font-size: 8px; padding: 2px 5px; border-radius: 2px;
+  cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: background 0.1s;
+}
+.daw-ch-insert-slot.active.vocal    { background: #2a1828; border: 1px solid #7a3060; color: #e080b0; }
+.daw-ch-insert-slot.active.dynamics { background: #182228; border: 1px solid #2a6070; color: #60c0d8; }
+.daw-ch-insert-slot.active          { background: #182028; border: 1px solid #2a5068; color: #60a8c8; }
+.daw-ch-insert-slot.empty {
+  color: #303848; border: 1px dashed #252d3a; text-align: center; font-size: 9px;
+}
+.daw-ch-insert-slot.empty:hover { border-color: rgba(0,255,200,0.3); color: #00cc88; background: rgba(0,255,200,0.04); }
 
 /* ── M/S/e controls ── */
 .daw-ch-controls {
@@ -638,55 +666,57 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 4px 4px;
-  background: #181e2a;
-  border-bottom: 1px solid #2e3548;
+  gap: 2px;
+  padding: 4px 3px;
+  background: #16181f;
+  border-bottom: 1px solid #2a2d35;
   flex-shrink: 0;
 }
 .daw-ch-badge,
 .daw-ch-btn {
-  width: 22px; height: 16px;
+  width: 20px; height: 15px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 2px;
-  font-size: 8px; font-weight: 800;
-  background: #252e42;
-  border: 1px solid #3a4560;
-  color: #7a8faa;
+  font-size: 8px; font-weight: 900;
+  background: #242830;
+  border: 1px solid #323848;
+  color: #606878;
   cursor: pointer;
   transition: all 0.1s;
   flex-shrink: 0;
+  letter-spacing: 0;
 }
+.daw-ch-badge:hover, .daw-ch-btn:hover { color: #9aa8c0; border-color: #485060; }
 .daw-ch-badge.m-on,
-.daw-ch-btn.mute.active  { background: #2a2000; border-color: #887000; color: #ddbb00; }
+.daw-ch-btn.mute.active  { background: #2a1e00; border-color: #aa8800; color: #ffcc00; }
 .daw-ch-badge.s-on,
-.daw-ch-btn.solo.active  { background: #002a18; border-color: #007040; color: #00cc70; }
-.daw-ch-badge.e-on       { background: #150e30; border-color: #4030a0; color: #8070d0; }
+.daw-ch-btn.solo.active  { background: #002818; border-color: #008848; color: #00ee70; }
+.daw-ch-badge.e-on       { background: #18103a; border-color: #5040b8; color: #9080e8; }
 .daw-ch-rec-btn {
-  background: #1a2030; border: 1px solid #252c3a; border-radius: 50%;
-  width: 16px; height: 16px;
+  background: #1e2028; border: 1px solid #2a2d35; border-radius: 50%;
+  width: 14px; height: 14px;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: #303848; font-size: 9px; transition: all 0.1s;
+  cursor: pointer; color: #404858; font-size: 8px; transition: all 0.1s;
 }
-.daw-ch-rec-btn.armed { background: #2a0808; border-color: #991010; color: #ff4040; }
+.daw-ch-rec-btn.armed { background: #380808; border-color: #cc1818; color: #ff5050; box-shadow: 0 0 6px rgba(255,50,50,0.4); }
 
 /* ── Pan knob ── */
 .daw-ch-pan {
   display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; padding: 3px 0;
-  background: #181e2a; border-bottom: 1px solid #2e3548;
+  flex-shrink: 0; padding: 4px 0;
+  background: #16181f; border-bottom: 1px solid #2a2d35;
 }
 
 /* ── Fader + meter ── */
 .daw-ch-fader-area {
   display: flex; flex-direction: column;
-  flex: none; height: 180px;
-  background: #0a0c10; padding: 6px 5px 3px; gap: 0;
+  flex: 1; min-height: 200px;
+  background: #0e1014; padding: 8px 4px 4px; gap: 0;
 }
 .daw-ch-fader-row {
   display: flex; flex-direction: row;
   align-items: stretch; justify-content: center;
-  flex: 1; gap: 4px;
+  flex: 1; gap: 3px;
 }
 .daw-ch-fader {
   display: flex; align-items: center; justify-content: center; flex: 1;
@@ -694,23 +724,14 @@
 .daw-ch-fader input[type="range"] {
   -webkit-appearance: none; appearance: none;
   writing-mode: vertical-lr; direction: rtl;
-  width: 40px; height: 100%; background: transparent; cursor: pointer;
+  width: 36px; height: 100%; background: transparent; cursor: pointer;
 }
 .daw-ch-fader input[type="range"]::-webkit-slider-runnable-track {
-  width: 4px; background: #2a3a50; border-radius: 2px;
+  width: 3px; background: linear-gradient(to top, #1a2a3a, #253545); border-radius: 2px;
 }
 .daw-ch-fader input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 40px; height: 12px;
-  background: #3a4858;
-  border-top: 1px solid #6a7a8a;
-  border-bottom: 1px solid #1a2030;
-  border-left: 1px solid #4a5868;
-  border-right: 1px solid #4a5868;
-  border-radius: 2px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.8);
-  cursor: grab;
-}
+  width: 36px; height: 14px;
 .daw-ch-fader input[type="range"]::-webkit-slider-thumb:active { cursor: grabbing; background: #4a5868; }
 .daw-ch-fader input[type="range"]::-moz-range-track { width: 4px; background: #141e2c; border-radius: 2px; }
 .daw-ch-fader input[type="range"]::-moz-range-thumb { width: 40px; height: 12px; background: #3a4858; border-radius: 2px; border: 1px solid #5a6878; cursor: grab; }
@@ -961,14 +982,7 @@
   .daw-channel { width: 110px; min-width: 110px; max-width: 110px; }
   .daw-track-btns { width: 120px; }
 }
-/* ── FULLSCREEN — escape sidebar completely ── */
-.daw {
-  position: fixed !important;
-  top: 0; left: 0; right: 0; bottom: 0;
-  z-index: 100;
-  height: 100vh !important;
-  width: 100vw !important;
-}
+
 
 /* ── Canvas elements ── */
 .daw-cubase-meter { display: block; }
@@ -1094,3 +1108,17 @@
 .daw-score-view { flex: 1; overflow: auto; height: 100%; }
 .daw-vocal-view { flex: 1; overflow: auto; height: 100%; }
 .daw-voicemidi-view { flex: 1; overflow: hidden; height: 100%; }
+
+/* ── DAW true fullscreen — covers navbar + sidebar ── */
+.daw {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 1300 !important;
+  overflow: hidden;
+  background: #06060f;
+}
