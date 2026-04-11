@@ -1,3 +1,33 @@
+// MixDropdown
+function MixDropdown({ viewMode, setViewMode }) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef(null);
+  const items = [
+    ["aimix","AI Mix"],["fx","FX Chain"],["multiband","Multiband"],
+    ["mastering","Mastering"],["speakersim","Mix Translator"],
+    ["analog","Analog Suite"],["vocal","Vocal"],["keyfinder","Key Finder"],
+  ];
+  const isActive = items.some(([m]) => m === viewMode);
+  React.useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+  const active = items.find(([m]) => m === viewMode);
+  return (
+    <div ref={ref} className="daw-mix-dropdown">
+      <button className={"daw-mix-dropdown-btn"+(isActive?" active":"")} onClick={()=>setOpen(o=>!o)}>
+        {isActive&&active?active[1]:"Mix"} v
+      </button>
+      {open&&<div className="daw-mix-dropdown-menu">
+        {items.map(([m,l])=>(
+          <button key={m} className={"daw-mix-dropdown-item"+(viewMode===m?" active":"")}
+            onClick={()=>{setViewMode(m);setOpen(false);}}>{l}</button>
+        ))}
+      </div>}
+    </div>
+  );
+}
 // =============================================================================
 // RecordingStudio.js - Multi-Track DAW (Cubase-Inspired)
 // =============================================================================
@@ -3664,193 +3694,20 @@ const RecordingStudio = ({ user }) => {
           <button
             className={`daw-view-tab ${viewMode === "arrange" ? "active" : ""}`}
             onClick={() => setViewMode("arrange")}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7" />
-              <rect x="14" y="3" width="7" height="7" />
-              <rect x="3" y="14" width="7" height="7" />
-              <rect x="14" y="14" width="7" height="7" />
-            </svg>{" "}
-            Arrange
-          </button>
+          >⊞ Arrange</button>
           <button
             className={`daw-view-tab ${viewMode === "console" ? "active" : ""}`}
             onClick={() => setViewMode("console")}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="4" y1="21" x2="4" y2="14" />
-              <line x1="4" y1="10" x2="4" y2="3" />
-              <line x1="12" y1="21" x2="12" y2="12" />
-              <line x1="12" y1="8" x2="12" y2="3" />
-              <line x1="20" y1="21" x2="20" y2="16" />
-              <line x1="20" y1="12" x2="20" y2="3" />
-              <circle cx="4" cy="12" r="2" />
-              <circle cx="12" cy="10" r="2" />
-              <circle cx="20" cy="14" r="2" />
-            </svg>{" "}
-            Console
-          </button>
+          >🎚️ Console</button>
           <button
             className={`daw-view-tab ${viewMode === "pianoroll" ? "active" : ""}`}
             onClick={() => setViewMode("pianoroll")}
-            title="Piano Roll / MIDI Editor"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="1" y="3" width="22" height="18" rx="2" />
-              <line x1="1" y1="9" x2="23" y2="9" />
-              <line x1="1" y1="15" x2="23" y2="15" />
-              <line x1="8" y1="3" x2="8" y2="21" />
-              <line x1="16" y1="3" x2="16" y2="21" />
-            </svg>{" "}
-            Piano Roll
-          </button>
+          >🎹 Piano Roll</button>
           <button
             className={`daw-view-tab ${viewMode === 'score' ? 'active' : ''}`}
             onClick={() => setViewMode('score')}
-            title="Score Editor — Notation, Video Scoring, MusicXML/PDF export"
           >🎼 Score</button>
-          <button
-            className={`daw-view-tab ${viewMode === "piano" ? "active" : ""}`}
-            onClick={() => setViewMode("piano")}
-            title="Virtual Piano"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="4" width="20" height="16" rx="2" />
-              <line x1="6" y1="4" x2="6" y2="14" />
-              <line x1="10" y1="4" x2="10" y2="14" />
-              <line x1="14" y1="4" x2="14" y2="14" />
-              <line x1="18" y1="4" x2="18" y2="14" />
-            </svg>{" "}
-            Piano
-          </button>
-          <button
-            className={`daw-view-tab ${viewMode === "beatmaker" ? "active" : ""}`}
-            onClick={() => setViewMode("beatmaker")}
-            title="Sampler — Pads, Sequencer, Kits, BPM/Key Detection"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="2" width="8" height="8" rx="1" />
-              <rect x="14" y="2" width="8" height="8" rx="1" />
-              <rect x="2" y="14" width="8" height="8" rx="1" />
-              <rect x="14" y="14" width="8" height="8" rx="1" />
-            </svg>{" "}
-            Sampler
-          </button>
-          <button
-            className={`daw-view-tab ai-tab ${viewMode === "aimix" ? "active" : ""}`}
-            onClick={() => setViewMode("aimix")}
-            title="AI Mix Assistant"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M8 12h8M12 8v8" />
-              <circle cx="8" cy="8" r="1.5" fill="currentColor" />
-              <circle cx="16" cy="8" r="1.5" fill="currentColor" />
-            </svg>{" "}
-            AI Mix
-          </button>
-          <button
-            className={`daw-view-tab ${viewMode === "synth" ? "active" : ""}`}
-            onClick={() => setViewMode("synth")}
-            title="Synth Creator — Build sounds from oscillators"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="8" r="3" />
-              <path d="M6 20v-2a6 6 0 0 1 12 0v2" />
-              <line x1="2" y1="12" x2="22" y2="12" />
-            </svg>{" "}
-            Synth
-          </button>
-          <button
-            className={`daw-view-tab ${viewMode === "drumdesigner" ? "active" : ""}`}
-            onClick={() => setViewMode("drumdesigner")}
-            title="Drum Designer — Synthesize kick, 808, snare, clap, hi-hat"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <ellipse cx="12" cy="8" rx="9" ry="4" />
-              <path d="M3 8v8c0 2.21 4.03 4 9 4s9-1.79 9-4V8" />
-            </svg>{" "}
-            Drum Design
-          </button>
-          <button
-            className={`daw-view-tab ${viewMode === "instrbuilder" ? "active" : ""}`}
-            onClick={() => setViewMode("instrbuilder")}
-            title="Instrument Builder — Layer synth, sample, sub, noise"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="6" width="20" height="14" rx="2" />
-              <path d="M8 6V4a2 2 0 0 1 4 0v2" />
-              <line x1="12" y1="10" x2="12" y2="16" />
-              <line x1="9" y1="13" x2="15" y2="13" />
-            </svg>{" "}
-            Instr Build
-          </button>
-          <button className={`daw-view-tab ${viewMode === 'multiband' ? 'active' : ''}`} onClick={() => setViewMode('multiband')} title="Multiband Compressor/Effects">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="4" width="4" height="16" rx="1" />
-              <rect x="10" y="8" width="4" height="12" rx="1" />
-              <rect x="18" y="12" width="4" height="8" rx="1" />
-              <line x1="2" y1="2" x2="22" y2="2" />
-            </svg>
-            Multiband
-          </button>
-          <button
-            className={`daw-view-tab ${viewMode === "keyfinder" ? "active" : ""}`}
-            onClick={() => setViewMode("keyfinder")}
-            title="Key & Scale Detector"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 18V5l12-2v13" />
-              <circle cx="6" cy="18" r="3" />
-              <circle cx="18" cy="16" r="3" />
-            </svg>{" "}
-            Key Finder
-          </button>
-          <button
-            className={`daw-view-tab ${viewMode === "vocal" || showVocalModal ? "active" : ""}`}
-            onClick={() => {
-              if (viewMode === "console") {
-                setShowVocalModal(v => !v);
-              } else {
-                setViewMode("vocal");
-                setShowVocalModal(false);
-              }
-            }}
-            title="Vocal Processor"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-              <line x1="12" y1="19" x2="12" y2="23" />
-              <line x1="8" y1="23" x2="16" y2="23" />
-            </svg>{" "}
-            Vocal
-          </button>
-          <button className={`daw-view-tab ${viewMode === 'fx' ? 'active' : ''}`} onClick={() => setViewMode('fx')} title="FX Chain — All effects for selected track">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /><path d="M4.93 4.93a10 10 0 0 0 0 14.14" /></svg>
-            FX Chain
-          </button>
-          <button className={`daw-view-tab ${viewMode === 'mastering' ? 'active' : ''}`} onClick={() => setViewMode('mastering')} title="Mastering Suite — LUFS, EQ, Limiter, Widener">
-            🎚️ Mastering
-          </button>
-          <button className={`daw-view-tab ${viewMode === 'speakersim' ? 'active' : ''}`} onClick={() => setViewMode('speakersim')} title="Mix Translator — Hear your mix on 22 speakers">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
-            Master
-          </button>
-          <button
-            className={`daw-view-tab ${viewMode === 'analog' ? 'active' : ''}`}
-            onClick={() => setViewMode('analog')}
-            title="SPX Analog Suite — Amp Sim, Tape Saturation, Harmonic Exciter, Cabinet Sim, Pedal Chain"
-            style={viewMode==='analog'?{background:'rgba(255,102,0,0.12)',color:'#ff6600',borderColor:'rgba(255,102,0,0.4)'}:{}}
-          >
-            🎛️ Analog Suite
-          </button>
-          <button className={`daw-view-tab ${viewMode === 'looperman' ? 'active' : ''}`} onClick={() => setViewMode('looperman')} title="Looperman — Free loops & acapellas">
-            🎵 Loops
-          </button>
-          <button className={`daw-view-tab ${viewMode === 'freesound' ? 'active' : ''}`} onClick={() => setViewMode('freesound')} title="Freesound — Search & load free samples">
-            🔊 Sounds
-          </button>
+          <MixDropdown viewMode={viewMode} setViewMode={setViewMode} />
         </div>
 
         {/* I/O & Status */}
