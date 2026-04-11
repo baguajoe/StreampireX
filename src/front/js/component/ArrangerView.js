@@ -337,10 +337,54 @@ const TrackHeader = React.memo(({
         >●</button>
       </div>
 
-      {/* Volume readout — no slider */}
+      {/* Volume + Pan readout */}
       <div className="arr-th-vol-readout" onClick={e => e.stopPropagation()} title="Volume">
         <span className="arr-th-vol-db">{(track.volume??0.8)>0?(20*Math.log10(track.volume??0.8)).toFixed(1):"-∞"} dB</span>
+        <span className="arr-th-pan-val" style={{marginLeft:6,color:'#7a8aaa',fontSize:'8px'}}>{track.pan===0?'C':track.pan>0?`R${Math.round(track.pan*100)}`:`L${Math.round(Math.abs(track.pan)*100)}`}</span>
       </div>
+
+      {/* Monitor + R/W automation row */}
+      <div className="arr-th-rw-row" onClick={e => e.stopPropagation()}>
+        <button
+          className={"arr-th-badge monitor" + (track.monitoring ? " on" : "")}
+          onClick={e => { e.stopPropagation(); onUpdate(index, { monitoring: !track.monitoring }); }}
+          title={track.monitoring ? "Direct monitoring ON — click to turn off" : "Direct monitoring OFF — click to enable"}
+        >🔊</button>
+        <button
+          className={"arr-th-badge loop" + (track.loopTrack ? " on" : "")}
+          onClick={e => { e.stopPropagation(); onUpdate(index, { loopTrack: !track.loopTrack }); }}
+          title="Loop this track"
+        >∞</button>
+        <button
+          className={"arr-th-badge rw" + (track.readAutomation ? " on" : "")}
+          onClick={e => { e.stopPropagation(); onUpdate(index, { readAutomation: !track.readAutomation }); }}
+          title="Read automation"
+        >R</button>
+        <button
+          className={"arr-th-badge rw" + (track.writeAutomation ? " on" : "")}
+          onClick={e => { e.stopPropagation(); onUpdate(index, { writeAutomation: !track.writeAutomation }); }}
+          title="Write automation"
+        >W</button>
+      </div>
+
+      {/* Input routing */}
+      {!isInstrument && (
+        <div className="arr-th-input-row" onClick={e => e.stopPropagation()}>
+          <span className="arr-th-input-label">IN</span>
+          <select
+            className="arr-th-input-select"
+            value={track.inputRouting || "default"}
+            onChange={e => onUpdate(index, { inputRouting: e.target.value })}
+            title="Input routing"
+          >
+            <option value="default">Default Mic</option>
+            <option value="input1">Input 1</option>
+            <option value="input2">Input 2</option>
+            <option value="stereo">Stereo In</option>
+            <option value="none">No Input</option>
+          </select>
+        </div>
+      )}
 
       {/* Action buttons */}
       <div className="arr-th-actions" onClick={e => e.stopPropagation()}>
@@ -357,10 +401,10 @@ const TrackHeader = React.memo(({
             }
             <button className="arr-th-action-btn" onClick={() => onToggleFx && onToggleFx(index)} title="FX">FX</button>
             {track.audioBuffer && !track.frozen && (
-              <button className="arr-th-action-btn freeze" onClick={() => onFreeze && onFreeze(index)} title="Freeze track">❄</button>
+              <button className="arr-th-action-btn freeze" onClick={() => onFreeze && onFreeze(index)} title="Freeze track — renders to audio, saves CPU">❄</button>
             )}
             {track.frozen && (
-              <button className="arr-th-action-btn unfreeze" onClick={() => onUnfreeze && onUnfreeze(index)} title="Unfreeze">🔥</button>
+              <button className="arr-th-action-btn unfreeze" onClick={() => onUnfreeze && onUnfreeze(index)} title="Unfreeze track">🔥</button>
             )}
           </>
         )}

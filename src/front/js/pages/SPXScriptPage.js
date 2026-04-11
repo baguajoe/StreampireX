@@ -10,7 +10,7 @@ import { useScriptCollaboration } from "../hooks/useScriptCollaboration";
 import { useScriptOffline } from "../hooks/useScriptOffline";
 import SPXWorldNav from "../components/spx-script/SPXWorldNav";
 import SPXBiblePanel from "../components/spx-script/SPXBiblePanel";
-import SPXWorldMap from "../components/spx-script/SPXWorldMap";
+import SPXWorldCenter from "../components/spx-script/SPXWorldCenter";
 import { downloadFDX, downloadFountain, readFDXFile, readFountainFile } from "../utils/fdxUtils";
 import "../../styles/spx-script.css";
 
@@ -361,10 +361,11 @@ export default function SPXScriptPage() {
             setSelectedPanelId={setSelectedPanelId} />
         )}
         {scriptMode === "world" && mainTab !== "gen" && (
-          <SPXWorldMap
+          <SPXWorldCenter
             worldData={worldData}
             mapPins={mapPins}
             setMapPins={setMapPins}
+            selectedEntry={selectedEntry}
             onSelectEntry={(entry) => setSelectedEntry(entry)}
           />
         )}
