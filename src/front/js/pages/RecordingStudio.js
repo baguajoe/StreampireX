@@ -253,7 +253,7 @@ const DEFAULT_TRACK = (i, type = "audio") => ({
   name: `${type === "midi" ? "MIDI" : type === "bus" ? "Bus" : type === "aux" ? "Aux" : "Audio"} ${i + 1}`,
   trackType: type,
   instrument: type === "midi" ? { program: 0, name: "Acoustic Grand" } : null,
-  volume: 0.8, pan: 0, muted: false, solo: false, armed: false,
+  volume: 1.0, pan: 0, muted: false, solo: false, armed: false,
   audio_url: null, color: TRACK_COLORS[i % TRACK_COLORS.length],
   audioBuffer: null, effects: DEFAULT_EFFECTS(), regions: [],
 });
@@ -462,7 +462,7 @@ const RecordingStudio = ({ user }) => {
   const [showProjectList, setShowProjectList] = useState(false);
   const [bpm, setBpm] = useState(120);
   const [timeSignature, setTimeSignature] = useState([4, 4]);
-  const [masterVolume, setMasterVolume] = useState(0.8);
+  const [masterVolume, setMasterVolume] = useState(1.0);
   const [masterPan, setMasterPan] = useState(0);
   const [tracks, setTracks] = useState(Array.from({ length: 1 }, (_, i) => DEFAULT_TRACK(i)));
   const [trackMicModels, setTrackMicModels] = useState({});
@@ -1713,7 +1713,7 @@ const RecordingStudio = ({ user }) => {
                         <div className="daw-ch-fader-area">
                           <div className="daw-ch-fader-row">
                             <div className="daw-ch-fader">
-                              <input type="range" min={0} max={1} step={0.01} value={t.volume ?? 0.8} onChange={e => updateTrack(i, { volume: parseFloat(e.target.value) })}/>
+                              <input type="range" min={0} max={1.26} step={0.005} value={t.volume ?? 1.0} onChange={e => updateTrack(i, { volume: parseFloat(e.target.value) })}/>
                             </div>
                             <div className="daw-ch-meter">
                               <div className="daw-ch-meter-bar" style={{ height: `${Math.round((meter.left || 0) * 100)}%`, background: meter.peak > 0.9 ? "#ff3b30" : "#00ffc8" }}/>
@@ -1739,7 +1739,7 @@ const RecordingStudio = ({ user }) => {
                     <div className="daw-ch-fader-area">
                       <div className="daw-ch-fader-row">
                         <div className="daw-ch-fader">
-                          <input type="range" min={0} max={1} step={0.01} value={masterVolume ?? 1} onChange={e => setMasterVolume(parseFloat(e.target.value))}/>
+                          <input type="range" min={0} max={1.26} step={0.005} value={masterVolume ?? 1.0} onChange={e => setMasterVolume(parseFloat(e.target.value))}/>
                         </div>
                         <div className="daw-ch-meter">
                           <div className="daw-ch-meter-bar" style={{ height: `${Math.round((masterMeterLevels?.left || 0) * 100)}%`, background: "#ff8a3d" }}/>
@@ -1802,12 +1802,11 @@ const RecordingStudio = ({ user }) => {
                     </div>
                     <div className="daw-ch-pan">
                       <PanKnob value={t.pan} onChange={v => updateTrack(i, { pan: v })} size={32}/>
-                      <span className="daw-ch-pan-val">{t.pan === 0 ? "C" : t.pan > 0 ? `R${Math.round(t.pan * 100)}` : `L${Math.round(Math.abs(t.pan) * 100)}`}</span>
                     </div>
                     <div className="daw-ch-fader-area">
                       <div className="daw-ch-fader-row">
                         <div className="daw-ch-fader">
-                          <input type="range" min="0" max="1" step="0.005" value={t.volume}
+                          <input type="range" min="0" max="1.26" step="0.005" value={t.volume}
                             onChange={e => { const v = parseFloat(e.target.value); updateTrack(i, { volume: v }); const audible = !t.muted && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? v : 0; }}/>
                         </div>
                         <CubaseMeter leftLevel={meter.left || 0} rightLevel={meter.right || 0} height={180} showScale={false}/>
@@ -1850,12 +1849,11 @@ const RecordingStudio = ({ user }) => {
                 </div>
                 <div className="daw-ch-pan">
                   <PanKnob value={masterPan} onChange={v => setMasterPan(v)} size={32}/>
-                  <span className="daw-ch-pan-val">{masterPan === 0 ? "C" : masterPan > 0 ? `R${Math.round(masterPan * 100)}` : `L${Math.round(Math.abs(masterPan) * 100)}`}</span>
                 </div>
                 <div className="daw-ch-fader-area">
                   <div className="daw-ch-fader-row">
                     <div className="daw-ch-fader">
-                      <input type="range" min="0" max="1" step="0.005" value={masterVolume}
+                      <input type="range" min="0" max="1.26" step="0.005" value={masterVolume}
                         onChange={e => { const v = parseFloat(e.target.value); setMasterVolume(v); if (masterGainRef.current) masterGainRef.current.gain.value = v; }}/>
                     </div>
                     <CubaseMeter leftLevel={masterMeterLevels?.left || 0} rightLevel={masterMeterLevels?.right || 0} height={180} showScale={false}/>

@@ -112,12 +112,25 @@
 .daw-ch-btn.mute.active { background:#6a4400; border-color:#c07800; color:#ffc060; }
 .daw-ch-btn.solo.active { background:#003a2a; border-color:#008060; color:var(--rs-teal); }
 .daw-ch-pan { display:flex; flex-direction:column; align-items:center; padding:4px 0; gap:2px; }
-.daw-ch-pan-val { color:var(--rs-text3); font-size:9px; }
+.daw-ch-pan-val { color:var(--rs-text2); font-weight:600; font-size:9px; }
 .daw-ch-fader-area { display:flex; flex-direction:column; align-items:center; padding:4px; flex:1; width:100%; }
 .daw-ch-fader-row { display:flex; align-items:flex-end; gap:5px; flex:1; width:100%; justify-content:center; min-height:180px; }
 .daw-ch-fader { display:flex; align-items:flex-end; justify-content:center; flex:1; height:180px; }
-.daw-ch-fader input[type="range"] { appearance:none; writing-mode:vertical-lr; direction:rtl; width:28px; height:180px; cursor:pointer; background:linear-gradient(to bottom,#0a1018,#16202e); border-radius:3px; border:1px solid #1a2536; }
-.daw-ch-fader input[type="range"]::-webkit-slider-thumb { appearance:none; width:42px; height:13px; border-radius:3px; background:linear-gradient(180deg,#3a4c68,#1e3048); border:1px solid #4a6080; cursor:grab; box-shadow:0 1px 4px rgba(0,0,0,.5); }
+.daw-ch-fader input[type="range"] { appearance:none; writing-mode:vertical-lr; direction:rtl; width:28px; height:180px; cursor:pointer; background:linear-gradient(to bottom,#060a0e 0%,#0e1824 20%,#0a1420 50%,#0e1824 80%,#060a0e 100%); border-radius:2px; border:1px solid #1a2536; box-shadow:inset 0 0 8px rgba(0,0,0,.8); }
+.daw-ch-fader input[type="range"]::-webkit-slider-thumb {
+  appearance:none;
+  width:52px;
+  height:18px;
+  border-radius:2px;
+  background:
+    linear-gradient(180deg, transparent 47%, #1a1a1a 47%, #1a1a1a 53%, transparent 53%),
+    linear-gradient(180deg, #d0d4dc 0%, #a8b0bc 30%, #8090a4 50%, #a0aab8 70%, #ccd0d8 100%);
+  border:1px solid #506070;
+  border-top:2px solid #e8ecf0;
+  border-bottom:2px solid #404850;
+  cursor:grab;
+  box-shadow:0 3px 8px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.3);
+}
 .daw-ch-meter { width:12px; height:180px; background:#060a0e; border-radius:2px; overflow:hidden; border:1px solid #0d1219; display:flex; flex-direction:column; justify-content:flex-end; flex-shrink:0; }
 .daw-ch-meter-bar { width:100%; border-radius:2px 2px 0 0; transition:height .04s; min-height:0; }
 .daw-cubase-meter { display:block; flex-shrink:0; }
@@ -249,3 +262,6 @@
 .daw-ch-btn { pointer-events:all; }
 
 .daw-channel .daw-ch-type-icon { opacity:1 !important; }
+
+.pan-knob-wrap { display:inline-flex; flex-direction:column; align-items:center; cursor:ns-resize; user-select:none; }
+.pan-knob-label { font-size:9px; color:var(--rs-text2); font-family:var(--rs-font); margin-top:-2px; font-weight:600; }

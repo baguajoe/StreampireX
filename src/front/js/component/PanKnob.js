@@ -50,7 +50,7 @@ const PanKnob = ({ value = 0, onChange, size = 32, disabled = false }) => {
 
   return (
     <div
-      style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", cursor: disabled ? "default" : "ns-resize", userSelect: "none" }}
+      className="pan-knob-wrap"
       onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
       title={disabled ? "Pan" : "Pan — drag up/down, double-click to center"}
@@ -63,7 +63,7 @@ const PanKnob = ({ value = 0, onChange, size = 32, disabled = false }) => {
         <circle cx={cx} cy={cy} r={2} fill="#5a7088" />
         <line x1={cx} y1={cy} x2={px} y2={py} stroke={disabled ? "#5a7088" : "#ddeeff"} strokeWidth={1.5} strokeLinecap="round" />
       </svg>
-      <span style={{ fontSize: "0.55rem", color: "#5a7088", fontFamily: "monospace", marginTop: -2 }}>{label}</span>
+      <span className="pan-knob-label">{label}</span>
     </div>
   );
 };
