@@ -1094,3 +1094,18 @@
 .daw-ch-name-input:focus { background: rgba(0,255,200,0.05) !important; border-radius: 2px !important; color: #00ffc8 !important; }
 .daw-ch-console-select { width: 100% !important; background: #0a0c10 !important; border: 1px solid #1a2028 !important; border-radius: 2px !important; font-size: 7px !important; padding: 1px 2px !important; font-family: inherit !important; color: #3a4858 !important; }
 .daw-console-scroll { display: flex !important; flex-direction: row !important; align-items: flex-start !important; gap: 1px !important; padding: 0 !important; overflow-x: auto !important; overflow-y: auto !important; flex: 1 !important; min-height: 0 !important; background: #0f1114 !important; }
+
+/* ── Fader area ── */
+.daw-ch-fader-area { display: flex; flex-direction: column; flex: none; height: 220px; background: #0c0e12; padding: 8px 4px 4px; }
+.daw-ch-fader-row  { display: flex; flex-direction: row; align-items: stretch; justify-content: center; flex: 1; gap: 4px; }
+.daw-ch-fader      { display: flex; align-items: center; justify-content: center; flex: 1; }
+.daw-ch-fader input[type="range"] { -webkit-appearance: none; appearance: none; writing-mode: vertical-lr; direction: rtl; width: 36px; height: 100%; background: transparent; cursor: pointer; }
+.daw-ch-fader input[type="range"]::-webkit-slider-runnable-track { width: 4px; background: linear-gradient(to top, #111820, #1e2a3a); border-radius: 2px; }
+.daw-ch-fader input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 36px; height: 16px; background: linear-gradient(to bottom, #5a6878, #3a4858, #5a6878); border-radius: 3px; border: 1px solid #6a7888; border-top: 2px solid #8aaac8; cursor: grab; box-shadow: 0 2px 4px rgba(0,0,0,0.6); }
+.daw-ch-fader input[type="range"]::-webkit-slider-thumb:active { cursor: grabbing; }
+.daw-cubase-meter { display: block; flex-shrink: 0; }
+
+/* ── Automation R/W ── */
+.daw-ch-automation { display: flex; align-items: center; gap: 3px; justify-content: center; flex-shrink: 0; padding: 3px 4px; background: #14161c; border-top: 1px solid #252830; }
+.daw-ch-rw { width: 22px; height: 14px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 800; background: #1a1d24; border: 1px solid #2a2d35; border-radius: 2px; color: #404858; cursor: pointer; }
+.daw-ch-rw.active { background: rgba(255,102,0,0.15); border-color: #884400; color: #ff8800; }
