@@ -408,8 +408,7 @@ const Sidebar = ({ user }) => {
         <MenuItem to="/browse-radio-stations" className={isActive("/browse-radio-stations") ? "active" : ""}>📻 <span className="sidebar-label">Browse Stations</span></MenuItem>
         <MenuItem to="/create-radio-station" className={isActive("/create-radio-station") ? "active" : ""}>➕ <span className="sidebar-label">Create Station</span></MenuItem>
         <MenuItem to="/airadio-dj" className={isActive("/airadio-dj") ? "active" : ""}>🤖 <span className="sidebar-label">AI Radio DJ</span></MenuItem>
-        <MenuItem to="/dj-mixer" className={isActive("/dj-mixer") ? "active" : ""}>🎛 <span className="sidebar-label">DJ Mixer</span></MenuItem>
-        <MenuItem to="/radio-live-studio" className={isActive("/radio-live-studio") ? "active" : ""}>📺 <span className="sidebar-label">Live Studio</span><MenuHint className="sidebar-hint">NEW</MenuHint></MenuItem>
+        <MenuItem to="/radio-live-studio" className={isActive("/radio-live-studio") ? "active" : ""}>📺 <span className="sidebar-label">SPX Broadcast Studio</span><MenuHint className="sidebar-hint">NEW</MenuHint></MenuItem>
       </>)}
 
       {/* #7 FILM & SERIES */}
