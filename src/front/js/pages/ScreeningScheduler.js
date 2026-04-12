@@ -15,7 +15,7 @@ const getJSONHeaders = () => ({ Authorization: `Bearer ${getToken()}`, "Content-
 
 const S = {
   page:      { minHeight: "100vh", background: "#0d1117", color: "#c9d1d9", fontFamily: "Inter, sans-serif", padding: "32px 24px" },
-  wrap:      { maxWidth: 800, margin: "0 auto" },
+  wrap:      { maxWidth: "100%", margin: 0 },
   header:    { marginBottom: 32 },
   title:     { fontSize: "1.6rem", fontWeight: 800, color: "#e6edf3", margin: "0 0 6px" },
   subtitle:  { color: "#8b949e", fontSize: "0.88rem" },
