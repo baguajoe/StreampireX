@@ -332,6 +332,7 @@
 
 
 /* ── Root layout fix ── */
-.dd-root { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.dd-root { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .dd-params-container { flex: 1; overflow-y: auto; min-height: 0; }
-.dd-toggle-row { flex-wrap: nowrap !important; }
+.dd-toggle-row { flex-wrap: nowrap !important; justify-content: flex-start !important; }
+.dd-toggle-row .dd-knob-wrap { flex: 1; max-width: 120px; align-items: center; }
