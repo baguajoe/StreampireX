@@ -114,16 +114,16 @@ const PodcastMenuItem = styled(MenuItem)`
   &.active { background: rgba(38,198,218,0.15); border-left-color: #26c6da; color: #26c6da; box-shadow: inset 0 0 10px rgba(38,198,218,0.15); }
 `;
 const GamingSectionHeader = styled.div`
-  color: #4a9eff; font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 1.5px; background: rgba(74,158,255,0.08); border-radius: 8px;
-  padding: 12px 15px; margin: 10px 0 4px 0; border: 1px solid rgba(74,158,255,0.2);
+  color: #FF6600; font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1.5px; background: rgba(255,102,0,0.08); border-radius: 8px;
+  padding: 12px 15px; margin: 10px 0 4px 0; border: 1px solid rgba(255,102,0,0.2);
   cursor: pointer; display: flex; align-items: center; justify-content: space-between;
   transition: all 0.2s ease; white-space: nowrap; overflow: hidden;
-  &:hover { background: rgba(74,158,255,0.14); border-color: rgba(74,158,255,0.4); }
+  &:hover { background: rgba(255,102,0,0.14); border-color: rgba(255,102,0,0.4); }
 `;
 const GamingMenuItem = styled(MenuItem)`
-  &:hover { background: rgba(74,158,255,0.1); border-left-color: #4a9eff; color: #4a9eff; }
-  &.active { background: rgba(74,158,255,0.15); border-left-color: #4a9eff; color: #4a9eff; box-shadow: inset 0 0 10px rgba(74,158,255,0.15); }
+  &:hover { background: rgba(74,158,255,0.1); border-left-color: #FF6600; color: #FF6600; }
+  &.active { background: rgba(74,158,255,0.15); border-left-color: #FF6600; color: #FF6600; box-shadow: inset 0 0 10px rgba(255,102,0,0.15); }
 `;
 const AcademySectionHeader = styled.h4`
   color: #a78bfa; font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
@@ -303,38 +303,6 @@ const Sidebar = ({ user }) => {
       </>)}
 
 
-      {/* #4 GAMING */}
-      <GamingSectionHeader onClick={() => setShowGaming(!showGaming)}>
-        <span>🎮 <span className="sidebar-label">Gaming</span><FreeBadge className="sidebar-label" style={{ marginLeft:'6px' }}>FREE</FreeBadge></span>
-        <span className="sidebar-arrow" style={{ fontSize:'0.7rem' }}>{showGaming ? "▼" : "▶"}</span>
-      </GamingSectionHeader>
-      {showGaming && (<>
-        <GamingMenuItem to="/gaming" className={isActive("/gaming") ? "active" : ""}>
-          🎮 <span className="sidebar-label">Gaming Hub</span>
-        </GamingMenuItem>
-        <GamingMenuItem to="/gamers-chatroom" className={isActive("/gamers-chatroom") ? "active" : ""}>
-          💬 <span className="sidebar-label">Gamer Chatrooms</span>
-          {gamingNotifications.chatrooms > 0 && <NotificationBadge>{gamingNotifications.chatrooms}</NotificationBadge>}
-        </GamingMenuItem>
-        <GamingMenuItem to="/squad-finder" className={isActive("/squad-finder") ? "active" : ""}>
-          🔍 <span className="sidebar-label">Find Squads</span>
-          {gamingNotifications.squads > 0 && <NotificationBadge>{gamingNotifications.squads}</NotificationBadge>}
-        </GamingMenuItem>
-        <GamingMenuItem to="/team-room/main" className={isActive("/team-room") ? "active" : ""}>
-          🧑‍🤝‍🧑 <span className="sidebar-label">Team Room</span>
-          {gamingNotifications.teamRoom > 0 && <NotificationBadge>{gamingNotifications.teamRoom}</NotificationBadge>}
-        </GamingMenuItem>
-        <GamingMenuItem to="/tournaments" className={isActive("/tournaments") ? "active" : ""}>
-          🏆 <span className="sidebar-label">Tournaments</span>
-        </GamingMenuItem>
-        <GamingMenuItem to="/leaderboards" className={isActive("/leaderboards") ? "active" : ""}>
-          📊 <span className="sidebar-label">Leaderboards</span>
-        </GamingMenuItem>
-        <GamingMenuItem to="/create-team-room" className={isActive("/create-team-room") ? "active" : ""}>
-          ➕ <span className="sidebar-label">Create Team Room</span>
-        </GamingMenuItem>
-      </>)}
-
       {/* #4 MUSIC & AUDIO */}
       <SectionHeader className="sidebar-section-header" onClick={() => setShowMusic(!showMusic)}>
         🎵 <span className="sidebar-section-text">Music & Audio</span>
@@ -426,6 +394,38 @@ const Sidebar = ({ user }) => {
         <FilmMenuItem to="/film-festival" className={isActive("/film-festival") ? "active" : ""}>🏆 <span className="sidebar-label">Film Festival</span><MenuHint className="sidebar-hint">monthly</MenuHint></FilmMenuItem>
         <FilmMenuItem to="/film-earnings" className={isActive("/film-earnings") ? "active" : ""}>💰 <span className="sidebar-label">Film Earnings</span></FilmMenuItem>
         <FilmMenuItem to="/video-series-builder" className={isActive("/video-series-builder") ? "active" : ""}>📺 <span className="sidebar-label">Video Series</span></FilmMenuItem>
+      </>)}
+
+      {/* #4 GAMING */}
+      <GamingSectionHeader onClick={() => setShowGaming(!showGaming)}>
+        <span>🎮 <span className="sidebar-label">Gaming</span><FreeBadge className="sidebar-label" style={{ marginLeft:'6px' }}>FREE</FreeBadge></span>
+        <span className="sidebar-arrow" style={{ fontSize:'0.7rem' }}>{showGaming ? "▼" : "▶"}</span>
+      </GamingSectionHeader>
+      {showGaming && (<>
+        <GamingMenuItem to="/gaming" className={isActive("/gaming") ? "active" : ""}>
+          🎮 <span className="sidebar-label">Gaming Hub</span>
+        </GamingMenuItem>
+        <GamingMenuItem to="/gamers-chatroom" className={isActive("/gamers-chatroom") ? "active" : ""}>
+          💬 <span className="sidebar-label">Gamer Chatrooms</span>
+          {gamingNotifications.chatrooms > 0 && <NotificationBadge>{gamingNotifications.chatrooms}</NotificationBadge>}
+        </GamingMenuItem>
+        <GamingMenuItem to="/squad-finder" className={isActive("/squad-finder") ? "active" : ""}>
+          🔍 <span className="sidebar-label">Find Squads</span>
+          {gamingNotifications.squads > 0 && <NotificationBadge>{gamingNotifications.squads}</NotificationBadge>}
+        </GamingMenuItem>
+        <GamingMenuItem to="/team-room/main" className={isActive("/team-room") ? "active" : ""}>
+          🧑‍🤝‍🧑 <span className="sidebar-label">Team Room</span>
+          {gamingNotifications.teamRoom > 0 && <NotificationBadge>{gamingNotifications.teamRoom}</NotificationBadge>}
+        </GamingMenuItem>
+        <GamingMenuItem to="/tournaments" className={isActive("/tournaments") ? "active" : ""}>
+          🏆 <span className="sidebar-label">Tournaments</span>
+        </GamingMenuItem>
+        <GamingMenuItem to="/leaderboards" className={isActive("/leaderboards") ? "active" : ""}>
+          📊 <span className="sidebar-label">Leaderboards</span>
+        </GamingMenuItem>
+        <GamingMenuItem to="/create-team-room" className={isActive("/create-team-room") ? "active" : ""}>
+          ➕ <span className="sidebar-label">Create Team Room</span>
+        </GamingMenuItem>
       </>)}
 
       {/* #9 CREATOR ACADEMY */}
