@@ -644,9 +644,7 @@
 
 
 
+
+
 .live-indicator {
-  background: rgba(255,45,85,0.12) !important;
-  border: 1px solid rgba(255,45,85,0.35) !important;
-  color: #ff2d55 !important;
-  animation: livePulse 1.5s ease-in-out infinite !important;
 }

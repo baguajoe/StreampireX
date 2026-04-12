@@ -947,7 +947,7 @@ const RadioStationDetailPage = () => {
               )}
               {station.is_live && (
                 <span className="stat live-indicator">
-                  🔴 LIVE
+                  <span style={{width:"8px",height:"8px",borderRadius:"50%",background:"#ff2d55",display:"inline-block",animation:"livePulse 1.2s ease-in-out infinite",flexShrink:0}}></span> LIVE
                 </span>
               )}
               {station.is_loop_enabled && (
