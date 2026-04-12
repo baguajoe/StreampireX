@@ -139,6 +139,7 @@
 
 /* ── Stats pills ── */
 .station-stats {
+  flex-wrap: wrap;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -387,6 +388,7 @@
 .now-playing span,
 .now-playing div { color: #e0eaf0 !important; font-size: 13px; line-height: 1.6; }
 
+.track-info { background: transparent; }
 .track-title { font-size: 15px; font-weight: 700; color: #e0eaf0 !important; margin-bottom: 4px; }
 .track-artist { color: #7a8898 !important; font-size: 12px; }
 .track-album  { color: #4a6070 !important; font-size: 12px; }
