@@ -633,6 +633,27 @@ const ArtistProfilePage = () => {
     }
   };
 
+  // Delete track
+  const handleDeleteTrack = async (trackId) => {
+    if (!window.confirm("Delete this track?")) return;
+    try {
+      const token = localStorage.getItem("token");
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+      const res = await fetch(`${BACKEND_URL}/api/tracks/${trackId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setTracks(prev => prev.filter(t => t.id !== trackId));
+        setSuccessMessage("Track deleted.");
+      } else {
+        setError("Failed to delete track.");
+      }
+    } catch (err) {
+      setError("Failed to delete track.");
+    }
+  };
+
   // ===== UPDATED: Create album — now opens modal instead of "coming soon" =====
   const handleCreateAlbum = () => {
     setShowAlbumModal(true);
@@ -889,6 +910,9 @@ const ArtistProfilePage = () => {
                     >
                       {currentlyPlaying?.id === track.id && !audioRef.current.paused ? '⏸️' : '▶️'}
                     </button>
+                    {isOwnProfile && (
+                      <button className="track-delete-btn" onClick={() => handleDeleteTrack(track.id)}>🗑️</button>
+                    )}
                   </div>
                 )) : (
                   <div className="no-tracks">
