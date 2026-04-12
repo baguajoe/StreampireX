@@ -301,12 +301,13 @@
 .dd-toggle-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 7px 8px;
+  gap: 20px;
+  flex-wrap: nowrap;
+  padding: 7px 14px;
   background: #060c18;
   border: 1px solid #0a1624;
   border-radius: 4px;
+  width: 100%;
 }
 
 /* ── FOOTER ── */
@@ -328,19 +329,7 @@
   .dd-type-btn    { padding: 8px 10px; }
   .dd-header      { flex-direction: column; align-items: flex-start; }
 }
-/* ── Layer knobs spread ── */
-.dd-toggle-row {
-  display: flex !important;
-  align-items: center !important;
-  gap: 20px !important;
-  padding: 8px 12px !important;
-  width: 100% !important;
-  background: #060c18 !important;
-  border: 1px solid #0a1624 !important;
-  border-radius: 4px !important;
-  margin-bottom: 4px !important;
-}
-.dd-section { width: 100%; }
+
 
 /* ── Root layout fix ── */
 .dd-root { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
