@@ -807,9 +807,9 @@ const ArtistProfilePage = () => {
               <div className="featured-track">
                 {tracks.length > 0 ? (
                   <>
-                    {getImageUrl(tracks[0].artwork) ? (
+                    {getImageUrl(tracks[0].artwork_url || tracks[0].artwork) ? (
                       <img
-                        src={getImageUrl(tracks[0].artwork)}
+                        src={getImageUrl(tracks[0].artwork_url || tracks[0].artwork)}
                         alt="Latest Release"
                         className="featured-track-artwork"
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
@@ -869,9 +869,9 @@ const ArtistProfilePage = () => {
                 {tracks.length > 0 ? tracks.map((track, index) => (
                   <div key={track.id || index} className="track-item">
                     <span className="track-number">{index + 1}</span>
-                    {getImageUrl(track.artwork) && (
+                    {getImageUrl(track.artwork_url || track.artwork) && (
                       <img
-                        src={getImageUrl(track.artwork)}
+                        src={getImageUrl(track.artwork_url || track.artwork)}
                         alt={track.title}
                         className="track-artwork"
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
@@ -953,9 +953,9 @@ const ArtistProfilePage = () => {
                 {filterItems(tracks, "title").length > 0 ? filterItems(tracks, "title").map((track, index) => (
                   <div key={track.id || index} className="track-item">
                     <span className="track-number">{index + 1}</span>
-                    {getImageUrl(track.artwork) && (
+                    {getImageUrl(track.artwork_url || track.artwork) && (
                       <img
-                        src={getImageUrl(track.artwork)}
+                        src={getImageUrl(track.artwork_url || track.artwork)}
                         alt={track.title}
                         className="track-artwork"
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
