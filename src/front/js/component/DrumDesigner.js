@@ -574,15 +574,24 @@ const DrumDesigner = ({ onClose, onAssignToPad, onAssignToTrack }) => {
             {p.clickOn && <>
               <Knob value={p.clickGain} min={0} max={1} step={0.01} onChange={v => set('clickGain', v)} label="Click Vol" size={46} color={drumColor} />
               <Knob value={p.clickDecay} min={0.001} max={0.05} step={0.001} log onChange={v => set('clickDecay', v)} label="Click Dec" size={46} unit="s" color={drumColor} />
+              <Knob value={p.clickFreq||3000} min={500} max={8000} step={100} log onChange={v => set('clickFreq', v)} label="Click Freq" size={46} unit="Hz" color={drumColor} />
             </>}
           </div>
           <div className="dd-toggle-row">
             <Toggle value={p.noiseOn} onChange={v => set('noiseOn', v)} label="NOISE" color={drumColor} />
-            {p.noiseOn && <Knob value={p.noiseGain} min={0} max={1} step={0.01} onChange={v => set('noiseGain', v)} label="Noise Vol" size={46} color={drumColor} />}
+            {p.noiseOn && <>
+              <Knob value={p.noiseGain} min={0} max={1} step={0.01} onChange={v => set('noiseGain', v)} label="Noise Vol" size={46} color={drumColor} />
+              <Knob value={p.noiseDecay||0.02} min={0.005} max={0.5} step={0.005} log onChange={v => set('noiseDecay', v)} label="Noise Dec" size={46} unit="s" color={drumColor} />
+              <Knob value={p.noiseFilt||2000} min={200} max={12000} step={100} log onChange={v => set('noiseFilt', v)} label="Noise HP" size={46} unit="Hz" color={drumColor} />
+            </>}
           </div>
           <div className="dd-toggle-row">
             <Toggle value={p.distOn} onChange={v => set('distOn', v)} label="DISTORT" color="#f97316" />
-            {p.distOn && <Knob value={p.distAmt} min={0} max={100} step={1} onChange={v => set('distAmt', v)} label="Drive" size={46} color="#f97316" />}
+            {p.distOn && <>
+              <Knob value={p.distAmt} min={0} max={100} step={1} onChange={v => set('distAmt', v)} label="Drive" size={46} color="#f97316" />
+              <Knob value={p.satAmt||0.3} min={0} max={1} step={0.01} onChange={v => set('satAmt', v)} label="Sat Amt" size={46} color="#f97316" />
+              <Knob value={p.punch||0.8} min={0} max={2} step={0.01} onChange={v => set('punch', v)} label="Punch" size={46} color="#f97316" />
+            </>}
           </div>
         </div>
       </div>
