@@ -4,7 +4,7 @@
 // =============================================================================
 
 import React, { useState, useRef, useCallback } from 'react';
-import { processCharacter, BIT_DEPTH_OPTIONS, SAMPLE_RATE_OPTIONS, getBitName, getRateName } from './SPXCharacterEngine';
+import { processCharacter, createCharacterChain, BIT_DEPTH_OPTIONS, SAMPLE_RATE_OPTIONS, getBitName, getRateName } from './SPXCharacterEngine';
 import '../../styles/DrumDesigner.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -486,6 +486,22 @@ const DrumDesigner = ({ onClose, onAssignToPad, onAssignToTrack }) => {
   const dt = DRUM_TYPES.find(d => d.id === drumType);
   const drumColor = dt?.color || '#ffaa00';
 
+  // Rebuild character chain when settings change
+  React.useEffect(() => {
+    if (!ctxRef.current) return;
+    const ctx = ctxRef.current;
+    // Disconnect old chain
+    if (charNodeRef.current) {
+      try { charNodeRef.current.input.disconnect(); } catch(e) {}
+      charNodeRef.current = null;
+    }
+    if (!charOn || (charBits >= 24 && charRate >= 44100)) return;
+    const chain = createCharacterChain(ctx, charBits, charRate);
+    if (!chain) return;
+    chain.output.connect(ctx.destination);
+    charNodeRef.current = chain;
+  }, [charOn, charBits, charRate]);
+
   const getCtx = () => {
     if (!ctxRef.current) ctxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     if (ctxRef.current.state === 'suspended') ctxRef.current.resume();
@@ -500,7 +516,10 @@ const DrumDesigner = ({ onClose, onAssignToPad, onAssignToTrack }) => {
   const playDrum = useCallback(() => {
     const ctx = getCtx();
     setPlaying(true);
-    synthDrum(ctx, drumType, params[drumType], ctx.destination);
+    const dest = charOn && charNodeRef.current
+      ? charNodeRef.current.input
+      : ctx.destination;
+    synthDrum(ctx, drumType, params[drumType], dest);
     setTimeout(() => setPlaying(false), 200);
   }, [drumType, params]);
 

@@ -6,7 +6,7 @@
 //      preset save/load, assign to track/pad
 // =============================================================================
 
-import { processCharacter, BIT_DEPTH_OPTIONS, SAMPLE_RATE_OPTIONS, getBitName, getRateName } from './SPXCharacterEngine';
+import { processCharacter, createCharacterChain, BIT_DEPTH_OPTIONS, SAMPLE_RATE_OPTIONS, getBitName, getRateName } from './SPXCharacterEngine';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import '../../styles/InstrumentBuilder.css';
 
@@ -515,7 +515,9 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
       layerGain.gain.linearRampToValueAtTime(layer.vol * velocity, now + layer.attack);
       layerGain.gain.linearRampToValueAtTime(layer.vol * velocity * layer.sustain, now + layer.attack + layer.decay);
       const pan = ctx.createStereoPanner(); pan.pan.value = layer.pan || 0;
-      layerGain.connect(pan); pan.connect(dest);
+      layerGain.connect(pan);
+      const finalDest = charNodeRef.current ? charNodeRef.current.input : dest;
+      pan.connect(finalDest);
       voiceNodes.push(layerGain, pan);
 
       if (layer.type === 'synth') {

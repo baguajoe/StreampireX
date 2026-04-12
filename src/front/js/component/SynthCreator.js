@@ -5,7 +5,7 @@
 //      ADSR visualizer, preset delete, dbl-click knob reset, fine tuning
 // =============================================================================
 
-import { processCharacter, BIT_DEPTH_OPTIONS, SAMPLE_RATE_OPTIONS, getBitName, getRateName } from './SPXCharacterEngine';
+import { processCharacter, createCharacterChain, BIT_DEPTH_OPTIONS, SAMPLE_RATE_OPTIONS, getBitName, getRateName } from './SPXCharacterEngine';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import '../../styles/SynthCreator.css';
 
@@ -248,7 +248,7 @@ const Oscilloscope = ({ analyserRef }) => {
 
 function useSynthEngine(preset) {
   const ctxRef=useRef(null), activeVoices=useRef({}), fxInputRef=useRef(null);
-  const reverbIRRef=useRef(null), lastNoteRef=useRef(null), analyserRef=useRef(null);
+  const charNodeRef=useRef(null); const reverbIRRef=useRef(null), lastNoteRef=useRef(null), analyserRef=useRef(null);
   const presetRef=useRef(preset); presetRef.current=preset;
 
   const getCtx = useCallback(() => {
@@ -415,6 +415,21 @@ const SynthCreator = ({ onClose, onAssignToPad, onAssignToTrack }) => {
   const heldKeys = useRef(new Set());
 
   const { noteOn, noteOff, initFX, getCtx, analyserRef } = useSynthEngine(preset);
+
+  // Rebuild character chain when settings change
+  React.useEffect(() => {
+    const ctx = getCtx();
+    if (!ctx) return;
+    if (charNodeRef.current) {
+      try { charNodeRef.current.input.disconnect(); } catch(e) {}
+      charNodeRef.current = null;
+    }
+    if (!charOn || (charBits >= 24 && charRate >= 44100)) return;
+    const chain = createCharacterChain(ctx, charBits, charRate);
+    if (!chain) return;
+    chain.output.connect(ctx.destination);
+    charNodeRef.current = chain;
+  }, [charOn, charBits, charRate]);
 
   useEffect(() => { try{const r=localStorage.getItem('spx_synth_presets');if(r)setSavedPresets(JSON.parse(r));}catch(e){} }, []);
   useEffect(() => { initFX(); }, [preset.fx, preset.master.vol]);
