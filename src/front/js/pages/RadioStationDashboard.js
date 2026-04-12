@@ -12,6 +12,10 @@ const RadioStationDashboard = () => {
 
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [songLog, setSongLog] = useState([]);
+  const [songLogStation, setSongLogStation] = useState(null);
+  const [showSongLog, setShowSongLog] = useState(false);
+  const [songLogLoading, setSongLogLoading] = useState(false);
   const [stats, setStats] = useState({
     totalStations: 0,
     totalListeners: 0,
@@ -153,6 +157,23 @@ const RadioStationDashboard = () => {
     return <LoadingSpinner message="Loading your radio stations..." fullScreen />;
   }
 
+  const fetchSongLog = async (stationId, stationName) => {
+    setSongLogLoading(true);
+    setSongLogStation(stationName);
+    setShowSongLog(true);
+    try {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const r = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/${stationId}/song-log?days=30`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (r.ok) {
+        const d = await r.json();
+        setSongLog(d.songs || []);
+      }
+    } catch(e) { setSongLog([]); }
+    finally { setSongLogLoading(false); }
+  };
+
   return (
     <div className="radio-dashboard-container">
       {/* Header */}
@@ -200,6 +221,55 @@ const RadioStationDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* SPX Broadcast Studio Featured Card */}
+      {stations.length > 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(0,255,200,0.08) 0%, rgba(255,102,0,0.06) 100%)',
+          border: '1px solid rgba(0,255,200,0.2)',
+          borderRadius: '12px',
+          padding: '20px 24px',
+          marginBottom: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '20px',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display:'flex', alignItems:'center', gap:'16px' }}>
+            <div style={{ fontSize:'36px' }}>📺</div>
+            <div>
+              <div style={{ fontSize:'16px', fontWeight:900, color:'#fff', marginBottom:'4px', letterSpacing:'0.5px' }}>
+                SPX Broadcast Studio
+              </div>
+              <div style={{ fontSize:'13px', color:'#8888aa', lineHeight:'1.5' }}>
+                Go live with multi-host video · Keep your station audio running · Song log for BMI/ASCAP
+              </div>
+            </div>
+          </div>
+          <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+            {stations[0] && (
+              <a href={`/radio-live-studio/${stations[0].id}`}
+                style={{
+                  padding:'10px 20px', borderRadius:'6px', background:'#00ffc8',
+                  color:'#000', fontWeight:800, fontSize:'13px', textDecoration:'none',
+                  letterSpacing:'0.5px', whiteSpace:'nowrap'
+                }}>
+                🔴 Go Live
+              </a>
+            )}
+            <a href="/radio-live-studio"
+              style={{
+                padding:'10px 20px', borderRadius:'6px',
+                background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)',
+                color:'#dde0f0', fontWeight:700, fontSize:'13px', textDecoration:'none',
+                whiteSpace:'nowrap'
+              }}>
+              Learn More
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Radio Stations List */}
       {stations.length > 0 ? (
@@ -269,6 +339,11 @@ const RadioStationDashboard = () => {
                       {station.is_live ? '⏹️ Stop' : '▶️ Start'}
                     </button>
                     <a href={`/radio-live-studio/${station.id}`} className="station-action-btn" style={{textDecoration:'none',marginLeft:6,padding:'6px 12px',background:'rgba(0,255,200,0.1)',border:'1px solid rgba(0,255,200,0.3)',color:'#00ffc8',borderRadius:4,fontSize:12,fontWeight:700}}>📺 Live Studio</a>
+                    <button
+                      onClick={() => fetchSongLog(station.id, station.name)}
+                      className="station-action-btn"
+                      style={{marginLeft:6,padding:'6px 12px',background:'rgba(167,139,250,0.1)',border:'1px solid rgba(167,139,250,0.3)',color:'#a78bfa',borderRadius:4,fontSize:12,fontWeight:700,cursor:'pointer'}}
+                    >📋 Song Log</button>
                     <a href={`/api/radio/${station.id}/pro-export?pro=bmi&days=30`} style={{textDecoration:'none',marginLeft:6,padding:'6px 12px',background:'rgba(255,102,0,0.1)',border:'1px solid rgba(255,102,0,0.3)',color:'#FF6600',borderRadius:4,fontSize:12,fontWeight:700}} download>📋 PRO Report</a>
                     <button
                       onClick={() => handleDeleteStation(station.id)}
@@ -326,6 +401,76 @@ const RadioStationDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Song Log Modal */}
+      {showSongLog && (
+        <div style={{
+          position:'fixed', inset:0, background:'rgba(0,0,0,0.85)',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          zIndex:1000, padding:'20px'
+        }} onClick={() => setShowSongLog(false)}>
+          <div style={{
+            background:'#0a0a18', border:'1px solid rgba(0,255,200,0.15)',
+            borderRadius:'12px', width:'100%', maxWidth:'700px',
+            maxHeight:'80vh', display:'flex', flexDirection:'column',
+            overflow:'hidden'
+          }} onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{
+              padding:'16px 20px', borderBottom:'1px solid rgba(255,255,255,0.06)',
+              display:'flex', alignItems:'center', justifyContent:'space-between'
+            }}>
+              <div>
+                <div style={{fontSize:'14px',fontWeight:800,color:'#dde0f0'}}>📋 Song Log — {songLogStation}</div>
+                <div style={{fontSize:'11px',color:'#5a7088',marginTop:'2px'}}>Last 30 days · For BMI/ASCAP/SESAC reporting</div>
+              </div>
+              <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+                <a href={`/api/radio/${stations.find(s=>s.name===songLogStation)?.id}/pro-export?pro=bmi&days=30`}
+                  download
+                  style={{padding:'6px 14px',borderRadius:'4px',background:'rgba(255,102,0,0.1)',border:'1px solid rgba(255,102,0,0.3)',color:'#FF6600',fontSize:11,fontWeight:700,textDecoration:'none'}}>
+                  ⬇ Export CSV
+                </a>
+                <button onClick={() => setShowSongLog(false)}
+                  style={{background:'transparent',border:'none',color:'#5a7088',fontSize:'18px',cursor:'pointer',padding:'4px'}}>✕</button>
+              </div>
+            </div>
+            {/* Content */}
+            <div style={{overflowY:'auto',flex:1}}>
+              {songLogLoading ? (
+                <div style={{padding:'32px',textAlign:'center',color:'#5a7088'}}>Loading song log...</div>
+              ) : songLog.length === 0 ? (
+                <div style={{padding:'32px',textAlign:'center',color:'#5a7088'}}>
+                  <div style={{fontSize:'32px',marginBottom:'12px'}}>🎵</div>
+                  <div>No songs logged yet. Songs are logged automatically when your station plays them.</div>
+                </div>
+              ) : (
+                <table style={{width:'100%',borderCollapse:'collapse'}}>
+                  <thead>
+                    <tr style={{background:'rgba(255,255,255,0.03)'}}>
+                      {['#','Title','Artist','Album','Duration','Played At'].map(h => (
+                        <th key={h} style={{padding:'10px 16px',textAlign:'left',fontSize:'10px',fontWeight:700,color:'#5a7088',letterSpacing:'1px',textTransform:'uppercase',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {songLog.map((s, i) => (
+                      <tr key={i} style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                        <td style={{padding:'10px 16px',fontSize:'12px',color:'#3a5070'}}>{i+1}</td>
+                        <td style={{padding:'10px 16px',fontSize:'13px',color:'#dde0f0',fontWeight:600}}>{s.title || '—'}</td>
+                        <td style={{padding:'10px 16px',fontSize:'12px',color:'#8888aa'}}>{s.artist || '—'}</td>
+                        <td style={{padding:'10px 16px',fontSize:'12px',color:'#5a7088'}}>{s.album || '—'}</td>
+                        <td style={{padding:'10px 16px',fontSize:'12px',color:'#5a7088'}}>{s.duration || '—'}</td>
+                        <td style={{padding:'10px 16px',fontSize:'11px',color:'#3a5070'}}>{s.played_at ? new Date(s.played_at).toLocaleString() : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
