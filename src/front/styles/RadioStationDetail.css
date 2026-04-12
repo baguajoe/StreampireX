@@ -171,6 +171,7 @@
 }
 
 .loop-indicator {
+  justify-content: center !important;
   background: rgba(255,102,0,0.1) !important;
   border-color: rgba(255,102,0,0.3) !important;
   color: #ff6600 !important;
