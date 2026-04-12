@@ -492,7 +492,7 @@ const SynthCreator = ({ onClose, onAssignToPad, onAssignToTrack }) => {
   };
 
   // ── Piano keyboard ──
-  const OCTAVES=[3,4,5]; const WW=24,WH=82,BW=15,BH=52;
+  const OCTAVES=[2,3,4,5,6]; const WW=28,WH=90,BW=18,BH=56;
   const KPO=[{b:false,m:0},{b:true,m:1},{b:false,m:2},{b:true,m:3},{b:false,m:4},{b:false,m:5},{b:true,m:6},{b:false,m:7},{b:true,m:8},{b:false,m:9},{b:true,m:10},{b:false,m:11}];
 
   const renderKeyboard = () => {
@@ -660,7 +660,7 @@ const SynthCreator = ({ onClose, onAssignToPad, onAssignToTrack }) => {
           </Panel>
           <Panel title="ARPEGGIATOR" accent="#a78bfa"
             right={<LEDToggle value={preset.arp.on} onChange={v=>setArp('on',v)} label="ON" color="#a78bfa"/>}>
-            <div style={{display:'flex',gap:20,flexWrap:'wrap',marginBottom:10}}>
+            <div style={{display:"flex",justifyContent:"space-evenly",width:"100%",gap:20,flexWrap:'wrap',marginBottom:10}}>
               <div><div className="sc-param-label">MODE</div><PillGroup options={ARP_MODES} value={preset.arp.mode} onChange={v=>setArp('mode',v)} color="#a78bfa"/></div>
               <div><div className="sc-param-label">RATE</div><PillGroup options={ARP_RATES} value={preset.arp.rate} onChange={v=>setArp('rate',v)} color="#a78bfa"/></div>
             </div>
@@ -767,7 +767,7 @@ const SynthCreator = ({ onClose, onAssignToPad, onAssignToTrack }) => {
           </Panel>
           {(onAssignToPad||onAssignToTrack) && (
             <Panel title="ASSIGN" accent="#a78bfa">
-              <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+              <div style={{display:"flex",justifyContent:"space-evenly",width:"100%",gap:10,flexWrap:'wrap'}}>
                 {onAssignToPad && <button className="sc-assign-btn sc-assign-cyan" onClick={()=>{exportWAV();onAssignToPad&&onAssignToPad(preset);}}>🎛 → PAD</button>}
                 {onAssignToTrack && <button className="sc-assign-btn sc-assign-orange" onClick={()=>onAssignToTrack&&onAssignToTrack(preset)}>🎹 → TRACK</button>}
               </div>

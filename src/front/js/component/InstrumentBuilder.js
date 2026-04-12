@@ -343,7 +343,7 @@ const LayerDetail = ({ layer, onUpdate, color }) => {
             <Knob value={layer.pitch} min={-24} max={24} step={1} onChange={v=>onUpdate('pitch',v)} label="PITCH" unit="st" size={64} color={lc} bipolar/>
             <Knob value={layer.rootNote} min={0} max={127} step={1} onChange={v=>onUpdate('rootNote',v)} label="ROOT" size={64} color={lc}/>
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display:"flex", justifyContent:"space-evenly",width:"100%",gap: 8, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
             <LEDToggle value={layer.loopOn} onChange={v=>onUpdate('loopOn',v)} label="LOOP" color={lc}/>
             <LEDToggle value={layer.reverse} onChange={v=>onUpdate('reverse',v)} label="REVERSE" color={lc}/>
             <label className="ib-upload-btn" style={{ padding: '4px 10px', fontSize: '0.55rem' }}>
@@ -787,7 +787,7 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
       {showPresets && savedPresets.length > 0 && (
         <div className="ib-presets">
           {savedPresets.map(p => (
-            <div key={p.name} style={{ display: 'flex', gap: 3 }}>
+            <div key={p.name} style={{ display:"flex", justifyContent:"space-evenly",width:"100%",gap: 3 }}>
               <button className="ib-preset-btn" onClick={() => loadPreset(p)}>{p.name}</button>
               <button className="ib-preset-del" onClick={() => deletePreset(p.name)}>✕</button>
             </div>
@@ -894,7 +894,7 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
           {/* Assign buttons */}
           {(onAssignToPad || onAssignToTrack) && (
             <Panel title="ASSIGN" color="#00ffcc">
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ display:"flex", justifyContent:"space-evenly",width:"100%",gap: 10, flexWrap: 'wrap' }}>
                 {onAssignToPad && (
                   <button className="ib-upload-btn" onClick={async () => {
                     const buf = await exportWAV();
@@ -933,7 +933,7 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
             <input className="ib-input" placeholder="Name…" value={saveName || instrName}
               onChange={e => setSaveName(e.target.value)} autoFocus
               onKeyDown={e => { if (e.key === 'Enter') savePreset(); if (e.key === 'Escape') setShowSaveModal(false); }}/>
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <div style={{ display:"flex", justifyContent:"space-evenly",width:"100%",gap: 8, marginTop: 12 }}>
               <button className="ib-btn ib-btn-teal" onClick={savePreset}>SAVE</button>
               <button className="ib-btn" onClick={() => setShowSaveModal(false)}>CANCEL</button>
             </div>

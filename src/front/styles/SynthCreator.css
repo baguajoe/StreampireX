@@ -324,8 +324,10 @@
 .sc-knob-row {
   display: flex;
   align-items: flex-end;
+  justify-content: space-evenly;
   gap: 14px;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 /* ── LED TOGGLE ── */
@@ -446,6 +448,9 @@
   border-top: 1px solid #0d1826;
   padding: 10px 14px 12px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .sc-kbd-controls {
   display: flex;
@@ -592,3 +597,6 @@
   .sc-fx-grid  { grid-template-columns: 1fr; }
   .sc-header   { flex-direction: column; align-items: flex-start; }
 }
+.sc-knob-row { justify-content: space-evenly !important; width: 100% !important; }
+
+.sc-keyboard-section > div:last-child { display:flex; justify-content:center; width:100%; }
