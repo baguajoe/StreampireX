@@ -18,7 +18,9 @@ const DRUM_DEFAULTS = {
     noiseOn:false, noiseGain:0.15, noiseDecay:0.02,
     distOn:true, distAmt:12,
     satOn:false, satAmt:0.3,
-    duration:0.8, volume:0.9, punch:0.8,
+    filterOn:false, filterFreq:200, filterRes:1,
+    reverbOn2:false, reverbDecay2:0.6, reverbMix2:0.15,
+    pan:0, duration:0.8, volume:0.9, punch:0.8,
   },
   '808': {
     startFreq:80, endFreq:45, pitchDecay:0.18,
@@ -27,13 +29,13 @@ const DRUM_DEFAULTS = {
     noiseOn:false, noiseGain:0.05, noiseDecay:0.05,
     glide:0.12, glideFrom:180, harmonics:0.2,
     distOn:false, distAmt:8, satOn:true, satAmt:0.5,
-    duration:2.5, volume:0.9, punch:1.0,
+    pan:0, duration:2.5, volume:0.9, punch:1.0,
   },
   snare: {
     toneFreq:180, toneDecay:0.12, toneGain:0.5,
     noiseDecay:0.18, noiseGain:0.7, noiseFilter:3000,
     crackOn:true, crackGain:0.8, crackDecay:0.005,
-    snappy:0.6, tune:0,
+    snappy:0.6, tune:0, pan:0,
     reverbOn:false, reverbDecay:0.8, reverbMix:0.2,
     duration:0.5, volume:0.9,
   },
@@ -42,29 +44,32 @@ const DRUM_DEFAULTS = {
     noiseGain:0.9, noiseFilter:1500, noiseDecay:0.14,
     toneOn:false, toneFreq:900, toneGain:0.2, toneDecay:0.05,
     reverbOn:true, reverbDecay:0.6, reverbMix:0.35,
-    duration:0.4, volume:0.85,
+    pan:0, duration:0.4, volume:0.85,
   },
   hihat: {
     brightness:7000, decay:0.06,
     open:false, metallic:0.6, tune:0,
     crispOn:true, crispGain:0.5,
-    choke:true, duration:0.5, volume:0.75,
+    choke:true, pan:0, duration:0.5, volume:0.75,
   },
   tom: {
     startFreq:140, endFreq:80, pitchDecay:0.08,
     bodyDecay:0.3, bodyGain:0.8,
     noiseGain:0.2, noiseDecay:0.06,
-    duration:0.5, volume:0.85,
+    filterOn:false, filterFreq:150, filterRes:1,
+    reverbOn:false, reverbDecay:0.5, reverbMix:0.15,
+    pan:0, duration:0.5, volume:0.85,
   },
   rim: {
-    clickFreq:1200, toneFreq:400,
-    decay:0.04, duration:0.12, volume:0.8,
+    clickFreq:1200, toneFreq:400, mix:0.5,
+    decay:0.04, pan:0, duration:0.12, volume:0.8,
   },
   perc: {
     startFreq:600, endFreq:200, pitchDecay:0.05,
     bodyDecay:0.25,
     noiseGain:0.3, noiseDecay:0.08,
-    duration:0.5, volume:0.8,
+    reverbOn:false, reverbDecay:0.8, reverbMix:0.2,
+    pan:0, duration:0.5, volume:0.8,
   },
 };
 
@@ -561,6 +566,7 @@ const DrumDesigner = ({ onClose, onAssignToPad, onAssignToTrack }) => {
         <Knob value={p.bodyDecay} min={0.05} max={2} step={0.01} log onChange={v => set('bodyDecay', v)} label="BODY DEC" unit="s" color={drumColor} />
         <Knob value={p.punch} min={0} max={2} step={0.01} onChange={v => set('punch', v)} label="PUNCH" color={drumColor} />
         <Knob value={p.volume} min={0} max={1} step={0.01} onChange={v => set('volume', v)} label="VOLUME" color={drumColor} />
+        <Knob value={p.pan||0} min={-1} max={1} step={0.01} onChange={v => set('pan', v)} label="PAN" color={drumColor} />
         <div className="dd-section" style={{ width: '100%' }}>
           <div className="dd-section-title">LAYERS</div>
           <div className="dd-toggle-row">
@@ -592,6 +598,7 @@ const DrumDesigner = ({ onClose, onAssignToPad, onAssignToTrack }) => {
         <Knob value={p.bodyDecay} min={0.1} max={5} step={0.05} log onChange={v => set('bodyDecay', v)} label="TAIL" unit="s" color={drumColor} />
         <Knob value={p.harmonics} min={0} max={1} step={0.01} onChange={v => set('harmonics', v)} label="HARMONICS" color={drumColor} />
         <Knob value={p.volume} min={0} max={1} step={0.01} onChange={v => set('volume', v)} label="VOLUME" color={drumColor} />
+        <Knob value={p.pan||0} min={-1} max={1} step={0.01} onChange={v => set('pan', v)} label="PAN" color={drumColor} />
         <div className="dd-section" style={{ width: '100%' }}>
           <div className="dd-toggle-row">
             <Toggle value={p.satOn} onChange={v => set('satOn', v)} label="SATURATION" color="#f97316" />
@@ -612,6 +619,7 @@ const DrumDesigner = ({ onClose, onAssignToPad, onAssignToTrack }) => {
         <Knob value={p.noiseFilter} min={500} max={8000} step={100} log onChange={v => set('noiseFilter', v)} label="HP CUTOFF" unit="Hz" color={drumColor} />
         <Knob value={p.tune} min={-12} max={12} step={1} onChange={v => set('tune', v)} label="TUNE" unit="st" color={drumColor} />
         <Knob value={p.volume} min={0} max={1} step={0.01} onChange={v => set('volume', v)} label="VOLUME" color={drumColor} />
+        <Knob value={p.pan||0} min={-1} max={1} step={0.01} onChange={v => set('pan', v)} label="PAN" color={drumColor} />
         <div className="dd-section" style={{ width: '100%' }}>
           <div className="dd-toggle-row">
             <Toggle value={p.crackOn} onChange={v => set('crackOn', v)} label="CRACK" color={drumColor} />
@@ -636,6 +644,7 @@ const DrumDesigner = ({ onClose, onAssignToPad, onAssignToTrack }) => {
         <Knob value={p.noiseDecay} min={0.02} max={0.5} step={0.005} log onChange={v => set('noiseDecay', v)} label="DECAY" unit="s" color={drumColor} />
         <Knob value={p.noiseFilter} min={200} max={4000} step={50} log onChange={v => set('noiseFilter', v)} label="HP CUT" unit="Hz" color={drumColor} />
         <Knob value={p.volume} min={0} max={1} step={0.01} onChange={v => set('volume', v)} label="VOLUME" color={drumColor} />
+        <Knob value={p.pan||0} min={-1} max={1} step={0.01} onChange={v => set('pan', v)} label="PAN" color={drumColor} />
         <div className="dd-section" style={{ width: '100%' }}>
           <div className="dd-toggle-row">
             <Toggle value={p.reverbOn} onChange={v => set('reverbOn', v)} label="REVERB" color="#a78bfa" />
@@ -655,6 +664,13 @@ const DrumDesigner = ({ onClose, onAssignToPad, onAssignToTrack }) => {
         <Knob value={p.metallic} min={0} max={1} step={0.01} onChange={v => set('metallic', v)} label="METALLIC" color={drumColor} />
         <Knob value={p.tune} min={-6} max={6} step={1} onChange={v => set('tune', v)} label="TUNE" unit="st" color={drumColor} />
         <Knob value={p.volume} min={0} max={1} step={0.01} onChange={v => set('volume', v)} label="VOLUME" color={drumColor} />
+        <Knob value={p.pan||0} min={-1} max={1} step={0.01} onChange={v => set('pan', v)} label="PAN" color={drumColor} />
+        <div className="dd-section" style={{ width: '100%' }}>
+          <div className="dd-toggle-row">
+            <Toggle value={p.open} onChange={v => set('open', v)} label="OPEN" color={drumColor} />
+            {p.open && <Knob value={p.decay} min={0.05} max={2} step={0.01} log onChange={v => set('decay', v)} label="Open Dec" size={46} unit="s" color={drumColor} />}
+          </div>
+        </div>
       </div>
     );
 
@@ -667,6 +683,17 @@ const DrumDesigner = ({ onClose, onAssignToPad, onAssignToTrack }) => {
         <Knob value={p.bodyGain} min={0} max={1} step={0.01} onChange={v => set('bodyGain', v)} label="BODY" color={drumColor} />
         <Knob value={p.noiseGain} min={0} max={1} step={0.01} onChange={v => set('noiseGain', v)} label="NOISE" color={drumColor} />
         <Knob value={p.volume} min={0} max={1} step={0.01} onChange={v => set('volume', v)} label="VOLUME" color={drumColor} />
+        <Knob value={p.pan||0} min={-1} max={1} step={0.01} onChange={v => set('pan', v)} label="PAN" color={drumColor} />
+        <div className="dd-section" style={{ width: '100%' }}>
+          <div className="dd-toggle-row">
+            <Toggle value={p.filterOn} onChange={v => set('filterOn', v)} label="FILTER" color="#5ac8fa" />
+            {p.filterOn && <><Knob value={p.filterFreq||150} min={40} max={800} step={5} log onChange={v => set('filterFreq', v)} label="Cutoff" size={46} unit="Hz" color="#5ac8fa" /><Knob value={p.filterRes||1} min={0.1} max={20} step={0.1} onChange={v => set('filterRes', v)} label="Res" size={46} color="#5ac8fa" /></>}
+          </div>
+          <div className="dd-toggle-row">
+            <Toggle value={p.reverbOn} onChange={v => set('reverbOn', v)} label="REVERB" color="#a78bfa" />
+            {p.reverbOn && <><Knob value={p.reverbMix||0.15} min={0} max={1} step={0.01} onChange={v => set('reverbMix', v)} label="Mix" size={46} color="#a78bfa" /><Knob value={p.reverbDecay||0.5} min={0.1} max={3} step={0.1} onChange={v => set('reverbDecay', v)} label="Decay" size={46} unit="s" color="#a78bfa" /></>}
+          </div>
+        </div>
       </div>
     );
 
@@ -675,7 +702,9 @@ const DrumDesigner = ({ onClose, onAssignToPad, onAssignToTrack }) => {
         <Knob value={p.clickFreq} min={400} max={4000} step={10} log onChange={v => set('clickFreq', v)} label="CLICK FREQ" unit="Hz" color={drumColor} />
         <Knob value={p.toneFreq} min={100} max={1200} step={10} log onChange={v => set('toneFreq', v)} label="TONE FREQ" unit="Hz" color={drumColor} />
         <Knob value={p.decay} min={0.01} max={0.2} step={0.005} onChange={v => set('decay', v)} label="DECAY" unit="s" color={drumColor} />
+        <Knob value={p.mix||0.5} min={0} max={1} step={0.01} onChange={v => set('mix', v)} label="MIX" color={drumColor} />
         <Knob value={p.volume} min={0} max={1} step={0.01} onChange={v => set('volume', v)} label="VOLUME" color={drumColor} />
+        <Knob value={p.pan||0} min={-1} max={1} step={0.01} onChange={v => set('pan', v)} label="PAN" color={drumColor} />
       </div>
     );
 
@@ -688,6 +717,13 @@ const DrumDesigner = ({ onClose, onAssignToPad, onAssignToTrack }) => {
         <Knob value={p.noiseGain} min={0} max={1} step={0.01} onChange={v => set('noiseGain', v)} label="NOISE" color={drumColor} />
         <Knob value={p.noiseDecay} min={0.01} max={0.5} step={0.01} onChange={v => set('noiseDecay', v)} label="NOISE DEC" unit="s" color={drumColor} />
         <Knob value={p.volume} min={0} max={1} step={0.01} onChange={v => set('volume', v)} label="VOLUME" color={drumColor} />
+        <Knob value={p.pan||0} min={-1} max={1} step={0.01} onChange={v => set('pan', v)} label="PAN" color={drumColor} />
+        <div className="dd-section" style={{ width: '100%' }}>
+          <div className="dd-toggle-row">
+            <Toggle value={p.reverbOn} onChange={v => set('reverbOn', v)} label="REVERB" color="#a78bfa" />
+            {p.reverbOn && <><Knob value={p.reverbMix||0.2} min={0} max={1} step={0.01} onChange={v => set('reverbMix', v)} label="Mix" size={46} color="#a78bfa" /><Knob value={p.reverbDecay||0.8} min={0.1} max={3} step={0.1} onChange={v => set('reverbDecay', v)} label="Decay" size={46} unit="s" color="#a78bfa" /></>}
+          </div>
+        </div>
       </div>
     );
 
