@@ -159,12 +159,7 @@
   font-weight: 600;
 }
 
-.live-indicator {
-  background: rgba(255,45,85,0.12) !important;
-  border-color: rgba(255,45,85,0.35) !important;
-  color: #ff2d55 !important;
-  animation: livePulse 2s ease-in-out infinite;
-}
+
 @keyframes livePulse {
   0%,100% { box-shadow: 0 0 0 0 rgba(255,45,85,0.3); }
   50%      { box-shadow: 0 0 0 4px rgba(255,45,85,0); }
@@ -644,4 +639,26 @@
   .station-name { font-size: 1.4rem; }
   .station-info-grid { grid-template-columns: 1fr; }
   .player-controls { flex-direction: column; align-items: flex-start; }
+}
+.live-indicator {
+  background: transparent !important;
+  border: none !important;
+  color: #ff2d55 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  animation: none !important;
+  box-shadow: none !important;
+}
+
+.live-indicator::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff2d55;
+  display: inline-block;
+  animation: livePulse 1.2s ease-in-out infinite;
+  flex-shrink: 0;
 }
