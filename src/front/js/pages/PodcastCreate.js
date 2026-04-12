@@ -316,16 +316,20 @@ const PodcastCreate = () => {
         className="record-studio-banner"
         style={{
           display: 'flex',
+          flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
+          gap: '20px',
           padding: '16px 20px',
           background: 'linear-gradient(135deg, rgba(0, 255, 200, 0.08), rgba(0, 136, 255, 0.08))',
           border: '1px solid rgba(0, 255, 200, 0.2)',
           borderRadius: '12px',
-          marginBottom: '24px'
+          marginBottom: '24px',
+          width: '100%',
+          boxSizing: 'border-box'
         }}
       >
-        <div>
+        <div style={{flex:1, minWidth:0}}>
           <strong style={{ color: '#fff', fontSize: '15px' }}>🎙️ Want to record instead of upload?</strong>
           <p style={{ color: '#aaa', fontSize: '13px', margin: '4px 0 0' }}>
             Record with guests, add soundboard effects, chapters, and publish — all in one place.
