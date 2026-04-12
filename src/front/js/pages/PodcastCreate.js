@@ -329,7 +329,7 @@ const PodcastCreate = () => {
           boxSizing: 'border-box'
         }}
       >
-        <div style={{flex:1, minWidth:0}}>
+        <div>
           <strong style={{ color: '#fff', fontSize: '15px' }}>🎙️ Want to record instead of upload?</strong>
           <p style={{ color: '#aaa', fontSize: '13px', margin: '4px 0 0' }}>
             Record with guests, add soundboard effects, chapters, and publish — all in one place.
@@ -347,6 +347,8 @@ const PodcastCreate = () => {
             fontWeight: 700,
             fontSize: '14px',
             cursor: 'pointer',
+            flexShrink: 0,
+            whiteSpace: 'nowrap',
             whiteSpace: 'nowrap',
             flexShrink: 0
           }}
