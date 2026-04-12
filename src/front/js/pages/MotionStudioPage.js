@@ -237,16 +237,16 @@ export default function MotionStudioPage() {
   React.useEffect(() => {
     if (layers.length > 0) {
       try {
-        localStorage.setItem(MOTION_KEY, JSON.stringify({ layers, timeline, name: projectName, savedAt: Date.now() }));
+        localStorage.setItem(MOTION_KEY, JSON.stringify({ layers, timeline, name: projectName, savedAt: Date.now(), userSaved: false }));
       } catch(e) {}
     }
   }, [layers, projectName]);
 
-  // Load on mount
+  // Load on mount — only restore if user explicitly saved
   React.useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(MOTION_KEY) || "null");
-      if (saved?.layers?.length > 0) {
+      if (saved?.layers?.length > 0 && saved?.userSaved === true) {
         setLayers(saved.layers);
         if (saved.name) setProjectName(saved.name);
       }
@@ -351,17 +351,7 @@ export default function MotionStudioPage() {
 
   // ─── Seed default layers ────────────────────────────────────────────────────
   useEffect(() => {
-    if (!layers.length) {
-      setLayers([
-        { id:'title_1', type:'text', name:'Title', text:'SPX Motion', subtitle:'',
-          x:240, y:200, color:'#ffffff', fontSize:56, fontWeight:800, z:1,
-          opacity:1, rotation:0, scaleX:1, scaleY:1, effects:[], keyframes:{}, visible:true,
-          glow:true, glowStrength:0.4 },
-        { id:'shape_1', type:'shape', name:'Shape', x:240, y:310, width:200, height:80,
-          color:'#00ffc8', z:0, opacity:0.9, animate:true, speed:1.25, amplitude:16,
-          shape:'rect', effects:[], keyframes:{}, visible:true, rotation:0, scaleX:1, scaleY:1 },
-      ]);
-    }
+    // Start with empty canvas
   }, []);
 
   // ─── Render Loop ────────────────────────────────────────────────────────────
@@ -513,7 +503,7 @@ export default function MotionStudioPage() {
                   setShowCloudLoad(true);
                 } catch(e) { setStatus("Load failed: " + e.message); }
               } },
-              { label: "Save", shortcut: "Ctrl+S", action: () => { try { localStorage.setItem(MOTION_KEY, JSON.stringify({layers,timeline,name:projectName,savedAt:Date.now()})); setStatus("✅ Project saved locally"); } catch(e){ setStatus("Save failed"); } } },
+              { label: "Save", shortcut: "Ctrl+S", action: () => { try { localStorage.setItem(MOTION_KEY, JSON.stringify({layers,timeline,name:projectName,savedAt:Date.now(),userSaved:true})); setStatus("✅ Project saved locally"); } catch(e){ setStatus("Save failed"); } } },
               "---",
               { label: "Export Frame", action: handleExportFrame },
               { label: "Export Video (WebM)", action: handleExportVideo },

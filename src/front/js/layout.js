@@ -396,6 +396,14 @@ const getLayoutMode = (pathname) => {
         return "auth";
     }
 
+    const fullPages = [
+        '/spx-script', '/spx-beat-lab', '/dj-mixer', '/recording-studio',
+        '/video-editor', '/spx-canvas', '/spx-vector',
+        '/motion-studio', '/node-compositor', '/spx-puppet',
+        '/podcast-studio', '/podcast-collab-room',
+    ];
+    if (fullPages.some(p => cleanPath.startsWith(p))) return "full";
+
     return "app";
 };
 
@@ -410,6 +418,7 @@ const AppShell = ({ user }) => {
     const isPublicPage = layoutMode === "public";
     const isAuthPage = layoutMode === "auth";
     const isAppPage = layoutMode === "app";
+    const isFullPage = layoutMode === "full";
     const isComparePage = pathname === "/compare";
 
     const hideFooter = isAuthPage || isComparePage;
@@ -433,12 +442,13 @@ const AppShell = ({ user }) => {
 
             <ScrollToTop>
                 {isAppPage && <AnnouncementBar />}
+                {isFullPage && <div style={{position:"fixed",top:10,left:10,zIndex:9999}}><button onClick={()=>window.history.back()} style={{background:"rgba(0,0,0,0.6)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",borderRadius:4,padding:"4px 10px",cursor:"pointer",fontSize:12}}>← Back</button></div>}
                 {isAppPage && <Navbar />}
 
                 <div className="app-layout">
-                    {isAppPage && <Sidebar user={user} />}
+                    {(isAppPage) && <Sidebar user={user} />}
 
-                    <main className={`main-content${isAppPage ? "" : " no-sidebar"}`}>
+                    <main className={`main-content${isAppPage ? "" : " no-sidebar"}${isFullPage ? " full-page" : ""}`}>
                         <div
                             className={containerClass}
                             style={{
