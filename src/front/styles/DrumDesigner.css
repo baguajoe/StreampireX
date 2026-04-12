@@ -311,13 +311,15 @@
 
 /* ── FOOTER ── */
 .dd-footer {
-  padding: 8px 14px;
+  padding: 10px 14px;
   border-top: 1px solid #0d1826;
   background: #060b14;
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  min-height: 44px;
+  z-index: 2;
 }
 
 /* ── RESPONSIVE ── */
@@ -339,3 +341,8 @@
   margin-bottom: 4px !important;
 }
 .dd-section { width: 100%; }
+
+/* ── Root layout fix ── */
+.dd-root { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.dd-params-container { flex: 1; overflow-y: auto; min-height: 0; }
+.dd-toggle-row { flex-wrap: nowrap !important; }
