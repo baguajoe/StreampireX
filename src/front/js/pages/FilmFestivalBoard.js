@@ -36,7 +36,7 @@ const S = {
   page:      { minHeight: "100vh", background: "#0d1117", color: "#c9d1d9", fontFamily: "Inter, sans-serif" },
   hero:      { background: "linear-gradient(135deg, #1a0a2e 0%, #0a1628 50%, #1a1a0a 100%)", padding: "60px 24px 48px", textAlign: "center", borderBottom: "1px solid #1a2332", position: "relative", overflow: "hidden" },
   heroTitle: { fontSize: "2.4rem", fontWeight: 900, color: "#ffd700", margin: "0 0 10px", textShadow: "0 0 30px rgba(255,215,0,0.3)" },
-  heroSub:   { color: "#8b949e", fontSize: "0.95rem", maxWidth: 600, margin: "0 auto 24px" },
+  heroSub:   { color: "#8b949e", fontSize: "0.95rem", maxWidth: "100%", margin: "0 0 24px" },
   wrap:      { maxWidth: 1100, margin: "0 auto", padding: "40px 24px 60px" },
   grid:      { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 },
   card:      { background: "#161b22", border: "1px solid #30363d", borderRadius: 12, overflow: "hidden", transition: "all 0.15s" },

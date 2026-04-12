@@ -200,7 +200,7 @@ const FilmTheatrePage = () => {
   // ── CREATE THEATRE FORM ──────────────────────────────────────────────────
   if (!theatre && isOwner) return (
     <div style={S.page}>
-      <div style={{ maxWidth: 700, margin: "60px auto", padding: "0 24px" }}>
+      <div style={{ maxWidth: "100%", margin: "60px 0", padding: "0 24px" }}>
         <h1 style={{ fontSize: "1.8rem", fontWeight: 800, color: "#e6edf3", marginBottom: 8 }}>🎭 Create Your Theatre</h1>
         <p style={{ color: "#8b949e", marginBottom: 32 }}>Your virtual theatre is your filmmaker brand on StreamPireX</p>
 
@@ -441,7 +441,7 @@ const FilmTheatrePage = () => {
 
         {/* About Tab */}
         {activeTab === "about" && (
-          <div style={{ maxWidth: 700 }}>
+          <div style={{ maxWidth: "100%" }}>
             {theatre.bio && (
               <div style={S.editCard}>
                 <h3 style={{ color: "#e6edf3", margin: "0 0 12px" }}>About {theatre.name}</h3>

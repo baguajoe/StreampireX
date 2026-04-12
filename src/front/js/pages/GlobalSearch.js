@@ -58,7 +58,7 @@ export const SearchPage = () => {
   };
 
   const S = {
-    page:    { minHeight: '100vh', background: '#0d1117', color: '#c9d1d9', fontFamily: 'JetBrains Mono, Inter, sans-serif', padding: '24px 32px', maxWidth: 960, margin: '0 auto' },
+    page:    { minHeight: '100vh', background: '#0d1117', color: '#c9d1d9', fontFamily: 'JetBrains Mono, Inter, sans-serif', padding: '24px 32px', maxWidth: '100%', margin: 0 },
     searchBar: { width: '100%', background: '#21262d', border: '2px solid #30363d', borderRadius: 10, color: '#c9d1d9', padding: '12px 18px', fontSize: '1rem', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' },
     tab:     (active) => ({ padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 600, color: active ? '#00ffc8' : '#8b949e', borderBottom: `2px solid ${active ? '#00ffc8' : 'transparent'}` }),
     card:    { background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '12px 16px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 },
@@ -189,7 +189,7 @@ export const ExplorePage = () => {
   };
 
   const S = {
-    page:    { minHeight: '100vh', background: '#0d1117', color: '#c9d1d9', fontFamily: 'JetBrains Mono, Inter, sans-serif', padding: '24px 32px', maxWidth: 1100, margin: '0 auto' },
+    page:    { minHeight: '100vh', background: '#0d1117', color: '#c9d1d9', fontFamily: 'JetBrains Mono, Inter, sans-serif', padding: '24px 32px', maxWidth: '100%', margin: 0 },
     section: { marginBottom: 32 },
     sectionTitle: { fontSize: '1rem', fontWeight: 700, color: '#e6edf3', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 },
     grid3:   { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 },

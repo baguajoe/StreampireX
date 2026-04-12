@@ -24,7 +24,7 @@ const STORE_TYPES = [
 
 const S = {
   page:     { minHeight:'100vh', background:'#06060f', color:'#e0e0e0', fontFamily:'JetBrains Mono, monospace', padding:'40px 20px' },
-  container:{ maxWidth:800, margin:'0 auto' },
+  container:{ maxWidth:'100%', margin:0 },
   header:   { textAlign:'center', marginBottom:40 },
   title:    { fontSize:28, fontWeight:700, color:'#00ffc8', marginBottom:8 },
   subtitle: { color:'#888', fontSize:14 },

@@ -294,7 +294,7 @@ export default function JamTrackLibrary() {
   return (
     <div style={{ background:'#0d1117', color:'#e6edf3', minHeight:'100vh', fontFamily:'JetBrains Mono,monospace', fontSize:12 }}>
       <div style={{ background:'#161b22', borderBottom:'1px solid #21262d', padding:'12px 16px' }}>
-        <div style={{ maxWidth:900, margin:'0 auto' }}>
+        <div style={{ maxWidth:'100%', margin:0 }}>
           <div style={{ fontSize:20, fontWeight:900, color:'#00ffc8', marginBottom:10 }}>🎸 JAM TRACK LIBRARY</div>
           <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
             <input style={{ ...sel, flex:1, minWidth:160, outline:'none' }} placeholder="Search tracks..." value={search} onChange={e => setSearch(e.target.value)} />
@@ -305,7 +305,7 @@ export default function JamTrackLibrary() {
         </div>
       </div>
 
-      <div style={{ maxWidth:900, margin:'0 auto', padding:'14px 16px' }}>
+      <div style={{ maxWidth:'100%', margin:0, padding:'14px 16px' }}>
         <div style={{ fontSize:11, color:'#8b949e', marginBottom:10 }}>{filtered.length} tracks · Click to open player with stem mixer</div>
         <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
           {filtered.map(track => <TrackCard key={track.id} track={track} onPlay={setActiveTrack} />)}

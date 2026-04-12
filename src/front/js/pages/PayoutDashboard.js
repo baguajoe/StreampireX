@@ -95,7 +95,7 @@ export const PayoutDashboard = () => {
   };
 
   const S = {
-    page:   { minHeight: '100vh', background: '#0d1117', color: '#c9d1d9', fontFamily: 'JetBrains Mono, Inter, sans-serif', padding: '24px 32px', maxWidth: 900, margin: '0 auto' },
+    page:   { minHeight: '100vh', background: '#0d1117', color: '#c9d1d9', fontFamily: 'JetBrains Mono, Inter, sans-serif', padding: '24px 32px', maxWidth: '100%', margin: 0 },
     card:   { background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: 20, marginBottom: 16 },
     metricCard: (color) => ({ background: '#161b22', border: `1px solid ${color}30`, borderRadius: 8, padding: 18, flex: 1, minWidth: 160 }),
     label:  { display: 'block', fontSize: '0.72rem', color: '#8b949e', marginBottom: 4, fontWeight: 600 },

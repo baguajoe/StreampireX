@@ -55,7 +55,7 @@ const FESTIVAL_CATEGORIES = [
 // ─────────────────────────────────────────────
 const S = {
   page:      { minHeight: "100vh", background: "#0d1117", color: "#c9d1d9", fontFamily: "Inter, sans-serif", padding: "24px" },
-  header:    { maxWidth: 900, margin: "0 auto 32px", display: "flex", justifyContent: "space-between", alignItems: "center" },
+  header:    { maxWidth: "100%", margin: "0 0 32px", display: "flex", justifyContent: "space-between", alignItems: "center" },
   title:     { fontSize: "1.6rem", fontWeight: 800, color: "#e6edf3", margin: 0 },
   subtitle:  { color: "#8b949e", fontSize: "0.85rem", marginTop: 4 },
   wrap:      { maxWidth: 900, margin: "0 auto" },

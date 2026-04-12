@@ -416,7 +416,7 @@ const WAMPluginStore = () => {
         </button>
       </div>
 
-      <div style={{ padding: '24px 32px', maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ padding: '24px 32px', maxWidth: '100%', margin: 0 }}>
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: `1px solid ${S.border}` }}>

@@ -653,3 +653,7 @@ html { scroll-behavior: smooth; }
   width: 100% !important;
   box-sizing: border-box !important;
 }
+
+/* Force all app pages to use full available width */
+.main-content > * {
+}
