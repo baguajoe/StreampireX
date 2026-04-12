@@ -807,12 +807,15 @@ const ArtistProfilePage = () => {
               <div className="featured-track">
                 {tracks.length > 0 ? (
                   <>
-                    {getImageUrl(tracks[0].artwork) && (
+                    {getImageUrl(tracks[0].artwork) ? (
                       <img
                         src={getImageUrl(tracks[0].artwork)}
                         alt="Latest Release"
+                        className="featured-track-artwork"
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       />
+                    ) : (
+                      <div className="featured-track-placeholder">🎵</div>
                     )}
                     <div className="track-info">
                       <h3>{tracks[0].title}</h3>
