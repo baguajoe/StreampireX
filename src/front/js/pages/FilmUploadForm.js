@@ -58,7 +58,7 @@ const S = {
   header:    { maxWidth: "100%", margin: "0 0 32px", display: "flex", justifyContent: "space-between", alignItems: "center" },
   title:     { fontSize: "1.6rem", fontWeight: 800, color: "#e6edf3", margin: 0 },
   subtitle:  { color: "#8b949e", fontSize: "0.85rem", marginTop: 4 },
-  wrap:      { maxWidth: 900, margin: "0 auto" },
+  wrap:      { maxWidth: "100%", margin: 0 },
   card:      { background: "#161b22", border: "1px solid #30363d", borderRadius: 10, padding: 24, marginBottom: 20 },
   cardTitle: { fontSize: "1rem", fontWeight: 700, color: "#e6edf3", marginBottom: 18, display: "flex", alignItems: "center", gap: 8 },
   label:     { display: "block", fontSize: "0.75rem", fontWeight: 600, color: "#8b949e", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.5px" },
