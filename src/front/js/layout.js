@@ -442,7 +442,7 @@ const AppShell = ({ user }) => {
 
             <ScrollToTop>
                 {isAppPage && <AnnouncementBar />}
-                {isFullPage && <div style={{position:"fixed",top:10,left:10,zIndex:9999}}><button onClick={()=>window.history.back()} style={{background:"rgba(0,0,0,0.6)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",borderRadius:4,padding:"4px 10px",cursor:"pointer",fontSize:12}}>← Back</button></div>}
+                {isFullPage && <div style={{position:"fixed",top:6,right:16,zIndex:9999}}><button onClick={()=>window.history.back()} style={{background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.15)",color:"#888",borderRadius:4,padding:"3px 10px",cursor:"pointer",fontSize:11}}>← Back</button></div>}
                 {isAppPage && <Navbar />}
 
                 <div className="app-layout">

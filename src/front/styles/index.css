@@ -630,3 +630,19 @@ html { scroll-behavior: smooth; }
 /* SPX-10 text */
 .spx10-zone-name  { font-size: 0.76rem !important; color: #d0d8f0 !important; }
 .spx10-model      { font-size: 2rem !important; }
+
+/* Full page mode — SPX Suite tools */
+.main-content.full-page {
+  margin-left: 0 !important;
+  padding: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  background: transparent !important;
+  overflow: hidden !important;
+}
+.main-content.full-page > div {
+  padding: 0 !important;
+  max-width: 100% !important;
+  height: 100vh !important;
+}
