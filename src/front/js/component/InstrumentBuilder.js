@@ -413,6 +413,9 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
   const [exporting, setExporting]   = useState(false);
   const [status, setStatus]         = useState('');
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [charOn, setCharOn] = useState(false);
+  const [charBits, setCharBits] = useState(24);
+  const [charRate, setCharRate] = useState(44100);
   const [saveName, setSaveName]     = useState('');
   const [editLayerId, setEditLayerId] = useState(null);
 
@@ -916,6 +919,29 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
         </div>
       </div>
 
+      {/* CHARACTER */}
+      <div className="ib-character-bar">
+        <span className="ib-char-label">CHARACTER</span>
+        <button className={`ib-char-btn${charOn?' on':''}`} onClick={() => setCharOn(p=>!p)}>
+          {charOn ? '⬛ ON' : '◻ OFF'}
+        </button>
+        {charOn && <>
+          <span className="ib-char-label" style={{marginLeft:8}}>BITS</span>
+          {[8,12,14,16,24].map(b=>(
+            <button key={b} className={`ib-char-btn${charBits===b?' on':''}`} onClick={()=>setCharBits(b)}
+              title={b===8?'NES/GameBoy':b===12?'MPC3000/SP-1200':b===14?'Early CD':b===16?'CD Quality':'Transparent'}>
+              {b}
+            </button>
+          ))}
+          <span className="ib-char-label" style={{marginLeft:8}}>RATE</span>
+          {[11025,22050,26040,32000,44100].map(r=>(
+            <button key={r} className={`ib-char-btn${charRate===r?' on':''}`} onClick={()=>setCharRate(r)}
+              title={r===11025?'Telephone':r===22050?'Multimedia':r===26040?'SP-1200':r===32000?'Broadcast':'CD Standard'}>
+              {(r/1000).toFixed(1)}k
+            </button>
+          ))}
+        </>}
+      </div>
       {/* KEYBOARD */}
       <div className="ib-keyboard-row">
         <div className="ib-kbd-controls">
