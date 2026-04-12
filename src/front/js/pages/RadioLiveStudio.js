@@ -628,7 +628,7 @@ export default function RadioLiveStudio() {
               <label>Background</label>
               <div className="rls-bg-btns">
                 {BACKGROUNDS.map(bg => (
-                  <button key={bg.id} className={`rls-bg-btn ${background === bg.id ? "active" : ""}`} onClick={() => setBackground(bg.id)} style={{ background: bg.color || "#1a1a2e" }}>
+                  <button key={bg.id} className={`rls-bg-btn ${background === bg.id ? "active" : ""}`} onClick={() => setBackground(bg.id)} title="Applies during broadcast">
                     {bg.label}
                   </button>
                 ))}
