@@ -349,6 +349,8 @@ const PodcastCreate = () => {
             cursor: 'pointer',
             flexShrink: 0,
             whiteSpace: 'nowrap',
+            width: 'fit-content',
+            alignSelf: 'center',
             whiteSpace: 'nowrap',
             flexShrink: 0
           }}
