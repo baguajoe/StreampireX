@@ -1125,7 +1125,7 @@ const RadioStationDetailPage = () => {
 
               {/* Now Playing in Audio Player */}
               {nowPlaying && (
-                <div className="now-playing">
+                <div className="now-playing" style={{background:"#0f1118",border:"1px solid #1e2330",borderLeft:"3px solid #00ffc8"}}>
                   <h3>🎵 Now Playing</h3>
                   <div className="track-info">
                     <div className="track-title">{nowPlaying.title || 'Unknown Track'}</div>
