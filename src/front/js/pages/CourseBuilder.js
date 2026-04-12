@@ -434,7 +434,7 @@ const CB = {
   tabs: { display: "flex", gap: "4px", padding: "12px 40px", borderBottom: "1px solid rgba(255,255,255,0.05)" },
   tab: { padding: "9px 18px", background: "none", border: "none", color: "#5a7080", fontSize: "0.88rem", fontWeight: "700", cursor: "pointer", borderRadius: "8px" },
   tabActive: { background: "rgba(0,255,200,0.1)", color: "#00ffc8" },
-  body: { padding: "28px 40px", maxWidth: "760px" },
+  body: { padding: "28px 40px", maxWidth: "100%" },
   form: { display: "flex", flexDirection: "column", gap: "20px" },
   row: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" },
   field: { display: "flex", flexDirection: "column", gap: "7px" },
