@@ -1,0 +1,192 @@
+/* RadioLiveViewer.css */
+.rlv-loading {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100vh; background: #06060f; color: #5a7088; gap: 16px; font-size: 14px;
+}
+.rlv-spinner {
+  width: 32px; height: 32px; border: 3px solid rgba(0,255,200,0.2);
+  border-top-color: #00ffc8; border-radius: 50%; animation: rlv-spin 0.8s linear infinite;
+}
+@keyframes rlv-spin { to { transform: rotate(360deg); } }
+
+.rlv-page {
+  display: flex; flex-direction: column; height: 100vh;
+  background: #06060f; color: #dde0f0;
+  font-family: 'Rajdhani', 'JetBrains Mono', monospace; overflow: hidden;
+}
+
+.rlv-header {
+  display: flex; align-items: center; gap: 12px; padding: 8px 16px;
+  background: #0a0a18; border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0; height: 46px;
+}
+
+.rlv-back {
+  color: #5a7088; text-decoration: none; font-size: 12px; font-weight: 600;
+  padding: 3px 8px; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px;
+}
+.rlv-back:hover { color: #00ffc8; text-decoration: none; }
+
+.rlv-header-info { display: flex; align-items: center; gap: 8px; flex: 1; }
+
+.rlv-live-badge {
+  background: #cc0000; color: #fff; font-size: 10px; font-weight: 800;
+  padding: 2px 7px; border-radius: 3px; letter-spacing: 1px;
+  animation: rlv-pulse 2s infinite;
+}
+@keyframes rlv-pulse { 0%,100%{opacity:1} 50%{opacity:.7} }
+
+.rlv-title { font-size: 14px; font-weight: 700; color: #dde0f0; }
+.rlv-genre {
+  font-size: 10px; color: #00ffc8; background: rgba(0,255,200,0.1);
+  border: 1px solid rgba(0,255,200,0.2); padding: 2px 7px; border-radius: 10px;
+}
+
+.rlv-header-stats { display: flex; gap: 12px; font-size: 12px; color: #5a7088; }
+
+.rlv-body { display: flex; flex: 1; overflow: hidden; }
+
+/* Stage */
+.rlv-stage {
+  flex: 1; position: relative; background: #000;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+
+.rlv-offline {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; color: #5a7088; text-align: center; padding: 40px;
+}
+.rlv-offline-icon { font-size: 48px; opacity: 0.3; }
+.rlv-offline-title { font-size: 18px; font-weight: 700; color: #8888aa; }
+.rlv-offline-msg { font-size: 13px; color: #5a7088; line-height: 1.6; }
+
+.rlv-listen-btn {
+  padding: 10px 24px; border-radius: 6px; border: 1px solid rgba(0,255,200,0.3);
+  background: rgba(0,255,200,0.1); color: #00ffc8; text-decoration: none;
+  font-size: 13px; font-weight: 700; transition: all .15s;
+}
+.rlv-listen-btn:hover { background: rgba(0,255,200,0.2); text-decoration: none; }
+
+.rlv-video { width: 100%; height: 100%; object-fit: contain; display: block; }
+.rlv-video.hidden { display: none; }
+.rlv-video.active { display: block; }
+
+.rlv-video-controls {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 8px; background: rgba(0,0,0,0.7);
+  padding: 8px 16px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1);
+}
+
+.rlv-vid-btn {
+  padding: 4px 12px; border-radius: 20px; border: none;
+  background: transparent; color: #dde0f0; cursor: pointer;
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  transition: background .1s;
+}
+.rlv-vid-btn:hover { background: rgba(255,255,255,0.1); }
+
+/* Side panel */
+.rlv-side {
+  width: 300px; flex-shrink: 0; display: flex; flex-direction: column;
+  background: #0a0a18; border-left: 1px solid rgba(255,255,255,0.07); overflow: hidden;
+}
+
+.rlv-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0; }
+
+.rlv-tab {
+  flex: 1; padding: 10px 4px; background: transparent; border: none;
+  border-bottom: 2px solid transparent; color: #5a7088; cursor: pointer;
+  font-family: inherit; font-size: 11px; font-weight: 700; transition: all .1s;
+}
+.rlv-tab.active { color: #00ffc8; border-bottom-color: #00ffc8; background: rgba(0,255,200,0.05); }
+
+/* Chat */
+.rlv-chat { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+.rlv-chat-messages {
+  flex: 1; overflow-y: auto; padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.rlv-chat-messages::-webkit-scrollbar { width: 4px; }
+.rlv-chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+.rlv-msg { display: flex; gap: 5px; font-size: 12px; line-height: 1.4; flex-wrap: wrap; }
+.rlv-msg.me .rlv-msg-user { color: #FF6600; }
+.rlv-msg-user { color: #00ffc8; font-weight: 700; flex-shrink: 0; }
+.rlv-msg-text { color: #dde0f0; flex: 1; }
+.rlv-msg-time { color: #3a5070; font-size: 10px; margin-left: auto; }
+
+.rlv-tip-msg { color: #FF6600; font-size: 12px; width: 100%; }
+.rlv-tip-amt { font-weight: 800; }
+.rlv-req-msg { color: #44aaff; font-size: 12px; width: 100%; }
+.rlv-sys-msg { color: #5a7088; font-size: 11px; font-style: italic; width: 100%; }
+
+.rlv-chat-input-row {
+  display: flex; gap: 6px; padding: 8px 10px;
+  border-top: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;
+}
+
+.rlv-chat-input {
+  flex: 1; background: #111122; border: 1px solid rgba(255,255,255,0.1);
+  color: #dde0f0; padding: 7px 10px; border-radius: 4px;
+  font-family: inherit; font-size: 12px; outline: none;
+}
+.rlv-chat-input:disabled { opacity: 0.4; }
+
+.rlv-send-btn {
+  padding: 7px 14px; border-radius: 4px; border: none;
+  background: #00ffc8; color: #000; font-weight: 700;
+  cursor: pointer; font-family: inherit; font-size: 12px;
+}
+.rlv-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Request & Tip panels */
+.rlv-request-panel,
+.rlv-tip-panel {
+  padding: 16px 12px; display: flex; flex-direction: column; gap: 10px;
+  flex: 1; overflow-y: auto;
+}
+
+.rlv-panel-title { font-size: 14px; font-weight: 800; color: #dde0f0; }
+.rlv-panel-desc { font-size: 12px; color: #5a7088; line-height: 1.5; margin: 0; }
+
+.rlv-input {
+  width: 100%; background: #111122; border: 1px solid rgba(255,255,255,0.1);
+  color: #dde0f0; padding: 8px 10px; border-radius: 4px;
+  font-family: inherit; font-size: 12px; outline: none; box-sizing: border-box;
+}
+.rlv-input:focus { border-color: rgba(0,255,200,0.3); }
+
+.rlv-tip-amounts { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.rlv-tip-preset {
+  padding: 5px 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);
+  background: transparent; color: #8888aa; cursor: pointer;
+  font-family: inherit; font-size: 12px; font-weight: 600; transition: all .1s;
+}
+.rlv-tip-preset.active { border-color: #FF6600; color: #FF6600; background: rgba(255,102,0,0.1); }
+
+.rlv-action-btn {
+  padding: 10px; border-radius: 4px; border: none;
+  background: #00ffc8; color: #000; font-weight: 800;
+  cursor: pointer; font-family: inherit; font-size: 13px; transition: all .15s;
+}
+.rlv-action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.rlv-action-btn.tip { background: linear-gradient(135deg, #FF6600, #ff8800); color: #fff; }
+
+.rlv-login-note { font-size: 11px; color: #5a7088; text-align: center; }
+
+/* Station info */
+.rlv-station-info {
+  padding: 12px; border-top: 1px solid rgba(255,255,255,0.05);
+  display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;
+}
+.rlv-station-name { font-size: 12px; font-weight: 700; color: #00ffc8; }
+.rlv-station-desc { font-size: 11px; color: #5a7088; line-height: 1.5; }
+.rlv-station-link { font-size: 11px; color: #5a7088; text-decoration: none; transition: color .1s; }
+.rlv-station-link:hover { color: #00ffc8; text-decoration: none; }
+
+@media (max-width: 600px) {
+  .rlv-side { width: 100%; position: fixed; bottom: 0; left: 0; height: 50vh; z-index: 10; }
+  .rlv-stage { height: 50vh; }
+}

@@ -47,6 +47,7 @@ import RadioSchedule from "./pages/RadioSchedule";
 import DiscoverUsersPage from "./pages/DiscoverUsersPage";
 import GoLivePage from "./pages/GoLivePage";
 import RadioLiveStudio from "./pages/RadioLiveStudio";
+import RadioLiveViewer from "./pages/RadioLiveViewer";
 import CreateClipPage from "./pages/CreateClipPage";
 import FloatingVideoCall from "./component/FloatingVideoCall";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
@@ -578,6 +579,7 @@ const AppShell = ({ user }) => {
                                 <Route path="/go-live" element={<GoLivePage />} />
                                 <Route path="/radio-live-studio" element={<RadioLiveStudio />} />
                                 <Route path="/radio-live-studio/:stationId" element={<RadioLiveStudio />} />
+                                <Route path="/radio-live-viewer/:stationId" element={<RadioLiveViewer />} />
                                 <Route path="/create-clip" element={<CreateClipPage />} />
                                 <Route path="/clip/:token" element={<ClipView />} />
                                 <Route path="/live-streams" element={<LiveStreamPage />} />
