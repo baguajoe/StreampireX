@@ -877,50 +877,7 @@ const RadioStationDetailPage = () => {
 
   // DEBUG Component (for development)
   const renderDebugInfo = () => {
-    if (process.env.NODE_ENV !== 'development') return null;
-
-    const audioUrl = getAudioUrl();
-
-    return (
-      <div style={{
-        background: '#f8f9fa',
-        border: '1px solid #dee2e6',
-        padding: '15px',
-        margin: '15px 0',
-        borderRadius: '8px',
-        fontSize: '14px'
-      }}>
-        <h4 style={{ margin: '0 0 10px 0', color: '#495057' }}>🐛 Debug Info</h4>
-        <p><strong>Station ID:</strong> {station?.id}</p>
-        <p><strong>Station Name:</strong> {station?.name}</p>
-        <p><strong>Logo URL:</strong> {station?.logo_url || 'None'}</p>
-        <p><strong>Audio URL:</strong> {audioUrl || 'None'}</p>
-        <p><strong>Is Live:</strong> {station?.is_live ? 'Yes' : 'No'}</p>
-        <p><strong>Loop Enabled:</strong> {station?.is_loop_enabled ? 'Yes' : 'No'}</p>
-        <p><strong>Connection Status:</strong> {connectionStatus}</p>
-        {audioError && <p style={{ color: 'red' }}><strong>Audio Error:</strong> {audioError.messa}</p>}
-
-        <button
-          onClick={() => {
-            console.log("🔍 Full Station Object:", station);
-            if (audioUrl) {
-              window.open(audioUrl, '_blank');
-            }
-          }}
-          style={{
-            marginTop: '10px',
-            padding: '5px 10px',
-            background: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          Test Audio URL
-        </button>
-      </div>
-    );
+    return null;
   };
 
   // Loading state
