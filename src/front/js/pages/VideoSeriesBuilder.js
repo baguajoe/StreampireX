@@ -167,7 +167,7 @@ const VideoSeriesBuilder = ({ existingSeries = null, onSaved }) => {
 
   // ── Styles ──
   const S = {
-    page:     { minHeight:'100vh', background:'#0d1117', color:'#c9d1d9', fontFamily:'JetBrains Mono, Inter, monospace', padding:'24px 32px', maxWidth:1100, margin:'0 auto' },
+    page:     { minHeight:'100vh', background:'#0d1117', color:'#c9d1d9', fontFamily:'JetBrains Mono, Inter, monospace', padding:'24px 32px', maxWidth:'100%', margin:0 },
     header:   { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 },
     title:    { fontSize:'1.4rem', fontWeight:700, color:'#e6edf3' },
     card:     { background:'#161b22', border:'1px solid #30363d', borderRadius:8, padding:20, marginBottom:16 },

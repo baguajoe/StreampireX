@@ -646,3 +646,10 @@ html { scroll-behavior: smooth; }
   max-width: 100% !important;
   height: 100vh !important;
 }
+
+/* Film & Series pages full width */
+.main-content > div {
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
