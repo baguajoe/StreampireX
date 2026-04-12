@@ -117,7 +117,7 @@ const ArtistProfilePage = () => {
 
   // Helper function for safe image URLs
   const getImageUrl = (imageUrl) => {
-    if (!imageUrl || imageUrl === "/default-artist-avatar.png" || imageUrl === "/placeholder-album.jpg") {
+    if (!imageUrl || imageUrl === "/default-artist-avatar.png" || imageUrl === "/placeholder-album.jpg" || imageUrl === "/default-track-artwork.jpg") {
       return "";
     }
     return imageUrl;

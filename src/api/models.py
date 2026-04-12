@@ -3220,7 +3220,7 @@ class Audio(db.Model):
             "likes": self.likes or 0,
             "album": self.album or "Single",
             "genre": self.genre or "Unknown",
-            "artwork": self.artwork_url or "/default-track-artwork.jpg",
+            "artwork": self.artwork_url or None,
             "is_public": self.is_public,
             "artist_name": self.artist_name or (self.user.username if self.user else "Unknown Artist"),
             # NEW fields
@@ -3246,7 +3246,7 @@ class Audio(db.Model):
             'file_url': self.file_url,
             'duration': self.duration or '0:00',
             'plays': self.plays or 0,
-            'album_artwork': self.album_rel.cover_image_url if self.album_rel and hasattr(self.album_rel, 'cover_image_url') else self.artwork_url or '/default-track-artwork.jpg'
+            'album_artwork': self.album_rel.cover_image_url if self.album_rel and hasattr(self.album_rel, 'cover_image_url') else self.artwork_url or None
         }
     
     def serialize_for_player(self):
@@ -3256,7 +3256,7 @@ class Audio(db.Model):
             'title': self.title,
             'artist': self.artist_name or (self.user.username if self.user else 'Unknown Artist'),
             'audio_url': self.file_url,
-            'artwork': self.artwork_url or (self.album_rel.cover_image_url if self.album_rel and hasattr(self.album_rel, 'cover_image_url') else '/default-track-artwork.jpg'),
+            'artwork': self.artwork_url or (self.album_rel.cover_image_url if self.album_rel and hasattr(self.album_rel, 'cover_image_url') else None),
             'duration': self.duration or '0:00',
             'is_explicit': self.is_explicit,
             'genre': self.genre or 'Unknown'
