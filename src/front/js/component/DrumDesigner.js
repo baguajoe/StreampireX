@@ -796,17 +796,17 @@ const DrumDesigner = ({ onClose, onAssignToPad, onAssignToTrack }) => {
       {/* FOOTER */}
       <div className="dd-footer">
         <button className="dd-btn dd-btn-reset"
-          onClick={() => setParams(p => ({ ...p, [drumType]: { ...DRUM_DEFAULTS[drumType] } }))}>
-          ↺ RESET {drumType.toUpperCase()}
+          onClick={() => { setParams(p => ({ ...p, [drumType]: { ...DRUM_DEFAULTS[drumType] } })); toast(`${drumType.toUpperCase()} reset`); }}>
+          ↺ RESET {dt?.label || drumType.toUpperCase()}
         </button>
-        <button className="dd-btn dd-btn-reset"
+        <button className="dd-btn dd-btn-reset-all"
           onClick={() => {
             const fresh = {};
             DRUM_TYPES.forEach(({ id }) => { fresh[id] = { ...DRUM_DEFAULTS[id] }; });
             setParams(fresh);
             toast('All drums reset');
           }}>
-          ↺ RESET ALL
+          ↺ RESET ALL DRUMS
         </button>
       </div>
     </div>

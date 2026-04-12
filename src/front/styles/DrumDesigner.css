@@ -336,3 +336,19 @@
 .dd-params-container { flex: 1; overflow-y: auto; min-height: 0; }
 .dd-toggle-row { flex-wrap: nowrap !important; justify-content: flex-start !important; }
 .dd-toggle-row .dd-knob-wrap { flex: 1; max-width: 120px; align-items: center; }
+
+/* ── Footer buttons FINAL fix ── */
+.dd-footer .dd-btn,
+.dd-btn-reset,
+.dd-btn-reset-all {
+  color: #ffffff !important;
+  border-color: #ffffff66 !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  padding: 8px 18px !important;
+  background: #0d1826 !important;
+}
+.dd-btn-reset:hover,
+.dd-btn-reset-all:hover { background: #ffffff15 !important; border-color: #ffffff !important; }
+.dd-btn-reset-all { border-color: #ff6b3566 !important; color: #ff6b35 !important; }
+.dd-btn-reset-all:hover { border-color: #ff6b35 !important; background: #ff6b3515 !important; }
