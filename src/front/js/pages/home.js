@@ -128,7 +128,8 @@ const Home = () => {
 						margin: '0 auto 40px',
 						lineHeight: '1.6'
 					}}>
-						The sovereign OS for <strong>Music Producers, Podcasters, Filmmakers, and Gamers</strong>.
+						<strong style={{ color: "#FF6600", display: "block", marginBottom: "12px", fontSize: "1.15em", letterSpacing: "1px", textTransform: "uppercase" }}>Create Everything. Own Everything. StreamPireX.</strong>
+                                                StreamPireX is <strong style={{ color: "#00ffc8" }}>The Creator OS</strong> — replace Adobe, FL Studio, Twitch, Patreon, Shopify, and 15 other tools.
 						Replace 15+ subscriptions with one AI-powered workspace to create, distribute, and host—all while
 						keeping <span style={{ color: '#fff', fontWeight: 'bold' }}>90% of your revenue</span>.
 					</p>
