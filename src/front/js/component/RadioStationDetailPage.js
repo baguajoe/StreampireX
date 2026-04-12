@@ -1127,7 +1127,7 @@ const RadioStationDetailPage = () => {
               {nowPlaying && (
                 <div className="now-playing" style={{background:"#0f1118",border:"1px solid #1e2330",borderLeft:"3px solid #00ffc8"}}>
                   <h3>🎵 Now Playing</h3>
-                  <div className="track-info">
+                  <div className="track-info" style={{background:"transparent",border:"none",padding:0}}>
                     <div className="track-title">{nowPlaying.title || 'Unknown Track'}</div>
                     <div className="track-artist">{nowPlaying.artist || 'Unknown Artist'}</div>
                     {nowPlaying.album && <div className="track-album">{nowPlaying.album}</div>}
