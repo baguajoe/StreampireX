@@ -134,12 +134,15 @@ const PodcastDetailPage = () => {
 
       {/* ── Hero ── */}
       <div className="podcast-hero">
+        {/* Blurred background */}
+        {coverImg
+          ? <div className="podcast-hero-bg" style={{ backgroundImage: `url(${coverImg})` }} />
+          : <div className="podcast-hero-bg-fallback" />
+        }
+        <div style={{position:"relative",zIndex:1}}>
+          <button className="back-button" onClick={() => navigate(-1)}>← Back</button>
+        </div>
         <div className="podcast-hero-inner">
-          {/* Back */}
-          <div style={{ position: "absolute", top: 20, left: 32 }}>
-            <button className="back-button" onClick={() => navigate(-1)}>← Back</button>
-          </div>
-
           {/* Cover */}
           <div className="podcast-cover-wrap">
             {coverImg ? (
@@ -154,7 +157,8 @@ const PodcastDetailPage = () => {
           </div>
 
           {/* Meta */}
-          <div className="podcast-meta" style={{ paddingTop: 28 }}>
+          <div className="podcast-meta">
+            <div className="podcast-type-label">Podcast</div>
             {podcast.category && <span className="podcast-category">{podcast.category}</span>}
             <h1 className="podcast-title">{podcast.title}</h1>
             {podcast.host_name && <p className="podcast-host">Hosted by <span>{podcast.host_name}</span></p>}
