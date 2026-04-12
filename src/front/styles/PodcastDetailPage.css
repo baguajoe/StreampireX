@@ -455,3 +455,33 @@
 
   .episode-play-col { display: none; }
 }
+
+/* Override PodcastProfile.css conflicts */
+.podcast-detail-container .podcast-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  grid-template-columns: unset !important;
+}
+
+.podcast-detail-container .action-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 9px 18px !important;
+  border-radius: 6px !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  background: rgba(255,255,255,0.04) !important;
+  color: #dde0f0 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: unset !important;
+}
+
+.podcast-detail-container .subscribe-btn {
+  background: linear-gradient(135deg, #00ffc8, #00d4a8) !important;
+  color: #000 !important;
+  border-color: transparent !important;
+}

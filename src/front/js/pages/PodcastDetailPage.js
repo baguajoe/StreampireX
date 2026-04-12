@@ -67,7 +67,7 @@ const PodcastDetailPage = () => {
   }, [id]);
 
   const getEpisodeUrl = (ep) => ep.file_url || ep.audio_url || ep.video_url || ep.stream_url || null;
-  const isVideo = (ep) => ep.video_url || ep.type === "video";
+  const isVideo = (ep) => ep.video_url || ep.type === "video" || (ep.file_url && /\.(mp4|mov|webm|avi)$/i.test(ep.file_url));
 
   const togglePlay = useCallback((ep) => {
     const url = getEpisodeUrl(ep);
