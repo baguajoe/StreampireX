@@ -352,3 +352,43 @@
 .dd-btn-reset-all:hover { background: #ffffff15 !important; border-color: #ffffff !important; }
 .dd-btn-reset-all { border-color: #ff6b3566 !important; color: #ff6b35 !important; }
 .dd-btn-reset-all:hover { border-color: #ff6b35 !important; background: #ff6b3515 !important; }
+
+/* ── CHARACTER BAR ── */
+.dd-character-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #060b14;
+  border-top: 1px solid #0d1826;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  min-height: 44px;
+}
+.dd-char-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  color: #ffaa00;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.dd-char-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border: 1px solid #2a4060;
+  background: #0d1826;
+  color: #ffffff;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.1s;
+}
+.dd-char-btn:hover { border-color: #ffaa00; color: #ffaa00; }
+.dd-char-btn.on {
+  border-color: #ffaa00;
+  color: #ffaa00;
+  background: #ffaa0018;
+  box-shadow: 0 0 8px #ffaa0044;
+}

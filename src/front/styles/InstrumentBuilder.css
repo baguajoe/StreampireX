@@ -642,3 +642,43 @@
 .ib-panel-body {
   padding: 12px !important;
 }
+
+/* ── CHARACTER BAR ── */
+.ib-character-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #060b14;
+  border-top: 1px solid #0d1826;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  min-height: 44px;
+}
+.ib-char-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  color: #00ffc8;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.ib-char-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border: 1px solid #2a4060;
+  background: #0d1826;
+  color: #ffffff;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.1s;
+}
+.ib-char-btn:hover { border-color: #00ffc8; color: #00ffc8; }
+.ib-char-btn.on {
+  border-color: #00ffc8;
+  color: #00ffc8;
+  background: #00ffc818;
+  box-shadow: 0 0 8px #00ffc844;
+}
