@@ -5,7 +5,7 @@
 //
 // Replaces the 22-tab horizontal scroll bar with 7 grouped dropdown menus:
 //   BEATS (always visible)
-//   HARDWARE ▾  — SP-1200, SPX3000, SPX-60, SPX-EPS, SPX-950, SPX-1000, Trident
+//   HARDWARE ▾  — SPX-1200, SPX-3000, SPX-60, SPX-EPS, SPX-950, SPX-1000, Trident
 //   CREATE ▾   — Sampler, Chop, Drum Kit, Synth, Drum Design, Instrument
 //   AI ▾        — AI Beats, Voice MIDI, Hum to Song, Text to Song, Stems
 //   LIBRARY ▾  — Sounds, Loops, Chords
@@ -27,14 +27,14 @@ const GROUPS = [
     label: '🔴 HARDWARE',
     alwaysVisible: false,
     tabs: [
-      { id: 'sp1200',  label: '🔴 SP-1200',     title: 'E-mu 1987 · 26kHz · asymmetric saturation · boom bap' },
-      { id: 'spx3000', label: '🎛️ SPX3000',     title: 'Akai · MPC3000 engine · 12-bit DAC · 4 banks' },
+      { id: 'sp1200',  label: '🔴 SPX-1200',     title: 'E-mu 1987 · 26kHz · asymmetric saturation · boom bap' },
+      { id: 'spx3000', label: '🎛️ SPX-3000',     title: 'Akai · MPC3000 engine · 12-bit DAC · 4 banks' },
       { id: 'spx60',   label: '🎛️ SPX-60',      title: 'Akai · 12-bit 40kHz · Linn swing · 4-velocity layers' },
       { id: 'spx950',  label: '🎛️ SPX-950',     title: 'Akai · 12-bit 40kHz · R-2R ladder · West Coast warm' },
       { id: 'spx1000', label: '🎛️ SPX-1000',    title: 'Akai · 16-bit 44.1kHz · linear PCM · clean' },
       { id: 'spx-eps', label: '🎹 SPX-EPS',     title: 'Ensoniq · 13-bit 29kHz · DOC chip · keyboard' },
       { id: 'spx10',   label: '🎹 SPX-10',      title: 'Ensoniq · ASR-10 · 16-bit · OTTO chip · keyboard' },
-      { id: 'triple',  label: '🗡️ SPX Trident',  title: 'SP-1200 + SPX3000 + SPX-3200 · unified 3-engine · master clock' },
+      { id: 'triple',  label: '🗡️ SPX-Trident',  title: 'SP-1200 + SPX-3000 + SPX-3200 · unified 3-engine · master clock' },
     ],
   },
   {

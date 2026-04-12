@@ -288,7 +288,7 @@ const Sidebar = ({ user }) => {
           🎛️ <span className="sidebar-label">SPX Studio</span><MenuHint className="sidebar-hint">recording</MenuHint>
         </SpxMenuItem>
         <SpxMenuItem to="/video-editor" className={isActive("/video-editor") ? "active" : ""}>
-          🎬 <span className="sidebar-label">SPX Editor</span><MenuHint className="sidebar-hint">FREE</MenuHint>
+          🎬 <span className="sidebar-label">SPX Cut</span><MenuHint className="sidebar-hint">FREE</MenuHint>
         </SpxMenuItem>
         <SpxMenuItem to="/motion-studio" className={isActive("/motion-studio") ? "active" : ""}>✨ <span className="sidebar-label">SPX Motion</span></SpxMenuItem>
         <SpxMenuItem to="/node-compositor" className={isActive("/node-compositor") ? "active" : ""}>🎛️ <span className="sidebar-label">SPX Compositor</span></SpxMenuItem>
