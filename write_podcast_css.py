@@ -1,4 +1,5 @@
-/* =============================================================================
+#!/usr/bin/env python3
+css = '''/* =============================================================================
    PodcastDetailPage.css — StreamPireX Podcast Detail
    ============================================================================= */
 
@@ -276,3 +277,8 @@
   .podcast-detail-container .episode-actions { width: 100% !important; flex-direction: row !important; }
   .episode-play-col { display: none; }
 }
+'''
+
+with open('/workspaces/SpectraSphere/src/front/styles/PodcastDetailPage.css', 'w') as f:
+    f.write(css)
+print('Done -', len(css), 'chars written')
