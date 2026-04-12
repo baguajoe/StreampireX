@@ -20079,7 +20079,7 @@ def delete_track(track_id):
             return jsonify({"error": "Track not found"}), 404
         
         # Verify ownership
-        if audio.user_id != current_user_id:
+        if int(audio.user_id) != int(current_user_id):
             return jsonify({"error": "Unauthorized to delete this track"}), 403
         
         # Optional: Delete associated files from storage
