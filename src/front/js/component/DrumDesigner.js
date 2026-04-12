@@ -4,6 +4,7 @@
 // =============================================================================
 
 import React, { useState, useRef, useCallback } from 'react';
+import { processCharacter, BIT_DEPTH_OPTIONS, SAMPLE_RATE_OPTIONS, getBitName, getRateName } from './SPXCharacterEngine';
 import '../../styles/DrumDesigner.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -521,7 +522,8 @@ const DrumDesigner = ({ onClose, onAssignToPad, onAssignToTrack }) => {
       const dur = (p.duration || 0.5) + 0.3;
       const offCtx = new OfflineAudioContext(2, Math.ceil(44100 * dur), 44100);
       synthDrum(offCtx, drumType, p, offCtx.destination);
-      const rendered = await offCtx.startRendering();
+      let rendered = await offCtx.startRendering();
+      if (charOn) rendered = processCharacter(offCtx, rendered, charBits, charRate);
       const nc = rendered.numberOfChannels, sr = rendered.sampleRate, len = rendered.length * nc * 2;
       const buf = new ArrayBuffer(44 + len);
       const view = new DataView(buf);

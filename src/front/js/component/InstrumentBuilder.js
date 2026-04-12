@@ -6,6 +6,7 @@
 //      preset save/load, assign to track/pad
 // =============================================================================
 
+import { processCharacter, BIT_DEPTH_OPTIONS, SAMPLE_RATE_OPTIONS, getBitName, getRateName } from './SPXCharacterEngine';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import '../../styles/InstrumentBuilder.css';
 
@@ -697,6 +698,7 @@ const InstrumentBuilder = ({ onClose, onAssignToPad, onAssignToTrack }) => {
       });
 
       const rendered = await offCtx.startRendering();
+      if (charOn) rendered = processCharacter(offCtx, rendered, charBits, charRate);
       const nc = rendered.numberOfChannels, sr = rendered.sampleRate, len = rendered.length * nc * 2;
       const buf = new ArrayBuffer(44 + len); const view = new DataView(buf);
       const ws = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };

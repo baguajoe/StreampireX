@@ -5,6 +5,7 @@
 //      ADSR visualizer, preset delete, dbl-click knob reset, fine tuning
 // =============================================================================
 
+import { processCharacter, BIT_DEPTH_OPTIONS, SAMPLE_RATE_OPTIONS, getBitName, getRateName } from './SPXCharacterEngine';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import '../../styles/SynthCreator.css';
 
