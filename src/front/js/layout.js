@@ -46,6 +46,7 @@ import MyVideoChannel from "./pages/MyVideoChannel";
 import RadioSchedule from "./pages/RadioSchedule";
 import DiscoverUsersPage from "./pages/DiscoverUsersPage";
 import GoLivePage from "./pages/GoLivePage";
+import RadioLiveStudio from "./pages/RadioLiveStudio";
 import CreateClipPage from "./pages/CreateClipPage";
 import FloatingVideoCall from "./component/FloatingVideoCall";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
@@ -401,6 +402,7 @@ const getLayoutMode = (pathname) => {
         '/video-editor', '/spx-canvas', '/spx-vector',
         '/motion-studio', '/node-compositor', '/spx-puppet',
         '/podcast-studio', '/podcast-collab-room',
+        '/radio-live-studio',
     ];
     if (fullPages.some(p => cleanPath.startsWith(p))) return "full";
 
@@ -574,6 +576,8 @@ const AppShell = ({ user }) => {
                                 <Route path="/my-reels" element={<MyReels />} />
                                 <Route path="/upload-reel" element={<UploadReel />} />
                                 <Route path="/go-live" element={<GoLivePage />} />
+                                <Route path="/radio-live-studio" element={<RadioLiveStudio />} />
+                                <Route path="/radio-live-studio/:stationId" element={<RadioLiveStudio />} />
                                 <Route path="/create-clip" element={<CreateClipPage />} />
                                 <Route path="/clip/:token" element={<ClipView />} />
                                 <Route path="/live-streams" element={<LiveStreamPage />} />

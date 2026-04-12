@@ -268,6 +268,7 @@ const RadioStationDashboard = () => {
                     >
                       {station.is_live ? '⏹️ Stop' : '▶️ Start'}
                     </button>
+                    <a href={`/radio-live-studio/${station.id}`} className="station-action-btn" style={{textDecoration:'none',marginLeft:6,padding:'6px 12px',background:'rgba(0,255,200,0.1)',border:'1px solid rgba(0,255,200,0.3)',color:'#00ffc8',borderRadius:4,fontSize:12,fontWeight:700}}>📺 Live Studio</a>
                     <button
                       onClick={() => handleDeleteStation(station.id)}
                       className="station-action-btn delete"
