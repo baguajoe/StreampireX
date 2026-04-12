@@ -622,3 +622,48 @@
     width: 100%;
   }
 }
+/* ── Add Tag button ── */
+.btn-add-tag {
+  padding: 8px 18px;
+  background: rgba(0,255,200,0.08);
+  border: 1px solid rgba(0,255,200,0.25);
+  color: #00ffc8;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  letter-spacing: 0.5px;
+}
+.btn-add-tag:hover { background: rgba(0,255,200,0.15); border-color: #00ffc8; }
+
+/* ── Add Track button ── */
+.btn-add-track {
+  padding: 8px 18px;
+  background: rgba(0,255,200,0.08);
+  border: 1px solid rgba(0,255,200,0.25);
+  color: #00ffc8;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-add-track:hover { background: rgba(0,255,200,0.15); border-color: #00ffc8; }
+
+/* ── Next Step button ── */
+.btn-next {
+  padding: 12px 32px;
+  background: linear-gradient(135deg, #00ffc8, #00d4a8);
+  border: none;
+  color: #000;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all .15s;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 20px rgba(0,255,200,0.2);
+}
+.btn-next:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(0,255,200,0.3); }
+.btn-next:active { transform: translateY(0); }
