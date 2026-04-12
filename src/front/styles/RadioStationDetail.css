@@ -644,21 +644,12 @@
   background: transparent !important;
   border: none !important;
   color: #ff2d55 !important;
-  padding: 0 !important;
+  padding: 0 4px !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 6px !important;
-  animation: none !important;
+  gap: 4px !important;
   box-shadow: none !important;
+  animation: livePulse 1.2s ease-in-out infinite !important;
 }
 
-.live-indicator::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #ff2d55;
-  display: inline-block;
-  animation: livePulse 1.2s ease-in-out infinite;
-  flex-shrink: 0;
-}
+
