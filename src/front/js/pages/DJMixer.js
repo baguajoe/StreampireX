@@ -490,6 +490,40 @@ function fmt(s){if(!s||isNaN(s)||s<0)return"0:00";return`${Math.floor(s/60)}:${M
 
 const HC_COLORS=["#ff4466","#00aaff","#00ff88","#ff8800"];
 
+
+const PIANO_NOTES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const NOTE_COLORS={"C":"#ff4444","C#":"#ff8800","D":"#ffcc00","D#":"#88ff00","E":"#00ff88","F":"#00ffcc","F#":"#00ccff","G":"#0088ff","G#":"#4400ff","A":"#8800ff","A#":"#cc00ff","B":"#ff0088"};
+
+function PianoReference({currentKey}){
+  const root=currentKey?currentKey.split(" ")[0]:null;
+  return(
+    <div className="dj-piano-ref">
+      <div className="dj-piano-keys">
+        {PIANO_NOTES.map(n=>(
+          <div key={n} className={"dj-piano-key"+(n.includes("#")?" black":"")+(root===n?" active":"")}
+            style={root===n?{background:NOTE_COLORS[n]||"#00ffc8"}:{}} title={n}>
+            <span>{n}</span>
+          </div>
+        ))}
+      </div>
+      {currentKey&&<div className="dj-piano-label">Root: {currentKey}</div>}
+    </div>
+  );
+}
+
+function EnergyBar({score}){
+  if(!score)return<span className="dj-energy-empty">—</span>;
+  const colors=["","#224","#336","#449","#33aa88","#00ffc8","#88ff44","#ffcc00","#ff8800","#ff4400","#ff0000"];
+  return(
+    <div className="dj-energy-bar-wrap" title={"Energy: "+score+"/10"}>
+      {[1,2,3,4,5,6,7,8,9,10].map(i=>(
+        <div key={i} className="dj-energy-seg" style={{background:i<=score?colors[i]:"#1a1a2e"}}/>
+      ))}
+      <span className="dj-energy-num">{score}</span>
+    </div>
+  );
+}
+
 export default function DJMixer(){
   const{store}=useContext(Context);
   const[rdy,setRdy]=useState(false);
@@ -515,6 +549,15 @@ export default function DJMixer(){
   const[mixTitle,setMixTitle]=useState("");
   const[saving,setSaving]=useState(false);
   const[activeTab,setActiveTab]=useState("decks");
+  const[analyzeData,setAnalyzeData]=useState({A:null,B:null});
+  const[analyzingDeck,setAnalyzingDeck]=useState(null);
+  const[cuePoints,setCuePoints]=useState({A:[],B:[]});
+  const[energyScore,setEnergyScore]=useState({A:null,B:null});
+  const[keyShift,setKeyShift]=useState({A:0,B:0});
+  const[mashupSuggestions,setMashupSuggestions]=useState([]);
+  const[setOrderTracks,setSetOrderTracks]=useState([]);
+  const[tagStatus,setTagStatus]=useState("");
+  const[showPiano,setShowPiano]=useState(false);
   const[midiEnabled,setMidiEnabled]=useState(false);
   const[controllerProfile,setControllerProfile]=useState("Custom");
   const[showProfilePicker,setShowProfilePicker]=useState(false);
@@ -669,6 +712,83 @@ export default function DJMixer(){
       }catch(e){setDjStatus("Could not start stream: "+e.message);}
     }
   },[streamDests,store]);
+
+  
+  const analyzeDeck=async(id)=>{
+    const dk=id==="A"?deckA:deckB;
+    if(!dk.buffer){setDjStatus("Load a track first");return;}
+    setAnalyzingDeck(id);
+    try{
+      function audioBufferToWav(buffer){
+        const numCh=buffer.numberOfChannels,sr=buffer.sampleRate,len=buffer.length;
+        const ab=new ArrayBuffer(44+len*2),view=new DataView(ab);
+        const write=(o,s)=>{for(let i=0;i<s.length;i++)view.setUint8(o+i,s.charCodeAt(i));};
+        write(0,"RIFF");view.setUint32(4,36+len*2,true);write(8,"WAVE");write(12,"fmt ");
+        view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,numCh,true);
+        view.setUint32(24,sr,true);view.setUint32(28,sr*numCh*2,true);
+        view.setUint16(32,numCh*2,true);view.setUint16(34,16,true);write(36,"data");
+        view.setUint32(40,len*2,true);
+        const ch=buffer.getChannelData(0);
+        for(let i=0;i<len;i++){const s=Math.max(-1,Math.min(1,ch[i]));view.setInt16(44+i*2,s<0?s*0x8000:s*0x7FFF,true);}
+        return new Blob([ab],{type:"audio/wav"});
+      }
+      const ctx2=getCtx();
+      const offCtx=new OfflineAudioContext(1,dk.buffer.length,dk.buffer.sampleRate);
+      const src2=offCtx.createBufferSource();src2.buffer=dk.buffer;src2.connect(offCtx.destination);src2.start();
+      const rendered=await offCtx.startRendering();
+      const wavBlob=audioBufferToWav(rendered);
+      const form=new FormData();
+      form.append("file",wavBlob,"track.wav");
+      const res=await fetch(`${BACKEND}/api/dj/analyze`,{method:"POST",body:form});
+      const data=await res.json();
+      setAnalyzeData(prev=>({...prev,[id]:data}));
+      setCuePoints(prev=>({...prev,[id]:data.cues||[]}));
+      setEnergyScore(prev=>({...prev,[id]:data.energy}));
+      upd(id,{bpm:data.bpm||dk.bpm,key:data.key||dk.key});
+      setDjStatus("Deck "+id+" analyzed — Key: "+data.camelot+" Energy: "+data.energy+"/10");
+    }catch(e){setDjStatus("Analysis failed: "+e.message);}
+    setAnalyzingDeck(null);
+  };
+
+  const getMashupSuggestions=async()=>{
+    const ad=analyzeData.A||analyzeData.B;
+    if(!ad){setDjStatus("Analyze a deck first");return;}
+    const camelot=ad.camelot||"8A";
+    const bpm=decks.A.bpm||decks.B.bpm||120;
+    const library=(store.store.libraryTracks||[]).map(t=>({id:t.id,title:t.title,artist:t.artist||"",bpm:t.bpm,camelot:t.camelot||t.key,energy:t.energy,artwork_url:t.artwork_url,audio_url:t.audio_url||t.file_url}));
+    try{
+      const res=await fetch(`${BACKEND}/api/dj/mashup-suggest`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({camelot,bpm,library})});
+      const data=await res.json();
+      setMashupSuggestions(data.suggestions||[]);
+    }catch(e){setDjStatus("Mashup failed: "+e.message);}
+  };
+
+  const buildSetOrder=async()=>{
+    const tracks=(store.store.libraryTracks||[]).map(t=>({id:t.id,title:t.title,bpm:t.bpm||120,energy:t.energy||5,camelot:t.camelot||"8A",artwork_url:t.artwork_url}));
+    try{
+      const res=await fetch(`${BACKEND}/api/dj/set-order`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tracks})});
+      const data=await res.json();
+      setSetOrderTracks(data.order||[]);
+    }catch(e){setDjStatus("Set order failed: "+e.message);}
+  };
+
+  const exportRekordbox=async()=>{
+    const tracks=setOrderTracks.length?setOrderTracks:(store.store.libraryTracks||[]);
+    const res=await fetch(`${BACKEND}/api/dj/export/rekordbox`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tracks})});
+    const data=await res.json();
+    const blob=new Blob([data.xml],{type:"text/xml"});
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rekordbox.xml";a.click();
+    setDjStatus("Rekordbox XML exported");
+  };
+
+  const exportTraktor=async()=>{
+    const tracks=setOrderTracks.length?setOrderTracks:(store.store.libraryTracks||[]);
+    const res=await fetch(`${BACKEND}/api/dj/export/traktor`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tracks})});
+    const data=await res.json();
+    const blob=new Blob([data.nml],{type:"text/xml"});
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="traktor.nml";a.click();
+    setDjStatus("Traktor NML exported");
+  };
 
   const { separate: realtimeSeparate, isRealtime: stemRealtime } = useStemSeparation();
   const handleStemSeparate=useCallback(async(id)=>{
@@ -894,6 +1014,11 @@ export default function DJMixer(){
         <div className="dj-tabs">
           <button className={`dj-tab${activeTab==="decks"?" active":""}`} onClick={()=>setActiveTab("decks")}>🎚 Decks</button>
           <button className={`dj-tab${activeTab==="sampler"?" active":""}`} onClick={()=>setActiveTab("sampler")}>🥁 Sampler</button>
+          <button className={`dj-tab${activeTab==="analyze"?" active":""}`} onClick={()=>setActiveTab("analyze")}>🔬 Analyze</button>
+          <button className={`dj-tab${activeTab==="cues"?" active":""}`} onClick={()=>setActiveTab("cues")}>📍 Cues</button>
+          <button className={`dj-tab${activeTab==="mashup"?" active":""}`} onClick={()=>setActiveTab("mashup")}>🧩 Mashup</button>
+          <button className={`dj-tab${activeTab==="setbuilder"?" active":""}`} onClick={()=>setActiveTab("setbuilder")}>📋 Set Builder</button>
+          <button className={`dj-tab${activeTab==="tags"?" active":""}`} onClick={()=>setActiveTab("tags")}>🏷 Tags</button>
         </div>
         <div className="dj-top-acts">
           <button className="dj-sync" onClick={syncBPM}>⟳ SYNC</button>
@@ -1049,6 +1174,206 @@ export default function DJMixer(){
           }
         </div>
       </div>
+
+
+      {activeTab==="analyze"&&(
+        <div className="dj-analyze-panel">
+          <div className="dj-analyze-decks">
+            {["A","B"].map(id=>{
+              const d=decks[id];const ad=analyzeData[id];
+              return(
+                <div key={id} className={"dj-analyze-deck dj-analyze-deck-"+id.toLowerCase()}>
+                  <div className="dj-analyze-header">DECK {id}{d.title&&<span className="dj-analyze-title"> {d.title}</span>}</div>
+                  <div className="dj-analyze-grid">
+                    <div className="dj-analyze-cell"><label>BPM</label><span>{d.bpm?Math.round(d.bpm):"—"}</span></div>
+                    <div className="dj-analyze-cell"><label>KEY</label><span>{ad?.key||d.key||"—"}</span></div>
+                    <div className="dj-analyze-cell"><label>CAMELOT</label><span className="dj-camelot-badge">{ad?.camelot||"—"}</span></div>
+                    <div className="dj-analyze-cell"><label>ENERGY</label><EnergyBar score={energyScore[id]}/></div>
+                  </div>
+                  <div className="dj-key-shift-row">
+                    <label>KEY SHIFT</label>
+                    <input type="range" min="-6" max="6" step="1" value={keyShift[id]}
+                      onChange={e=>setKeyShift(prev=>({...prev,[id]:Number(e.target.value)}))}/>
+                    <span>{keyShift[id]>0?"+":""}{keyShift[id]} st</span>
+                  </div>
+                  <button className="dj-btn-analyze" onClick={()=>analyzeDeck(id)} disabled={analyzingDeck===id||!d.loaded}>
+                    {analyzingDeck===id?"⏳ Analyzing...":"🔬 Analyze Track"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <div className="dj-piano-toggle-row">
+            <button className={"dj-tab"+(showPiano?" active":"")} onClick={()=>setShowPiano(v=>!v)}>🎹 Piano Reference</button>
+          </div>
+          {showPiano&&<PianoReference currentKey={analyzeData.A?.key||analyzeData.B?.key||decks.A.key||decks.B.key}/>}
+        </div>
+      )}
+
+      {activeTab==="cues"&&(
+        <div className="dj-cues-panel">
+          <div className="dj-cues-header">
+            <span>Auto Cue Points</span>
+            <div className="dj-cues-actions">
+              <button className="dj-btn-sm" onClick={()=>analyzeDeck("A")} disabled={!decks.A.loaded}>🔬 Detect A</button>
+              <button className="dj-btn-sm" onClick={()=>analyzeDeck("B")} disabled={!decks.B.loaded}>🔬 Detect B</button>
+            </div>
+          </div>
+          {["A","B"].map(id=>(
+            <div key={id} className="dj-cue-deck-section">
+              <div className="dj-cue-deck-label">DECK {id}</div>
+              {cuePoints[id].length===0
+                ?<div className="dj-cues-empty">Load a track and click Detect {id}</div>
+                :<div className="dj-cue-list">
+                  {cuePoints[id].map(c=>(
+                    <div key={c.index} className="dj-cue-item" style={{borderLeft:"3px solid "+c.color}}>
+                      <span className="dj-cue-label">{c.label}</span>
+                      <span className="dj-cue-time">{c.time.toFixed(2)}s</span>
+                      <button className="dj-cue-jump" onClick={()=>{const dk=id==="A"?deckA:deckB;dk.pauseOffset=c.time;if(dk.playing)dk.play(c.time);}}>▶</button>
+                    </div>
+                  ))}
+                </div>
+              }
+            </div>
+          ))}
+          <div className="dj-export-row">
+            <span>Export:</span>
+            <button className="dj-btn-sm" onClick={exportRekordbox}>Rekordbox XML</button>
+            <button className="dj-btn-sm" onClick={exportTraktor}>Traktor NML</button>
+          </div>
+        </div>
+      )}
+
+      {activeTab==="mashup"&&(
+        <div className="dj-mashup-panel">
+          <div className="dj-mashup-header">
+            <div className="dj-mashup-source">
+              Source: {analyzeData.A?.camelot||analyzeData.B?.camelot||"Analyze a deck first"}
+              {(decks.A.bpm||decks.B.bpm)&&<span> @ {Math.round(decks.A.bpm||decks.B.bpm)} BPM</span>}
+            </div>
+            <button className="dj-btn-analyze" onClick={getMashupSuggestions}>🧩 Find Matches</button>
+          </div>
+          {mashupSuggestions.length===0
+            ?<div className="dj-mashup-empty">Analyze a deck then click Find Matches to see harmonically compatible tracks.</div>
+            :<div className="dj-mashup-list">
+              {mashupSuggestions.map((t,i)=>(
+                <div key={i} className="dj-mashup-item">
+                  {t.artwork_url&&<img src={t.artwork_url} className="dj-mashup-art" alt=""/>}
+                  <div className="dj-mashup-info">
+                    <div className="dj-mashup-name">{t.title}</div>
+                    <div className="dj-mashup-meta">{t.camelot} · {t.bpm?Math.round(t.bpm):"?"}BPM</div>
+                  </div>
+                  <div className="dj-compat-badge" style={{color:t.compatibility>=90?"#00ffc8":t.compatibility>=75?"#ffcc00":"#ff8800"}}>{t.compatibility}%</div>
+                  <button className="dj-btn-sm" onClick={()=>loadTrack("B",t)}>→ B</button>
+                </div>
+              ))}
+            </div>
+          }
+        </div>
+      )}
+
+      {activeTab==="setbuilder"&&(
+        <div className="dj-set-panel">
+          <div className="dj-set-header">
+            <span>Set Builder — Energy Arc</span>
+            <div>
+              <button className="dj-btn-sm" onClick={buildSetOrder}>⚡ Build Set</button>
+              <button className="dj-btn-sm" onClick={exportRekordbox}>↓ Rekordbox</button>
+              <button className="dj-btn-sm" onClick={exportTraktor}>↓ Traktor</button>
+            </div>
+          </div>
+          {setOrderTracks.length===0
+            ?<div className="dj-set-empty">Click Build Set to auto-arrange your library into a progressive energy arc.</div>
+            :<>
+              <div className="dj-energy-arc">
+                {setOrderTracks.map((t,i)=>(
+                  <div key={i} className="dj-arc-bar-wrap" title={t.title+" | Energy: "+(t.energy||5)+"/10"}>
+                    <div className="dj-arc-bar" style={{height:((t.energy||5)*10)+"%",background:t.energy>=8?"#ff4400":t.energy>=5?"#00ffc8":"#0088ff"}}/>
+                    <span className="dj-arc-num">{i+1}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="dj-set-list">
+                {setOrderTracks.map((t,i)=>(
+                  <div key={i} className="dj-set-item">
+                    <span className="dj-set-num">{i+1}</span>
+                    {t.artwork_url&&<img src={t.artwork_url} className="dj-mashup-art" alt=""/>}
+                    <div className="dj-mashup-info">
+                      <div className="dj-mashup-name">{t.title}</div>
+                      <div className="dj-mashup-meta">{t.camelot||""} · {t.bpm?Math.round(t.bpm):"?"}BPM · Energy {t.energy||"?"}/10</div>
+                    </div>
+                    <button className="dj-btn-sm" onClick={()=>loadTrack("A",t)}>→ A</button>
+                  </div>
+                ))}
+              </div>
+            </>
+          }
+        </div>
+      )}
+
+      {activeTab==="tags"&&(
+        <div className="dj-tags-panel">
+          <div className="dj-tags-header">ID3 Tag Writer & Cleaner</div>
+          <div className="dj-tags-info">Write detected key and BPM directly into file metadata so Serato, Rekordbox, and Traktor read them automatically.</div>
+          {["A","B"].map(id=>{
+            const d=decks[id];const ad=analyzeData[id];
+            return(
+              <div key={id} className="dj-tag-deck">
+                <div className="dj-tag-deck-label">DECK {id} — {d.title||"No track loaded"}</div>
+                <div className="dj-tag-row">
+                  <span>BPM: {ad?.bpm||d.bpm?Math.round(ad?.bpm||d.bpm):"—"}</span>
+                  <span>Key: {ad?.camelot||"—"}</span>
+                </div>
+              </div>
+            );
+          })}
+          <div className="dj-tag-upload">
+            <div className="dj-tags-subheader">Upload File to Write Tags</div>
+            <input type="file" accept=".mp3,.flac,.m4a,.aac" className="dj-tag-file-input"
+              onChange={async(e)=>{
+                const file=e.target.files[0];if(!file)return;
+                const form=new FormData();form.append("file",file);
+                const ad2=analyzeData.A||analyzeData.B;
+                if(ad2?.bpm)form.append("bpm",String(ad2.bpm));
+                if(ad2?.camelot)form.append("camelot",ad2.camelot);
+                if(ad2?.key)form.append("key",ad2.key);
+                setTagStatus("Writing tags...");
+                try{
+                  const res=await fetch(`${BACKEND}/api/dj/tag-write`,{method:"POST",body:form});
+                  const data=await res.json();
+                  if(data.file_b64){
+                    const bytes=atob(data.file_b64);const arr=new Uint8Array(bytes.length);
+                    for(let i=0;i<bytes.length;i++)arr[i]=bytes.charCodeAt(i);
+                    const blob=new Blob([arr]);const a=document.createElement("a");
+                    a.href=URL.createObjectURL(blob);a.download=data.filename||file.name;a.click();
+                    setTagStatus("Tags written — file downloaded");
+                  }else{setTagStatus("Failed: "+(data.error||"unknown"));}
+                }catch(err){setTagStatus("Error: "+err.message);}
+              }}/>
+            <div className="dj-tag-status">{tagStatus}</div>
+          </div>
+          <div className="dj-tag-clean-section">
+            <div className="dj-tags-subheader">Clean Junk Metadata</div>
+            <input type="file" accept=".mp3" className="dj-tag-file-input"
+              onChange={async(e)=>{
+                const file=e.target.files[0];if(!file)return;
+                const form=new FormData();form.append("file",file);
+                setTagStatus("Cleaning...");
+                try{
+                  const res=await fetch(`${BACKEND}/api/dj/tag-clean`,{method:"POST",body:form});
+                  const data=await res.json();
+                  if(data.file_b64){
+                    const bytes=atob(data.file_b64);const arr=new Uint8Array(bytes.length);
+                    for(let i=0;i<bytes.length;i++)arr[i]=bytes.charCodeAt(i);
+                    const blob=new Blob([arr]);const a=document.createElement("a");
+                    a.href=URL.createObjectURL(blob);a.download=data.filename||file.name;a.click();
+                    setTagStatus("Cleaned — removed: "+(data.removed||[]).join(", ")||"nothing removed");
+                  }else{setTagStatus("Failed: "+(data.error||"unknown"));}
+                }catch(err){setTagStatus("Error: "+err.message);}
+              }}/>
+          </div>
+        </div>
+      )}
 
       {showHistory&&(
         <div className="dj-history-panel">

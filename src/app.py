@@ -672,6 +672,7 @@ except Exception as e:
     print(f'⚠️  projects_bp: {e}')
 try:
     from api.ai_fill_routes import ai_fill_bp
+from api.dj_harmonic_routes import dj_harmonic_bp
     app.register_blueprint(ai_fill_bp)
     print('✅ ai_fill_bp registered')
 except Exception as e:
@@ -680,6 +681,7 @@ try:
     from .routes.script_routes import script_bp
     from .routes.script_collab_ws import register_collab_ws
     app.register_blueprint(script_bp)
+app.register_blueprint(dj_harmonic_bp)
     register_collab_ws(sock)
     print('✅ script_bp registered')
 except Exception as e:

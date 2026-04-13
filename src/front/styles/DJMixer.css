@@ -942,3 +942,88 @@
 .dj-page *::-webkit-scrollbar { width: 5px; height: 5px; }
 .dj-page *::-webkit-scrollbar-thumb { background: #21262d; border-radius: 3px; }
 .dj-page *::-webkit-scrollbar-track { background: transparent; }
+
+/* ANALYZE TAB */
+.dj-analyze-panel{padding:16px;display:flex;flex-direction:column;gap:16px;}
+.dj-analyze-decks{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.dj-analyze-deck{background:#0d0d1a;border:1px solid #1a1a2e;border-radius:8px;padding:16px;}
+.dj-analyze-deck-a{border-top:3px solid #00ffc8;}
+.dj-analyze-deck-b{border-top:3px solid #FF6600;}
+.dj-analyze-header{font-size:11px;font-weight:700;letter-spacing:2px;color:#888;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.dj-analyze-title{color:#ccc;font-weight:400;letter-spacing:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px;}
+.dj-analyze-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.dj-analyze-cell{display:flex;flex-direction:column;gap:4px;}
+.dj-analyze-cell label{font-size:9px;letter-spacing:2px;color:#555;}
+.dj-analyze-cell span{font-size:18px;font-weight:700;color:#00ffc8;font-family:"JetBrains Mono",monospace;}
+.dj-key-shift-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.dj-key-shift-row label{font-size:10px;letter-spacing:1px;color:#666;min-width:70px;}
+.dj-key-shift-row input[type=range]{flex:1;accent-color:#00ffc8;}
+.dj-key-shift-row span{font-size:12px;color:#00ffc8;min-width:36px;text-align:right;}
+.dj-btn-analyze{width:100%;padding:8px;background:#00ffc811;border:1px solid #00ffc8;border-radius:6px;color:#00ffc8;font-size:12px;cursor:pointer;letter-spacing:1px;}
+.dj-btn-analyze:hover{background:#00ffc822;}
+.dj-btn-analyze:disabled{opacity:0.4;cursor:not-allowed;}
+.dj-piano-toggle-row{display:flex;gap:8px;}
+.dj-energy-bar-wrap{display:flex;align-items:center;gap:2px;}
+.dj-energy-seg{width:10px;height:14px;border-radius:2px;transition:background 0.2s;}
+.dj-energy-num{font-size:12px;color:#00ffc8;margin-left:6px;font-weight:700;}
+.dj-energy-empty{color:#444;font-size:14px;}
+.dj-piano-ref{background:#0a0a14;border:1px solid #1a1a2e;border-radius:8px;padding:12px;}
+.dj-piano-keys{display:flex;gap:2px;margin-bottom:8px;}
+.dj-piano-key{width:32px;height:56px;background:#1a1a2e;border:1px solid #333;border-radius:3px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;cursor:pointer;transition:background 0.2s;}
+.dj-piano-key.black{background:#111;height:36px;margin:0 -6px;z-index:1;}
+.dj-piano-key.active{border-color:#00ffc8;box-shadow:0 0 8px #00ffc844;}
+.dj-piano-key span{font-size:9px;color:#555;}
+.dj-piano-key.active span{color:#00ffc8;}
+.dj-piano-label{font-size:11px;color:#666;text-align:center;}
+/* CUES TAB */
+.dj-cues-panel{padding:16px;display:flex;flex-direction:column;gap:12px;}
+.dj-cues-header{display:flex;justify-content:space-between;align-items:center;font-size:12px;letter-spacing:2px;color:#888;}
+.dj-cues-actions{display:flex;gap:8px;}
+.dj-cue-deck-section{background:#0d0d1a;border:1px solid #1a1a2e;border-radius:8px;padding:12px;}
+.dj-cue-deck-label{font-size:10px;letter-spacing:2px;color:#555;margin-bottom:8px;}
+.dj-cue-list{display:flex;flex-direction:column;gap:6px;}
+.dj-cue-item{display:flex;align-items:center;gap:10px;padding:6px 10px;background:#06060f;border-radius:4px;}
+.dj-cue-label{font-size:12px;font-weight:700;color:#ccc;min-width:80px;}
+.dj-cue-time{font-size:12px;color:#00ffc8;font-family:"JetBrains Mono",monospace;flex:1;}
+.dj-cue-jump{background:#00ffc811;border:1px solid #00ffc844;color:#00ffc8;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;}
+.dj-cues-empty{color:#444;font-size:12px;padding:12px 0;}
+.dj-export-row{display:flex;align-items:center;gap:8px;padding-top:8px;border-top:1px solid #1a1a2e;}
+.dj-export-row span{font-size:11px;color:#555;}
+.dj-btn-sm{padding:5px 12px;background:#1a1a2e;border:1px solid #333;border-radius:4px;color:#ccc;font-size:11px;cursor:pointer;letter-spacing:1px;}
+.dj-btn-sm:hover{border-color:#00ffc8;color:#00ffc8;}
+/* MASHUP TAB */
+.dj-mashup-panel{padding:16px;display:flex;flex-direction:column;gap:12px;}
+.dj-mashup-header{display:flex;justify-content:space-between;align-items:center;}
+.dj-mashup-source{font-size:12px;color:#888;}
+.dj-mashup-empty{color:#444;font-size:12px;padding:20px 0;text-align:center;}
+.dj-mashup-list{display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto;}
+.dj-mashup-item{display:flex;align-items:center;gap:10px;padding:8px;background:#0d0d1a;border:1px solid #1a1a2e;border-radius:6px;}
+.dj-mashup-art{width:36px;height:36px;border-radius:4px;object-fit:cover;}
+.dj-mashup-info{flex:1;min-width:0;}
+.dj-mashup-name{font-size:12px;font-weight:600;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dj-mashup-meta{font-size:10px;color:#555;margin-top:2px;}
+.dj-compat-badge{font-size:14px;font-weight:700;font-family:"JetBrains Mono",monospace;min-width:40px;text-align:right;}
+/* SET BUILDER TAB */
+.dj-set-panel{padding:16px;display:flex;flex-direction:column;gap:12px;}
+.dj-set-header{display:flex;justify-content:space-between;align-items:center;font-size:12px;letter-spacing:1px;color:#888;}
+.dj-set-header div{display:flex;gap:8px;}
+.dj-set-empty{color:#444;font-size:12px;padding:20px 0;text-align:center;}
+.dj-energy-arc{display:flex;align-items:flex-end;gap:3px;height:80px;background:#0a0a14;border:1px solid #1a1a2e;border-radius:8px;padding:8px 12px;overflow-x:auto;}
+.dj-arc-bar-wrap{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:16px;}
+.dj-arc-bar{width:12px;border-radius:2px 2px 0 0;transition:height 0.3s;min-height:4px;}
+.dj-arc-num{font-size:8px;color:#444;}
+.dj-set-list{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;}
+.dj-set-item{display:flex;align-items:center;gap:10px;padding:8px;background:#0d0d1a;border:1px solid #1a1a2e;border-radius:6px;}
+.dj-set-num{font-size:14px;font-weight:700;color:#444;min-width:24px;text-align:center;}
+/* TAGS TAB */
+.dj-tags-panel{padding:16px;display:flex;flex-direction:column;gap:16px;}
+.dj-tags-header{font-size:12px;letter-spacing:2px;color:#888;font-weight:700;}
+.dj-tags-subheader{font-size:11px;letter-spacing:1px;color:#555;margin-bottom:8px;}
+.dj-tags-info{font-size:11px;color:#444;line-height:1.6;background:#0a0a14;padding:10px;border-radius:6px;border:1px solid #1a1a2e;}
+.dj-tag-deck{background:#0d0d1a;border:1px solid #1a1a2e;border-radius:8px;padding:12px;}
+.dj-tag-deck-label{font-size:10px;letter-spacing:2px;color:#555;margin-bottom:8px;}
+.dj-tag-row{display:flex;align-items:center;gap:12px;font-size:12px;color:#888;}
+.dj-tag-upload{background:#0d0d1a;border:1px solid #1a1a2e;border-radius:8px;padding:12px;}
+.dj-tag-file-input{width:100%;font-size:11px;color:#888;margin-bottom:8px;}
+.dj-tag-status{font-size:11px;color:#00ffc8;min-height:16px;}
+.dj-tag-clean-section{background:#0d0d1a;border:1px solid #1a1a2e;border-radius:8px;padding:12px;}
