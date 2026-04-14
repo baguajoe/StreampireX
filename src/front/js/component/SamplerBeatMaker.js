@@ -3717,6 +3717,17 @@ const SamplerBeatMaker = ({
             <div className="pad-setting"><label>Volume</label><input type="range" min={0} max={100} value={Math.round(pads[selectedPad].volume * 100)} onChange={(e) => updatePad(selectedPad, { volume: +e.target.value / 100 })} /><span className="setting-value">{Math.round(pads[selectedPad].volume * 100)}%</span></div>
             <div className="pad-setting"><label>Pitch</label><input type="range" min={-12} max={12} value={pads[selectedPad].pitch} onChange={(e) => updatePad(selectedPad, { pitch: +e.target.value })} /><span className="setting-value">{pads[selectedPad].pitch > 0 ? '+' : ''}{pads[selectedPad].pitch}st</span></div>
             <div className="pad-setting"><label>Pan</label><input type="range" min={-100} max={100} value={Math.round(pads[selectedPad].pan * 100)} onChange={(e) => updatePad(selectedPad, { pan: +e.target.value / 100 })} /><span className="setting-value">{pads[selectedPad].pan < 0 ? `L${Math.abs(Math.round(pads[selectedPad].pan * 100))}` : pads[selectedPad].pan > 0 ? `R${Math.round(pads[selectedPad].pan * 100)}` : 'C'}</span></div>
+            <div className="pad-setting">
+              <label>Choke Group</label>
+              <select
+                value={pads[selectedPad].chokeGroup||0}
+                onChange={e => updatePad(selectedPad, { chokeGroup: parseInt(e.target.value) })}
+                style={{background:'#0d1826',border:'1px solid #1a2d45',color:'#fff',fontFamily:'inherit',fontSize:'0.7rem',padding:'3px 8px',borderRadius:'3px',width:'100%'}}
+              >
+                <option value={0}>None</option>
+                {[1,2,3,4,5,6,7,8].map(g => <option key={g} value={g}>Group {g} — choke on trigger</option>)}
+              </select>
+            </div>
             <div className="pad-setting"><label>Trim Start</label><input type="range" min={0} max={Math.round((pads[selectedPad].buffer?.duration || 1) * 1000)} value={Math.round((pads[selectedPad].trimStart || 0) * 1000)} onChange={(e) => updatePad(selectedPad, { trimStart: +e.target.value / 1000 })} /><span className="setting-value">{(pads[selectedPad].trimStart || 0).toFixed(2)}s</span></div>
             <div className="pad-setting"><label>Trim End</label><input type="range" min={0} max={Math.round((pads[selectedPad].buffer?.duration || 1) * 1000)} value={Math.round((pads[selectedPad].trimEnd || pads[selectedPad].buffer?.duration || 0) * 1000)} onChange={(e) => updatePad(selectedPad, { trimEnd: +e.target.value / 1000 })} /><span className="setting-value">{(pads[selectedPad].trimEnd || pads[selectedPad].buffer?.duration || 0).toFixed(2)}s</span></div>
             <div className="pad-setting"><label>Mode</label><div className="play-mode-btns">{['oneshot', 'hold', 'loop'].map(m => <button key={m} className={pads[selectedPad].playMode === m ? 'active' : ''} onClick={() => updatePad(selectedPad, { playMode: m })}>{m === 'oneshot' ? '▶ One' : m === 'hold' ? '✊ Hold' : '🔁 Loop'}</button>)}</div></div>

@@ -489,6 +489,9 @@ const RecordingStudio = ({ user }) => {
   const [showMonitorSelector, setShowMonitorSelector] = useState(false);
   const [monoCheck, setMonoCheck] = useState(false);
   const [abRef, setAbRef] = useState(false);
+  const [abRefBuffer, setAbRefBuffer] = useState(null);
+  const abRefSourceRef = useRef(null);
+  const abRefGainRef = useRef(null);
   const [roomSim, setRoomSim] = useState("none");
   const [lufsValue, setLufsValue] = useState(-23);
   const monitorNodeRef = useRef(null);
@@ -872,6 +875,37 @@ const RecordingStudio = ({ user }) => {
     }, 200);
     return () => clearInterval(lufsIntervalRef.current);
   }, []);
+
+  // ── A/B Reference — load + toggle ──
+  const loadAbReference = useCallback(async (file) => {
+    const ctx = audioCtxRef.current;
+    if (!ctx || !file) return;
+    const ab = await file.arrayBuffer();
+    const buffer = await ctx.decodeAudioData(ab);
+    setAbRefBuffer(buffer);
+  }, []);
+
+  const toggleAbRef = useCallback(() => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    if (abRef) {
+      // Turn off — stop reference
+      if (abRefSourceRef.current) { try { abRefSourceRef.current.stop(); } catch(e) {} abRefSourceRef.current = null; }
+      setAbRef(false);
+    } else if (abRefBuffer) {
+      // Turn on — play reference through monitor chain
+      const src = ctx.createBufferSource();
+      src.buffer = abRefBuffer;
+      src.loop = true;
+      const gain = ctx.createGain(); gain.gain.value = 0.8;
+      abRefGainRef.current = gain;
+      src.connect(gain);
+      gain.connect(monitorNodesRef.current?.lo || ctx.destination);
+      src.start(0);
+      abRefSourceRef.current = src;
+      setAbRef(true);
+    }
+  }, [abRef, abRefBuffer]);
 
   // ── Mono check — collapse stereo to mono ──
   React.useEffect(() => {
@@ -2141,11 +2175,16 @@ const RecordingStudio = ({ user }) => {
             onClick={() => setMonoCheck(p => !p)}
             title="Mono compatibility check"
           >MONO</button>
-          <button
-            className={`daw-monitor-btn${abRef ? " active" : ""}`}
-            onClick={() => setAbRef(p => !p)}
-            title="A/B reference toggle"
-          >A/B</button>
+          <label className={`daw-monitor-btn${abRef ? " active" : ""}${abRefBuffer ? "" : " dim"}`}
+            title={abRefBuffer ? "Toggle A/B reference" : "Click to load reference track"}
+            style={{cursor:'pointer'}}
+          >
+            A/B
+            {!abRefBuffer && <input type="file" accept="audio/*" style={{display:'none'}}
+              onChange={e => e.target.files[0] && loadAbReference(e.target.files[0])} />}
+            {abRefBuffer && <span onClick={e => { e.preventDefault(); toggleAbRef(); }}
+              style={{position:'absolute',inset:0}} />}
+          </label>
           <span className="daw-monitor-divider">|</span>
           <span className="daw-monitor-label">LUFS</span>
           <span className="daw-monitor-lufs" style={{color: lufsValue > -14 ? '#ff6b6b' : lufsValue > -18 ? '#ffaa00' : '#00ffc8'}}>
