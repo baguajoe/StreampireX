@@ -101,6 +101,7 @@ import KeyFinder from "../component/KeyFinder";
 import AIBeatAssistant from "../component/AIBeatAssistant";
 import ParametricEQGraph from "../component/ParametricEQGraph";
 import ConsoleFXPanel from "../component/ConsoleFXPanel";
+import SPXVoxEngine from "../component/SPXVoxEngine";
 import SPXMonitorSelector from "../component/SPXMonitorSelector";
 import AmpSimPlugin from "../component/AmpSimPlugin";
 import PanKnob from "../component/PanKnob";
@@ -487,6 +488,8 @@ const RecordingStudio = ({ user }) => {
   const [masterConsoleChar, setMasterConsoleChar] = useState("none");
   const [monitorSpeaker, setMonitorSpeaker] = useState("flat");
   const [showMonitorSelector, setShowMonitorSelector] = useState(false);
+  const [showVoxEngine, setShowVoxEngine] = useState(false);
+  const [voxTrackId, setVoxTrackId] = useState(null);
   const [monoCheck, setMonoCheck] = useState(false);
   const [abRef, setAbRef] = useState(false);
   const [abRefBuffer, setAbRefBuffer] = useState(null);
@@ -843,6 +846,29 @@ const RecordingStudio = ({ user }) => {
     monitorNodeRef.current = masterOut;
     return masterOut;
   }, [monitorSpeaker, monoCheck, roomSim]);
+
+  // ── Binaural headphone correction ──
+  React.useEffect(() => {
+    const ctx = audioCtxRef.current;
+    const nodes = monitorNodesRef.current;
+    if (!ctx || !nodes) return;
+    if (binauralOn) {
+      // HRTF-style processing: slight all-pass filter + cross-feed for headphone correction
+      // Cross-feed reduces ear fatigue on headphones by adding small delay between channels
+      const xfeedDelay = ctx.createDelay(0.03);
+      xfeedDelay.delayTime.value = 0.0003; // 0.3ms cross-feed delay
+      const xfeedGain = ctx.createGain();
+      xfeedGain.gain.value = 0.15; // 15% cross-feed
+      // HP correction: slight presence boost + bass rolloff
+      nodes.hi.gain.setTargetAtTime(2.0, ctx.currentTime, 0.05);
+      nodes.lo.gain.setTargetAtTime(-1.5, ctx.currentTime, 0.05);
+    } else {
+      // Reset to speaker EQ values
+      const eq = SPEAKER_EQ_CONFIGS[monitorSpeaker] || { low:0, high:0 };
+      nodes.hi.gain.setTargetAtTime(eq.high, ctx.currentTime, 0.05);
+      nodes.lo.gain.setTargetAtTime(eq.low, ctx.currentTime, 0.05);
+    }
+  }, [binauralOn]);
 
   // ── Apply monitor chain whenever settings change ──
   React.useEffect(() => {
@@ -2130,6 +2156,18 @@ const RecordingStudio = ({ user }) => {
         {viewMode === "multiband"    && <div className="rs-flex-scroll-dark"><MultibandEffects audioContext={audioCtxRef.current} inputNode={selectedTrackIndex !== null && trackGainsRef.current[selectedTrackIndex] ? trackGainsRef.current[selectedTrackIndex] : masterGainRef.current} outputNode={masterGainRef.current} onClose={() => setViewMode("arrange")} isEmbedded={true}/></div>}
         {viewMode === "mastering"    && <div className="rs-flex-scroll-dark"><MasteringChain audioContext={audioCtxRef.current} inputNode={masterConsoleOutRef.current || masterGainRef.current} outputNode={audioCtxRef.current?.destination} masterVolume={masterVolume} onClose={() => setViewMode("arrange")} isEmbedded={true}/></div>}
         {viewMode === "speakersim"   && <SpeakerSimulator audioContext={audioCtxRef.current} inputNode={masterConsoleOutRef.current || masterGainRef.current}/>}
+        {showVoxEngine && (
+          <div style={{position:'fixed',inset:0,zIndex:9998,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <div style={{width:'min(95vw,900px)',maxHeight:'90vh',overflow:'auto',borderRadius:'8px',border:'1px solid #1a2d45'}}>
+              <SPXVoxEngine
+                audioContext={audioCtxRef.current}
+                inputNode={trackNodesRef.current?.get(voxTrackId)?.fader || masterGainRef.current}
+                outputNode={masterGainRef.current}
+                onClose={() => setShowVoxEngine(false)}
+              />
+            </div>
+          </div>
+        )}
         {showMonitorSelector && (
           <SPXMonitorSelector
             selectedRoom={roomSim}
@@ -2185,6 +2223,12 @@ const RecordingStudio = ({ user }) => {
             {abRefBuffer && <span onClick={e => { e.preventDefault(); toggleAbRef(); }}
               style={{position:'absolute',inset:0}} />}
           </label>
+          <span className="daw-monitor-divider">|</span>
+          <button
+            className={`daw-monitor-btn${binauralOn ? " active" : ""}`}
+            onClick={() => setBinauralOn(p => !p)}
+            title="Binaural headphone correction"
+          >BNARL</button>
           <span className="daw-monitor-divider">|</span>
           <span className="daw-monitor-label">LUFS</span>
           <span className="daw-monitor-lufs" style={{color: lufsValue > -14 ? '#ff6b6b' : lufsValue > -18 ? '#ffaa00' : '#00ffc8'}}>

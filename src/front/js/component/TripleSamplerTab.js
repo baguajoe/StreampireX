@@ -34,6 +34,44 @@ function MiniKnob({ value, min, max, step, label, color, onChange }) {
   const startV = useRef(value);
   const pct = (value - min) / (max - min);
   const angle = -140 + pct * 280;
+  const autoChop = () => {
+    if (!chopBuffer) return;
+    const sr = chopBuffer.sampleRate;
+    const ch = chopBuffer.getChannelData(0);
+    const pts = [0];
+    const threshold = 0.1;
+    let lastTrig = 0;
+    const minGap = Math.floor(sr * 0.05);
+    for (let i = 1; i < ch.length; i++) {
+      if (Math.abs(ch[i]) > threshold && Math.abs(ch[i-1]) <= threshold && i - lastTrig > minGap) {
+        pts.push(i / sr);
+        lastTrig = i;
+      }
+    }
+    setChopPts(pts);
+  };
+
+  const assignChopsToEngine = () => {
+    if (!chopPts.length || !chopBuffer) return;
+    const enginePads = padsByEngine[activeEngine];
+    chopPts.slice(0, 8).forEach((pt, i) => {
+      const end = chopPts[i+1] || chopBuffer.duration;
+      const dur = end - pt;
+      const startSamp = Math.floor(pt * chopBuffer.sampleRate);
+      const endSamp = Math.floor(end * chopBuffer.sampleRate);
+      const nc = chopBuffer.numberOfChannels;
+      const offCtx = new OfflineAudioContext(nc, endSamp - startSamp, chopBuffer.sampleRate);
+      const chopBuf = offCtx.createBuffer(nc, endSamp - startSamp, chopBuffer.sampleRate);
+      for (let c = 0; c < nc; c++) {
+        const src2 = chopBuffer.getChannelData(c);
+        const dst = chopBuf.getChannelData(c);
+        for (let j = 0; j < endSamp - startSamp; j++) dst[j] = src2[startSamp + j];
+      }
+      if (enginePads[i]) enginePads[i].buffer = chopBuf;
+    });
+    setShowChop(false);
+  };
+
   return (
     <div style={{ textAlign: 'center', cursor: 'ns-resize', userSelect: 'none' }}
       onMouseDown={e => { setDrag(true); startY.current = e.clientY; startV.current = value; }}
@@ -52,6 +90,44 @@ function MiniKnob({ value, min, max, step, label, color, onChange }) {
 
 // ── Pad Grid ──────────────────────────────────────────────────────────────────
 function PadGrid({ pads, activePads, engine, onPadClick, onLoad, onClear, color }) {
+  const autoChop = () => {
+    if (!chopBuffer) return;
+    const sr = chopBuffer.sampleRate;
+    const ch = chopBuffer.getChannelData(0);
+    const pts = [0];
+    const threshold = 0.1;
+    let lastTrig = 0;
+    const minGap = Math.floor(sr * 0.05);
+    for (let i = 1; i < ch.length; i++) {
+      if (Math.abs(ch[i]) > threshold && Math.abs(ch[i-1]) <= threshold && i - lastTrig > minGap) {
+        pts.push(i / sr);
+        lastTrig = i;
+      }
+    }
+    setChopPts(pts);
+  };
+
+  const assignChopsToEngine = () => {
+    if (!chopPts.length || !chopBuffer) return;
+    const enginePads = padsByEngine[activeEngine];
+    chopPts.slice(0, 8).forEach((pt, i) => {
+      const end = chopPts[i+1] || chopBuffer.duration;
+      const dur = end - pt;
+      const startSamp = Math.floor(pt * chopBuffer.sampleRate);
+      const endSamp = Math.floor(end * chopBuffer.sampleRate);
+      const nc = chopBuffer.numberOfChannels;
+      const offCtx = new OfflineAudioContext(nc, endSamp - startSamp, chopBuffer.sampleRate);
+      const chopBuf = offCtx.createBuffer(nc, endSamp - startSamp, chopBuffer.sampleRate);
+      for (let c = 0; c < nc; c++) {
+        const src2 = chopBuffer.getChannelData(c);
+        const dst = chopBuf.getChannelData(c);
+        for (let j = 0; j < endSamp - startSamp; j++) dst[j] = src2[startSamp + j];
+      }
+      if (enginePads[i]) enginePads[i].buffer = chopBuf;
+    });
+    setShowChop(false);
+  };
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, padding: 8 }}>
       {pads.map((pad, i) => {
@@ -91,6 +167,44 @@ function PadGrid({ pads, activePads, engine, onPadClick, onLoad, onClear, color 
 function SeqRow({ engineId, engineLabel, color, pads, seq, setSeq, activePad, setActivePad, currentStep, muted, soloed, onMute, onSolo }) {
   const selectedPad = activePad ?? 0;
   const steps = seq[selectedPad] || Array(STEPS).fill(false);
+  const autoChop = () => {
+    if (!chopBuffer) return;
+    const sr = chopBuffer.sampleRate;
+    const ch = chopBuffer.getChannelData(0);
+    const pts = [0];
+    const threshold = 0.1;
+    let lastTrig = 0;
+    const minGap = Math.floor(sr * 0.05);
+    for (let i = 1; i < ch.length; i++) {
+      if (Math.abs(ch[i]) > threshold && Math.abs(ch[i-1]) <= threshold && i - lastTrig > minGap) {
+        pts.push(i / sr);
+        lastTrig = i;
+      }
+    }
+    setChopPts(pts);
+  };
+
+  const assignChopsToEngine = () => {
+    if (!chopPts.length || !chopBuffer) return;
+    const enginePads = padsByEngine[activeEngine];
+    chopPts.slice(0, 8).forEach((pt, i) => {
+      const end = chopPts[i+1] || chopBuffer.duration;
+      const dur = end - pt;
+      const startSamp = Math.floor(pt * chopBuffer.sampleRate);
+      const endSamp = Math.floor(end * chopBuffer.sampleRate);
+      const nc = chopBuffer.numberOfChannels;
+      const offCtx = new OfflineAudioContext(nc, endSamp - startSamp, chopBuffer.sampleRate);
+      const chopBuf = offCtx.createBuffer(nc, endSamp - startSamp, chopBuffer.sampleRate);
+      for (let c = 0; c < nc; c++) {
+        const src2 = chopBuffer.getChannelData(c);
+        const dst = chopBuf.getChannelData(c);
+        for (let j = 0; j < endSamp - startSamp; j++) dst[j] = src2[startSamp + j];
+      }
+      if (enginePads[i]) enginePads[i].buffer = chopBuf;
+    });
+    setShowChop(false);
+  };
+
   return (
     <div style={{ marginBottom: 8 }}>
       {/* Row header */}
@@ -349,6 +463,44 @@ export default function TripleSamplerTab({ onExport, onSendToArrange, sp1200Pads
   const soloFns  = { sp1200: () => setSoloA(v => !v),  spx3000: () => setSoloB(v => !v),  spx3200: () => setSoloC(v => !v) };
 
   const ab = bankData[activeBank] || bankData[Object.keys(bankData)[0]];
+
+  const autoChop = () => {
+    if (!chopBuffer) return;
+    const sr = chopBuffer.sampleRate;
+    const ch = chopBuffer.getChannelData(0);
+    const pts = [0];
+    const threshold = 0.1;
+    let lastTrig = 0;
+    const minGap = Math.floor(sr * 0.05);
+    for (let i = 1; i < ch.length; i++) {
+      if (Math.abs(ch[i]) > threshold && Math.abs(ch[i-1]) <= threshold && i - lastTrig > minGap) {
+        pts.push(i / sr);
+        lastTrig = i;
+      }
+    }
+    setChopPts(pts);
+  };
+
+  const assignChopsToEngine = () => {
+    if (!chopPts.length || !chopBuffer) return;
+    const enginePads = padsByEngine[activeEngine];
+    chopPts.slice(0, 8).forEach((pt, i) => {
+      const end = chopPts[i+1] || chopBuffer.duration;
+      const dur = end - pt;
+      const startSamp = Math.floor(pt * chopBuffer.sampleRate);
+      const endSamp = Math.floor(end * chopBuffer.sampleRate);
+      const nc = chopBuffer.numberOfChannels;
+      const offCtx = new OfflineAudioContext(nc, endSamp - startSamp, chopBuffer.sampleRate);
+      const chopBuf = offCtx.createBuffer(nc, endSamp - startSamp, chopBuffer.sampleRate);
+      for (let c = 0; c < nc; c++) {
+        const src2 = chopBuffer.getChannelData(c);
+        const dst = chopBuf.getChannelData(c);
+        for (let j = 0; j < endSamp - startSamp; j++) dst[j] = src2[startSamp + j];
+      }
+      if (enginePads[i]) enginePads[i].buffer = chopBuf;
+    });
+    setShowChop(false);
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#06060f', color: '#ccc', fontFamily: 'JetBrains Mono, monospace', overflow: 'hidden' }}>

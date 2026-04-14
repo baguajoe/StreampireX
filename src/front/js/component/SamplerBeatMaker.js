@@ -9,6 +9,7 @@ import { useStemSeparation } from '../hooks/useStemSeparation';
 
 import LoopermanBrowser from './LoopermanBrowser';
 import FreesoundBrowser from './FreesoundBrowser';
+import { createCharacterChain } from './SPXCharacterEngine';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import '../../styles/SamplerBeatMaker.css';
 import '../../styles/BeatMakerTab.css';
@@ -473,6 +474,10 @@ const SamplerBeatMaker = ({
   const [view, setView] = useState('split');
   const [showPadSet, setShowPadSet] = useState(false);
   const [settingsTab, setSettingsTab] = useState('main');
+  const [sbmCharOn, setSbmCharOn]     = useState(false);
+  const [sbmCharBits, setSbmCharBits] = useState(24);
+  const [sbmCharRate, setSbmCharRate] = useState(44100);
+  const sbmCharNodeRef = React.useRef(null);
   const [dragPad, setDragPad] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState('wav');
@@ -558,7 +563,16 @@ const SamplerBeatMaker = ({
   const initCtx = useCallback(() => {
     if (ctxRef.current && ctxRef.current.state !== 'closed') return ctxRef.current;
     const c = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive', sampleRate: 44100 });
-    const mg = c.createGain(); mg.gain.value = masterVol; mg.connect(c.destination); masterRef.current = mg;
+    const mg = c.createGain(); mg.gain.value = masterVol;
+    masterRef.current = mg;
+    // Wire character chain if active
+    if (sbmCharOn && (sbmCharBits < 24 || sbmCharRate < 44100)) {
+      try {
+        const chain = createCharacterChain(c, sbmCharBits, sbmCharRate);
+        if (chain) { mg.connect(chain.input); chain.output.connect(c.destination); sbmCharNodeRef.current = chain; }
+        else { mg.connect(c.destination); }
+      } catch(e) { mg.connect(c.destination); }
+    } else { mg.connect(c.destination); }
     const met = c.createGain(); met.gain.value = 0.3; met.connect(c.destination); metGainRef.current = met;
     // Phase 6: Create bus nodes (A, B, C, D)
     ['A', 'B', 'C', 'D'].forEach(bus => {
@@ -594,6 +608,23 @@ const SamplerBeatMaker = ({
 
   useEffect(() => { const c = ctxRef.current; if (c && selOut !== 'default' && c.setSinkId) c.setSinkId(selOut).catch(() => { }); }, [selOut]);
   useEffect(() => { if (masterRef.current) masterRef.current.gain.value = masterVol; }, [masterVol]);
+
+  // Rebuild char chain when character settings change
+  useEffect(() => {
+    const ctx = masterRef.current?.context;
+    if (!ctx || !masterRef.current) return;
+    try { masterRef.current.disconnect(); } catch(e) {}
+    if (sbmCharOn && (sbmCharBits < 24 || sbmCharRate < 44100)) {
+      const chain = createCharacterChain(ctx, sbmCharBits, sbmCharRate);
+      if (chain) {
+        masterRef.current.connect(chain.input);
+        chain.output.connect(ctx.destination);
+        sbmCharNodeRef.current = chain;
+      } else { masterRef.current.connect(ctx.destination); }
+    } else {
+      masterRef.current.connect(ctx.destination);
+    }
+  }, [sbmCharOn, sbmCharBits, sbmCharRate]);
 
   // Phase 6: Live-update bus gain/pan/mute
   useEffect(() => {
