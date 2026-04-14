@@ -338,3 +338,62 @@
 .atd-add{background:rgba(0,255,200,.12);border:1px solid rgba(0,255,200,.4);border-radius:4px;color:#00ffc8;cursor:pointer;font-family:var(--rs-font);font-size:12px;font-weight:700;padding:8px 20px;}
 .atd-add:hover{background:rgba(0,255,200,.2);}
 .atd-add:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ── MONITOR BAR ── */
+.daw-monitor-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: #06060f;
+  border-top: 1px solid #1a1a2e;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  min-height: 36px;
+}
+.daw-monitor-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  color: #00ffc8;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.daw-monitor-select {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  background: #0d1826;
+  border: 1px solid #1a2d45;
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.daw-monitor-select:focus { outline: none; border-color: #00ffc8; }
+.daw-monitor-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  background: #0d1826;
+  border: 1px solid #1a2d45;
+  color: #6a90b0;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.1s;
+}
+.daw-monitor-btn.active {
+  border-color: #00ffc8;
+  color: #00ffc8;
+  background: #00ffc815;
+  box-shadow: 0 0 8px #00ffc844;
+}
+.daw-monitor-btn:hover { border-color: #00ffc8; color: #00ffc8; }
+.daw-monitor-divider { color: #1a2d45; font-size: 0.8rem; }
+.daw-monitor-lufs {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-width: 44px;
+  text-align: right;
+}

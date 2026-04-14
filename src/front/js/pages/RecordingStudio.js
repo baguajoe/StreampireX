@@ -177,6 +177,18 @@ const CONSOLE_BOARDS = {
   tridentA:  { name: "Trident A",   color: "#a78bfa" },
   studer900: { name: "Studer 900",  color: "#ff6b6b" },
   mciJH636:  { name: "MCI JH-636",  color: "#ff8c42" },
+  ssl9000:   { name: "SSL 9000",    color: "#f0c040" },
+  neve8068:  { name: "Neve 8068",   color: "#6ab0ff" },
+  api2488:   { name: "API 2488",    color: "#00e5cc" },
+  helios69:  { name: "Helios T69",  color: "#cc8844" },
+  neveVR:    { name: "Neve VR",     color: "#5588cc" },
+  emiTG:     { name: "EMI TG12345", color: "#cc4444" },
+  sslAWS:    { name: "SSL AWS",     color: "#ddaa20" },
+  amekAngela:{ name: "Amek Angela", color: "#9966ff" },
+  harrison:  { name: "Harrison 32", color: "#44aadd" },
+  neve8014:  { name: "Neve 8014",   color: "#2266aa" },
+  sonyMXP:   { name: "Sony MXP",    color: "#aaaaff" },
+  calrec:    { name: "Calrec",      color: "#88ccaa" },
 };
 
 const MIC_MODELS = {
@@ -472,6 +484,15 @@ const RecordingStudio = ({ user }) => {
   const [analogSubview, setAnalogSubview] = useState("ampsim");
   const [trackConsoleChar, setTrackConsoleChar] = useState({});
   const [masterConsoleChar, setMasterConsoleChar] = useState("none");
+  const [monitorSpeaker, setMonitorSpeaker] = useState("flat");
+  const [monoCheck, setMonoCheck] = useState(false);
+  const [abRef, setAbRef] = useState(false);
+  const [roomSim, setRoomSim] = useState("none");
+  const [lufsValue, setLufsValue] = useState(-23);
+  const monitorNodeRef = useRef(null);
+  const monoNodeRef = useRef(null);
+  const roomNodeRef = useRef(null);
+  const lufsIntervalRef = useRef(null);
   const trackConsoleCharRef = useRef({});
   const masterConsoleCharRef = useRef("none");
   const masterConsoleOutRef = useRef(null);
@@ -664,6 +685,19 @@ const RecordingStudio = ({ user }) => {
       tridentA:  [25, 0.5, 1.4, true,  180, 1.0,  9000,  0.6, 1.3,  true,  0.96],
       studer900: [22, 0.4, 1.05,false, 120, -0.3, 15000, 0.3, 1.02, false, 1.0 ],
       mciJH636:  [28, 0.6, 1.5, true,  220, 1.2,  7500,  0.8, 1.35, true,  0.96],
+      // ── New consoles ──
+      ssl9000:   [12, 0.4, 1.15,false, 140, -0.3, 14000, 1.0, 1.1,  false, 0.99],  // SSL 9000 — modern pop/hip-hop
+      neve8068:  [35, 0.7, 1.7, true,  280, 1.8,  7500,  -0.6,1.45, true,  0.94],  // Neve 8068 — slightly darker 8078
+      api2488:   [22, 0.5, 1.35,false, 110, 0.8,  4800,  1.2, 1.3,  false, 0.97],  // API 2488 — more headroom
+      helios69:  [40, 0.8, 1.9, true,  350, 2.5,  6000,  -1.0,1.5,  true,  0.92],  // Helios Type 69 — dark British
+      neveVR:    [20, 0.5, 1.45,true,  200, 1.2,  9000,  0.2, 1.3,  true,  0.96],  // Neve VR — 80s/90s warm
+      emiTG:     [45, 0.9, 2.0, true,  400, 3.0,  5500,  -1.5,1.6,  true,  0.90],  // EMI TG12345 — Abbey Road
+      sslAWS:    [10, 0.3, 1.1, false, 130, -0.2, 16000, 0.6, 1.05, false, 1.0 ],  // SSL AWS — hybrid clean
+      amekAngela:[32, 0.6, 1.55,true,  240, 1.6,  8500,  -0.3,1.4,  true,  0.95],  // Amek Angela — Neve designed
+      harrison:  [8,  0.3, 1.05,false, 100, 0.2,  18000, 0.4, 1.02, false, 1.0 ],  // Harrison 4032 — very clean
+      neve8014:  [60, 1.0, 2.1, true,  500, 3.5,  5000,  -2.0,1.7,  true,  0.88],  // Neve 8014 — vintage dark
+      sonyMXP:   [14, 0.4, 1.2, false, 180, 0.3,  13000, 0.8, 1.1,  false, 0.98],  // Sony MXP-3000 — smooth highs
+      calrec:    [16, 0.4, 1.15,false, 150, -0.1, 15000, 0.5, 1.08, false, 0.99],  // Calrec — broadcast clean
     };
     const c = configs[boardId];
     if (!c) { inputNode.connect(outputNode); return [inputNode]; }
@@ -712,6 +746,99 @@ const RecordingStudio = ({ user }) => {
     if (fx.reverb?.enabled && fx.reverb.mix > 0) { const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.reverb.decay); const g = ctx.createGain(); g.gain.value = fx.reverb.mix; dry.connect(conv); conv.connect(g); g.connect(master); }
     if (fx.delay?.enabled && fx.delay.mix > 0)   { const d = ctx.createDelay(5); d.delayTime.value = fx.delay.time; const fb = ctx.createGain(); fb.gain.value = fx.delay.feedback; const mx = ctx.createGain(); mx.gain.value = fx.delay.mix; dry.connect(d); d.connect(fb); fb.connect(d); d.connect(mx); mx.connect(master); }
   };
+
+  // ── Room simulation configs ──
+  const ROOM_CONFIGS = {
+    none:       null,
+    studio_a:   { decay: 0.4, preDelay: 0.008, lowCut: 80,  highCut: 16000, wet: 0.12, name: "Studio A — Dry Control Room" },
+    abbey_road: { decay: 1.2, preDelay: 0.015, lowCut: 60,  highCut: 14000, wet: 0.20, name: "Abbey Road Studio 2" },
+    power_sta:  { decay: 0.8, preDelay: 0.010, lowCut: 70,  highCut: 15000, wet: 0.15, name: "Power Station NYC" },
+    electric:   { decay: 1.8, preDelay: 0.020, lowCut: 50,  highCut: 12000, wet: 0.25, name: "Electric Lady NYC" },
+    mdm_studio: { decay: 0.6, preDelay: 0.012, lowCut: 75,  highCut: 15500, wet: 0.14, name: "MDM Studios LA" },
+  };
+
+  const SPEAKER_EQ_CONFIGS = {
+    flat:      { low: 0,   lowMid: 0,  highMid: 0,  high: 0,  gain: 0  },
+    ns10:      { low: -3,  lowMid: 3,  highMid: 4,  high: -3, gain: 0  },
+    auratone:  { low: -10, lowMid: 5,  highMid: 2,  high: -7, gain: 3  },
+    genelec:   { low: 1,   lowMid: 0,  highMid: 1,  high: 2,  gain: 0  },
+    krk:       { low: 4,   lowMid: -1, highMid: 1,  high: 3,  gain: -1 },
+    adam:      { low: 0,   lowMid: 0,  highMid: 2,  high: 5,  gain: 0  },
+    focal:     { low: 1,   lowMid: 1,  highMid: 0,  high: 1,  gain: 0  },
+    avantone:  { low: -9,  lowMid: 4,  highMid: 3,  high: -6, gain: 3  },
+    iphone:    { low: -10, lowMid: 3,  highMid: 5,  high: -4, gain: 4  },
+    car:       { low: 4,   lowMid: -2, highMid: 2,  high: -1, gain: -1 },
+    club:      { low: 6,   lowMid: -1, highMid: 0,  high: 2,  gain: -3 },
+    macbook:   { low: -8,  lowMid: 1,  highMid: 3,  high: -3, gain: 3  },
+    airpods:   { low: -2,  lowMid: 1,  highMid: 4,  high: 6,  gain: 1  },
+  };
+
+  const applyMonitorChain = useCallback((ctx, inputNode) => {
+    if (!ctx) return inputNode;
+    // Disconnect previous monitor nodes
+    if (monitorNodeRef.current) {
+      try { monitorNodeRef.current.disconnect(); } catch(e) {}
+    }
+    const masterOut = ctx.createGain();
+    masterOut.gain.value = 1;
+    let last = inputNode;
+
+    // Mono check
+    if (monoCheck) {
+      const merger = ctx.createChannelMerger(2);
+      const splitter = ctx.createChannelSplitter(2);
+      const monoGain = ctx.createGain();
+      last.connect(splitter);
+      splitter.connect(monoGain, 0);
+      splitter.connect(monoGain, 1);
+      monoGain.connect(merger, 0, 0);
+      monoGain.connect(merger, 0, 1);
+      last = merger;
+    }
+
+    // Speaker EQ simulation
+    const eq = SPEAKER_EQ_CONFIGS[monitorSpeaker];
+    if (eq && monitorSpeaker !== 'flat') {
+      const lowShelf = ctx.createBiquadFilter();
+      lowShelf.type = 'lowshelf'; lowShelf.frequency.value = 200; lowShelf.gain.value = eq.low;
+      const lowMid = ctx.createBiquadFilter();
+      lowMid.type = 'peaking'; lowMid.frequency.value = 500; lowMid.Q.value = 1; lowMid.gain.value = eq.lowMid;
+      const highMid = ctx.createBiquadFilter();
+      highMid.type = 'peaking'; highMid.frequency.value = 3000; highMid.Q.value = 1; highMid.gain.value = eq.highMid;
+      const highShelf = ctx.createBiquadFilter();
+      highShelf.type = 'highshelf'; highShelf.frequency.value = 8000; highShelf.gain.value = eq.high;
+      const gainNode = ctx.createGain(); gainNode.gain.value = Math.pow(10, (eq.gain||0)/20);
+      last.connect(lowShelf); lowShelf.connect(lowMid); lowMid.connect(highMid);
+      highMid.connect(highShelf); highShelf.connect(gainNode);
+      last = gainNode;
+    }
+
+    // Room simulation
+    const room = ROOM_CONFIGS[roomSim];
+    if (room) {
+      const conv = ctx.createConvolver();
+      const len = Math.ceil(ctx.sampleRate * room.decay);
+      const ir = ctx.createBuffer(2, len, ctx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = ir.getChannelData(ch);
+        for (let i = 0; i < len; i++) {
+          const env = Math.exp(-i / (ctx.sampleRate * room.decay * 0.5));
+          d[i] = (Math.random() * 2 - 1) * env * (ch === 0 ? 1 : 0.97);
+        }
+      }
+      conv.buffer = ir;
+      const wet = ctx.createGain(); wet.gain.value = room.wet;
+      const dry = ctx.createGain(); dry.gain.value = 1 - room.wet * 0.5;
+      const mix = ctx.createGain();
+      last.connect(dry); dry.connect(mix);
+      last.connect(conv); conv.connect(wet); wet.connect(mix);
+      last = mix;
+    }
+
+    last.connect(masterOut);
+    monitorNodeRef.current = masterOut;
+    return masterOut;
+  }, [monitorSpeaker, monoCheck, roomSim]);
 
   const getReverbBuf = useCallback((ctx, decay = 2) => {
     const len = ctx.sampleRate * decay; const buf = ctx.createBuffer(2, len, ctx.sampleRate);
@@ -1918,7 +2045,53 @@ const RecordingStudio = ({ user }) => {
         {viewMode === "fx"           && <div className="rs-flex-scroll-dark"><UnifiedFXChain track={tracks[selectedTrackIndex]} trackIndex={selectedTrackIndex} audioContext={audioCtxRef.current} updateEffect={updateEffect} onClose={() => setViewMode("arrange")} isEmbedded={true}/></div>}
         {viewMode === "multiband"    && <div className="rs-flex-scroll-dark"><MultibandEffects audioContext={audioCtxRef.current} inputNode={selectedTrackIndex !== null && trackGainsRef.current[selectedTrackIndex] ? trackGainsRef.current[selectedTrackIndex] : masterGainRef.current} outputNode={masterGainRef.current} onClose={() => setViewMode("arrange")} isEmbedded={true}/></div>}
         {viewMode === "mastering"    && <div className="rs-flex-scroll-dark"><MasteringChain audioContext={audioCtxRef.current} inputNode={masterConsoleOutRef.current || masterGainRef.current} outputNode={audioCtxRef.current?.destination} masterVolume={masterVolume} onClose={() => setViewMode("arrange")} isEmbedded={true}/></div>}
-        {viewMode === "speakersim"   && <SpeakerSimulator audioContext={audioCtxRef.current} inputNode={masterConsoleOutRef.current || masterGainRef.current}/>}
+        {viewMode === "speakersim"   && <SpeakerSimulator audioContext={audioCtxRef.current} inputNode={masterConsoleOutRef.current || masterGainRef.current}/>
+        {/* ── MONITOR BAR — always visible at bottom of DAW ── */}
+        <div className="daw-monitor-bar">
+          <span className="daw-monitor-label">MONITOR</span>
+          <select
+            className="daw-monitor-select"
+            value={monitorSpeaker}
+            onChange={e => setMonitorSpeaker(e.target.value)}
+          >
+            <optgroup label="Studio Monitors">
+              {["flat","ns10","auratone","genelec","krk","adam","focal","avantone","mackie","jbl306","eve","amphion"].map(id => (
+                <option key={id} value={id}>{id==="flat"?"Flat (Bypass)":id==="ns10"?"Yamaha NS-10":id==="auratone"?"Auratone 5C":id==="genelec"?"Genelec 8030":id==="krk"?"KRK Rokit 8":id==="adam"?"Adam A7X":id==="focal"?"Focal Alpha 65":id==="avantone"?"Avantone MixCube":id==="mackie"?"Mackie HR824":id==="jbl306"?"JBL 306P":id==="eve"?"Eve SC207":"Amphion One18"}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Consumer Devices">
+              {["iphone","car","macbook","airpods","club","bluetooth","tv","homepod"].map(id => (
+                <option key={id} value={id}>{id==="iphone"?"iPhone":id==="car"?"Car Stereo":id==="macbook"?"MacBook":id==="airpods"?"AirPods":id==="club"?"Club PA":id==="bluetooth"?"Bluetooth":id==="tv"?"TV":"HomePod"}</option>
+              ))}
+            </optgroup>
+          </select>
+          <span className="daw-monitor-divider">|</span>
+          <span className="daw-monitor-label">ROOM</span>
+          <select className="daw-monitor-select" value={roomSim} onChange={e => setRoomSim(e.target.value)}>
+            <option value="none">No Room</option>
+            <option value="studio_a">Studio A</option>
+            <option value="abbey_road">Abbey Road</option>
+            <option value="power_sta">Power Station</option>
+            <option value="electric">Electric Lady</option>
+            <option value="mdm_studio">MDM Studios</option>
+          </select>
+          <span className="daw-monitor-divider">|</span>
+          <button
+            className={`daw-monitor-btn${monoCheck ? " active" : ""}`}
+            onClick={() => setMonoCheck(p => !p)}
+            title="Mono compatibility check"
+          >MONO</button>
+          <button
+            className={`daw-monitor-btn${abRef ? " active" : ""}`}
+            onClick={() => setAbRef(p => !p)}
+            title="A/B reference toggle"
+          >A/B</button>
+          <span className="daw-monitor-divider">|</span>
+          <span className="daw-monitor-label">LUFS</span>
+          <span className="daw-monitor-lufs" style={{color: lufsValue > -14 ? '#ff6b6b' : lufsValue > -18 ? '#ffaa00' : '#00ffc8'}}>
+            {lufsValue.toFixed(1)}
+          </span>
+        </div>}
         {viewMode === "looperman"    && <div className="rs-flex-hidden"><LoopermanBrowser audioContext={audioCtxRef.current} onSoundSelect={(audioBuffer, name, audioUrl) => { const ai = tracks.findIndex(t => t.armed); if (ai !== -1) { updateTrack(ai, { audioBuffer, audio_url: audioUrl, name: name || "Loop" }); createRegionFromImport(ai, audioBuffer, name || "Loop", audioUrl); setStatus(`✓ "${name}" → Track ${ai + 1}`); } else { window.__spx_sampler_export = { buffer: audioBuffer, name, timestamp: Date.now() }; setViewMode("beatmaker"); setStatus(`Loop "${name}" sent to Beat Maker`); } }} onClose={() => setViewMode("arrange")} isEmbedded={true}/></div>}
         {viewMode === "synth"        && <div className="daw-synth-view rs-view-auto"><SynthCreator onClose={() => setViewMode("arrange")} onAssignToTrack={(preset, audioBuffer) => { if (!audioBuffer) { setStatus("🎛️ Use Assign to Track in Synth Creator"); return; } landBufferOnTrack(audioBuffer, preset?.name || "Synth"); }}/></div>}
         {viewMode === "drumdesigner" && <div className="daw-drumdesigner-view rs-view-auto"><DrumDesigner onClose={() => setViewMode("beatmaker")} onAssignToPad={(data) => { if (data.audioBuffer) window.__spx_sampler_export = { buffer: data.audioBuffer, name: (data.type || "Drum").toUpperCase(), timestamp: Date.now() }; setStatus(`🥁 ${(data.type || "Drum").toUpperCase()} → Beat Maker pad`); setViewMode("beatmaker"); }} onAssignToTrack={(data) => { if (!data.audioBuffer) { setStatus("🥁 Use Send to Track in Drum Designer"); return; } landBufferOnTrack(data.audioBuffer, (data.type || "Drum").toUpperCase()); }}/></div>}
