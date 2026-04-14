@@ -498,8 +498,6 @@ const RecordingStudio = ({ user }) => {
   const trackConsoleCharRef = useRef({});
   const masterConsoleCharRef = useRef("none");
   const masterConsoleOutRef = useRef(null);
-  const [monitorSpeaker, setMonitorSpeaker] = useState("flat");
-  const [showMonitorSelector, setShowMonitorSelector] = useState(false);
   const monitorNodesRef = useRef(null);
   const [keyboardOctave, setKeyboardOctave] = useState(4);
   const [trackInstrument, setTrackInstrument] = useState({});
