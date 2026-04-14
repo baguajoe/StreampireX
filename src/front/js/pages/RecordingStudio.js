@@ -841,6 +841,55 @@ const RecordingStudio = ({ user }) => {
     return masterOut;
   }, [monitorSpeaker, monoCheck, roomSim]);
 
+  // ── Apply monitor chain whenever settings change ──
+  React.useEffect(() => {
+    const ctx = audioCtxRef.current;
+    const nodes = monitorNodesRef.current;
+    if (!ctx || !nodes) return;
+
+    // Update speaker EQ
+    const eq = SPEAKER_EQ_CONFIGS[monitorSpeaker] || { low:0, lowMid:0, highMid:0, high:0, gain:0 };
+    nodes.lo.gain.setTargetAtTime(eq.low, ctx.currentTime, 0.02);
+    nodes.loMid.gain.setTargetAtTime(eq.lowMid, ctx.currentTime, 0.02);
+    nodes.hiMid.gain.setTargetAtTime(eq.highMid, ctx.currentTime, 0.02);
+    nodes.hi.gain.setTargetAtTime(eq.high, ctx.currentTime, 0.02);
+    nodes.gain.gain.setTargetAtTime(Math.pow(10,(eq.gain||0)/20), ctx.currentTime, 0.02);
+  }, [monitorSpeaker]);
+
+  // ── LUFS meter — poll analyser every 200ms ──
+  React.useEffect(() => {
+    if (lufsIntervalRef.current) clearInterval(lufsIntervalRef.current);
+    lufsIntervalRef.current = setInterval(() => {
+      const analyser = masterAnalyserLRef.current;
+      if (!analyser) return;
+      const buf = new Float32Array(analyser.fftSize);
+      analyser.getFloatTimeDomainData(buf);
+      let rms = 0;
+      for (let i = 0; i < buf.length; i++) rms += buf[i] * buf[i];
+      rms = Math.sqrt(rms / buf.length);
+      const lufs = rms > 0 ? Math.max(-60, 20 * Math.log10(rms) - 0.691) : -60;
+      setLufsValue(Math.round(lufs * 10) / 10);
+    }, 200);
+    return () => clearInterval(lufsIntervalRef.current);
+  }, []);
+
+  // ── Mono check — collapse stereo to mono ──
+  React.useEffect(() => {
+    const ctx = audioCtxRef.current;
+    const nodes = monitorNodesRef.current;
+    if (!ctx || !nodes) return;
+    // Mono is handled by gain node trick — set both channels equal
+    if (monoCheck) {
+      nodes.gain.channelCount = 1;
+      nodes.gain.channelCountMode = 'explicit';
+      nodes.gain.channelInterpretation = 'discrete';
+    } else {
+      nodes.gain.channelCount = 2;
+      nodes.gain.channelCountMode = 'max';
+      nodes.gain.channelInterpretation = 'speakers';
+    }
+  }, [monoCheck]);
+
   const getReverbBuf = useCallback((ctx, decay = 2) => {
     const len = ctx.sampleRate * decay; const buf = ctx.createBuffer(2, len, ctx.sampleRate);
     for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay); }

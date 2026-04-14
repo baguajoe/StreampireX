@@ -2124,6 +2124,21 @@ const SamplerBeatMaker = ({
     if (nearIdx !== -1) setChopPts(prev => prev.filter((_, i) => i !== nearIdx));
   }, [chopIdx, pads, chopPts]);
 
+  // ── Manual chop — click on waveform to place marker ──
+  const addManualChopPoint = useCallback((samplePos) => {
+    if (!audioBuffer) return;
+    const clipped = Math.max(0, Math.min(audioBuffer.duration, samplePos));
+    setChopPts(prev => {
+      const next = [...prev, clipped].sort((a,b) => a-b);
+      // Deduplicate within 0.01s
+      return next.filter((v,i) => i===0 || v - next[i-1] > 0.01);
+    });
+  }, [audioBuffer]);
+
+  const removeChopPoint = useCallback((idx) => {
+    setChopPts(prev => prev.filter((_,i) => i !== idx));
+  }, []);
+
   const autoChop = useCallback(() => {
     if (chopIdx === null) return; const pad = pads[chopIdx]; if (!pad?.buffer) return;
     const data = pad.buffer.getChannelData(0), sr = pad.buffer.sampleRate, dur = pad.buffer.duration;
