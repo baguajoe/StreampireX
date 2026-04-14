@@ -1083,6 +1083,21 @@ const SamplerBeatMaker = ({
     // Stop prev
     if (activeSrc.current[pi]) { try { activeSrc.current[pi].source.stop(); } catch (e) { } }
 
+    // Choke groups — stop all other pads in the same choke group
+    if (pad.chokeGroup && pad.chokeGroup > 0) {
+      padsRef.current.forEach((otherPad, otherIdx) => {
+        if (otherIdx !== pi && otherPad?.chokeGroup === pad.chokeGroup && activeSrc.current[otherIdx]) {
+          try {
+            const fadeGain = c.createGain();
+            fadeGain.gain.setValueAtTime(1, c.currentTime);
+            fadeGain.gain.linearRampToValueAtTime(0, c.currentTime + 0.015);
+            activeSrc.current[otherIdx].source.stop(c.currentTime + 0.015);
+          } catch(e) {}
+          delete activeSrc.current[otherIdx];
+        }
+      });
+    }
+
     // Phase 2: Velocity layer selection
     let sampleBuffer = pad.buffer;
     let layerVol = 1.0; // per-layer volume multiplier
