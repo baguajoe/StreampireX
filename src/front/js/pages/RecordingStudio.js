@@ -101,6 +101,7 @@ import KeyFinder from "../component/KeyFinder";
 import AIBeatAssistant from "../component/AIBeatAssistant";
 import ParametricEQGraph from "../component/ParametricEQGraph";
 import ConsoleFXPanel from "../component/ConsoleFXPanel";
+import SPXMonitorSelector from "../component/SPXMonitorSelector";
 import AmpSimPlugin from "../component/AmpSimPlugin";
 import PanKnob from "../component/PanKnob";
 import { InlineStemSeparation, AudioToMIDIPanel, PitchCorrectionPanel } from "../component/DAWAdvancedFeatures";
@@ -485,6 +486,7 @@ const RecordingStudio = ({ user }) => {
   const [trackConsoleChar, setTrackConsoleChar] = useState({});
   const [masterConsoleChar, setMasterConsoleChar] = useState("none");
   const [monitorSpeaker, setMonitorSpeaker] = useState("flat");
+  const [showMonitorSelector, setShowMonitorSelector] = useState(false);
   const [monoCheck, setMonoCheck] = useState(false);
   const [abRef, setAbRef] = useState(false);
   const [roomSim, setRoomSim] = useState("none");
@@ -497,6 +499,7 @@ const RecordingStudio = ({ user }) => {
   const masterConsoleCharRef = useRef("none");
   const masterConsoleOutRef = useRef(null);
   const [monitorSpeaker, setMonitorSpeaker] = useState("flat");
+  const [showMonitorSelector, setShowMonitorSelector] = useState(false);
   const monitorNodesRef = useRef(null);
   const [keyboardOctave, setKeyboardOctave] = useState(4);
   const [trackInstrument, setTrackInstrument] = useState({});
@@ -2045,9 +2048,19 @@ const RecordingStudio = ({ user }) => {
         {viewMode === "fx"           && <div className="rs-flex-scroll-dark"><UnifiedFXChain track={tracks[selectedTrackIndex]} trackIndex={selectedTrackIndex} audioContext={audioCtxRef.current} updateEffect={updateEffect} onClose={() => setViewMode("arrange")} isEmbedded={true}/></div>}
         {viewMode === "multiband"    && <div className="rs-flex-scroll-dark"><MultibandEffects audioContext={audioCtxRef.current} inputNode={selectedTrackIndex !== null && trackGainsRef.current[selectedTrackIndex] ? trackGainsRef.current[selectedTrackIndex] : masterGainRef.current} outputNode={masterGainRef.current} onClose={() => setViewMode("arrange")} isEmbedded={true}/></div>}
         {viewMode === "mastering"    && <div className="rs-flex-scroll-dark"><MasteringChain audioContext={audioCtxRef.current} inputNode={masterConsoleOutRef.current || masterGainRef.current} outputNode={audioCtxRef.current?.destination} masterVolume={masterVolume} onClose={() => setViewMode("arrange")} isEmbedded={true}/></div>}
-        {viewMode === "speakersim"   && <SpeakerSimulator audioContext={audioCtxRef.current} inputNode={masterConsoleOutRef.current || masterGainRef.current}/>
+        {viewMode === "speakersim"   && <SpeakerSimulator audioContext={audioCtxRef.current} inputNode={masterConsoleOutRef.current || masterGainRef.current}/>}
+        {showMonitorSelector && (
+          <SPXMonitorSelector
+            selectedRoom={roomSim}
+            selectedConsole={masterConsoleChar}
+            onRoomChange={v => setRoomSim(v)}
+            onConsoleChange={v => { setMasterConsoleChar(v); masterConsoleCharRef.current = v; }}
+            onClose={() => setShowMonitorSelector(false)}
+          />
+        )}
         {/* ── MONITOR BAR — always visible at bottom of DAW ── */}
         <div className="daw-monitor-bar">
+          <button className="daw-monitor-btn" onClick={() => setShowMonitorSelector(true)} style={{borderColor:'#00ffc855',color:'#00ffc8'}}>🏛 BROWSE</button>
           <span className="daw-monitor-label">MONITOR</span>
           <select
             className="daw-monitor-select"
