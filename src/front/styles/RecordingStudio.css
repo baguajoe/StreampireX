@@ -80,11 +80,11 @@
 .rs-flex-scroll-darker { display:flex; flex-direction:column; height:100%; overflow-y:auto; background:#0a1018; }
 .daw-console { display:flex; flex-direction:column; height:100%; overflow:hidden; background:#0f1520; }
 .daw-console-scroll { display:flex; flex-direction:row; align-items:flex-start; gap:2px; padding:8px; overflow-x:auto; overflow-y:hidden; height:100%; background:#0c111c; }
-.daw-channel { display:flex; flex-direction:column; align-items:center; background:#181e2d; border:1px solid #243048; border-radius:6px; cursor:pointer; flex-shrink:0; width:128px; min-width:128px; height:580px; transition:border-color .15s, background .15s; overflow:hidden; }
+.daw-channel { display:flex; flex-direction:column; align-items:center; background:#181e2d; border:1px solid #243048; border-radius:6px; cursor:pointer; flex-shrink:0; width:160px; min-width:160px; height:600px; transition:border-color .15s, background .15s; overflow:hidden; }
 .daw-channel:hover { border-color:#2e3d5a; background:#1e263a; }
 .daw-channel.selected { border-color:var(--rs-teal); background:rgba(0,255,200,.04); }
 .daw-channel.armed { border-color:rgba(255,59,48,.6); }
-.daw-channel.master-channel { width:144px; min-width:144px; height:580px; border-color:rgba(255,102,0,.3); }
+.daw-channel.master-channel { width:180px; min-width:180px; height:600px; border-color:rgba(255,102,0,.3); }
 .daw-channel.master-channel.selected { border-color:var(--rs-orange); }
 .daw-ch-colorbar { width:100%; height:5px; border-radius:5px 5px 0 0; flex-shrink:0; }
 .daw-ch-header { display:flex; align-items:center; gap:4px; padding:5px 6px; width:100%; }
@@ -270,37 +270,30 @@
 
 
 .daw-ch-db-scale { display:flex; flex-direction:column; justify-content:space-between; height:180px; padding:0; margin-left:3px; flex-shrink:0; pointer-events:none; width:14px; }
-.daw-ch-db-scale span {
-  font-size: 7px;
-  color: #3d5570;
-  font-family: var(--rs-font);
-  line-height: 1;
-  display: block;
-  text-align: left;
-}
+.daw-ch-db-scale span { font-size:8px; color:#5a7a96; font-family:var(--rs-font); line-height:1; display:block; text-align:right; padding-right:2px; }
 
 
 /* Hardware fader cap — writing-mode:vertical so width=cross-axis, height=along-axis */
 .daw-ch-fader input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none !important;
   appearance: none !important;
-  width: 16px !important;
-  height: 38px !important;
-  border-radius: 3px !important;
+  width: 52px !important;
+  height: 14px !important;
+  border-radius: 2px !important;
   background:
-    linear-gradient(90deg, transparent 47%, #111 47%, #111 53%, transparent 53%),
-    linear-gradient(90deg,
-      #d8dce4 0%,
-      #a8b4c0 20%,
+    linear-gradient(180deg, transparent 46%, #111 46%, #111 54%, transparent 54%),
+    linear-gradient(180deg,
+      #e0e4ec 0%,
+      #b0bcc8 25%,
       #7a8fa0 50%,
-      #a8b4c0 80%,
-      #d8dce4 100%
+      #b0bcc8 75%,
+      #e0e4ec 100%
     ) !important;
-  border-left: 2px solid #eef2f6 !important;
-  border-right: 2px solid #3a4858 !important;
-  border-top: 1px solid #607888 !important;
-  border-bottom: 1px solid #607888 !important;
-  box-shadow: 2px 0 8px rgba(0,0,0,.7), -1px 0 4px rgba(0,0,0,.4) !important;
+  border-top: 2px solid #eef2f6 !important;
+  border-bottom: 2px solid #3a4858 !important;
+  border-left: 1px solid #607888 !important;
+  border-right: 1px solid #607888 !important;
+  box-shadow: 0 3px 8px rgba(0,0,0,.7), 0 -1px 4px rgba(0,0,0,.4) !important;
   cursor: grab !important;
 }
 .daw-ch-fader input[type="range"]:active::-webkit-slider-thumb {
@@ -401,7 +394,7 @@
 /* SPX Console Enhanced */
 .daw-ch-eq-curve { width:calc(100% - 8px); height:46px; margin:0 4px 4px; background:#070b12; border:1px solid #1a2840; border-radius:3px; flex-shrink:0; display:block; cursor:pointer; }
 .daw-ch-eq-curve:hover { border-color:var(--rs-teal); }
-.daw-ch-db-scale { display:flex; flex-direction:column; justify-content:space-between; height:190px; padding:2px 0; flex-shrink:0; }
+.daw-ch-db-scale { display:flex; flex-direction:column; justify-content:space-between; height:190px; padding:2px 0; flex-shrink:0; width:20px; }
 .daw-ch-db-tick { color:#2d4060; font-size:8px; line-height:1; text-align:right; width:18px; user-select:none; }
 .daw-ch-db-tick.zero { color:var(--rs-teal); font-weight:700; }
 .daw-ch-routing-label { color:#4e6a82; font-size:8px; letter-spacing:1px; text-transform:uppercase; display:block; margin-bottom:1px; }
@@ -409,3 +402,12 @@
 .daw-ch-insert-slot { font-size:9px; padding:2px 5px; margin-bottom:2px; border-radius:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; box-sizing:border-box; display:block; cursor:pointer; border:1px solid transparent; }
 .daw-ch-insert-slot:hover { border-color:rgba(255,255,255,.18); background:rgba(255,255,255,.04); }
 .daw-ch-insert-slot.empty { color:#253345; border:1px dashed #1a2840; text-align:center; }
+
+/* Master channel red fader cap */
+.daw-channel.master-channel .daw-ch-fader input[type="range"]::-webkit-slider-thumb {
+  background:
+    linear-gradient(180deg, transparent 46%, #600 46%, #600 54%, transparent 54%),
+    linear-gradient(180deg, #ff8a3d 0%, #cc4400 30%, #992200 50%, #cc4400 70%, #ff8a3d 100%) !important;
+  border-top: 2px solid #ffaa66 !important;
+  border-bottom: 2px solid #661100 !important;
+}
