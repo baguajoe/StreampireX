@@ -775,7 +775,6 @@ const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey })
       setAbState(s => s === 'A' ? 'B' : 'A');
     }
   };
-  const storeB = () => { snapshotBRef.current = JSON.parse(JSON.stringify(track.effects||{})); setAbState('B'); };
 
   const fx = track.effects || {};
   const u = (fxKey, param, val) => updateEffect(trackIndex, fxKey, param, val);
