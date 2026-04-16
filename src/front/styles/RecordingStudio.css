@@ -401,7 +401,7 @@
 .daw-ch-badge { font-size:11px !important; min-width:20px !important; height:20px !important; padding:0 5px !important; font-weight:700 !important; }
 .daw-ch-insert-slot { font-size:9px; padding:2px 5px; margin-bottom:2px; border-radius:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; box-sizing:border-box; display:block; cursor:pointer; border:1px solid transparent; }
 .daw-ch-insert-slot:hover { border-color:rgba(255,255,255,.18); background:rgba(255,255,255,.04); }
-.daw-ch-insert-slot.empty { color:#253345; border:1px dashed #1a2840; text-align:center; }
+.daw-ch-insert-slot.empty { background:#0d1420; border:1px solid #243048; color:transparent; min-height:18px; border-radius:2px; }
 
 /* Master channel red fader cap */
 .daw-channel.master-channel .daw-ch-fader input[type="range"]::-webkit-slider-thumb {
