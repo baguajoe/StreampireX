@@ -1894,7 +1894,7 @@ const RecordingStudio = ({ user }) => {
         {/* ARRANGE */}
         {!splitScreen && viewMode === "arrange" && (
           <div className="rs-relative">
-            <ArrangerView cycleEnabled={cycleEnabled} cycleStart={cycleStart} cycleEnd={cycleEnd}
+            <ArrangerView onBpmDetected={det => { setBpm(det); setStatus("♩ BPM detected: " + det); }} cycleEnabled={cycleEnabled} cycleStart={cycleStart} cycleEnd={cycleEnd}
               onCycleChange={(s, e) => { setCycleStart(s); setCycleEnd(e); }} onCycleToggle={() => setCycleEnabled(e => !e)}
               tracks={tracks} setTracks={setTracks} bpm={bpm} timeSignatureTop={timeSignature[0]} timeSignatureBottom={timeSignature[1]}
               masterVolume={masterVolume} onMasterVolumeChange={setMasterVolume} projectName={projectName} userTier={userTier}
@@ -1963,7 +1963,7 @@ const RecordingStudio = ({ user }) => {
           <div ref={splitContainerRef} className="rs-split-screen">
             <div className="rs-split-top" style={{ height: `${splitTopH}%` }}>
               <span className="rs-split-pane-label">ARRANGE</span>
-              <ArrangerView tracks={tracks} bpm={bpm} currentTime={currentTime} isPlaying={isPlaying}
+              <ArrangerView onBpmDetected={det => { setBpm(det); setStatus("♩ BPM detected: " + det); }} tracks={tracks} bpm={bpm} currentTime={currentTime} isPlaying={isPlaying}
                 selectedTrack={selectedTrack} onSelectTrack={setSelectedTrack} zoom={zoom} onZoomChange={setZoom}
                 onBrowseSounds={handleBrowseSounds} onOpenPianoRoll={onOpenPianoRoll}
                 onTimelineDoubleClick={handleTimelineDoubleClick} MidiRegionPreview={MidiRegionPreview}/>

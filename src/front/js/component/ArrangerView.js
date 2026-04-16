@@ -790,6 +790,28 @@ const ArrangerView = ({
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         decodedBuf = await ctx.decodeAudioData(arrayBuf);
         duration = decodedBuf.duration;
+        // BPM detection
+        try {
+          const ch = decodedBuf.getChannelData(0); const sr = decodedBuf.sampleRate;
+          const step = Math.floor(sr * 0.01);
+          const peaks = [];
+          for (let s = 0; s < ch.length - step; s += step) {
+            let r = 0; for (let k = 0; k < step; k++) r += ch[s+k]*ch[s+k];
+            peaks.push(Math.sqrt(r/step));
+          }
+          const avg = peaks.reduce((a,b)=>a+b,0)/peaks.length;
+          const thr = avg * 1.5;
+          const beats = []; let last = -1;
+          for (let i = 1; i < peaks.length-1; i++) {
+            if (peaks[i]>thr && peaks[i]>peaks[i-1] && peaks[i]>peaks[i+1] && (i-last)>20) { beats.push(i*0.01); last=i; }
+          }
+          if (beats.length > 3) {
+            const intervals = beats.slice(1).map((b,i)=>b-beats[i]);
+            const avgInt = intervals.reduce((a,b)=>a+b,0)/intervals.length;
+            const det = Math.round(60/avgInt);
+            if (det>=60 && det<=200 && onBpmDetected) onBpmDetected(det);
+          }
+        } catch(e) {}
         ctx.close();
       } catch(err) {}
       const beatsPerSecond = bpm / 60;
