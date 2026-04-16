@@ -610,6 +610,10 @@ const RecordingStudio = ({ user }) => {
   const [saving, setSaving] = useState(false);
   const [showAudioSettings, setShowAudioSettings] = useState(false);
   const [mixingDown, setMixingDown] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportSettings, setExportSettings] = useState({ format:"wav", sampleRate:44100, bitDepth:16, mode:"mixdown", selectedTracks:[], filename:"", includeVideo:false });
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoUrl, setVideoUrl] = useState(null);
   const [activeEffectsTrack, setActiveEffectsTrack] = useState(null);
   const [insertPickerState, setInsertPickerState] = useState(null);
   const [openFxKey, setOpenFxKey] = useState(null);
@@ -1570,6 +1574,52 @@ const RecordingStudio = ({ user }) => {
     setMixingDown(false);
   };
 
+  // ── Export Stems ──
+  const exportStems = async (trackIndices) => {
+    const toExport = trackIndices.length ? tracks.filter((_,i)=>trackIndices.includes(i)) : tracks.filter(t=>t.audioBuffer);
+    if (!toExport.length) { setStatus("No audio to export"); return; }
+    setMixingDown(true);
+    for (const t of toExport) {
+      if (!t.audioBuffer) continue;
+      try {
+        const sr = 44100;
+        const offCtx = new OfflineAudioContext(2, Math.ceil(sr*(t.audioBuffer.duration+0.5)), sr);
+        const src = offCtx.createBufferSource(); src.buffer = t.audioBuffer;
+        const g = offCtx.createGain(); g.gain.value = t.volume??1;
+        const pan = offCtx.createStereoPanner(); pan.pan.value = t.pan??0;
+        src.connect(g); g.connect(pan); pan.connect(offCtx.destination); src.start(0);
+        const buf = await offCtx.startRendering();
+        const nc=buf.numberOfChannels, len=buf.length*nc*2, ab=new ArrayBuffer(44+len), view=new DataView(ab);
+        const ws=(o,s)=>{for(let i=0;i<s.length;i++)view.setUint8(o+i,s.charCodeAt(i));};
+        ws(0,"RIFF");view.setUint32(4,36+len,true);ws(8,"WAVE");ws(12,"fmt ");
+        view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,nc,true);
+        view.setUint32(24,sr,true);view.setUint32(28,sr*nc*2,true);view.setUint16(32,nc*2,true);
+        view.setUint16(34,16,true);ws(36,"data");view.setUint32(40,len,true);
+        let off=44; for(let i=0;i<buf.length;i++) for(let ch=0;ch<nc;ch++){const s=Math.max(-1,Math.min(1,buf.getChannelData(ch)[i]));view.setInt16(off,s<0?s*0x8000:s*0x7FFF,true);off+=2;}
+        const blob=new Blob([ab],{type:"audio/wav"});const url=URL.createObjectURL(blob);
+        const a=document.createElement("a");a.href=url;a.download=`${(t.name||"track").replace(/\s+/g,"_")}_stem.wav`;
+        document.body.appendChild(a);a.click();document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url),5000);
+        setStatus(`✓ Exported: ${a.download}`);
+      } catch(e) { setStatus(`✗ Stem export failed: ${e.message}`); }
+    }
+    setMixingDown(false);
+    setStatus(`✓ All stems exported`);
+  };
+
+  // ── Import Video ──
+  const handleImportVideo = () => {
+    const inp = document.createElement("input");
+    inp.type = "file"; inp.accept = "video/*";
+    inp.onchange = e => {
+      const f = e.target.files[0]; if (!f) return;
+      const url = URL.createObjectURL(f);
+      setVideoFile(f); setVideoUrl(url);
+      setStatus(`Video loaded: ${f.name}`);
+    };
+    inp.click();
+  };
+
   // ── Freeze ──
   const freezeTrack = async (ti) => {
     const t = tracks[ti]; if (!t?.audioBuffer) { setStatus(`⚠ Track ${ti + 1} has no audio`); return; }
@@ -1815,6 +1865,9 @@ const RecordingStudio = ({ user }) => {
       case "midi:controller": setMidiEnabled(m => !m); break;
       case "plugins:wam": window.open("/wam-plugin-store", "_blank"); break;
       case "file:exportMidi": case "midi:export": exportMidiFile(); break;
+      case "file:exportMixdown": setShowExportModal(true); break;
+      case "file:exportStems": setShowExportModal(true); setExportSettings(p=>({...p,mode:"stems"})); break;
+      case "file:importVideo": handleImportVideo(); break;
       case "view:arrange": setViewMode("arrange"); break;
       case "view:console": setViewMode("console"); break;
       case "view:beatmaker": case "view:drumkits": case "view:kits": case "view:sampler": setViewMode("beatmaker"); break;
@@ -2547,6 +2600,109 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
+
+        {/* ── EXPORT AUDIO MIXDOWN MODAL ── */}
+        {showExportModal && (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.75)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowExportModal(false)}>
+            <div style={{background:"#0d1117",border:"1px solid #243048",borderRadius:8,width:620,maxWidth:"95vw",padding:0,boxShadow:"0 24px 64px rgba(0,0,0,.9)"}} onClick={e=>e.stopPropagation()}>
+              <div style={{background:"#161b22",borderBottom:"1px solid #1e2638",padding:"14px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",borderRadius:"8px 8px 0 0"}}>
+                <span style={{color:"#cdd9e5",fontWeight:800,fontSize:14,letterSpacing:1}}>EXPORT AUDIO MIXDOWN</span>
+                <button onClick={()=>setShowExportModal(false)} style={{background:"none",border:"none",color:"#8ba3bc",cursor:"pointer",fontSize:18}}>✕</button>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:0}}>
+                {/* LEFT — Channel Selection */}
+                <div style={{borderRight:"1px solid #1e2638",padding:"16px"}}>
+                  <div style={{color:"#4e6a82",fontSize:10,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8,fontWeight:700}}>Channel Selection</div>
+                  <div style={{display:"flex",gap:8,marginBottom:12}}>
+                    <button onClick={()=>setExportSettings(p=>({...p,mode:"mixdown"}))} style={{flex:1,padding:"6px 0",background:exportSettings.mode==="mixdown"?"#00ffc822":"#0d1117",border:`1px solid ${exportSettings.mode==="mixdown"?"#00ffc8":"#243048"}`,color:exportSettings.mode==="mixdown"?"#00ffc8":"#8ba3bc",borderRadius:4,cursor:"pointer",fontSize:11,fontWeight:700}}>MIXDOWN</button>
+                    <button onClick={()=>setExportSettings(p=>({...p,mode:"stems"}))} style={{flex:1,padding:"6px 0",background:exportSettings.mode==="stems"?"#00ffc822":"#0d1117",border:`1px solid ${exportSettings.mode==="stems"?"#00ffc8":"#243048"}`,color:exportSettings.mode==="stems"?"#00ffc8":"#8ba3bc",borderRadius:4,cursor:"pointer",fontSize:11,fontWeight:700}}>STEMS</button>
+                  </div>
+                  <div style={{maxHeight:200,overflowY:"auto",border:"1px solid #1e2638",borderRadius:4}}>
+                    <div style={{padding:"6px 10px",background:"#161b22",color:"#00ffc8",fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",borderBottom:"1px solid #1e2638",display:"flex",justifyContent:"space-between",cursor:"pointer"}} onClick={()=>setExportSettings(p=>({...p,selectedTracks:[]}))}>
+                      <span>✓ Stereo Out</span>
+                    </div>
+                    {tracks.map((t,i)=>(
+                      <div key={t.id} style={{padding:"6px 10px",display:"flex",alignItems:"center",gap:8,borderBottom:"1px solid #0d1219",cursor:"pointer",background:exportSettings.selectedTracks.includes(i)?"rgba(0,255,200,.05)":"transparent"}}
+                        onClick={()=>setExportSettings(p=>({...p,selectedTracks:p.selectedTracks.includes(i)?p.selectedTracks.filter(x=>x!==i):[...p.selectedTracks,i]}))}>
+                        <input type="checkbox" readOnly checked={exportSettings.mode==="mixdown"||exportSettings.selectedTracks.includes(i)} style={{accentColor:"#00ffc8"}}/>
+                        <div style={{width:8,height:8,borderRadius:2,background:t.color||"#4a90d9",flexShrink:0}}/>
+                        <span style={{color:"#cdd9e5",fontSize:11,flex:1}}>{t.name||`Track ${i+1}`}</span>
+                        {t.audioBuffer && <span style={{color:"#4e6a82",fontSize:9}}>●</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* RIGHT — File Format */}
+                <div style={{padding:"16px"}}>
+                  <div style={{color:"#4e6a82",fontSize:10,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8,fontWeight:700}}>File Format</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+                    {["wav","mp3","flac","aiff"].map(fmt=>(
+                      <button key={fmt} onClick={()=>setExportSettings(p=>({...p,format:fmt}))}
+                        style={{padding:"8px 0",background:exportSettings.format===fmt?"#00ffc822":"#0d1117",border:`1px solid ${exportSettings.format===fmt?"#00ffc8":"#243048"}`,color:exportSettings.format===fmt?"#00ffc8":"#8ba3bc",borderRadius:4,cursor:"pointer",fontSize:11,fontWeight:700,textTransform:"uppercase"}}>
+                        {fmt}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{marginBottom:10}}>
+                    <label style={{color:"#8ba3bc",fontSize:10,display:"block",marginBottom:4}}>SAMPLE RATE</label>
+                    <select value={exportSettings.sampleRate} onChange={e=>setExportSettings(p=>({...p,sampleRate:+e.target.value}))}
+                      style={{width:"100%",background:"#0d1117",border:"1px solid #243048",color:"#cdd9e5",padding:"6px 8px",borderRadius:4,fontSize:11}}>
+                      <option value={44100}>44.100 kHz</option>
+                      <option value={48000}>48.000 kHz</option>
+                      <option value={96000}>96.000 kHz</option>
+                    </select>
+                  </div>
+                  <div style={{marginBottom:10}}>
+                    <label style={{color:"#8ba3bc",fontSize:10,display:"block",marginBottom:4}}>BIT DEPTH</label>
+                    <select value={exportSettings.bitDepth} onChange={e=>setExportSettings(p=>({...p,bitDepth:+e.target.value}))}
+                      style={{width:"100%",background:"#0d1117",border:"1px solid #243048",color:"#cdd9e5",padding:"6px 8px",borderRadius:4,fontSize:11}}>
+                      <option value={16}>16-bit</option>
+                      <option value={24}>24-bit</option>
+                      <option value={32}>32-bit float</option>
+                    </select>
+                  </div>
+                  <div style={{marginBottom:10}}>
+                    <label style={{color:"#8ba3bc",fontSize:10,display:"block",marginBottom:4}}>FILE NAME</label>
+                    <input value={exportSettings.filename||projectName} onChange={e=>setExportSettings(p=>({...p,filename:e.target.value}))}
+                      style={{width:"100%",background:"#0d1117",border:"1px solid #243048",color:"#cdd9e5",padding:"6px 8px",borderRadius:4,fontSize:11,boxSizing:"border-box"}}/>
+                  </div>
+                  <div style={{marginBottom:10}}>
+                    <label style={{color:"#8ba3bc",fontSize:10,display:"block",marginBottom:4}}>AFTER EXPORT</label>
+                    <select style={{width:"100%",background:"#0d1117",border:"1px solid #243048",color:"#cdd9e5",padding:"6px 8px",borderRadius:4,fontSize:11}}>
+                      <option>Do Nothing</option>
+                      <option>Open in New Track</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              {/* Footer */}
+              <div style={{borderTop:"1px solid #1e2638",padding:"12px 20px",display:"flex",justifyContent:"flex-end",gap:10,borderRadius:"0 0 8px 8px",background:"#161b22"}}>
+                <button onClick={()=>setShowExportModal(false)} style={{padding:"8px 20px",background:"transparent",border:"1px solid #243048",color:"#8ba3bc",borderRadius:4,cursor:"pointer",fontSize:11}}>Cancel</button>
+                <button onClick={()=>{
+                  setShowExportModal(false);
+                  if (exportSettings.mode==="stems") {
+                    exportStems(exportSettings.selectedTracks);
+                  } else {
+                    mixDownProject();
+                  }
+                }} style={{padding:"8px 24px",background:"#00ffc8",border:"none",color:"#000",borderRadius:4,cursor:"pointer",fontSize:11,fontWeight:800}}>
+                  {mixingDown?"EXPORTING...":"EXPORT AUDIO"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── VIDEO SCORE PANEL ── */}
+        {videoUrl && (
+          <div style={{position:"fixed",bottom:20,right:20,zIndex:5000,background:"#0d1117",border:"1px solid #243048",borderRadius:8,overflow:"hidden",boxShadow:"0 8px 24px rgba(0,0,0,.8)"}}>
+            <div style={{background:"#161b22",padding:"6px 12px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{color:"#cdd9e5",fontSize:11,fontWeight:700}}>🎬 VIDEO SCORE</span>
+              <button onClick={()=>{setVideoUrl(null);setVideoFile(null);}} style={{background:"none",border:"none",color:"#8ba3bc",cursor:"pointer"}}>✕</button>
+            </div>
+            <video src={videoUrl} controls style={{width:320,display:"block"}} onTimeUpdate={e=>{}}/>
+          </div>
+        )}
         {/* FX POPUP */}
         {afx && openFxKey && (
           <div className="daw-fx-panel-popup">
