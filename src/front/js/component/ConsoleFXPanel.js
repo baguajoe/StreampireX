@@ -760,7 +760,12 @@ const AnalogRackSummary = ({ fx = {} }) => {
 // =============================================================================
 
 const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey }) => {
-  if (!track) return null;
+
+  const snapshotARef = React.useRef(null);
+  const snapshotBRef = React.useRef(null);
+  const [abState, setAbState] = React.useState('A');
+  const storeA = () => { snapshotARef.current = JSON.parse(JSON.stringify(track.effects||{})); setAbState('A'); };
+  const storeB = () => { snapshotBRef.current = JSON.parse(JSON.stringify(track.effects||{})); setAbState('B'); };
 
   const fx = track.effects || {};
   const u = (fxKey, param, val) => updateEffect(trackIndex, fxKey, param, val);
