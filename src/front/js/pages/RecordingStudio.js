@@ -1977,10 +1977,15 @@ const RecordingStudio = ({ user }) => {
                         <div className="daw-ch-fader-area">
                           <div className="daw-ch-fader-row">
                             <div className="daw-ch-fader">
-                              <input type="range" min={0} max={1.26} step={0.005} value={t.volume ?? 1.0} onChange={e => updateTrack(i, { volume: parseFloat(e.target.value) })}/>
+                              <input type="range" min={0} max={1.26} step={0.005} value={t.volume ?? 1.0} onChange={e => { const v = parseFloat(e.target.value); updateTrack(i, { volume: v }); const audible = !t.muted && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? v : 0; }}/>
                             </div>
-                            <div className="daw-ch-meter">
-                              <div className="daw-ch-meter-bar" style={{ height: `${Math.round((meter.left || 0) * 100)}%`, background: meter.peak > 0.9 ? "#ff3b30" : "#00ffc8" }}/>
+                            <div className="daw-ch-meter" style={{display:"flex",flexDirection:"row",gap:"2px",width:"auto"}}>
+                              <div style={{width:"7px",height:"190px",background:"#060a0e",borderRadius:"2px",overflow:"hidden",display:"flex",flexDirection:"column",justifyContent:"flex-end",border:"1px solid #0d1219"}}>
+                                <div style={{width:"100%",borderRadius:"2px 2px 0 0",transition:"height .04s",background:(meter.left||0)>0.9?"#ff3b30":(meter.left||0)>0.7?"#ffd700":"#00ffc8",height:`${Math.round((meter.left||0)*100)}%`}}/>
+                              </div>
+                              <div style={{width:"7px",height:"190px",background:"#060a0e",borderRadius:"2px",overflow:"hidden",display:"flex",flexDirection:"column",justifyContent:"flex-end",border:"1px solid #0d1219"}}>
+                                <div style={{width:"100%",borderRadius:"2px 2px 0 0",transition:"height .04s",background:(meter.right||0)>0.9?"#ff3b30":(meter.right||0)>0.7?"#ffd700":"#00ffc8",height:`${Math.round((meter.right||0)*100)}%`}}/>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -2005,8 +2010,13 @@ const RecordingStudio = ({ user }) => {
                         <div className="daw-ch-fader">
                           <input type="range" min={0} max={1.26} step={0.005} value={masterVolume ?? 1.0} onChange={e => setMasterVolume(parseFloat(e.target.value))}/>
                         </div>
-                        <div className="daw-ch-meter">
-                          <div className="daw-ch-meter-bar" style={{ height: `${Math.round((masterMeterLevels?.left || 0) * 100)}%`, background: "#ff8a3d" }}/>
+                        <div className="daw-ch-meter" style={{display:"flex",flexDirection:"row",gap:"2px",width:"auto"}}>
+                          <div style={{width:"7px",height:"190px",background:"#060a0e",borderRadius:"2px",overflow:"hidden",display:"flex",flexDirection:"column",justifyContent:"flex-end",border:"1px solid #0d1219"}}>
+                            <div style={{width:"100%",borderRadius:"2px 2px 0 0",transition:"height .04s",background:(masterMeterLevels?.left||0)>0.9?"#ff3b30":(masterMeterLevels?.left||0)>0.7?"#ffd700":"#ff8a3d",height:`${Math.round((masterMeterLevels?.left||0)*100)}%`}}/>
+                          </div>
+                          <div style={{width:"7px",height:"190px",background:"#060a0e",borderRadius:"2px",overflow:"hidden",display:"flex",flexDirection:"column",justifyContent:"flex-end",border:"1px solid #0d1219"}}>
+                            <div style={{width:"100%",borderRadius:"2px 2px 0 0",transition:"height .04s",background:(masterMeterLevels?.right||0)>0.9?"#ff3b30":(masterMeterLevels?.right||0)>0.7?"#ffd700":"#ff8a3d",height:`${Math.round((masterMeterLevels?.right||0)*100)}%`}}/>
+                          </div>
                         </div>
                       </div>
                     </div>
