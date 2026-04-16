@@ -669,3 +669,103 @@
   outline: none !important;
   cursor: pointer !important;
 }
+
+
+/* CUBASE STYLE MIXER OVERHAUL */
+.daw-channel {
+  width: 72px !important;
+  min-width: 72px !important;
+  max-width: 72px !important;
+  height: 420px !important;
+  min-height: 420px !important;
+  max-height: 420px !important;
+}
+
+.daw-channel.master-channel {
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+}
+
+/* Compact all sections */
+.daw-ch-header { padding: 2px 4px !important; height: 20px !important; }
+.daw-ch-routing { padding: 2px 4px !important; height: 24px !important; }
+.daw-ch-inserts { height: 80px !important; padding: 2px !important; }
+.daw-ch-sends { height: 40px !important; padding: 2px !important; display: flex !important; flex-direction: column !important; }
+.daw-ch-controls { height: 24px !important; padding: 2px 4px !important; }
+.daw-ch-pan { height: 20px !important; padding: 2px !important; }
+.daw-ch-fader-area { height: 160px !important; padding: 2px !important; }
+.daw-ch-name { height: 36px !important; padding: 2px 4px !important; }
+
+/* Sends section styling */
+.daw-ch-sends-label {
+  font-size: 7px !important;
+  color: #888 !important;
+  text-transform: uppercase !important;
+  margin-bottom: 2px !important;
+}
+
+.daw-ch-send-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 1px !important;
+}
+
+.daw-ch-send-name {
+  font-size: 7px !important;
+  color: #aaa !important;
+  width: 20px !important;
+}
+
+.daw-ch-send-level {
+  width: 40px !important;
+  height: 12px !important;
+  background: #333 !important;
+  border: 1px solid #555 !important;
+  border-radius: 1px !important;
+  font-size: 6px !important;
+  text-align: center !important;
+  color: #ccc !important;
+  line-height: 10px !important;
+}
+
+/* Compact insert slots */
+.daw-ch-insert-slot {
+  height: 16px !important;
+  margin-bottom: 1px !important;
+  font-size: 7px !important;
+  padding: 1px 2px !important;
+}
+
+/* Compact M/S/E badges */
+.daw-ch-badge {
+  width: 18px !important;
+  height: 16px !important;
+  font-size: 8px !important;
+}
+
+/* Compact fader area */
+.daw-ch-fader-row {
+  height: 120px !important;
+  gap: 2px !important;
+}
+
+.daw-ch-fader {
+  height: 120px !important;
+}
+
+.daw-ch-fader input[type="range"] {
+  height: 120px !important;
+  width: 16px !important;
+}
+
+.daw-ch-meter {
+  height: 120px !important;
+  width: 12px !important;
+}
+
+/* Compact text */
+.daw-ch-routing-value { font-size: 9px !important; }
+.daw-ch-vol-val { font-size: 8px !important; }
+.daw-ch-name-input { font-size: 10px !important; padding: 1px 2px !important; }
