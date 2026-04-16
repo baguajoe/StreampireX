@@ -2169,7 +2169,7 @@ const RecordingStudio = ({ user }) => {
                               <input type="range" className="daw-ch-send-level" min={0} max={1} step={0.01}
                                 defaultValue={(t.sends||[]).find(s=>s.busId===bus.id)?.level||0}
                                 onClick={e=>e.stopPropagation()}
-                                onChange={e=>{const v=parseFloat(e.target.value);updateTrack(i,{sends:[...(t.sends||[]).filter(s=>s.busId!==bus.id),{busId:bus.id,level:v}]});}}/>
+                                onChange={e=>{const v=parseFloat(e.target.value);const newSends=[...(t.sends||[]).filter(s=>s.busId!==bus.id),{busId:bus.id,level:v}];updateTrack(i,{sends:newSends});}}/>
                             </div>
                           ))}
                         </div>

@@ -78,7 +78,7 @@
 .rs-flex-hidden { display:flex; flex-direction:column; height:100%; overflow:hidden; }
 .rs-flex-scroll-dark { display:flex; flex-direction:column; height:100%; overflow-y:auto; background:#0e1520; padding:12px; }
 .rs-flex-scroll-darker { display:flex; flex-direction:column; height:100%; overflow-y:auto; background:#0a1018; }
-.daw-console { display:flex; flex-direction:column; height:100%; overflow:hidden; background:#0f1520; }
+.daw-console { display:flex; flex-direction:column; height:100%; overflow:auto; background:#0f1520; }
 .daw-console-scroll { display:flex; flex-direction:row; align-items:flex-start; gap:2px; padding:8px 8px 32px; overflow-x:auto; overflow-y:auto; height:100%; background:#0c111c; }
 .daw-channel { display:flex; flex-direction:column; align-items:center; background:#181e2d; border:1px solid #243048; border-radius:6px; cursor:pointer; flex-shrink:0; width:160px; min-width:160px; height:auto; min-height:660px; overflow:visible; padding-bottom:12px; transition:border-color .15s, background .15s; }
 .daw-channel:hover { border-color:#2e3d5a; background:#1e263a; }
@@ -157,7 +157,7 @@
 .daw-ch-mic-item-name { color:var(--rs-text); font-size:10px; font-weight:600; }
 .daw-ch-mic-item-desc { color:var(--rs-text3); font-size:9px; margin-top:1px; }
 .rs-split-screen { display:flex; flex-direction:column; height:100%; overflow:hidden; }
-.rs-split-top,.rs-split-bottom { overflow:hidden; position:relative; display:flex; flex-direction:column; }
+.rs-split-top,.rs-split-bottom { overflow:auto; position:relative; display:flex; flex-direction:column; }
 .rs-split-handle { background:var(--rs-border); cursor:ns-resize; flex-shrink:0; height:5px; transition:background .1s; }
 .rs-split-handle:hover { background:var(--rs-teal); }
 .rs-split-pane-label { color:var(--rs-text3); font-size:9px; letter-spacing:1.5px; padding:3px 10px; text-transform:uppercase; background:var(--rs-bg3); border-bottom:1px solid var(--rs-border2); flex-shrink:0; }
