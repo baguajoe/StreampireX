@@ -48,6 +48,9 @@ const buildMenus = ({
       { label: "Import MIDI…", action: "file:importMidi", icon: "🎹" },
       { type: "separator" },
       { label: "Bounce / Mixdown", shortcut: "Ctrl+B", action: "file:bounce", icon: "🎧", disabled: mixingDown },
+      { label: "Export Audio Mixdown…", action: "file:exportMixdown", icon: "💿" },
+      { label: "Export Stems…", action: "file:exportStems", icon: "🎚" },
+      { label: "Import Video…", action: "file:importVideo", icon: "🎬" },
       {
         label: "Export MIDI…",
         action: "file:exportMidi",
