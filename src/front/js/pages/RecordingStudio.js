@@ -507,7 +507,7 @@ const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, upd
     { cat: "Drums",         cls: "spx", items: ALL_FX_EXTENDED.filter(f=>["glueBus","fetStrike","tapeForge","transGate","parallelCrush","ironCore"].includes(f.key)) },
     { cat: "Mix Bus",       cls: "spx", items: ALL_FX_EXTENDED.filter(f=>["brickWall","multiPress","consoleSoul","spectraCurve","ironBand"].includes(f.key)) },
     { cat: "── Mastering ──", cls: "header", items: [] },
-    { cat: "Mastering",     cls: "spx", items: ALL_FX_EXTENDED.filter(f=>["peak","shaped"].includes(f.type)) },
+    { cat: "Mastering",     cls: "master", items: ALL_FX_EXTENDED.filter(f=>f.type==="mastering") },
     { cat: "SPX Creative",  cls: "spx", items: ALL_FX_EXTENDED.filter(f=>!["comp","limit","eq","reverb","delay","filter","distortion"].includes(f.type) && SPX_KEYS.has(f.key)) },
   ];
   return (
