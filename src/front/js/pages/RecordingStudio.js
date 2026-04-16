@@ -451,6 +451,54 @@ const midiFromNotes = ({ notes = [], bpm = 120, ppq = 480 }) => {
 // Component state · Audio engine · Recording · Playback · FX chain
 // =============================================================================
 
+const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, updateEffect, setActiveEffectsTrack, setOpenFxKey, setShowVocalModal, setShowMicSimModal, setStatus }) => {
+  const [openCats, setOpenCats] = React.useState({});
+  const toggleCat = cat => setOpenCats(p => ({...p, [cat]: !p[cat]}));
+  const groups = [
+    { cat: "Vocal Tools", cls: "vocal", items: [{key:"__vocal_processor",name:"Vocal Processor"},{key:"__mic_simulator",name:"Mic Simulator"}] },
+    { cat: "Dynamics",    cls: "", items: [{key:"eq",name:"EQ"},{key:"compressor",name:"Compressor"},{key:"gate",name:"Gate"},{key:"deesser",name:"De-Esser"},{key:"limiter",name:"Limiter"},{key:"brickWall",name:"BrickWall"},{key:"warmPress",name:"WarmPress"},{key:"glueBus",name:"GlueBus"},{key:"fetStrike",name:"FETStrike"},{key:"optoPress",name:"OptoPress"},{key:"parallelCrush",name:"ParallelCrush"},{key:"multiPress",name:"MultiPress"},{key:"transGate",name:"TransGate"}] },
+    { cat: "EQ",          cls: "", items: [{key:"ironBand",name:"IronBand"},{key:"spectraCurve",name:"SpectraCurve"}] },
+    { cat: "Reverb",      cls: "", items: [{key:"reverb",name:"Reverb"},{key:"hallForgeS",name:"HallForge I"},{key:"hallForgeL",name:"HallForge II"},{key:"gateVerb",name:"GateVerb"},{key:"vintageAir",name:"VintageAir"},{key:"stochasticHall",name:"StochasticHall"},{key:"greatHall",name:"GreatHall"},{key:"plateForge",name:"PlateForge"},{key:"springBox",name:"SpringBox"}] },
+    { cat: "Delay",       cls: "", items: [{key:"delay",name:"Delay"},{key:"chorus",name:"Chorus"},{key:"flanger",name:"Flanger"},{key:"phaser",name:"Phaser"},{key:"tremolo",name:"Tremolo"},{key:"stereoWidener",name:"Stereo Widener"}] },
+    { cat: "Saturation",  cls: "", items: [{key:"distortion",name:"Distortion"},{key:"bitcrusher",name:"Bit Crush"},{key:"tapeSaturation",name:"Tape Sat"},{key:"exciter",name:"Exciter"},{key:"tapeForge",name:"TapeForge"},{key:"valveGlow",name:"ValveGlow"},{key:"ironCore",name:"IronCore"},{key:"consoleSoul",name:"ConsoleSoul"}] },
+    { cat: "Utility",     cls: "", items: [{key:"filter",name:"Filter"},{key:"gainUtility",name:"Gain Utility"}] },
+  ];
+  return (
+    <>
+      {groups.map(group => (
+        <div key={group.cat}>
+          <div style={{cursor:"pointer",display:"flex",justifyContent:"space-between",padding:"5px 12px",background:"rgba(255,255,255,.04)",borderBottom:"1px solid #1e2638"}}
+            onClick={()=>toggleCat(group.cat)}>
+            <span style={{color:group.cls==="vocal"?"#a78bfa":"#8ba3bc",fontSize:9,letterSpacing:1,textTransform:"uppercase",fontWeight:700}}>{group.cat}</span>
+            <span style={{fontSize:9,color:"#4e6a82"}}>{openCats[group.cat]?"▲":"▼"} {group.items.length}</span>
+          </div>
+          {openCats[group.cat] && group.items.map(fx => {
+            const isVocal = fx.key.startsWith("__");
+            const already = !isVocal && insertPickerState.trackIndex >= 0 && tracks[insertPickerState.trackIndex] && tracks[insertPickerState.trackIndex].effects && tracks[insertPickerState.trackIndex].effects[fx.key] && tracks[insertPickerState.trackIndex].effects[fx.key].enabled;
+            return (
+              <div key={fx.key} className={"daw-insert-picker-item"+(already?" done":isVocal?" vocal":"")}
+                onClick={()=>{
+                  if (fx.key==="__vocal_processor"){setInsertPickerState(null);setShowVocalModal(true);return;}
+                  if (fx.key==="__mic_simulator"){setInsertPickerState(null);setShowMicSimModal(true);return;}
+                  if (already) return;
+                  updateEffect(insertPickerState.trackIndex,fx.key,"enabled",true);
+                  setActiveEffectsTrack(insertPickerState.trackIndex);
+                  setOpenFxKey(fx.key);
+                  setInsertPickerState(null);
+                  setStatus(fx.name+" added");
+                }}>
+                {isVocal?"+ "+fx.name:already?"✓ "+fx.name:fx.name}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      <div className="rs-divider"/>
+      <div className="rs-remove-item" onClick={()=>setInsertPickerState(null)}>Cancel</div>
+    </>
+  );
+};
+
 const RecordingStudio = ({ user }) => {
   // ── Automation ──
   const [automation, setAutomation] = useState({});

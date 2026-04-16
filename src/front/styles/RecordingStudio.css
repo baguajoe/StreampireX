@@ -441,3 +441,10 @@
   border-right: 2px solid #1e3a8a !important;
 }
 .daw-channel.linked { box-shadow:0 0 0 2px rgba(0,255,200,.6) !important; }
+
+/* ── Insert picker overrides ── */
+.daw-insert-picker { width:280px !important; font-size:12px !important; }
+.daw-insert-picker-title { font-size:11px !important; padding:10px 14px 6px !important; letter-spacing:1.5px !important; }
+.daw-insert-picker-item { font-size:12px !important; padding:8px 18px !important; }
+.daw-insert-picker-cat { font-size:10px !important; padding:7px 14px !important; }
+.rs-remove-item { font-size:12px !important; padding:8px 14px !important; }
