@@ -334,7 +334,7 @@ const DAWMenuBar = ({
   // ---------------------------------------------------------------------------
   useEffect(() => {
     const handlePointerDown = (e) => {
-      if (!barRef.current?.contains(e.target)) {
+      if (!barRef.current?.contains(e.target) && !e.target.closest('.daw-menubar-dropdown')) {
         setOpenMenu(null);
       }
     };
