@@ -601,3 +601,44 @@
   flex-direction: column !important;
 
 }
+
+
+/* Professional Cubase-style mixer proportions */
+.daw-channel {
+  width: 90px !important;
+  min-width: 90px !important;
+  max-width: 90px !important;
+  height: 550px !important;
+  min-height: 550px !important;
+  max-height: 550px !important;
+}
+
+.daw-channel.master-channel {
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+  height: 550px !important;
+}
+
+/* Expand fader area for better proportions */
+.daw-ch-fader-area {
+  height: 280px !important;
+  min-height: 280px !important;
+  max-height: 280px !important;
+}
+
+.daw-ch-fader-row {
+  height: 240px !important;
+}
+
+.daw-ch-fader {
+  height: 240px !important;
+}
+
+.daw-ch-fader input[type="range"] {
+  height: 240px !important;
+}
+
+.daw-ch-meter {
+  height: 240px !important;
+}
