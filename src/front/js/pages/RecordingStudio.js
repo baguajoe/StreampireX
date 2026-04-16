@@ -1046,8 +1046,8 @@ const RecordingStudio = ({ user }) => {
       masterGainRef.current = ctx.createGain(); masterGainRef.current.gain.value = masterVolume;
       masterPanRef.current = ctx.createStereoPanner(); masterPanRef.current.pan.value = masterPan;
       const splitter = ctx.createChannelSplitter(2);
-      masterAnalyserLRef.current = ctx.createAnalyser(); masterAnalyserLRef.current.fftSize = 256; masterAnalyserLRef.current.smoothingTimeConstant = 0.7;
-      masterAnalyserRRef.current = ctx.createAnalyser(); masterAnalyserRRef.current.fftSize = 256; masterAnalyserRRef.current.smoothingTimeConstant = 0.7;
+      masterAnalyserLRef.current = ctx.createAnalyser(); masterAnalyserLRef.current.fftSize = 2048; masterAnalyserLRef.current.smoothingTimeConstant = 0.88;
+      masterAnalyserRRef.current = ctx.createAnalyser(); masterAnalyserRRef.current.fftSize = 2048; masterAnalyserRRef.current.smoothingTimeConstant = 0.88;
       const masterConsoleOutNode = ctx.createGain(); masterConsoleOutRef.current = masterConsoleOutNode;
       applyConsoleCharacter(ctx, masterGainRef.current, masterConsoleOutNode, masterConsoleChar || "none");
       if (masterConsoleChar && masterConsoleChar !== "none") masterConsoleOutNode.connect(masterPanRef.current);
@@ -1171,8 +1171,8 @@ const RecordingStudio = ({ user }) => {
       const g = ctx.createGain(); g.gain.value = isAudible(t) ? t.volume : 0;
       const p = ctx.createStereoPanner(); p.pan.value = t.pan;
       const splitter = ctx.createChannelSplitter(2);
-      const analyserL = ctx.createAnalyser(); analyserL.fftSize = 256; analyserL.smoothingTimeConstant = 0.7;
-      const analyserR = ctx.createAnalyser(); analyserR.fftSize = 256; analyserR.smoothingTimeConstant = 0.7;
+      const analyserL = ctx.createAnalyser(); analyserL.fftSize = 2048; analyserL.smoothingTimeConstant = 0.88;
+      const analyserR = ctx.createAnalyser(); analyserR.fftSize = 2048; analyserR.smoothingTimeConstant = 0.88;
       const fxNodes = (t.effects && Object.keys(t.effects).length) ? buildFxChain(ctx, t) : []; let last = s;
       fxNodes.forEach(n => { last.connect(n); last = n; });
       last.connect(g); g.connect(p); p.connect(splitter);
@@ -1314,6 +1314,14 @@ const RecordingStudio = ({ user }) => {
       try {
         const ctx = getCtx(); const ab = await f.arrayBuffer(); const buf = await ctx.decodeAudioData(ab);
         const name = f.name.replace(/\.[^/.]+$/, "").substring(0, 20); const audioUrl = URL.createObjectURL(f);
+        try {
+          const ch = buf.getChannelData(0); const sr = buf.sampleRate; const step = Math.floor(sr * 0.01);
+          const peaks = []; for (let s = 0; s < ch.length - step; s += step) { let r = 0; for (let k = 0; k < step; k++) r += ch[s+k]*ch[s+k]; peaks.push(Math.sqrt(r/step)); }
+          const avg = peaks.reduce((a,b)=>a+b,0)/peaks.length; const thr = avg * 1.5;
+          const beats = []; let last = -1;
+          for (let i = 1; i < peaks.length-1; i++) { if (peaks[i]>thr && peaks[i]>peaks[i-1] && peaks[i]>peaks[i+1] && (i-last)>20) { beats.push(i*0.01); last=i; } }
+          if (beats.length > 3) { const intervals = beats.slice(1).map((b,i)=>b-beats[i]); const avgInt = intervals.reduce((a,b)=>a+b,0)/intervals.length; const det = Math.round(60/avgInt); if (det>=60&&det<=200) { setBpm(det); setStatus('♩ BPM: '+det+' from "'+name+'"'); } }
+        } catch(e) {}
         updateTrack(ti, { audioBuffer: buf, audio_url: audioUrl, name }); createRegionFromImport(ti, buf, name, audioUrl);
         setStatus(`✓ Track ${ti + 1}`);
       } catch (err) { setStatus(`✗ ${err.message}`); }
@@ -1968,28 +1976,51 @@ const RecordingStudio = ({ user }) => {
                   {tracks.map((t, i) => {
                     const meter = meterLevels?.[i] || { left: 0, right: 0, peak: 0 };
                     return (
-                      <div key={t.id ?? i} className={"daw-channel" + (i === selectedTrack ? " selected" : "")} onClick={() => setSelectedTrack(i)}>
+                      <div key={t.id ?? i} className={"daw-channel" + (i === selectedTrack ? " selected" : "") + (t.armed ? " armed" : "")} onClick={() => setSelectedTrack(i)}>
                         <div className="daw-ch-colorbar" style={{ background: t.color || "#4a90d9" }}/>
+                        <div className="daw-ch-header">
+                          <span className="daw-ch-type-icon">{t.trackType === "midi" ? "🎹" : "🎙"}</span>
+                          <span className="daw-ch-header-num">{i + 1}</span>
+                        </div>
+                        <div className="daw-ch-routing">
+                          <span className="daw-ch-routing-value">{t.input || "Stereo In"}</span>
+                        </div>
+                        <div className="daw-ch-inserts">
+                          <div className="daw-ch-inserts-label">INSERTS</div>
+                          {ALL_FX_EXTENDED.filter(fx => t.effects?.[fx.key]?.enabled).map(fx => (
+                            <div key={fx.key} className={"daw-ch-insert-slot active " + (fx.type || "")}
+                              onClick={e => { e.stopPropagation(); setSelectedTrack(i); setActiveEffectsTrack(i); setOpenFxKey(fx.key); }}>
+                              {fx.name}
+                            </div>
+                          ))}
+                          {ALL_FX_EXTENDED.filter(fx => t.effects?.[fx.key]?.enabled).length < 8 && (
+                            <div className="daw-ch-insert-slot empty"
+                              onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setInsertPickerState({ trackIndex: i, x: rect.right + 4, y: rect.top }); }}>
+                              + Insert
+                            </div>
+                          )}
+                        </div>
                         <div className="daw-ch-controls">
-                          <button className={"daw-ch-btn" + (t.muted ? " mute active" : "")} onClick={e => { e.stopPropagation(); updateTrack(i, { muted: !t.muted }); }}>M</button>
-                          <button className={"daw-ch-btn" + (t.solo ? " solo active" : "")} onClick={e => { e.stopPropagation(); updateTrack(i, { solo: !t.solo }); }}>S</button>
+                          <div className={"daw-ch-badge" + (t.muted ? " m-on" : "")} onClick={e => { e.stopPropagation(); const nm = !t.muted; updateTrack(i, { muted: nm }); const audible = !nm && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? t.volume : 0; }}>M</div>
+                          <div className={"daw-ch-badge" + (t.solo ? " s-on" : "")} onClick={e => { e.stopPropagation(); const ns = !t.solo; updateTrack(i, { solo: ns }); const whs = tracks.some((x, idx) => idx === i ? ns : x.solo); tracks.forEach((x, idx) => { const gn = trackGainsRef.current[idx]; if (!gn) return; const s = idx === i ? ns : x.solo; gn.gain.value = (!x.muted && (!whs || s)) ? x.volume : 0; }); }}>S</div>
+                          <div className={"daw-ch-badge" + (selectedTrack === i ? " e-on" : "")} onClick={e => { e.stopPropagation(); setSelectedTrack(i); setActiveEffectsTrack(i); }}>e</div>
+                          <button className={"daw-ch-rec-btn" + (t.armed ? " armed" : "")} onClick={e => { e.stopPropagation(); updateTrack(i, { armed: !t.armed }); }}>●</button>
+                        </div>
+                        <div className="daw-ch-pan">
+                          <PanKnob value={t.pan} onChange={v => updateTrack(i, { pan: v })} size={32}/>
                         </div>
                         <div className="daw-ch-fader-area">
                           <div className="daw-ch-fader-row">
                             <div className="daw-ch-fader">
                               <input type="range" min={0} max={1.26} step={0.005} value={t.volume ?? 1.0} onChange={e => { const v = parseFloat(e.target.value); updateTrack(i, { volume: v }); const audible = !t.muted && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? v : 0; }}/>
                             </div>
-                            <div className="daw-ch-meter" style={{display:"flex",flexDirection:"row",gap:"2px",width:"auto"}}>
-                              <div style={{width:"7px",height:"190px",background:"#060a0e",borderRadius:"2px",overflow:"hidden",display:"flex",flexDirection:"column",justifyContent:"flex-end",border:"1px solid #0d1219"}}>
-                                <div style={{width:"100%",borderRadius:"2px 2px 0 0",transition:"height .04s",background:(meter.left||0)>0.9?"#ff3b30":(meter.left||0)>0.7?"#ffd700":"#00ffc8",height:`${Math.round((meter.left||0)*100)}%`}}/>
-                              </div>
-                              <div style={{width:"7px",height:"190px",background:"#060a0e",borderRadius:"2px",overflow:"hidden",display:"flex",flexDirection:"column",justifyContent:"flex-end",border:"1px solid #0d1219"}}>
-                                <div style={{width:"100%",borderRadius:"2px 2px 0 0",transition:"height .04s",background:(meter.right||0)>0.9?"#ff3b30":(meter.right||0)>0.7?"#ffd700":"#00ffc8",height:`${Math.round((meter.right||0)*100)}%`}}/>
-                              </div>
-                            </div>
+                            <CubaseMeter leftLevel={meter.left||0} rightLevel={meter.right||0} height={180} showScale={false}/>
+                            <div className="daw-ch-db-scale"><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
+                          </div>
+                          <div className="daw-ch-vol-display">
+                            <span className="daw-ch-vol-val">{t.volume > 0 ? (20 * Math.log10(t.volume)).toFixed(1) : "-∞"} dB</span>
                           </div>
                         </div>
-                        <div className="daw-ch-vol-display"><div className="daw-ch-vol-readout">{t.volume > 0 ? (20 * Math.log10(t.volume)).toFixed(1) : "-∞"}</div></div>
                         <div className="daw-ch-name daw-ch-name-bottom">
                           <select className="daw-ch-console-select" value={trackConsoleChar[t.id] || "none"} onChange={e => setTrackConsoleChar(prev => ({ ...prev, [t.id]: e.target.value }))}>
                             {Object.entries(CONSOLE_BOARDS).map(([id, b]) => <option key={id} value={id}>{b.name}</option>)}
