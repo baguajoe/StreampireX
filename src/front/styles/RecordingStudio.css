@@ -9,7 +9,7 @@
 }
 .daw { position:fixed; top:0; left:0; right:0; bottom:0; width:100vw; height:100vh; z-index:1300; display:flex; flex-direction:column; background:var(--rs-bg); color:var(--rs-text); font-family:var(--rs-font); font-size:12px; overflow:visible; }
 .daw-topbar { background:var(--rs-bg2); border-bottom:1px solid var(--rs-border); flex-shrink:0; overflow:visible; position:relative; z-index:2000; }
-.daw-topbar-row1 { display:flex; align-items:center; gap:6px; padding:0 10px; height:50px; overflow:hidden; }
+.daw-topbar-row1 { display:flex; align-items:center; gap:6px; padding:0 10px; height:50px; overflow:visible; }
 .daw-topbar-row2 { display:flex; align-items:center; height:40px; padding:0 10px; border-top:1px solid var(--rs-border2); }
 .daw-topbar-left { display:flex; align-items:center; gap:4px; }
 .daw-topbar-right { display:flex; align-items:center; gap:6px; margin-left:auto; }
