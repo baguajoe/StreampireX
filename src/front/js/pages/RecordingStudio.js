@@ -3053,91 +3053,173 @@ const RecordingStudio = ({ user }) => {
 
         {/* ── EXPORT AUDIO MIXDOWN MODAL ── */}
         {showExportModal && (
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.75)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowExportModal(false)}>
-            <div style={{background:"#0d1117",border:"1px solid #243048",borderRadius:8,width:620,maxWidth:"95vw",padding:0,boxShadow:"0 24px 64px rgba(0,0,0,.9)"}} onClick={e=>e.stopPropagation()}>
-              <div style={{background:"#161b22",borderBottom:"1px solid #1e2638",padding:"14px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",borderRadius:"8px 8px 0 0"}}>
-                <span style={{color:"#cdd9e5",fontWeight:800,fontSize:14,letterSpacing:1}}>EXPORT AUDIO MIXDOWN</span>
-                <button onClick={()=>setShowExportModal(false)} style={{background:"none",border:"none",color:"#8ba3bc",cursor:"pointer",fontSize:18}}>✕</button>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.8)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowExportModal(false)}>
+            <div style={{background:"#0d1117",border:"1px solid #243048",borderRadius:8,width:900,maxWidth:"96vw",maxHeight:"90vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 24px 64px rgba(0,0,0,.9)"}} onClick={e=>e.stopPropagation()}>
+
+              {/* Header */}
+              <div style={{background:"#161b22",borderBottom:"1px solid #1e2638",padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+                <span style={{color:"#cdd9e5",fontWeight:800,fontSize:13,letterSpacing:1.5,textTransform:"uppercase"}}>Export Audio Mixdown</span>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>{setShowExportModal(false);exportStems(tracks.map((_,i)=>i),true);}} style={{padding:"5px 14px",background:"#ff660022",border:"1px solid #ff6600",color:"#ff6600",borderRadius:4,cursor:"pointer",fontSize:11,fontWeight:700}}>⚡ Stems Without FX</button>
+                  <button onClick={()=>setShowExportModal(false)} style={{background:"none",border:"none",color:"#8ba3bc",cursor:"pointer",fontSize:18,lineHeight:1}}>✕</button>
+                </div>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:0}}>
+
+              {/* Body */}
+              <div style={{display:"grid",gridTemplateColumns:"280px 1fr",flex:1,overflow:"hidden"}}>
+
                 {/* LEFT — Channel Selection */}
-                <div style={{borderRight:"1px solid #1e2638",padding:"16px"}}>
-                  <div style={{color:"#4e6a82",fontSize:10,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8,fontWeight:700}}>Channel Selection</div>
-                  <div style={{display:"flex",gap:8,marginBottom:12}}>
-                    <button onClick={()=>setExportSettings(p=>({...p,mode:"mixdown"}))} style={{flex:1,padding:"6px 0",background:exportSettings.mode==="mixdown"?"#00ffc822":"#0d1117",border:`1px solid ${exportSettings.mode==="mixdown"?"#00ffc8":"#243048"}`,color:exportSettings.mode==="mixdown"?"#00ffc8":"#8ba3bc",borderRadius:4,cursor:"pointer",fontSize:11,fontWeight:700}}>MIXDOWN</button>
-                    <button onClick={()=>setExportSettings(p=>({...p,mode:"stems"}))} style={{flex:1,padding:"6px 0",background:exportSettings.mode==="stems"?"#00ffc822":"#0d1117",border:`1px solid ${exportSettings.mode==="stems"?"#00ffc8":"#243048"}`,color:exportSettings.mode==="stems"?"#00ffc8":"#8ba3bc",borderRadius:4,cursor:"pointer",fontSize:11,fontWeight:700}}>STEMS</button>
-                  </div>
-                  <div style={{maxHeight:200,overflowY:"auto",border:"1px solid #1e2638",borderRadius:4}}>
-                    <div style={{padding:"6px 10px",background:"#161b22",color:"#00ffc8",fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",borderBottom:"1px solid #1e2638",display:"flex",justifyContent:"space-between",cursor:"pointer"}} onClick={()=>setExportSettings(p=>({...p,selectedTracks:[]}))}>
-                      <span>✓ Stereo Out</span>
+                <div style={{borderRight:"1px solid #1e2638",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+                  <div style={{padding:"10px 14px",background:"#0f1520",borderBottom:"1px solid #1e2638"}}>
+                    <span style={{color:"#4e6a82",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase"}}>Channel Selection</span>
+                    <div style={{display:"flex",gap:6,marginTop:8}}>
+                      <button onClick={()=>setExportSettings(p=>({...p,mode:"mixdown",selectedTracks:[]}))} style={{flex:1,padding:"5px 0",background:exportSettings.mode==="mixdown"?"#00ffc822":"transparent",border:`1px solid ${exportSettings.mode==="mixdown"?"#00ffc8":"#243048"}`,color:exportSettings.mode==="mixdown"?"#00ffc8":"#8ba3bc",borderRadius:3,cursor:"pointer",fontSize:10,fontWeight:700}}>Single</button>
+                      <button onClick={()=>setExportSettings(p=>({...p,mode:"stems"}))} style={{flex:1,padding:"5px 0",background:exportSettings.mode==="stems"?"#00ffc822":"transparent",border:`1px solid ${exportSettings.mode==="stems"?"#00ffc8":"#243048"}`,color:exportSettings.mode==="stems"?"#00ffc8":"#8ba3bc",borderRadius:3,cursor:"pointer",fontSize:10,fontWeight:700}}>Multiple</button>
                     </div>
-                    {tracks.map((t,i)=>(
-                      <div key={t.id} style={{padding:"6px 10px",display:"flex",alignItems:"center",gap:8,borderBottom:"1px solid #0d1219",cursor:"pointer",background:exportSettings.selectedTracks.includes(i)?"rgba(0,255,200,.05)":"transparent"}}
-                        onClick={()=>setExportSettings(p=>({...p,selectedTracks:p.selectedTracks.includes(i)?p.selectedTracks.filter(x=>x!==i):[...p.selectedTracks,i]}))}>
-                        <input type="checkbox" readOnly checked={exportSettings.mode==="mixdown"||exportSettings.selectedTracks.includes(i)} style={{accentColor:"#00ffc8"}}/>
-                        <div style={{width:8,height:8,borderRadius:2,background:t.color||"#4a90d9",flexShrink:0}}/>
-                        <span style={{color:"#cdd9e5",fontSize:11,flex:1}}>{t.name||`Track ${i+1}`}</span>
-                        {t.audioBuffer && <span style={{color:"#4e6a82",fontSize:9}}>●</span>}
+                  </div>
+                  <div style={{overflowY:"auto",flex:1,padding:"6px 0"}}>
+                    {/* Output Channels */}
+                    <div style={{padding:"4px 14px",color:"#00ffc8",fontSize:9,fontWeight:800,letterSpacing:1,textTransform:"uppercase",display:"flex",alignItems:"center",gap:6}}>
+                      <span>▼</span><span>Output Channels</span>
+                    </div>
+                    <div style={{padding:"5px 14px 5px 28px",display:"flex",alignItems:"center",gap:8,background:"rgba(0,255,200,.05)",borderLeft:"2px solid #00ffc8",marginLeft:14}}>
+                      <input type="checkbox" checked={exportSettings.mode==="mixdown"} onChange={()=>setExportSettings(p=>({...p,mode:"mixdown",selectedTracks:[]}))} style={{accentColor:"#00ffc8"}}/>
+                      <span style={{fontSize:11,color:"#cdd9e5"}}>🎚 Stereo Out</span>
+                    </div>
+                    {/* Group Channels */}
+                    {tracks.filter(t=>t.trackType==="bus").length > 0 && <>
+                      <div style={{padding:"4px 14px",color:"#a78bfa",fontSize:9,fontWeight:800,letterSpacing:1,textTransform:"uppercase",display:"flex",alignItems:"center",gap:6,marginTop:4}}>
+                        <span>▼</span><span>Group Channels</span>
+                      </div>
+                      {tracks.filter(t=>t.trackType==="bus").map((t,i)=>(
+                        <div key={t.id} style={{padding:"4px 14px 4px 28px",display:"flex",alignItems:"center",gap:8,cursor:"pointer"}} onClick={()=>setExportSettings(p=>({...p,mode:"stems",selectedTracks:p.selectedTracks.includes(i)?p.selectedTracks.filter(x=>x!==i):[...p.selectedTracks,i]}))}>
+                          <input type="checkbox" readOnly checked={exportSettings.selectedTracks.includes(i)} style={{accentColor:"#a78bfa"}}/>
+                          <div style={{width:3,height:14,background:t.color||"#a78bfa",borderRadius:2}}/>
+                          <span style={{fontSize:11,color:"#cdd9e5"}}>{t.name}</span>
+                        </div>
+                      ))}
+                    </>}
+                    {/* Audio Channels */}
+                    <div style={{padding:"4px 14px",color:"#5ac8fa",fontSize:9,fontWeight:800,letterSpacing:1,textTransform:"uppercase",display:"flex",alignItems:"center",gap:6,marginTop:4}}>
+                      <span>▼</span><span>Audio Channels</span>
+                    </div>
+                    {tracks.filter(t=>t.trackType!=="bus").map((t,i)=>(
+                      <div key={t.id} style={{padding:"4px 14px 4px 28px",display:"flex",alignItems:"center",gap:8,cursor:"pointer",background:exportSettings.selectedTracks.includes(i)?"rgba(90,200,250,.05)":"transparent"}} onClick={()=>setExportSettings(p=>({...p,mode:"stems",selectedTracks:p.selectedTracks.includes(i)?p.selectedTracks.filter(x=>x!==i):[...p.selectedTracks,i]}))}>
+                        <input type="checkbox" readOnly checked={exportSettings.mode==="mixdown"||exportSettings.selectedTracks.includes(i)} style={{accentColor:"#5ac8fa"}}/>
+                        <div style={{width:3,height:14,background:t.color||"#5ac8fa",borderRadius:2}}/>
+                        <span style={{fontSize:11,color:"#cdd9e5",flex:1}}>{t.name||`Track ${i+1}`}</span>
+                        {t.audioBuffer && <span style={{color:"#00ffc8",fontSize:8}}>●</span>}
                       </div>
                     ))}
                   </div>
+                  {/* Export Range */}
+                  <div style={{borderTop:"1px solid #1e2638",padding:"10px 14px",flexShrink:0}}>
+                    <div style={{color:"#4e6a82",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",marginBottom:6}}>Export Range</div>
+                    <div style={{display:"flex",gap:6}}>
+                      {["Locators","All"].map(r=>(
+                        <button key={r} onClick={()=>setExportSettings(p=>({...p,range:r}))} style={{flex:1,padding:"4px 0",background:exportSettings.range===r?"#00ffc822":"transparent",border:`1px solid ${exportSettings.range===r?"#00ffc8":"#243048"}`,color:exportSettings.range===r?"#00ffc8":"#8ba3bc",borderRadius:3,cursor:"pointer",fontSize:10}}>{r}</button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
+
                 {/* RIGHT — File Format */}
-                <div style={{padding:"16px"}}>
-                  <div style={{color:"#4e6a82",fontSize:10,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8,fontWeight:700}}>File Format</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-                    {["wav","mp3","flac","aiff"].map(fmt=>(
-                      <button key={fmt} onClick={()=>setExportSettings(p=>({...p,format:fmt}))}
-                        style={{padding:"8px 0",background:exportSettings.format===fmt?"#00ffc822":"#0d1117",border:`1px solid ${exportSettings.format===fmt?"#00ffc8":"#243048"}`,color:exportSettings.format===fmt?"#00ffc8":"#8ba3bc",borderRadius:4,cursor:"pointer",fontSize:11,fontWeight:700,textTransform:"uppercase"}}>
-                        {fmt}
-                      </button>
-                    ))}
+                <div style={{display:"flex",flexDirection:"column",overflow:"auto",padding:"0"}}>
+                  {/* File Location */}
+                  <div style={{padding:"14px 20px",borderBottom:"1px solid #1e2638"}}>
+                    <div style={{color:"#4e6a82",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>File Location</div>
+                    <div style={{display:"grid",gridTemplateColumns:"80px 1fr",gap:"6px 10px",alignItems:"center"}}>
+                      <span style={{color:"#8ba3bc",fontSize:11}}>Name</span>
+                      <input value={exportSettings.filename||projectName} onChange={e=>setExportSettings(p=>({...p,filename:e.target.value}))}
+                        style={{background:"#0a0f1a",border:"1px solid #243048",color:"#cdd9e5",padding:"5px 8px",borderRadius:4,fontSize:11,outline:"none"}}/>
+                      <span style={{color:"#8ba3bc",fontSize:11}}>Preview</span>
+                      <span style={{color:"#4e6a82",fontSize:11}}>{(exportSettings.filename||projectName).replace(/\s+/g,"_")}.{exportSettings.format}</span>
+                    </div>
                   </div>
-                  <div style={{marginBottom:10}}>
-                    <label style={{color:"#8ba3bc",fontSize:10,display:"block",marginBottom:4}}>SAMPLE RATE</label>
-                    <select value={exportSettings.sampleRate} onChange={e=>setExportSettings(p=>({...p,sampleRate:+e.target.value}))}
-                      style={{width:"100%",background:"#0d1117",border:"1px solid #243048",color:"#cdd9e5",padding:"6px 8px",borderRadius:4,fontSize:11}}>
-                      <option value={44100}>44.100 kHz</option>
-                      <option value={48000}>48.000 kHz</option>
-                      <option value={96000}>96.000 kHz</option>
-                    </select>
+
+                  {/* File Format */}
+                  <div style={{padding:"14px 20px",borderBottom:"1px solid #1e2638"}}>
+                    <div style={{color:"#4e6a82",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>File Format</div>
+                    <div style={{display:"grid",gridTemplateColumns:"100px 1fr 100px 1fr",gap:"8px 12px",alignItems:"center"}}>
+                      <span style={{color:"#8ba3bc",fontSize:11}}>File Type</span>
+                      <select value={exportSettings.format} onChange={e=>setExportSettings(p=>({...p,format:e.target.value}))}
+                        style={{background:"#0a0f1a",border:"1px solid #243048",color:"#cdd9e5",padding:"5px 8px",borderRadius:4,fontSize:11}}>
+                        <option value="wav">WAV</option>
+                        <option value="mp3">MP3 (MPEG 1 Layer 3)</option>
+                        <option value="flac">FLAC</option>
+                        <option value="aiff">AIFF</option>
+                      </select>
+                      <span style={{color:"#8ba3bc",fontSize:11}}>Sample Rate</span>
+                      <select value={exportSettings.sampleRate} onChange={e=>setExportSettings(p=>({...p,sampleRate:+e.target.value}))}
+                        style={{background:"#0a0f1a",border:"1px solid #243048",color:"#cdd9e5",padding:"5px 8px",borderRadius:4,fontSize:11}}>
+                        <option value={44100}>44.100 kHz</option>
+                        <option value={48000}>48.000 kHz</option>
+                        <option value={96000}>96.000 kHz</option>
+                      </select>
+                      <span style={{color:"#8ba3bc",fontSize:11}}>Bit Depth</span>
+                      <select value={exportSettings.bitDepth} onChange={e=>setExportSettings(p=>({...p,bitDepth:+e.target.value}))}
+                        style={{background:"#0a0f1a",border:"1px solid #243048",color:"#cdd9e5",padding:"5px 8px",borderRadius:4,fontSize:11}}>
+                        <option value={16}>16 Bit</option>
+                        <option value={24}>24 Bit</option>
+                        <option value={32}>32 Bit Float</option>
+                      </select>
+                      <span style={{color:"#8ba3bc",fontSize:11}}>Export As</span>
+                      <select style={{background:"#0a0f1a",border:"1px solid #243048",color:"#cdd9e5",padding:"5px 8px",borderRadius:4,fontSize:11}}>
+                        <option>Interleaved</option>
+                        <option>Split Channels</option>
+                      </select>
+                    </div>
                   </div>
-                  <div style={{marginBottom:10}}>
-                    <label style={{color:"#8ba3bc",fontSize:10,display:"block",marginBottom:4}}>BIT DEPTH</label>
-                    <select value={exportSettings.bitDepth} onChange={e=>setExportSettings(p=>({...p,bitDepth:+e.target.value}))}
-                      style={{width:"100%",background:"#0d1117",border:"1px solid #243048",color:"#cdd9e5",padding:"6px 8px",borderRadius:4,fontSize:11}}>
-                      <option value={16}>16-bit</option>
-                      <option value={24}>24-bit</option>
-                      <option value={32}>32-bit float</option>
-                    </select>
+
+                  {/* Effects */}
+                  <div style={{padding:"14px 20px",borderBottom:"1px solid #1e2638"}}>
+                    <div style={{color:"#4e6a82",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>Effects</div>
+                    <div style={{display:"grid",gridTemplateColumns:"100px 1fr",gap:"8px 12px",alignItems:"center"}}>
+                      <span style={{color:"#8ba3bc",fontSize:11}}>Processing</span>
+                      <select value={exportSettings.processing||"inserts"} onChange={e=>setExportSettings(p=>({...p,processing:e.target.value}))}
+                        style={{background:"#0a0f1a",border:"1px solid #243048",color:"#cdd9e5",padding:"5px 8px",borderRadius:4,fontSize:11}}>
+                        <option value="inserts">Inserts and Strip</option>
+                        <option value="noFx">No Effects (Dry)</option>
+                        <option value="masterOnly">Master Bus Only</option>
+                      </select>
+                      <span style={{color:"#8ba3bc",fontSize:11}}>After Export</span>
+                      <select style={{background:"#0a0f1a",border:"1px solid #243048",color:"#cdd9e5",padding:"5px 8px",borderRadius:4,fontSize:11}}>
+                        <option>Do Nothing</option>
+                        <option>Open in New Track</option>
+                      </select>
+                    </div>
                   </div>
-                  <div style={{marginBottom:10}}>
-                    <label style={{color:"#8ba3bc",fontSize:10,display:"block",marginBottom:4}}>FILE NAME</label>
-                    <input value={exportSettings.filename||projectName} onChange={e=>setExportSettings(p=>({...p,filename:e.target.value}))}
-                      style={{width:"100%",background:"#0d1117",border:"1px solid #243048",color:"#cdd9e5",padding:"6px 8px",borderRadius:4,fontSize:11,boxSizing:"border-box"}}/>
-                  </div>
-                  <div style={{marginBottom:10}}>
-                    <label style={{color:"#8ba3bc",fontSize:10,display:"block",marginBottom:4}}>AFTER EXPORT</label>
-                    <select style={{width:"100%",background:"#0d1117",border:"1px solid #243048",color:"#cdd9e5",padding:"6px 8px",borderRadius:4,fontSize:11}}>
-                      <option>Do Nothing</option>
-                      <option>Open in New Track</option>
-                    </select>
+
+                  {/* Options */}
+                  <div style={{padding:"14px 20px"}}>
+                    <div style={{color:"#4e6a82",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>Options</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:12}}>
+                      {[["Real Time Export","realtimeExport"],["Update Display","updateDisplay"],["Keep Dialog Open","keepOpen"]].map(([lbl,key])=>(
+                        <label key={key} style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+                          <input type="checkbox" checked={!!exportSettings[key]} onChange={e=>setExportSettings(p=>({...p,[key]:e.target.checked}))} style={{accentColor:"#00ffc8"}}/>
+                          <span style={{color:"#8ba3bc",fontSize:11}}>{lbl}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
+
               {/* Footer */}
-              <div style={{borderTop:"1px solid #1e2638",padding:"12px 20px",display:"flex",justifyContent:"flex-end",gap:10,borderRadius:"0 0 8px 8px",background:"#161b22"}}>
-                <button onClick={()=>setShowExportModal(false)} style={{padding:"8px 20px",background:"transparent",border:"1px solid #243048",color:"#8ba3bc",borderRadius:4,cursor:"pointer",fontSize:11}}>Cancel</button>
-                <button onClick={()=>{
-                  setShowExportModal(false);
-                  if (exportSettings.mode==="stems") {
-                    exportStems(exportSettings.selectedTracks);
-                  } else {
-                    mixDownProject();
-                  }
-                }} style={{padding:"8px 24px",background:"#00ffc8",border:"none",color:"#000",borderRadius:4,cursor:"pointer",fontSize:11,fontWeight:800}}>
-                  {mixingDown?"EXPORTING...":"EXPORT AUDIO"}
-                </button>
+              <div style={{borderTop:"1px solid #1e2638",padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#0a0f1a",flexShrink:0}}>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>{setShowExportModal(false);exportStems(tracks.map((_,i)=>i),true);}} style={{padding:"7px 16px",background:"rgba(255,102,0,.15)",border:"1px solid #ff6600",color:"#ff6600",borderRadius:4,cursor:"pointer",fontSize:11,fontWeight:700}}>⚡ Export All Stems (No FX)</button>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>setShowExportModal(false)} style={{padding:"7px 18px",background:"transparent",border:"1px solid #243048",color:"#8ba3bc",borderRadius:4,cursor:"pointer",fontSize:11}}>Cancel</button>
+                  <button onClick={()=>{
+                    setShowExportModal(false);
+                    if(exportSettings.mode==="stems") exportStems(exportSettings.selectedTracks);
+                    else mixDownProject();
+                  }} style={{padding:"7px 24px",background:"#00ffc8",border:"none",color:"#000",borderRadius:4,cursor:"pointer",fontSize:11,fontWeight:800}}>
+                    {mixingDown?"Exporting...":"Export Audio"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
