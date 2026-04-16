@@ -1632,7 +1632,28 @@ const RecordingStudio = ({ user }) => {
     const onMove = (me) => { if (!splitDragRef.current) return; const rect = container.getBoundingClientRect(); const pct = Math.max(20, Math.min(80, ((me.clientY - rect.top) / rect.height) * 100)); setSplitTopH(Math.round(pct)); };
     const onUp = () => { splitDragRef.current = false; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
     window.addEventListener("mousemove", onMove); window.addEventListener("mouseup", onUp);
-  }, []);
+  },
+
+  const handleCutRegion = useCallback(() => {
+    if (selectedTrack == null || playheadBeat == null) return;
+    const tIdx = typeof selectedTrack === 'number' ? selectedTrack : 0;
+    setTracks(prev => prev.map((t, i) => {
+      if (i !== tIdx) return t;
+      const out = [];
+      (t.regions || []).forEach(r => {
+        const cut = playheadBeat;
+        if (cut > r.startBeat && cut < r.startBeat + r.duration) {
+          const lDur = cut - r.startBeat;
+          const rDur = r.duration - lDur;
+          out.push({ ...r, id: r.id + '_L', duration: lDur });
+          out.push({ ...r, id: r.id + '_R', startBeat: cut, duration: rDur, trimStart: (r.trimStart || 0) + lDur });
+        } else { out.push(r); }
+      });
+      return { ...t, regions: out };
+    }));
+    setStatus('Cut at beat ' + playheadBeat.toFixed(2));
+  }, [selectedTrack, playheadBeat, setTracks]);
+ []);
 
   // ── Flex pitch ──
   const openFlexPitch = useCallback((ti) => {
@@ -1805,6 +1826,7 @@ const RecordingStudio = ({ user }) => {
               <span className="daw-lcd-sep">|</span>
               <span className="daw-lcd-bpm">{bpm} BPM</span>
             </div>
+            <button className="daw-icon-btn" onClick={handleCutRegion} title="Split region at playhead">✂</button>
             <button className={"rs-split-toggle-btn" + (splitScreen ? " active" : "")} onClick={() => setSplitScreen(s => !s)} title="Split view">
               <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="10" height="4.5" rx="0.5"/><rect x="1" y="6.5" width="10" height="4.5" rx="0.5"/></svg>
               SPLIT
