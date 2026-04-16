@@ -429,3 +429,15 @@
 .daw-ch-vol-input::-webkit-inner-spin-button, .daw-ch-vol-input::-webkit-outer-spin-button { -webkit-appearance:none; }
 .daw-ch-vol-input:focus { border-color:var(--rs-teal); outline:none; }
 .daw-ch-vol-unit { color:#4e6a82; font-size:9px; font-family:var(--rs-font); }
+
+/* ── Group/Bus channel ── */
+.daw-channel.bus-channel { border-color:rgba(59,130,246,.4); }
+.daw-channel.bus-channel.selected { border-color:#3b82f6; background:rgba(59,130,246,.06); }
+.daw-channel.bus-channel .daw-ch-colorbar { background:#3b82f6 !important; }
+.daw-channel.bus-channel .daw-ch-fader input[type="range"]::-webkit-slider-thumb {
+  background: linear-gradient(180deg, transparent 47%, #0c1a40 47%, #0c1a40 53%, transparent 53%),
+    linear-gradient(90deg, #93c5fd 0%, #3b82f6 30%, #1d4ed8 50%, #3b82f6 70%, #93c5fd 100%) !important;
+  border-left: 2px solid #bfdbfe !important;
+  border-right: 2px solid #1e3a8a !important;
+}
+.daw-channel.linked { box-shadow:0 0 0 2px rgba(0,255,200,.6) !important; }

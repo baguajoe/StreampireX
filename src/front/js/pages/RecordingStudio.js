@@ -557,6 +557,8 @@ const RecordingStudio = ({ user }) => {
   const [pianoRollKey, setPianoRollKey] = useState("C");
   const [pianoRollScale, setPianoRollScale] = useState("major");
   const [selectedTrack, setSelectedTrack] = useState(0);
+  const [selectedChannels, setSelectedChannels] = useState(new Set());
+  const [channelCtxMenu, setChannelCtxMenu] = useState(null);
   const [showTakeLanes, setShowTakeLanes] = useState(false);
   const [takeLanesTrackIndex, setTakeLanesTrackIndex] = useState(null);
   const [showSaveAsModal, setShowSaveAsModal] = useState(false);
@@ -1642,6 +1644,30 @@ const RecordingStudio = ({ user }) => {
     window.addEventListener("mousemove", onMove); window.addEventListener("mouseup", onUp);
   }, []);
 
+  const addGroupTrack = useCallback(() => {
+    const busId = `bus_${Date.now()}`;
+    const busTrack = { ...DEFAULT_TRACK(tracks.length, "bus"), id: busId, name: "Group " + (tracks.filter(t=>t.trackType==="bus").length+1), color: "#3b82f6", sends: [] };
+    setTracks(prev => {
+      const newTracks = [...prev, busTrack];
+      return newTracks.map(t => {
+        if (selectedChannels.has(t.id) && t.trackType !== "bus") {
+          return {...t, sends: [...(t.sends||[]).filter(s=>s.busId!==busId), {busId, level:1.0}]};
+        }
+        return t;
+      });
+    });
+    setSelectedChannels(new Set());
+    setStatus("Group track created");
+  }, [tracks, selectedChannels]);
+
+  const linkSelectedChannels = useCallback(() => {
+    if (selectedChannels.size < 2) return;
+    const ids = [...selectedChannels];
+    setTracks(prev => prev.map(t => selectedChannels.has(t.id) ? {...t, linkedGroup: ids[0]} : t));
+    setStatus(ids.length + " channels linked");
+    setSelectedChannels(new Set());
+  }, [selectedChannels, tracks]);
+
   const handleCutRegion = useCallback(() => {
     if (selectedTrack == null || playheadBeat == null) return;
     const tIdx = typeof selectedTrack === 'number' ? selectedTrack : 0;
@@ -1976,7 +2002,7 @@ const RecordingStudio = ({ user }) => {
                   {tracks.map((t, i) => {
                     const meter = meterLevels?.[i] || { left: 0, right: 0, peak: 0 };
                     return (
-                      <div key={t.id ?? i} className={"daw-channel" + (i === selectedTrack ? " selected" : "") + (t.armed ? " armed" : "")} onClick={() => setSelectedTrack(i)}>
+                      <div key={t.id ?? i} className={"daw-channel"+(i===selectedTrack?" selected":"")+(t.armed?" armed":"")+(t.trackType==="bus"?" bus-channel":"")+(selectedChannels.has(t.id)?" linked":"")} onClick={e=>{if(e.ctrlKey||e.metaKey){setSelectedChannels(prev=>{const n=new Set(prev);n.has(t.id)?n.delete(t.id):n.add(t.id);return n;});}else setSelectedTrack(i);}} onContextMenu={e=>{e.preventDefault();setChannelCtxMenu({x:e.clientX,y:e.clientY,trackId:t.id,trackIndex:i});}}>
                         <div className="daw-ch-colorbar" style={{ background: t.color || "#4a90d9" }}/>
                         <div className="daw-ch-header">
                           <span className="daw-ch-type-icon">{t.trackType === "midi" ? "🎹" : "🎙"}</span>
@@ -2074,6 +2100,23 @@ const RecordingStudio = ({ user }) => {
                     </div>
                   </div>
                 </div>
+
+                {channelCtxMenu && (
+                  <div style={{position:"fixed",left:channelCtxMenu.x,top:channelCtxMenu.y,background:"#1a1e2a",border:"1px solid #2a3248",borderRadius:6,zIndex:9999,minWidth:230,boxShadow:"0 8px 24px rgba(0,0,0,.8)"}} onMouseLeave={()=>setChannelCtxMenu(null)}>
+                    <div style={{color:"#4e6a82",fontSize:9,padding:"8px 12px 4px",letterSpacing:1,textTransform:"uppercase"}}>Channel Options</div>
+                    <button className="arr-ctx-item" onClick={()=>{setSelectedChannels(prev=>{const n=new Set(prev);n.add(channelCtxMenu.trackId);return n;});setChannelCtxMenu(null);}}>☑ Select Channel</button>
+                    <button className="arr-ctx-item" onClick={()=>{addGroupTrack();setChannelCtxMenu(null);}}>⊕ Add Group Track for Selected</button>
+                    <button className="arr-ctx-item" onClick={()=>{linkSelectedChannels();setChannelCtxMenu(null);}}>🔗 Link Selected Channels</button>
+                    <div style={{height:1,background:"#1e2638",margin:"4px 0"}}/>
+                    <button className="arr-ctx-item" onClick={()=>{updateTrack(channelCtxMenu.trackIndex,{color:"#a855f7"});setChannelCtxMenu(null);}}>🎨 Purple</button>
+                    <button className="arr-ctx-item" onClick={()=>{updateTrack(channelCtxMenu.trackIndex,{color:"#3b82f6"});setChannelCtxMenu(null);}}>🎨 Blue</button>
+                    <button className="arr-ctx-item" onClick={()=>{updateTrack(channelCtxMenu.trackIndex,{color:"#00ffc8"});setChannelCtxMenu(null);}}>🎨 Teal</button>
+                    <button className="arr-ctx-item" onClick={()=>{updateTrack(channelCtxMenu.trackIndex,{color:"#ff3b30"});setChannelCtxMenu(null);}}>🎨 Red</button>
+                    <button className="arr-ctx-item" onClick={()=>{updateTrack(channelCtxMenu.trackIndex,{color:"#ff6600"});setChannelCtxMenu(null);}}>🎨 Orange</button>
+                    <div style={{height:1,background:"#1e2638",margin:"4px 0"}}/>
+                    <button className="arr-ctx-item" style={{color:"#ff3b30"}} onClick={()=>{setTracks(prev=>prev.filter((_,idx)=>idx!==channelCtxMenu.trackIndex));setChannelCtxMenu(null);}}>🗑 Remove Track</button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -2087,7 +2130,7 @@ const RecordingStudio = ({ user }) => {
                 const meter = meterLevels[i] || { left: 0, right: 0, peak: 0 };
                 const loaded = ALL_FX_EXTENDED.filter(fx => t.effects?.[fx.key]?.enabled);
                 return (
-                  <div key={t.id} className={"daw-channel" + (selectedTrack === i ? " selected" : "") + (t.armed ? " armed" : "")} onClick={() => setSelectedTrack(i)}>
+                  <div key={t.id} className={"daw-channel"+(selectedTrack===i?" selected":"")+(t.armed?" armed":"")+(t.trackType==="bus"?" bus-channel":"")+(selectedChannels.has(t.id)?" linked":"")} onClick={e=>{if(e.ctrlKey||e.metaKey){setSelectedChannels(prev=>{const n=new Set(prev);n.has(t.id)?n.delete(t.id):n.add(t.id);return n;});}else setSelectedTrack(i);}} onContextMenu={e=>{e.preventDefault();setChannelCtxMenu({x:e.clientX,y:e.clientY,trackId:t.id,trackIndex:i});}}>
                     <div className="daw-ch-colorbar" style={{ background: t.color || "#4a90d9" }}/>
                     <div className="daw-ch-header">
                       <span className="daw-ch-type-icon">{t.trackType === "midi" ? "🎹" : "🎙"}</span>
