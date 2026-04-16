@@ -1632,7 +1632,7 @@ const RecordingStudio = ({ user }) => {
     const onMove = (me) => { if (!splitDragRef.current) return; const rect = container.getBoundingClientRect(); const pct = Math.max(20, Math.min(80, ((me.clientY - rect.top) / rect.height) * 100)); setSplitTopH(Math.round(pct)); };
     const onUp = () => { splitDragRef.current = false; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
     window.addEventListener("mousemove", onMove); window.addEventListener("mouseup", onUp);
-  },
+  }, []);
 
   const handleCutRegion = useCallback(() => {
     if (selectedTrack == null || playheadBeat == null) return;
@@ -1653,7 +1653,6 @@ const RecordingStudio = ({ user }) => {
     }));
     setStatus('Cut at beat ' + playheadBeat.toFixed(2));
   }, [selectedTrack, playheadBeat, setTracks]);
- []);
 
   // ── Flex pitch ──
   const openFlexPitch = useCallback((ti) => {
