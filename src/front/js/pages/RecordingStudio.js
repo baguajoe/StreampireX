@@ -1083,19 +1083,19 @@ const RecordingStudio = ({ user }) => {
       if (analysers && analysers.length > 0) {
         const levels = analysers.map(pair => {
           if (!pair || !pair.left || !pair.right) return { left: 0, right: 0, peak: 0 };
-          const dataL = new Uint8Array(pair.left.frequencyBinCount); pair.left.getByteFrequencyData(dataL);
-          const left = dataL.reduce((a, b) => a + b, 0) / (dataL.length * 255);
-          const dataR = new Uint8Array(pair.right.frequencyBinCount); pair.right.getByteFrequencyData(dataR);
-          const right = dataR.reduce((a, b) => a + b, 0) / (dataR.length * 255);
+          const dataL = new Float32Array(pair.left.fftSize); pair.left.getFloatTimeDomainData(dataL);
+          const left = Math.min(1.5, Math.sqrt(dataL.reduce((a, b) => a + b * b, 0) / dataL.length) * 6);
+          const dataR = new Float32Array(pair.right.fftSize); pair.right.getFloatTimeDomainData(dataR);
+          const right = Math.min(1.5, Math.sqrt(dataR.reduce((a, b) => a + b * b, 0) / dataR.length) * 6);
           return { left, right, peak: Math.max(left, right) };
         });
         setMeterLevels(levels);
       } else setMeterLevels([]);
       if (masterAnalyserLRef.current && masterAnalyserRRef.current) {
-        const bL = new Uint8Array(masterAnalyserLRef.current.frequencyBinCount); masterAnalyserLRef.current.getByteFrequencyData(bL);
-        const mL = bL.reduce((a, b) => a + b, 0) / (bL.length * 255);
-        const bR = new Uint8Array(masterAnalyserRRef.current.frequencyBinCount); masterAnalyserRRef.current.getByteFrequencyData(bR);
-        const mR = bR.reduce((a, b) => a + b, 0) / (bR.length * 255);
+        const bL = new Float32Array(masterAnalyserLRef.current.fftSize); masterAnalyserLRef.current.getFloatTimeDomainData(bL);
+        const mL = Math.min(1.5, Math.sqrt(bL.reduce((a, b) => a + b * b, 0) / bL.length) * 6);
+        const bR = new Float32Array(masterAnalyserRRef.current.fftSize); masterAnalyserRRef.current.getFloatTimeDomainData(bR);
+        const mR = Math.min(1.5, Math.sqrt(bR.reduce((a, b) => a + b * b, 0) / bR.length) * 6);
         setMasterMeterLevels({ left: mL, right: mR, peak: Math.max(mL, mR) });
       }
       meterAnimRef.current = requestAnimationFrame(animate);
