@@ -2425,20 +2425,19 @@ const RecordingStudio = ({ user }) => {
           </div>
 
           {/* transport moved to bottom bar */}
-            <div className="daw-monitor-row">
-              <span className="daw-monitor-label">🔊 MON</span>
-              <select value={monitorSpeaker} onChange={e => setMonitorSpeaker(e.target.value)}
-                className={"daw-monitor-select" + (monitorSpeaker === "flat" ? "" : MONITOR_EQ[monitorSpeaker]?.cat === "pro" ? " pro" : " consumer")}
-                title="Monitor speaker simulation">
-                <optgroup label="── Bypass ──"><option value="flat">Flat (Bypass)</option></optgroup>
-                <optgroup label="── Pro Monitors ──">
-                  {Object.entries(MONITOR_EQ).filter(([, v]) => v.cat === "pro").map(([id, v]) => <option key={id} value={id}>{v.name}</option>)}
-                </optgroup>
-                <optgroup label="── Consumer ──">
-                  {Object.entries(MONITOR_EQ).filter(([, v]) => v.cat === "consumer").map(([id, v]) => <option key={id} value={id}>{v.name}</option>)}
-                </optgroup>
-              </select>
-            </div>
+          <div className="daw-monitor-row">
+            <span className="daw-monitor-label">🔊 MON</span>
+            <select value={monitorSpeaker} onChange={e => setMonitorSpeaker(e.target.value)}
+              className={"daw-monitor-select" + (monitorSpeaker === "flat" ? "" : MONITOR_EQ[monitorSpeaker]?.cat === "pro" ? " pro" : " consumer")}
+              title="Monitor speaker simulation">
+              <optgroup label="── Bypass ──"><option value="flat">Flat (Bypass)</option></optgroup>
+              <optgroup label="── Pro Monitors ──">
+                {Object.entries(MONITOR_EQ).filter(([, v]) => v.cat === "pro").map(([id, v]) => <option key={id} value={id}>{v.name}</option>)}
+              </optgroup>
+              <optgroup label="── Consumer ──">
+                {Object.entries(MONITOR_EQ).filter(([, v]) => v.cat === "consumer").map(([id, v]) => <option key={id} value={id}>{v.name}</option>)}
+              </optgroup>
+            </select>
           </div>
 
           <CollabToolbar collab={collab}/>
