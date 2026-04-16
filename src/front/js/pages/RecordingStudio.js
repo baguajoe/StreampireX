@@ -2424,41 +2424,7 @@ const RecordingStudio = ({ user }) => {
             <input className="daw-project-name" value={projectName} onChange={e => setProjectName(e.target.value)}/>
           </div>
 
-          <div className="daw-transport">
-            <button className="daw-transport-btn" onClick={rewind} disabled={isRecording} title="Rewind">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 20L9 12l10-8v16zM7 19V5H5v14h2z"/></svg>
-            </button>
-            <button className="daw-transport-btn" onClick={stopEverything} title="Stop">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
-            </button>
-            <button className={"daw-transport-btn daw-play-btn" + (isPlaying && !isRecording ? " active" : "")}
-              onClick={() => isPlaying ? stopPlayback() : startPlayback()} disabled={isRecording} title={isPlaying ? "Pause" : "Play"}>
-              {isPlaying && !isRecording
-                ? <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg>
-                : <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              }
-            </button>
-            <button className={"daw-transport-btn daw-rec-btn" + (isRecording ? " active" : "")}
-              onClick={() => isRecording ? stopRecording() : startRecording()} title={isRecording ? "Stop Recording" : "Record"}>
-              <span className="daw-rec-dot"/>
-            </button>
-            <div className="daw-lcd">
-              <span className="daw-lcd-time">{fmt(currentTime)}</span>
-              <span className="daw-lcd-sep">|</span>
-              <span className="daw-lcd-bpm">{bpm} BPM</span>
-            </div>
-            <button className="daw-icon-btn" onClick={handleCutRegion} title="Split region at playhead">✂</button>
-            <button className={"rs-split-toggle-btn" + (splitScreen ? " active" : "")} onClick={() => setSplitScreen(s => !s)} title="Split view">
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="10" height="4.5" rx="0.5"/><rect x="1" y="6.5" width="10" height="4.5" rx="0.5"/></svg>
-              SPLIT
-            </button>
-            <button className={"daw-transport-btn daw-metro-btn" + (metronomeOn ? " active" : "")}
-              onClick={() => { const ctx = getCtx(); if (metronomeOn) { stopMetronome(); setMetronomeOn(false); } else { startMetronome(ctx); setMetronomeOn(true); } }} title="Metronome">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L8 22h8L12 2z"/><line x1="12" y1="8" x2="18" y2="4"/></svg>
-            </button>
-            <button className={"daw-transport-btn rs-transport-label" + (countIn ? " active" : "")} onClick={() => setCountIn(!countIn)} title="Count-in">1234</button>
-            <MidiDeviceIndicator devices={instrumentEngine.midiDevices} activeDevice={instrumentEngine.activeMidiDevice} midiActivity={instrumentEngine.midiActivity} onConnect={instrumentEngine.connectMidiDevice} onDisconnect={instrumentEngine.disconnectMidiDevice}/>
-            <KeyboardOctaveIndicator octave={instrumentEngine.keyboardOctave} onOctaveChange={instrumentEngine.setKeyboardOctave}/>
+          {/* transport moved to bottom bar */}
             <div className="daw-monitor-row">
               <span className="daw-monitor-label">🔊 MON</span>
               <select value={monitorSpeaker} onChange={e => setMonitorSpeaker(e.target.value)}
@@ -3218,6 +3184,56 @@ const RecordingStudio = ({ user }) => {
             currentCount={tracks.length}
           />
         )}
+      </div>
+    {/* ── BOTTOM TRANSPORT BAR ── */}
+      <div className="daw-bottom-transport">
+        <div className="daw-bt-left">
+          <span className="daw-bt-snap-label">SNAP</span>
+          <select className="daw-bt-snap-select" value={timeSignature[0]} onChange={e=>setTimeSignature([+e.target.value,timeSignature[1]])}>
+            {[1,2,3,4,5,6,7,8].map(n=><option key={n} value={n}>{n}</option>)}
+          </select>
+          <span className="daw-bt-snap-label">/</span>
+          <select className="daw-bt-snap-select" value={timeSignature[1]} onChange={e=>setTimeSignature([timeSignature[0],+e.target.value])}>
+            {[2,4,8,16].map(n=><option key={n} value={n}>{n}</option>)}
+          </select>
+          <div className="daw-bt-divider"/>
+          <button className="daw-icon-btn" onClick={handleCutRegion} title="Split at playhead">✂</button>
+          <button className={"rs-split-toggle-btn" + (splitScreen?" active":"")} onClick={()=>setSplitScreen(s=>!s)}>
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="10" height="4.5" rx="0.5"/><rect x="1" y="6.5" width="10" height="4.5" rx="0.5"/></svg>
+            SPLIT
+          </button>
+        </div>
+        <div className="daw-bt-center">
+          <button className="daw-transport-btn" onClick={rewind} disabled={isRecording} title="Rewind">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 20L9 12l10-8v16zM7 19V5H5v14h2z"/></svg>
+          </button>
+          <button className="daw-transport-btn" onClick={stopEverything} title="Stop">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+          </button>
+          <button className={"daw-transport-btn daw-play-btn"+(isPlaying&&!isRecording?" active":"")} onClick={()=>isPlaying?stopPlayback():startPlayback()} disabled={isRecording}>
+            {isPlaying&&!isRecording
+              ?<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg>
+              :<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>}
+          </button>
+          <button className={"daw-transport-btn daw-rec-btn"+(isRecording?" active":"")} onClick={()=>isRecording?stopRecording():startRecording()}>
+            <span className="daw-rec-dot"/>
+          </button>
+          <div className="daw-lcd">
+            <span className="daw-lcd-time">{fmt(currentTime)}</span>
+            <span className="daw-lcd-sep">|</span>
+            <span className="daw-lcd-bpm">{bpm} BPM</span>
+          </div>
+        </div>
+        <div className="daw-bt-right">
+          <button className={"daw-transport-btn daw-metro-btn"+(metronomeOn?" active":"")}
+            onClick={()=>{const ctx=getCtx();if(metronomeOn){stopMetronome();setMetronomeOn(false);}else{startMetronome(ctx);setMetronomeOn(true);}}} title="Metronome">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L8 22h8L12 2z"/><line x1="12" y1="8" x2="18" y2="4"/></svg>
+          </button>
+          <button className={"daw-transport-btn rs-transport-label"+(countIn?" active":"")} onClick={()=>setCountIn(!countIn)} title="Count-in">1234</button>
+          <button className={"daw-transport-btn"+(cycleEnabled?" active":"")} onClick={()=>setCycleEnabled(e=>!e)} title="Cycle">⟳ CYCLE</button>
+          <MidiDeviceIndicator devices={instrumentEngine.midiDevices} activeDevice={instrumentEngine.activeMidiDevice} midiActivity={instrumentEngine.midiActivity} onConnect={instrumentEngine.connectMidiDevice} onDisconnect={instrumentEngine.disconnectMidiDevice}/>
+          <KeyboardOctaveIndicator octave={instrumentEngine.keyboardOctave} onOctaveChange={instrumentEngine.setKeyboardOctave}/>
+        </div>
       </div>
     </div>
   );

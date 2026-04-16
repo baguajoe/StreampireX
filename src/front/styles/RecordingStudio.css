@@ -455,3 +455,13 @@
 .daw-ch-send-row { display:flex; align-items:center; gap:4px; padding:2px 2px; border-bottom:1px solid #0d1219; }
 .daw-ch-send-name { color:#4e6a82; font-size:9px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .daw-ch-send-level { width:60px; height:3px; accent-color:#00ffc8; cursor:pointer; }
+
+/* ── Bottom Transport Bar ── */
+.daw-bottom-transport { position:fixed; bottom:0; left:0; right:0; height:48px; z-index:1400; background:#080d15; border-top:1px solid #1e2638; display:flex; align-items:center; justify-content:space-between; padding:0 12px; gap:8px; }
+.daw-bt-left { display:flex; align-items:center; gap:6px; flex:1; }
+.daw-bt-center { display:flex; align-items:center; gap:4px; flex:0 0 auto; }
+.daw-bt-right { display:flex; align-items:center; gap:6px; flex:1; justify-content:flex-end; }
+.daw-bt-divider { width:1px; height:20px; background:#1e2638; margin:0 4px; }
+.daw-bt-snap-label { color:#4e6a82; font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+.daw-bt-snap-select { background:#0d1117; border:1px solid #243048; color:#cdd9e5; font-size:10px; padding:2px 4px; border-radius:3px; }
+.daw-main { flex:1; overflow:hidden; position:relative; background:var(--rs-bg); padding-bottom:48px; }
