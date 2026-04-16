@@ -2647,6 +2647,9 @@ const RecordingStudio = ({ user }) => {
                     <div className="daw-ch-pan">
                       <PanKnob value={masterPan || 0} onChange={v => { setMasterPan(v); if (masterPanRef.current) masterPanRef.current.pan.value = v; }} size={56}/>
                     </div>
+                    <div className="daw-ch-sends">
+                      <div className="daw-ch-sends-label">SENDS</div>
+                    </div>
                     <div className="daw-ch-fader-area">
                       <div className="daw-ch-fader-row">
                         <div className="daw-ch-db-scale" style={{textAlign:"right"}}><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
