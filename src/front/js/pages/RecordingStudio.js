@@ -451,6 +451,27 @@ const midiFromNotes = ({ notes = [], bpm = 120, ppq = 480 }) => {
 // Component state · Audio engine · Recording · Playback · FX chain
 // =============================================================================
 
+const DraggablePanel = ({ title, children, onClose, initialX=100, initialY=60 }) => {
+  const [pos, setPos] = React.useState({x: initialX, y: initialY});
+  const dragRef = React.useRef(null);
+  const onMouseDown = e => {
+    dragRef.current = {sx: e.clientX - pos.x, sy: e.clientY - pos.y};
+    const onMove = e2 => setPos({x: e2.clientX - dragRef.current.sx, y: e2.clientY - dragRef.current.sy});
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+  return (
+    <div style={{position:"fixed",left:pos.x,top:pos.y,zIndex:9998,background:"#0d1117",border:"1px solid #243048",borderRadius:8,boxShadow:"0 16px 48px rgba(0,0,0,.85)",minWidth:520,maxWidth:"95vw",maxHeight:"90vh",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+      <div style={{padding:"8px 14px",background:"#161b22",borderBottom:"1px solid #1e2638",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"grab",userSelect:"none",borderRadius:"8px 8px 0 0"}} onMouseDown={onMouseDown}>
+        <span style={{color:"#cdd9e5",fontSize:12,fontWeight:700}}>{title}</span>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#8ba3bc",cursor:"pointer",fontSize:16}}>x</button>
+      </div>
+      <div style={{overflowY:"auto",flex:1}}>{children}</div>
+    </div>
+  );
+};
+
 const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, updateEffect, setActiveEffectsTrack, setOpenFxKey, setShowVocalModal, setShowMicSimModal, setStatus }) => {
   const [openCats, setOpenCats] = React.useState({});
   const [dragOffset, setDragOffset] = React.useState({x:0,y:0});
