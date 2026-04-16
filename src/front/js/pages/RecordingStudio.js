@@ -3240,10 +3240,3 @@ const RecordingStudio = ({ user }) => {
 };
 
 export default RecordingStudio;
-
-const MotionButton = ({ url }) => {
-  const { actions } = useContext(Context);
-  const navigate = useNavigate();
-  const handleSend = () => sendToMotion(actions, navigate, { type: "audio", url, name: "Recording" });
-  return <button onClick={handleSend} className="rs-send-btn">Send to Motion Studio 🎬</button>;
-};
