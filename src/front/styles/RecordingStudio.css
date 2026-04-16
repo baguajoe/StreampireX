@@ -422,3 +422,10 @@
 .daw-ch-db-scale span { color:#7a9ab6 !important; font-size:8px !important; font-weight:600 !important; }
 .daw-ch-badge { font-size:11px !important; font-weight:700 !important; min-width:22px !important; height:22px !important; }
 .daw-ch-pan { width:100%; display:flex; justify-content:center; }
+
+/* ── dB editable input ── */
+.daw-ch-vol-display { display:flex; align-items:center; justify-content:center; gap:2px; padding:2px 0; }
+.daw-ch-vol-input { background:#0a0e18; border:1px solid #1a2840; border-radius:3px; color:#00ffc8; font-family:var(--rs-font); font-size:10px; font-weight:700; padding:1px 3px; text-align:right; width:38px; -moz-appearance:textfield; }
+.daw-ch-vol-input::-webkit-inner-spin-button, .daw-ch-vol-input::-webkit-outer-spin-button { -webkit-appearance:none; }
+.daw-ch-vol-input:focus { border-color:var(--rs-teal); outline:none; }
+.daw-ch-vol-unit { color:#4e6a82; font-size:9px; font-family:var(--rs-font); }

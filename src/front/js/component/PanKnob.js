@@ -57,22 +57,22 @@ const PanKnob = ({ value = 0, onChange, size = 32, disabled = false }) => {
     >
       <svg width={size} height={size} viewBox={"0 0 " + size + " " + size}>
         {/* Track arc */}
-        <circle cx={cx} cy={cy} r={arcR} fill="none" stroke="#1a2838" strokeWidth={3}
+        <circle cx={cx} cy={cy} r={arcR} fill="none" stroke="#1e3050" strokeWidth={4}
           strokeDasharray={arcR * Math.PI * 1.5 + " " + arcR * Math.PI * 0.5}
           transform={"rotate(-225 " + cx + " " + cy + ")"}
         />
         {/* Active arc */}
         <circle cx={cx} cy={cy} r={arcR} fill="none"
           stroke={value === 0 ? "#00ffc8" : value > 0 ? "#ff6600" : "#00aaff"}
-          strokeWidth={3} strokeLinecap="round"
+          strokeWidth={4} strokeLinecap="round"
           strokeDasharray={Math.abs(value) * arcR * Math.PI * 0.75 + " " + (arcR * Math.PI * 2)}
           transform={"rotate(" + (value < 0 ? (-225 + value * 135) : -225) + " " + cx + " " + cy + ")"}
         />
         {/* Center dot */}
-        <circle cx={cx} cy={cy} r={r - 8} fill="#0d1520" stroke="#243048" strokeWidth={1}/>
+        <circle cx={cx} cy={cy} r={r - 7} fill="#0d1520" stroke="#243048" strokeWidth={1.5}/>
         {/* Pointer line */}
         <line x1={cx} y1={cy} x2={px} y2={py}
-          stroke={disabled ? "#5a7088" : "#e0eeff"} strokeWidth={2} strokeLinecap="round" />
+          stroke={disabled ? "#5a7088" : "#ffffff"} strokeWidth={2.5} strokeLinecap="round" />
       </svg>
       <span className="pan-knob-label" style={{fontSize:"9px",color:value===0?"#00ffc8":value>0?"#ff6600":"#00aaff",fontWeight:700}}>{label}</span>
     </div>

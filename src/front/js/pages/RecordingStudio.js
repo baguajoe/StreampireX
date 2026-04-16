@@ -2117,8 +2117,22 @@ const RecordingStudio = ({ user }) => {
                         <CubaseMeter leftLevel={meter.left || 0} rightLevel={meter.right || 0} height={180} showScale={false}/>
                         <div className="daw-ch-db-scale"><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
                       </div>
-                      <div className="daw-ch-vol-display">
-                        <span className="daw-ch-vol-val">{t.volume > 0 ? (20 * Math.log10(t.volume)).toFixed(1) : "-∞"} dB</span>
+                      <div className="daw-ch-vol-display" onClick={e => e.stopPropagation()}>
+                        <input
+                          className="daw-ch-vol-input"
+                          type="number" step="0.1" min="-60" max="2"
+                          value={t.volume > 0 ? (20 * Math.log10(t.volume)).toFixed(1) : "-60"}
+                          onChange={e => {
+                            const db = parseFloat(e.target.value);
+                            if (isNaN(db)) return;
+                            const v = Math.min(1.26, Math.max(0, Math.pow(10, db / 20)));
+                            updateTrack(i, { volume: v });
+                            const audible = !t.muted && (!hasSolo || t.solo);
+                            if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? v : 0;
+                          }}
+                          onClick={e => e.stopPropagation()}
+                        />
+                        <span className="daw-ch-vol-unit">dB</span>
                       </div>
                     </div>
                     <div className="daw-ch-automation">
