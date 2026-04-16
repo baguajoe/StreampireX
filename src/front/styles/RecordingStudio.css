@@ -277,8 +277,8 @@
 .daw-ch-fader input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none !important;
   appearance: none !important;
-  width: 34px !important;
-  height: 28px !important;
+  width: 28px !important;
+  height: 36px !important;
   border-radius: 2px !important;
   background:
     linear-gradient(180deg, transparent 47%, #111 47%, #111 53%, transparent 53%),
