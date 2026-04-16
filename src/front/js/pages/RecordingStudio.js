@@ -2007,7 +2007,7 @@ const RecordingStudio = ({ user }) => {
                           <button className={"daw-ch-rec-btn" + (t.armed ? " armed" : "")} onClick={e => { e.stopPropagation(); updateTrack(i, { armed: !t.armed }); }}>●</button>
                         </div>
                         <div className="daw-ch-pan">
-                          <PanKnob value={t.pan} onChange={v => updateTrack(i, { pan: v })} size={32}/>
+                          <PanKnob value={t.pan} onChange={v => updateTrack(i, { pan: v })} size={44}/>
                         </div>
                         <div className="daw-ch-fader-area">
                           <div className="daw-ch-fader-row">
@@ -2106,7 +2106,7 @@ const RecordingStudio = ({ user }) => {
                       <button className={"daw-ch-rec-btn" + (t.armed ? " armed" : "")} onClick={e => { e.stopPropagation(); updateTrack(i, { armed: !t.armed }); }} title="Record arm">●</button>
                     </div>
                     <div className="daw-ch-pan">
-                      <PanKnob value={t.pan} onChange={v => updateTrack(i, { pan: v })} size={32}/>
+                      <PanKnob value={t.pan} onChange={v => updateTrack(i, { pan: v })} size={44}/>
                     </div>
                     <div className="daw-ch-fader-area">
                       <div className="daw-ch-fader-row">
@@ -2146,6 +2146,9 @@ const RecordingStudio = ({ user }) => {
                 <div className="daw-ch-inserts">
                   <div className="daw-ch-inserts-label">INSERTS</div>
                   <div className="daw-ch-insert-slot empty" onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setInsertPickerState({ trackIndex: -1, x: rect.right + 4, y: rect.top }); }}>+ Insert</div>
+                </div>
+                                <div className="daw-ch-pan" style={{padding:"4px 0"}}>
+                  <PanKnob value={masterPan || 0} onChange={v => { setMasterPan(v); if (masterPanRef.current) masterPanRef.current.pan.value = v; }} size={44}/>
                 </div>
                 <div className="daw-ch-controls">
                   <div className="daw-ch-badge">M</div>

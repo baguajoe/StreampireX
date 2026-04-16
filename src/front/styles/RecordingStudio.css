@@ -89,11 +89,11 @@
 .daw-ch-colorbar { width:100%; height:5px; border-radius:5px 5px 0 0; flex-shrink:0; }
 .daw-ch-header { display:flex; align-items:center; gap:4px; padding:5px 6px; width:100%; }
 .daw-ch-type-icon { font-size:11px; }
-.daw-ch-header-num { color:var(--rs-text); font-size:12px; font-weight:700; }
+.daw-ch-header-num { color:#00ffc8; font-size:13px; font-weight:700; }
 .daw-ch-routing { padding:0 6px 3px; width:100%; }
-.daw-ch-routing-value { color:var(--rs-text); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; }
+.daw-ch-routing-value { color:#cdd9e5; font-size:11px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; }
 .daw-ch-inserts { padding:3px 4px; width:100%; height:90px; min-height:90px; max-height:90px; overflow-y:auto; flex-shrink:0; }
-.daw-ch-inserts-label { color:var(--rs-text2); font-size:10px; letter-spacing:1px; text-transform:uppercase; padding:0 2px 3px; display:block; }
+.daw-ch-inserts-label { color:#8ba3bc; font-size:10px; font-weight:700; letter-spacing:1.5px; letter-spacing:1px; text-transform:uppercase; padding:0 2px 3px; display:block; }
 .daw-ch-insert-slot { border-radius:3px; cursor:pointer; font-size:9px; margin-bottom:2px; overflow:hidden; padding:3px 6px; text-overflow:ellipsis; white-space:nowrap; border:1px solid; transition:all .1s; }
 .daw-ch-insert-slot.empty { background:rgba(255,255,255,.02); border-color:var(--rs-border2); color:var(--rs-text3); }
 .daw-ch-insert-slot.empty:hover { border-color:var(--rs-teal); color:var(--rs-teal); }
@@ -136,7 +136,7 @@
 .daw-cubase-meter { display:block; flex-shrink:0; }
 .daw-midi-preview { display:block; }
 .daw-ch-vol-display { text-align:center; padding:3px 0; width:100%; }
-.daw-ch-vol-readout,.daw-ch-vol-val { color:var(--rs-text3); font-size:9px; font-variant-numeric:tabular-nums; }
+.daw-ch-vol-readout,.daw-ch-vol-val { color:#8ba3bc; font-size:10px; font-weight:600; font-variant-numeric:tabular-nums; }
 .rs-orange { color:var(--rs-orange) !important; }
 .daw-ch-automation { display:flex; gap:4px; padding:3px 4px; }
 .daw-ch-rw { border-radius:3px; border:1px solid #1a2636; color:var(--rs-text3); cursor:pointer; font-size:9px; font-weight:700; height:18px; min-width:18px; display:flex; align-items:center; justify-content:center; font-family:var(--rs-font); user-select:none; }
@@ -145,7 +145,7 @@
 .daw-ch-name-bottom { flex-direction:column-reverse; }
 .daw-ch-name-input { background:var(--rs-surface); border:1px solid var(--rs-border); border-radius:3px; color:var(--rs-text); font-family:var(--rs-font); font-size:12px; padding:2px 4px; text-align:center; width:100%; }
 .daw-ch-console-select { background:var(--rs-surface); border:1px solid var(--rs-border); border-radius:3px; color:var(--rs-text2); font-family:var(--rs-font); font-size:9px; padding:1px 2px; width:100%; }
-.daw-ch-track-label { font-size:12px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; text-align:center; }
+.daw-ch-track-label { font-size:13px; font-weight:700; color:#cdd9e5 !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; text-align:center; }
 .rs-master-label { color:var(--rs-orange); font-size:11px; font-weight:700; letter-spacing:1px; }
 .daw-ch-mic-btn { background:rgba(255,255,255,.03); border:1px solid var(--rs-border); border-radius:3px; color:var(--rs-text3); cursor:pointer; font-size:9px; font-family:var(--rs-font); padding:2px 4px; width:100%; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:all .12s; }
 .daw-ch-mic-btn:hover { border-color:var(--rs-teal); color:var(--rs-teal); }
@@ -263,14 +263,14 @@
 
 .daw-channel .daw-ch-type-icon { opacity:1 !important; }
 
-.pan-knob-wrap { display:inline-flex; flex-direction:column; align-items:center; cursor:ns-resize; user-select:none; }
-.pan-knob-label { font-size:9px; color:var(--rs-text2); font-family:var(--rs-font); margin-top:-2px; font-weight:600; }
+.pan-knob-wrap { display:flex; flex-direction:column; align-items:center; cursor:ns-resize; user-select:none; width:100%; padding:4px 0; }
+.pan-knob-label { font-size:10px; color:#00ffc8; font-family:var(--rs-font); margin-top:2px; font-weight:700; text-align:center; }
 
 
 
 
 .daw-ch-db-scale { display:flex; flex-direction:column; justify-content:space-between; height:180px; padding:0; margin-left:3px; flex-shrink:0; pointer-events:none; width:14px; }
-.daw-ch-db-scale span { font-size:8px; color:#5a7a96; font-family:var(--rs-font); line-height:1; display:block; text-align:right; padding-right:2px; }
+.daw-ch-db-scale span { font-size:8px; color:#7a9ab6; font-weight:600; font-family:var(--rs-font); line-height:1; display:block; text-align:right; padding-right:2px; }
 
 
 /* Hardware fader cap — writing-mode:vertical so width=cross-axis, height=along-axis */
@@ -411,3 +411,14 @@
   border-top: 2px solid #ffaa66 !important;
   border-bottom: 2px solid #661100 !important;
 }
+
+/* ── Console strip text overrides ── */
+.daw-ch-routing-value { color:#cdd9e5 !important; font-size:11px !important; font-weight:600 !important; }
+.daw-ch-inserts-label { color:#8ba3bc !important; font-size:10px !important; font-weight:700 !important; letter-spacing:1.5px !important; }
+.daw-ch-insert-slot { font-size:10px !important; }
+.daw-ch-track-label { font-size:13px !important; font-weight:700 !important; color:#cdd9e5 !important; }
+.daw-ch-header-num { color:#00ffc8 !important; font-size:13px !important; font-weight:700 !important; }
+.daw-ch-vol-val, .daw-ch-vol-readout { color:#8ba3bc !important; font-size:11px !important; font-weight:600 !important; }
+.daw-ch-db-scale span { color:#7a9ab6 !important; font-size:8px !important; font-weight:600 !important; }
+.daw-ch-badge { font-size:11px !important; font-weight:700 !important; min-width:22px !important; height:22px !important; }
+.daw-ch-pan { width:100%; display:flex; justify-content:center; }

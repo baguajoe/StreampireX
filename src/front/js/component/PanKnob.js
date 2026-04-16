@@ -56,14 +56,25 @@ const PanKnob = ({ value = 0, onChange, size = 32, disabled = false }) => {
       title={disabled ? "Pan" : "Pan — drag up/down, double-click to center"}
     >
       <svg width={size} height={size} viewBox={"0 0 " + size + " " + size}>
-        <circle cx={cx} cy={cy} r={arcR} fill="none" stroke="#1a2838" strokeWidth={2.5}
+        {/* Track arc */}
+        <circle cx={cx} cy={cy} r={arcR} fill="none" stroke="#1a2838" strokeWidth={3}
           strokeDasharray={arcR * Math.PI * 1.5 + " " + arcR * Math.PI * 0.5}
           transform={"rotate(-225 " + cx + " " + cy + ")"}
         />
-        <circle cx={cx} cy={cy} r={2} fill="#5a7088" />
-        <line x1={cx} y1={cy} x2={px} y2={py} stroke={disabled ? "#5a7088" : "#ddeeff"} strokeWidth={1.5} strokeLinecap="round" />
+        {/* Active arc */}
+        <circle cx={cx} cy={cy} r={arcR} fill="none"
+          stroke={value === 0 ? "#00ffc8" : value > 0 ? "#ff6600" : "#00aaff"}
+          strokeWidth={3} strokeLinecap="round"
+          strokeDasharray={Math.abs(value) * arcR * Math.PI * 0.75 + " " + (arcR * Math.PI * 2)}
+          transform={"rotate(" + (value < 0 ? (-225 + value * 135) : -225) + " " + cx + " " + cy + ")"}
+        />
+        {/* Center dot */}
+        <circle cx={cx} cy={cy} r={r - 8} fill="#0d1520" stroke="#243048" strokeWidth={1}/>
+        {/* Pointer line */}
+        <line x1={cx} y1={cy} x2={px} y2={py}
+          stroke={disabled ? "#5a7088" : "#e0eeff"} strokeWidth={2} strokeLinecap="round" />
       </svg>
-      
+      <span className="pan-knob-label" style={{fontSize:"9px",color:value===0?"#00ffc8":value>0?"#ff6600":"#00aaff",fontWeight:700}}>{label}</span>
     </div>
   );
 };
