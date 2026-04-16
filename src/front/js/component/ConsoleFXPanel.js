@@ -766,6 +766,7 @@ const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey })
   const [abState, setAbState] = React.useState('A');
   const storeA = () => { snapshotARef.current = JSON.parse(JSON.stringify(track.effects||{})); setAbState('A'); };
   const storeB = () => { snapshotBRef.current = JSON.parse(JSON.stringify(track.effects||{})); setAbState('B'); };
+  const compareMode = abState === 'B';
   const toggleAB = () => {
     const snap = abState === 'A' ? snapshotBRef.current : snapshotARef.current;
     if (snap) {
