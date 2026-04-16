@@ -456,12 +456,13 @@ const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, upd
   const toggleCat = cat => setOpenCats(p => ({...p, [cat]: !p[cat]}));
   const groups = [
     { cat: "Vocal Tools", cls: "vocal", items: [{key:"__vocal_processor",name:"Vocal Processor"},{key:"__mic_simulator",name:"Mic Simulator"}] },
-    { cat: "Dynamics",    cls: "", items: [{key:"eq",name:"EQ"},{key:"compressor",name:"Compressor"},{key:"gate",name:"Gate"},{key:"deesser",name:"De-Esser"},{key:"limiter",name:"Limiter"},{key:"brickWall",name:"BrickWall"},{key:"warmPress",name:"WarmPress"},{key:"glueBus",name:"GlueBus"},{key:"fetStrike",name:"FETStrike"},{key:"optoPress",name:"OptoPress"},{key:"parallelCrush",name:"ParallelCrush"},{key:"multiPress",name:"MultiPress"},{key:"transGate",name:"TransGate"}] },
-    { cat: "EQ",          cls: "", items: [{key:"ironBand",name:"IronBand"},{key:"spectraCurve",name:"SpectraCurve"}] },
-    { cat: "Reverb",      cls: "", items: [{key:"reverb",name:"Reverb"},{key:"hallForgeS",name:"HallForge I"},{key:"hallForgeL",name:"HallForge II"},{key:"gateVerb",name:"GateVerb"},{key:"vintageAir",name:"VintageAir"},{key:"stochasticHall",name:"StochasticHall"},{key:"greatHall",name:"GreatHall"},{key:"plateForge",name:"PlateForge"},{key:"springBox",name:"SpringBox"}] },
-    { cat: "Delay",       cls: "", items: [{key:"delay",name:"Delay"},{key:"chorus",name:"Chorus"},{key:"flanger",name:"Flanger"},{key:"phaser",name:"Phaser"},{key:"tremolo",name:"Tremolo"},{key:"stereoWidener",name:"Stereo Widener"}] },
-    { cat: "Saturation",  cls: "", items: [{key:"distortion",name:"Distortion"},{key:"bitcrusher",name:"Bit Crush"},{key:"tapeSaturation",name:"Tape Sat"},{key:"exciter",name:"Exciter"},{key:"tapeForge",name:"TapeForge"},{key:"valveGlow",name:"ValveGlow"},{key:"ironCore",name:"IronCore"},{key:"consoleSoul",name:"ConsoleSoul"}] },
-    { cat: "Utility",     cls: "", items: [{key:"filter",name:"Filter"},{key:"gainUtility",name:"Gain Utility"}] },
+    { cat: "Dynamics",    cls: "", items: ALL_FX_EXTENDED.filter(f=>["comp","limit"].includes(f.type)) },
+    { cat: "EQ",          cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="eq") },
+    { cat: "Reverb",      cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="reverb") },
+    { cat: "Delay",       cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="delay") },
+    { cat: "Modulation",  cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="filter") },
+    { cat: "Saturation",  cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="distortion") },
+    { cat: "Utility",     cls: "", items: ALL_FX_EXTENDED.filter(f=>!["comp","limit","eq","reverb","delay","filter","distortion"].includes(f.type)) },
   ];
   return (
     <>
