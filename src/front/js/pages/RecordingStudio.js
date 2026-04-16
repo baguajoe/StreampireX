@@ -2464,41 +2464,18 @@ const RecordingStudio = ({ user }) => {
         {/* INSERT PICKER */}
         {insertPickerState && (
           <div className="daw-insert-picker" style={{ left: insertPickerState.x, top: insertPickerState.y }} onClick={e => e.stopPropagation()}>
-            <div className="daw-insert-picker-title">Add Insert</div>
-            {[
-              { cat: "Vocal Tools",  cls: "vocal",  items: [{ key: "__vocal_processor", name: "Vocal Processor" },{ key: "__mic_simulator", name: "Mic Simulator" }] },
-              { cat: "Dynamics",     cls: "normal", items: [{ key: "eq", name: "EQ" },{ key: "compressor", name: "Compressor" },{ key: "gate", name: "Gate" },{ key: "deesser", name: "De-Esser" },{ key: "limiter", name: "Limiter" }] },
-              { cat: "Time/Space",   cls: "normal", items: [{ key: "reverb", name: "Reverb" },{ key: "delay", name: "Delay" },{ key: "chorus", name: "Chorus" },{ key: "flanger", name: "Flanger" },{ key: "phaser", name: "Phaser" }] },
-              { cat: "Modulation",   cls: "normal", items: [{ key: "tremolo", name: "Tremolo" },{ key: "stereoWidener", name: "Stereo Widener" }] },
-              { cat: "Saturation",   cls: "normal", items: [{ key: "distortion", name: "Distortion" },{ key: "bitcrusher", name: "Bit Crusher" },{ key: "tapeSaturation", name: "Tape Saturation" },{ key: "exciter", name: "Exciter" }] },
-              { cat: "Utility",      cls: "normal", items: [{ key: "filter", name: "Filter" },{ key: "gainUtility", name: "Gain Utility" }] },
-            ].map(group => (
-              <div key={group.cat}>
-                <div className={"daw-insert-picker-cat " + group.cls}>{group.cat}</div>
-                {group.items.map(fxItem => {
-                  const isVocalTool = fxItem.key.startsWith("__");
-                  const already = !isVocalTool && tracks[insertPickerState.trackIndex]?.effects?.[fxItem.key]?.enabled;
-                  return (
-                    <div key={fxItem.key}
-                      className={"daw-insert-picker-item" + (already ? " done" : isVocalTool ? " vocal" : "")}
-                      onClick={() => {
-                        if (fxItem.key === "__vocal_processor") { setInsertPickerState(null); setShowVocalModal(true); return; }
-                        if (fxItem.key === "__mic_simulator")   { setInsertPickerState(null); setShowMicSimModal(true); return; }
-                        if (already) return;
-                        updateEffect(insertPickerState.trackIndex, fxItem.key, "enabled", true);
-                        setActiveEffectsTrack(insertPickerState.trackIndex);
-                        setOpenFxKey(fxItem.key);
-                        setInsertPickerState(null);
-                        setStatus(`${fxItem.name} added — Track ${insertPickerState.trackIndex + 1}`);
-                      }}>
-                      {isVocalTool ? `⤴ ${fxItem.name}` : already ? `✓ ${fxItem.name}` : fxItem.name}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-            <div className="rs-divider"/>
-            <div className="rs-remove-item" onClick={() => setInsertPickerState(null)}>Cancel</div>
+            <div className="daw-insert-picker-title">ADD INSERT</div>
+            <InsertPickerMenu
+              insertPickerState={insertPickerState}
+              setInsertPickerState={setInsertPickerState}
+              tracks={tracks}
+              updateEffect={updateEffect}
+              setActiveEffectsTrack={setActiveEffectsTrack}
+              setOpenFxKey={setOpenFxKey}
+              setShowVocalModal={setShowVocalModal}
+              setShowMicSimModal={setShowMicSimModal}
+              setStatus={setStatus}
+            />
           </div>
         )}
 
