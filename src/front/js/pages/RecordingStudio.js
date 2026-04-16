@@ -2332,7 +2332,7 @@ const RecordingStudio = ({ user }) => {
       case "midi:controller": setMidiEnabled(m => !m); break;
       case "plugins:wam": window.open("/wam-plugin-store", "_blank"); break;
       case "file:exportMidi": case "midi:export": exportMidiFile(); break;
-      case "file:exportMixdown": setShowExportModal(true); break;
+      case "file:bounce": case "file:exportMixdown": setShowExportModal(true); break;
       case "file:exportStems": setShowExportModal(true); setExportSettings(p=>({...p,mode:"stems"})); break;
       case "file:importVideo": handleImportVideo(); break;
       case "view:arrange": setViewMode("arrange"); break;
@@ -3068,7 +3068,8 @@ const RecordingStudio = ({ user }) => {
 
         {/* INSERT PICKER */}
         {insertPickerState && (
-          <div className="daw-insert-picker" style={{position:"fixed", left:Math.min(insertPickerState.x, window.innerWidth-340), top:80, zIndex:9999, maxHeight:"80vh", overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+          <DraggablePanel title="ADD INSERT" onClose={()=>setInsertPickerState(null)} initialX={Math.min(insertPickerState.x, window.innerWidth-340)} initialY={80}>
+            <div style={{maxHeight:"75vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <InsertPickerMenu
               insertPickerState={insertPickerState}
               setInsertPickerState={setInsertPickerState}
@@ -3080,7 +3081,8 @@ const RecordingStudio = ({ user }) => {
               setShowMicSimModal={setShowMicSimModal}
               setStatus={setStatus}
             />
-          </div>
+            </div>
+          </DraggablePanel>
         )}
 
 
