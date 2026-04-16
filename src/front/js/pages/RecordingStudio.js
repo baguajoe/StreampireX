@@ -502,6 +502,8 @@ const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, upd
     { cat: "SPX Delay",     cls: "spx", items: ALL_FX_EXTENDED.filter(f=>f.type==="delay" && SPX_KEYS.has(f.key)) },
     { cat: "SPX Modulation",cls: "spx", items: ALL_FX_EXTENDED.filter(f=>f.type==="filter" && SPX_KEYS.has(f.key)) },
     { cat: "SPX Saturation",cls: "spx", items: ALL_FX_EXTENDED.filter(f=>f.type==="distortion" && SPX_KEYS.has(f.key)) },
+    { cat: "── Mastering ──", cls: "header", items: [] },
+    { cat: "Mastering",     cls: "spx", items: ALL_FX_EXTENDED.filter(f=>["peak","shaped"].includes(f.type)) },
     { cat: "SPX Creative",  cls: "spx", items: ALL_FX_EXTENDED.filter(f=>!["comp","limit","eq","reverb","delay","filter","distortion"].includes(f.type) && SPX_KEYS.has(f.key)) },
   ];
   return (
