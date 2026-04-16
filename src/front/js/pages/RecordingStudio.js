@@ -853,6 +853,440 @@ const RecordingStudio = ({ user }) => {
     if (fx.exciter?.enabled)     { const ehpf = ctx.createBiquadFilter(); ehpf.type = "highpass"; ehpf.frequency.value = fx.exciter.frequency; const ews = ctx.createWaveShaper(); const ecurve = new Float32Array(44100); for (let i = 0; i < 44100; i++) { const x = (i * 2) / 44100 - 1; ecurve[i] = x + (fx.exciter.amount / 100) * Math.sin(x * Math.PI); } ews.curve = ecurve; nodes.push(ehpf, ews); }
     if (fx.tapeSaturation?.enabled) { const tws = ctx.createWaveShaper(); const drv = fx.tapeSaturation.drive || 0.3; const tcurve = new Float32Array(44100); for (let i = 0; i < 44100; i++) { const x = (i * 2) / 44100 - 1; tcurve[i] = Math.tanh(x * (1 + drv * 5)); } tws.curve = tcurve; tws.oversample = "4x"; const tlp = ctx.createBiquadFilter(); tlp.type = "lowpass"; tlp.frequency.value = 12000 - fx.tapeSaturation.warmth * 6000; nodes.push(tws, tlp); }
     if (fx.gainUtility?.enabled) { const ug = ctx.createGain(); ug.gain.value = Math.pow(10, (fx.gainUtility.gain || 0) / 20) * (fx.gainUtility.phaseInvert ? -1 : 1); nodes.push(ug); }
+
+    // ── SPX ANALOG COLORING ──
+    if (fx.tapeForge?.enabled) {
+      const drv = fx.tapeForge.drive || 0.5; const sat = fx.tapeForge.saturation || 0.6;
+      const hfl = fx.tapeForge.hfLoss || 0.3;
+      const ws = ctx.createWaveShaper(); const N = 44100; const c = new Float32Array(N);
+      for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = Math.tanh(x*(1+drv*4))/(1+sat*0.5); }
+      ws.curve = c; ws.oversample = "4x";
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 18000-(hfl*10000);
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 20+(fx.tapeForge.bias||0.5)*30;
+      nodes.push(ws, lp, hp);
+    }
+    if (fx.valveGlow?.enabled) {
+      const warmth = fx.valveGlow.warmth || 0.5; const drive = fx.valveGlow.drive || 0.4;
+      const ws = ctx.createWaveShaper(); const N = 44100; const c = new Float32Array(N);
+      for (let i = 0; i < N; i++) { const x = (i*2)/N-1; const k = drive*10; c[i] = (1+k/2)*x/(1+k*Math.abs(x)); }
+      ws.curve = c; ws.oversample = "2x";
+      const lo = ctx.createBiquadFilter(); lo.type = "lowshelf"; lo.frequency.value = 250; lo.gain.value = warmth*3;
+      nodes.push(lo, ws);
+    }
+    if (fx.ironCore?.enabled) {
+      const sat = fx.ironCore.saturation || 0.5; const punch = fx.ironCore.punch || 0.5;
+      const ws = ctx.createWaveShaper(); const N = 44100; const c = new Float32Array(N);
+      for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = x*Math.pow(1-Math.abs(x)*sat,punch*2); }
+      ws.curve = c; ws.oversample = "4x";
+      const xfmr = ctx.createBiquadFilter(); xfmr.type = "peaking"; xfmr.frequency.value = 80; xfmr.Q.value = 0.5; xfmr.gain.value = punch*4;
+      nodes.push(ws, xfmr);
+    }
+    if (fx.consoleSoul?.enabled) {
+      const color = fx.consoleSoul.color || 0.5; const air = fx.consoleSoul.air || 0.3;
+      const ws = ctx.createWaveShaper(); const N = 44100; const c = new Float32Array(N);
+      for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = Math.tanh(x*(1+color*2))/(1+color*0.3); }
+      ws.curve = c; ws.oversample = "2x";
+      const hi = ctx.createBiquadFilter(); hi.type = "highshelf"; hi.frequency.value = 12000; hi.gain.value = air*4;
+      nodes.push(ws, hi);
+    }
+    if (fx.harmonicExcite?.enabled) {
+      const amt = fx.harmonicExcite.amount || 0.5; const freq = fx.harmonicExcite.frequency || 3000;
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = freq;
+      const ws = ctx.createWaveShaper(); const N = 44100; const c = new Float32Array(N);
+      for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = x + amt*0.3*Math.sin(x*Math.PI*2); }
+      ws.curve = c;
+      const g = ctx.createGain(); g.gain.value = amt*0.4;
+      nodes.push(hp, ws, g);
+    }
+    if (fx.vinylPress?.enabled) {
+      const crackle = fx.vinylPress.crackle || 0.1; const warmth = fx.vinylPress.warmth || 0.5;
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 14000-(warmth*4000);
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 30+(crackle*20);
+      const ws = ctx.createWaveShaper(); const N = 44100; const c = new Float32Array(N);
+      for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = Math.tanh(x*(1+warmth)); }
+      ws.curve = c; nodes.push(ws, lp, hp);
+    }
+    if (fx.loFiCrusher?.enabled) {
+      const bits = fx.loFiCrusher.bits || 8; const steps = Math.pow(2, bits);
+      const ws = ctx.createWaveShaper(); const N = 44100; const c = new Float32Array(N);
+      for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = Math.round(x*steps)/steps; }
+      ws.curve = c;
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 8000-(fx.loFiCrusher.downsample||0.5)*4000;
+      nodes.push(ws, lp);
+    }
+    if (fx.vocalSaturator?.enabled) {
+      const amt = fx.vocalSaturator.amount || 0.4; const presence = fx.vocalSaturator.presence || 0.5;
+      const ws = ctx.createWaveShaper(); const N = 44100; const c = new Float32Array(N);
+      for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = (1+amt)*x/(1+amt*Math.abs(x)); }
+      ws.curve = c; ws.oversample = "2x";
+      const pres = ctx.createBiquadFilter(); pres.type = "peaking"; pres.frequency.value = 3500; pres.Q.value = 1.2; pres.gain.value = presence*5;
+      nodes.push(ws, pres);
+    }
+    if (fx.multibandSat?.enabled) {
+      const lo = fx.multibandSat.low || 0.3; const mid = fx.multibandSat.mid || 0.4; const hi = fx.multibandSat.high || 0.2;
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 300;
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 3000;
+      const ws1 = ctx.createWaveShaper(); const ws2 = ctx.createWaveShaper(); const ws3 = ctx.createWaveShaper();
+      const mk = (a) => { const N=44100; const c=new Float32Array(N); for(let i=0;i<N;i++){const x=(i*2)/N-1; c[i]=Math.tanh(x*(1+a*3));} return c; };
+      ws1.curve = mk(lo); ws2.curve = mk(mid); ws3.curve = mk(hi);
+      nodes.push(lp, ws1, ws2, ws3, hp);
+    }
+    if (fx.cabinetSim?.enabled) {
+      const type = fx.cabinetSim.type || 0;
+      const lo = ctx.createBiquadFilter(); lo.type = "highpass"; lo.frequency.value = 80;
+      const mid = ctx.createBiquadFilter(); mid.type = "peaking"; mid.frequency.value = 800+(type*200); mid.Q.value = 0.8; mid.gain.value = 3;
+      const hi = ctx.createBiquadFilter(); hi.type = "lowpass"; hi.frequency.value = 6000+(type*2000);
+      const body = ctx.createBiquadFilter(); body.type = "peaking"; body.frequency.value = 200; body.Q.value = 1; body.gain.value = 2;
+      nodes.push(lo, body, mid, hi);
+    }
+
+    // ── SPX DYNAMICS ──
+    if (fx.warmPress?.enabled) {
+      const c = ctx.createDynamicsCompressor();
+      c.threshold.value = fx.warmPress.threshold || -18; c.ratio.value = fx.warmPress.ratio || 3;
+      c.attack.value = (fx.warmPress.attack || 30)/1000; c.release.value = (fx.warmPress.release || 150)/1000; c.knee.value = 12;
+      const ws = ctx.createWaveShaper(); const N=44100; const cv=new Float32Array(N);
+      for(let i=0;i<N;i++){const x=(i*2)/N-1; cv[i]=Math.tanh(x*1.3);}
+      ws.curve = cv; ws.oversample = "2x";
+      nodes.push(c, ws);
+    }
+    if (fx.glueBus?.enabled) {
+      const c = ctx.createDynamicsCompressor();
+      c.threshold.value = fx.glueBus.threshold || -12; c.ratio.value = fx.glueBus.ratio || 4;
+      c.attack.value = (fx.glueBus.attack || 10)/1000; c.release.value = (fx.glueBus.release || 100)/1000; c.knee.value = 6;
+      const g = ctx.createGain(); g.gain.value = Math.pow(10,(fx.glueBus.makeup||2)/20);
+      nodes.push(c, g);
+    }
+    if (fx.fetStrike?.enabled) {
+      const c = ctx.createDynamicsCompressor();
+      c.threshold.value = fx.fetStrike.threshold || -15; c.ratio.value = fx.fetStrike.ratio || 6;
+      c.attack.value = (fx.fetStrike.attack || 1)/1000; c.release.value = (fx.fetStrike.release || 50)/1000; c.knee.value = 2;
+      const g = ctx.createGain(); g.gain.value = Math.pow(10,(fx.fetStrike.makeup||4)/20);
+      nodes.push(c, g);
+    }
+    if (fx.optoPress?.enabled) {
+      const c = ctx.createDynamicsCompressor();
+      c.threshold.value = fx.optoPress.threshold || -20; c.ratio.value = fx.optoPress.ratio || 3;
+      c.attack.value = (fx.optoPress.attack || 50)/1000; c.release.value = (fx.optoPress.release || 300)/1000; c.knee.value = 15;
+      nodes.push(c);
+    }
+    if (fx.parallelCrush?.enabled) {
+      const c = ctx.createDynamicsCompressor();
+      c.threshold.value = fx.parallelCrush.threshold || -30; c.ratio.value = fx.parallelCrush.ratio || 10;
+      c.attack.value = 0.001; c.release.value = 0.05;
+      const g = ctx.createGain(); g.gain.value = fx.parallelCrush.mix || 0.5;
+      nodes.push(c, g);
+    }
+    if (fx.multiPress?.enabled) {
+      const lo = ctx.createDynamicsCompressor(); lo.threshold.value = fx.multiPress.lowThreshold||-18; lo.ratio.value = 3; lo.attack.value = 0.01; lo.release.value = 0.1;
+      const hi = ctx.createDynamicsCompressor(); hi.threshold.value = fx.multiPress.highThreshold||-12; hi.ratio.value = 4; hi.attack.value = 0.005; hi.release.value = 0.05;
+      nodes.push(lo, hi);
+    }
+    if (fx.transGate?.enabled) {
+      const g = ctx.createDynamicsCompressor(); g.threshold.value = fx.transGate.threshold||-40; g.ratio.value = 20; g.knee.value = 0;
+      g.attack.value = (fx.transGate.attack||1)/1000; g.release.value = (fx.transGate.release||100)/1000;
+      nodes.push(g);
+    }
+    if (fx.brickWall?.enabled) {
+      const lim = ctx.createDynamicsCompressor(); lim.threshold.value = fx.brickWall.ceiling||-0.3; lim.ratio.value = 20; lim.knee.value = 0; lim.attack.value = 0.001; lim.release.value = 0.01;
+      nodes.push(lim);
+    }
+    if (fx.masterWall?.enabled) {
+      const lim = ctx.createDynamicsCompressor(); lim.threshold.value = fx.masterWall.ceiling||-0.1; lim.ratio.value = 20; lim.knee.value = 0; lim.attack.value = 0.0001; lim.release.value = 0.005;
+      const g = ctx.createGain(); g.gain.value = Math.pow(10,(fx.masterWall.gain||0)/20);
+      nodes.push(lim, g);
+    }
+    if (fx.gainRider?.enabled) {
+      const c = ctx.createDynamicsCompressor(); c.threshold.value = fx.gainRider.target||-18; c.ratio.value = 2; c.attack.value = 0.1; c.release.value = 0.5; c.knee.value = 20;
+      nodes.push(c);
+    }
+    if (fx.transientShaper?.enabled) {
+      const att = fx.transientShaper.attack || 0.5; const sus = fx.transientShaper.sustain || 0.5;
+      const c = ctx.createDynamicsCompressor(); c.threshold.value = -20; c.ratio.value = 2+att*4; c.attack.value = 0.001; c.release.value = 0.05+sus*0.2;
+      const g = ctx.createGain(); g.gain.value = Math.pow(10,(att-0.5)*6/20);
+      nodes.push(c, g);
+    }
+    if (fx.breathGate?.enabled) {
+      const g = ctx.createDynamicsCompressor(); g.threshold.value = fx.breathGate.threshold||-45; g.ratio.value = 20; g.knee.value = 0; g.attack.value = 0.002; g.release.value = 0.15;
+      nodes.push(g);
+    }
+    if (fx.sibilantCut?.enabled) {
+      const freq = fx.sibilantCut.frequency || 7000; const amt = fx.sibilantCut.amount || 6;
+      const ds = ctx.createBiquadFilter(); ds.type = "peaking"; ds.frequency.value = freq; ds.Q.value = 3; ds.gain.value = -amt;
+      nodes.push(ds);
+    }
+    if (fx.drumEnhancer?.enabled) {
+      const punch = fx.drumEnhancer.punch || 0.5; const snap = fx.drumEnhancer.snap || 0.5;
+      const c = ctx.createDynamicsCompressor(); c.threshold.value = -20; c.ratio.value = 4; c.attack.value = 0.001; c.release.value = 0.05;
+      const lo = ctx.createBiquadFilter(); lo.type = "peaking"; lo.frequency.value = 80; lo.Q.value = 0.8; lo.gain.value = punch*6;
+      const hi = ctx.createBiquadFilter(); hi.type = "peaking"; hi.frequency.value = 6000; hi.Q.value = 1; hi.gain.value = snap*4;
+      nodes.push(c, lo, hi);
+    }
+    if (fx.midSideComp?.enabled) {
+      const c = ctx.createDynamicsCompressor(); c.threshold.value = fx.midSideComp.threshold||-15; c.ratio.value = fx.midSideComp.ratio||3; c.attack.value = 0.005; c.release.value = 0.1;
+      nodes.push(c);
+    }
+    if (fx.multibandLimiter?.enabled) {
+      const l1 = ctx.createDynamicsCompressor(); l1.threshold.value = -0.5; l1.ratio.value = 20; l1.attack.value = 0.001; l1.release.value = 0.01;
+      const l2 = ctx.createDynamicsCompressor(); l2.threshold.value = -0.3; l2.ratio.value = 20; l2.attack.value = 0.0005; l2.release.value = 0.005;
+      nodes.push(l1, l2);
+    }
+
+    // ── SPX EQ ──
+    if (fx.ironBand?.enabled) {
+      const p = fx.ironBand; const bands = p.bands || [];
+      bands.forEach(b => { const f = ctx.createBiquadFilter(); f.type = b.type||"peaking"; f.frequency.value = b.freq||1000; f.Q.value = b.q||1; f.gain.value = b.gain||0; nodes.push(f); });
+    }
+    if (fx.spectraCurve?.enabled) {
+      const p = fx.spectraCurve;
+      const lo = ctx.createBiquadFilter(); lo.type="lowshelf"; lo.frequency.value=100; lo.gain.value=p.low||0;
+      const lm = ctx.createBiquadFilter(); lm.type="peaking"; lm.frequency.value=300; lm.Q.value=1; lm.gain.value=p.lowMid||0;
+      const m  = ctx.createBiquadFilter(); m.type="peaking";  m.frequency.value=1000; m.Q.value=1; m.gain.value=p.mid||0;
+      const hm = ctx.createBiquadFilter(); hm.type="peaking"; hm.frequency.value=5000; hm.Q.value=1; hm.gain.value=p.highMid||0;
+      const hi = ctx.createBiquadFilter(); hi.type="highshelf"; hi.frequency.value=10000; hi.gain.value=p.high||0;
+      nodes.push(lo, lm, m, hm, hi);
+    }
+    if (fx.stereoForge?.enabled) {
+      const width = fx.stereoForge.width || 1; const g = ctx.createGain(); g.gain.value = width; nodes.push(g);
+    }
+    if (fx.gainStager?.enabled) {
+      const g = ctx.createGain(); g.gain.value = Math.pow(10,(fx.gainStager.gain||0)/20); nodes.push(g);
+    }
+    if (fx.dynamicEQ?.enabled) {
+      const f1 = ctx.createBiquadFilter(); f1.type="peaking"; f1.frequency.value=fx.dynamicEQ.frequency||1000; f1.Q.value=fx.dynamicEQ.q||1; f1.gain.value=fx.dynamicEQ.gain||0;
+      const c = ctx.createDynamicsCompressor(); c.threshold.value=fx.dynamicEQ.threshold||-20; c.ratio.value=2; c.attack.value=0.01; c.release.value=0.1;
+      nodes.push(c, f1);
+    }
+    if (fx.midSideEQ?.enabled) {
+      const mf = ctx.createBiquadFilter(); mf.type="peaking"; mf.frequency.value=fx.midSideEQ.midFreq||1000; mf.Q.value=1; mf.gain.value=fx.midSideEQ.midGain||0;
+      const sf = ctx.createBiquadFilter(); sf.type="peaking"; sf.frequency.value=fx.midSideEQ.sideFreq||5000; sf.Q.value=1; sf.gain.value=fx.midSideEQ.sideGain||0;
+      nodes.push(mf, sf);
+    }
+
+    // ── SPX REVERB ──
+    if (fx.hallForgeS?.enabled) {
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.hallForgeS.decay||1.2);
+      const g = ctx.createGain(); g.gain.value = fx.hallForgeS.mix||0.25;
+      const pre = ctx.createDelay(0.1); pre.delayTime.value = fx.hallForgeS.preDelay||0.02;
+      nodes.push(pre, conv, g);
+    }
+    if (fx.hallForgeL?.enabled) {
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.hallForgeL.decay||2.5);
+      const g = ctx.createGain(); g.gain.value = fx.hallForgeL.mix||0.3;
+      const pre = ctx.createDelay(0.1); pre.delayTime.value = fx.hallForgeL.preDelay||0.04;
+      nodes.push(pre, conv, g);
+    }
+    if (fx.gateVerb?.enabled) {
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, 0.3);
+      const gate = ctx.createDynamicsCompressor(); gate.threshold.value=-20; gate.ratio.value=20; gate.attack.value=0.001; gate.release.value=0.05;
+      const g = ctx.createGain(); g.gain.value = fx.gateVerb.mix||0.4;
+      nodes.push(conv, gate, g);
+    }
+    if (fx.vintageAir?.enabled) {
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.vintageAir.decay||1.8);
+      const air = ctx.createBiquadFilter(); air.type="highshelf"; air.frequency.value=8000; air.gain.value=fx.vintageAir.air||3;
+      const g = ctx.createGain(); g.gain.value = fx.vintageAir.mix||0.2;
+      nodes.push(conv, air, g);
+    }
+    if (fx.stochasticHall?.enabled) {
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.stochasticHall.decay||2.0);
+      const g = ctx.createGain(); g.gain.value = fx.stochasticHall.mix||0.25;
+      nodes.push(conv, g);
+    }
+    if (fx.greatHall?.enabled) {
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.greatHall.decay||3.5);
+      const g = ctx.createGain(); g.gain.value = fx.greatHall.mix||0.3;
+      const pre = ctx.createDelay(0.1); pre.delayTime.value = 0.06;
+      nodes.push(pre, conv, g);
+    }
+    if (fx.plateForge?.enabled) {
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.plateForge.decay||1.5);
+      const bri = ctx.createBiquadFilter(); bri.type="highshelf"; bri.frequency.value=6000; bri.gain.value=fx.plateForge.brightness||2;
+      const g = ctx.createGain(); g.gain.value = fx.plateForge.mix||0.25;
+      nodes.push(conv, bri, g);
+    }
+    if (fx.springBox?.enabled) {
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, 0.8);
+      const mid = ctx.createBiquadFilter(); mid.type="peaking"; mid.frequency.value=1200; mid.Q.value=0.5; mid.gain.value=3;
+      const g = ctx.createGain(); g.gain.value = fx.springBox.mix||0.3;
+      nodes.push(conv, mid, g);
+    }
+    if (fx.phantomDouble?.enabled) {
+      const d = ctx.createDelay(0.05); d.delayTime.value = fx.phantomDouble.time||0.023;
+      const g = ctx.createGain(); g.gain.value = fx.phantomDouble.mix||0.4;
+      nodes.push(d, g);
+    }
+    if (fx.vocalSpace?.enabled) {
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, 0.4);
+      const pres = ctx.createBiquadFilter(); pres.type="peaking"; pres.frequency.value=3000; pres.Q.value=1; pres.gain.value=2;
+      const g = ctx.createGain(); g.gain.value = fx.vocalSpace.mix||0.2;
+      nodes.push(conv, pres, g);
+    }
+    if (fx.infiniteReverb?.enabled) {
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, 8.0);
+      const g = ctx.createGain(); g.gain.value = fx.infiniteReverb.mix||0.4;
+      nodes.push(conv, g);
+    }
+    if (fx.spaceForge?.enabled) {
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.spaceForge.size||2.0);
+      const g = ctx.createGain(); g.gain.value = fx.spaceForge.mix||0.3;
+      nodes.push(conv, g);
+    }
+    if (fx.stereoBloom?.enabled) {
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, 0.6);
+      const wi = ctx.createStereoPanner(); wi.pan.value = fx.stereoBloom.width||0.5;
+      const g = ctx.createGain(); g.gain.value = fx.stereoBloom.mix||0.25;
+      nodes.push(conv, wi, g);
+    }
+    if (fx.echoField?.enabled) {
+      const d = ctx.createDelay(2); d.delayTime.value = fx.echoField.time||0.4;
+      const fb = ctx.createGain(); fb.gain.value = fx.echoField.feedback||0.4;
+      const g = ctx.createGain(); g.gain.value = fx.echoField.mix||0.3;
+      nodes.push(d, fb, g);
+    }
+
+    // ── SPX DELAY ──
+    if (fx.reverseDelay?.enabled) {
+      const d = ctx.createDelay(2); d.delayTime.value = fx.reverseDelay.time||0.3;
+      const fb = ctx.createGain(); fb.gain.value = fx.reverseDelay.feedback||0.3;
+      const g = ctx.createGain(); g.gain.value = fx.reverseDelay.mix||0.25;
+      nodes.push(d, fb, g);
+    }
+    if (fx.tempoDelay?.enabled) {
+      const beat = (60/bpm) * (fx.tempoDelay.division||1);
+      const d = ctx.createDelay(4); d.delayTime.value = Math.min(beat, 3.9);
+      const fb = ctx.createGain(); fb.gain.value = fx.tempoDelay.feedback||0.35;
+      const g = ctx.createGain(); g.gain.value = fx.tempoDelay.mix||0.3;
+      nodes.push(d, fb, g);
+    }
+    if (fx.dualDelay?.enabled) {
+      const d1 = ctx.createDelay(2); d1.delayTime.value = fx.dualDelay.time1||0.25;
+      const d2 = ctx.createDelay(2); d2.delayTime.value = fx.dualDelay.time2||0.375;
+      const g = ctx.createGain(); g.gain.value = fx.dualDelay.mix||0.25;
+      nodes.push(d1, d2, g);
+    }
+
+    // ── SPX MODULATION ──
+    if (fx.pitchForge?.enabled) {
+      const p = ctx.createBiquadFilter(); p.type="allpass"; p.frequency.value=1000+(fx.pitchForge.pitch||0)*100; p.Q.value=5;
+      nodes.push(p);
+    }
+    if (fx.pitchLock?.enabled) {
+      const p = ctx.createBiquadFilter(); p.type="allpass"; p.frequency.value=440; p.Q.value=10;
+      nodes.push(p);
+    }
+    if (fx.pitchRandomizer?.enabled) {
+      const p = ctx.createBiquadFilter(); p.type="allpass"; p.frequency.value=500+(Math.random()*500); p.Q.value=3;
+      nodes.push(p);
+    }
+    if (fx.subOctaver?.enabled) {
+      const lp = ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=200;
+      const g = ctx.createGain(); g.gain.value = fx.subOctaver.mix||0.4;
+      const ws = ctx.createWaveShaper(); const N=44100; const c=new Float32Array(N);
+      for(let i=0;i<N;i++){const x=(i*2)/N-1; c[i]=Math.abs(x)*2-1;}
+      ws.curve=c; nodes.push(lp, ws, g);
+    }
+    if (fx.autoWah?.enabled) {
+      const f = ctx.createBiquadFilter(); f.type="bandpass"; f.frequency.value=800+(fx.autoWah.sensitivity||0.5)*1200; f.Q.value=fx.autoWah.resonance||5;
+      const lfo = ctx.createOscillator(); const lfoG = ctx.createGain();
+      lfo.frequency.value = fx.autoWah.rate||2; lfoG.gain.value = 500;
+      lfo.connect(lfoG); lfoG.connect(f.frequency); lfo.start();
+      nodes.push(f);
+    }
+    if (fx.chorusEnsemble?.enabled) {
+      const d1 = ctx.createDelay(0.05); d1.delayTime.value = 0.015;
+      const d2 = ctx.createDelay(0.05); d2.delayTime.value = 0.025;
+      const lfo1 = ctx.createOscillator(); const lfoG1 = ctx.createGain();
+      lfo1.frequency.value = fx.chorusEnsemble.rate||1.5; lfoG1.gain.value = 0.005;
+      lfo1.connect(lfoG1); lfoG1.connect(d1.delayTime); lfo1.start();
+      const lfo2 = ctx.createOscillator(); const lfoG2 = ctx.createGain();
+      lfo2.frequency.value = (fx.chorusEnsemble.rate||1.5)*1.3; lfoG2.gain.value = 0.005;
+      lfo2.connect(lfoG2); lfoG2.connect(d2.delayTime); lfo2.start();
+      nodes.push(d1, d2);
+    }
+    if (fx.vortexMod?.enabled) {
+      const d = ctx.createDelay(0.03); d.delayTime.value = 0.02;
+      const lfo = ctx.createOscillator(); const lfoG = ctx.createGain();
+      lfo.frequency.value = fx.vortexMod.rate||0.5; lfoG.gain.value = fx.vortexMod.depth||0.01;
+      lfo.connect(lfoG); lfoG.connect(d.delayTime); lfo.start();
+      nodes.push(d);
+    }
+    if (fx.voiceForge?.enabled) {
+      const f = ctx.createBiquadFilter(); f.type="peaking"; f.frequency.value=fx.voiceForge.formant||1000; f.Q.value=3; f.gain.value=fx.voiceForge.amount||4;
+      const pres = ctx.createBiquadFilter(); pres.type="highshelf"; pres.frequency.value=5000; pres.gain.value=fx.voiceForge.air||2;
+      nodes.push(f, pres);
+    }
+    if (fx.tapeStop?.enabled) {
+      const lp = ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=4000;
+      const g = ctx.createGain(); g.gain.value = 0.8;
+      nodes.push(lp, g);
+    }
+
+    // ── SPX MASTERING ──
+    if (fx.stereoImager?.enabled) {
+      const g = ctx.createGain(); g.gain.value = fx.stereoImager.width||1.2; nodes.push(g);
+    }
+    if (fx.loudnessMeter?.enabled) {
+      const g = ctx.createGain(); g.gain.value = 1; nodes.push(g);
+    }
+    if (fx.ditherForge?.enabled) {
+      const g = ctx.createGain(); g.gain.value = 1; nodes.push(g);
+    }
+    if (fx.dcBlock?.enabled) {
+      const hp = ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=10; hp.Q.value=0.707; nodes.push(hp);
+    }
+    if (fx.harmonicSum?.enabled) {
+      const ws = ctx.createWaveShaper(); const N=44100; const c=new Float32Array(N);
+      for(let i=0;i<N;i++){const x=(i*2)/N-1; c[i]=x+0.1*Math.sin(x*Math.PI*2)+0.05*Math.sin(x*Math.PI*3);}
+      ws.curve=c; nodes.push(ws);
+    }
+    if (fx.matchEQ?.enabled) {
+      const lo = ctx.createBiquadFilter(); lo.type="lowshelf"; lo.frequency.value=200; lo.gain.value=fx.matchEQ.low||0;
+      const hi = ctx.createBiquadFilter(); hi.type="highshelf"; hi.frequency.value=8000; hi.gain.value=fx.matchEQ.high||0;
+      nodes.push(lo, hi);
+    }
+    if (fx.lowEndFocus?.enabled) {
+      const sub = ctx.createBiquadFilter(); sub.type="peaking"; sub.frequency.value=60; sub.Q.value=0.8; sub.gain.value=fx.lowEndFocus.sub||3;
+      const kick = ctx.createBiquadFilter(); kick.type="peaking"; kick.frequency.value=100; kick.Q.value=1; kick.gain.value=fx.lowEndFocus.kick||2;
+      const hp = ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=30;
+      nodes.push(hp, sub, kick);
+    }
+    if (fx.loudnessTarget?.enabled) {
+      const lim = ctx.createDynamicsCompressor(); lim.threshold.value=fx.loudnessTarget.ceiling||-1; lim.ratio.value=20; lim.attack.value=0.001; lim.release.value=0.01;
+      const g = ctx.createGain(); g.gain.value=Math.pow(10,(fx.loudnessTarget.target||0)/20);
+      nodes.push(lim, g);
+    }
+    if (fx.msImager?.enabled) {
+      const g = ctx.createGain(); g.gain.value = fx.msImager.width||1; nodes.push(g);
+    }
+    if (fx.spectralRecovery?.enabled) {
+      const hi = ctx.createBiquadFilter(); hi.type="highshelf"; hi.frequency.value=10000; hi.gain.value=fx.spectralRecovery.amount||4;
+      const ex = ctx.createBiquadFilter(); ex.type="peaking"; ex.frequency.value=8000; ex.Q.value=0.5; ex.gain.value=fx.spectralRecovery.presence||2;
+      nodes.push(hi, ex);
+    }
+    if (fx.codecPreview?.enabled) {
+      const lp = ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=16000;
+      const hp = ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=40;
+      nodes.push(hp, lp);
+    }
+    if (fx.declicker?.enabled) {
+      const g = ctx.createGain(); g.gain.value=0.98; nodes.push(g);
+    }
+    if (fx.dehummer?.enabled) {
+      const n1 = ctx.createBiquadFilter(); n1.type="notch"; n1.frequency.value=50; n1.Q.value=20;
+      const n2 = ctx.createBiquadFilter(); n2.type="notch"; n2.frequency.value=60; n2.Q.value=20;
+      const n3 = ctx.createBiquadFilter(); n3.type="notch"; n3.frequency.value=100; n3.Q.value=20;
+      nodes.push(n1, n2, n3);
+    }
+    if (fx.dialogueIsolator?.enabled) {
+      const hp = ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=100;
+      const lp = ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=8000;
+      const pres = ctx.createBiquadFilter(); pres.type="peaking"; pres.frequency.value=2500; pres.Q.value=0.8; pres.gain.value=3;
+      nodes.push(hp, lp, pres);
+    }
+    if (fx.phaseScope?.enabled) { const g = ctx.createGain(); g.gain.value=1; nodes.push(g); }
+    if (fx.goniometer?.enabled) { const g = ctx.createGain(); g.gain.value=1; nodes.push(g); }
+
     return nodes;
   };
 
