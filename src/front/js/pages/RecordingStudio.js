@@ -462,7 +462,9 @@ const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, upd
     { cat: "Delay",       cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="delay") },
     { cat: "Modulation",  cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="filter") },
     { cat: "Saturation",  cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="distortion") },
-    { cat: "Utility",     cls: "", items: ALL_FX_EXTENDED.filter(f=>!["comp","limit","eq","reverb","delay","filter","distortion"].includes(f.type)) },
+    { cat: "Spectral/Peak",cls: "", items: ALL_FX_EXTENDED.filter(f=>["peak","shaped","lowpass","highpass"].includes(f.type)) },
+    { cat: "Creative",    cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="creative") },
+    { cat: "Utility",     cls: "", items: ALL_FX_EXTENDED.filter(f=>!["comp","limit","eq","reverb","delay","filter","distortion","peak","shaped","lowpass","highpass","creative"].includes(f.type)) },
   ];
   return (
     <>
