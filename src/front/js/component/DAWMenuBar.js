@@ -430,12 +430,13 @@ const DAWMenuBar = ({
 
           {openMenu === idx && (() => {
             const btnEl = barRef.current?.querySelectorAll('.daw-menubar-label')[idx];
-            const rect = btnEl?.getBoundingClientRect() || {left:0,bottom:40};
+            const rect = btnEl?.getBoundingClientRect() || {left:0,bottom:40,width:60};
+            const left = Math.min(rect.left, window.innerWidth - 280);
             return ReactDOM.createPortal(
               <div
                 className="daw-menubar-dropdown"
                 role="menu"
-                style={{position:"fixed",left:rect.left,top:rect.bottom+4,zIndex:99999}}
+                style={{position:"fixed",left:left,top:rect.bottom+2,zIndex:99999,minWidth:260}}
                 onClick={(e) => e.stopPropagation()}
               >
               {menu.items.map((item, iIdx) => {
