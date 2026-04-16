@@ -2025,7 +2025,7 @@ const RecordingStudio = ({ user }) => {
                           <select className="daw-ch-console-select" value={trackConsoleChar[t.id] || "none"} onChange={e => setTrackConsoleChar(prev => ({ ...prev, [t.id]: e.target.value }))}>
                             {Object.entries(CONSOLE_BOARDS).map(([id, b]) => <option key={id} value={id}>{b.name}</option>)}
                           </select>
-                          <span className="daw-ch-track-label" style={{ color: t.color || "#cdd9e5" }}>{t.name || `Track ${i + 1}`}</span>
+                          <input className="daw-ch-name-input" value={t.name || `Track ${i+1}`} onChange={e => updateTrack(i, {name: e.target.value})} onClick={e => e.stopPropagation()} style={{color: t.color || "#cdd9e5"}}/>
                         </div>
                       </div>
                     );
