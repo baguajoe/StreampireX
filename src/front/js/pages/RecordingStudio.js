@@ -725,6 +725,28 @@ const RecordingStudio = ({ user }) => {
   useEffect(() => { masterConsoleCharRef.current = masterConsoleChar; }, [masterConsoleChar]);
   useEffect(() => { setWamPlugins(getInstalledWAMPlugins() || []); }, []);
 
+  // ── Recalc region durations when BPM changes ──
+  // durationSeconds is source of truth; duration (beats) is derived.
+  const lastBpmRef = useRef(bpm);
+  useEffect(() => {
+    if (lastBpmRef.current === bpm) return;
+    const oldBpm = lastBpmRef.current;
+    lastBpmRef.current = bpm;
+    setTracks(prev => prev.map(t => ({
+      ...t,
+      regions: (t.regions || []).map(r => {
+        if (typeof r.durationSeconds === "number" && r.durationSeconds > 0) {
+          return { ...r, duration: secondsToBeat(r.durationSeconds, bpm), startBeat: typeof r.startSeconds === "number" ? secondsToBeat(r.startSeconds, bpm) : r.startBeat };
+        }
+        if (typeof r.duration === "number" && r.duration > 0 && oldBpm > 0) {
+          const seconds = beatToSeconds(r.duration, oldBpm);
+          return { ...r, duration: secondsToBeat(seconds, bpm), durationSeconds: seconds };
+        }
+        return r;
+      }),
+    })));
+  }, [bpm]);
+
   // ── Monitor EQ sync ──
   useEffect(() => {
     const nodes = monitorNodesRef.current;
@@ -1753,14 +1775,16 @@ const RecordingStudio = ({ user }) => {
   const createRegionFromRecording = (trackIndex, audioBuffer, audioUrl) => {
     const regionId = `rgn_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const startBeat = secondsToBeat(playOffsetRef.current, bpm);
-    const durationBeat = secondsToBeat(audioBuffer.duration, bpm);
-    setTracks(prev => prev.map((t, i) => i === trackIndex ? { ...t, regions: [...(t.regions || []), { id: regionId, name: tracks[trackIndex]?.name || `Track ${trackIndex + 1}`, startBeat, duration: durationBeat, audioUrl, color: tracks[trackIndex]?.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length], loopEnabled: false, loopCount: 1 }] } : t));
+    const durationSeconds = audioBuffer.duration;
+    const durationBeat = secondsToBeat(durationSeconds, bpm);
+    setTracks(prev => prev.map((t, i) => i === trackIndex ? { ...t, regions: [...(t.regions || []), { id: regionId, name: tracks[trackIndex]?.name || `Track ${trackIndex + 1}`, startBeat, duration: durationBeat, durationSeconds, originalBpm: bpm, audioUrl, color: tracks[trackIndex]?.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length], loopEnabled: false, loopCount: 1 }] } : t));
   };
 
   const createRegionFromImport = (trackIndex, audioBuffer, name, audioUrl) => {
     const regionId = `rgn_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-    const durationBeat = secondsToBeat(audioBuffer.duration, bpm);
-    setTracks(prev => prev.map((t, i) => i === trackIndex ? { ...t, regions: [...(t.regions || []), { id: regionId, name: name || `Import ${trackIndex + 1}`, startBeat: 0, duration: durationBeat, audioUrl, color: t.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length], loopEnabled: false, loopCount: 1 }] } : t));
+    const durationSeconds = audioBuffer.duration;
+    const durationBeat = secondsToBeat(durationSeconds, bpm);
+    setTracks(prev => prev.map((t, i) => i === trackIndex ? { ...t, regions: [...(t.regions || []), { id: regionId, name: name || `Import ${trackIndex + 1}`, startBeat: 0, duration: durationBeat, durationSeconds, originalBpm: bpm, audioUrl, color: t.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length], loopEnabled: false, loopCount: 1 }] } : t));
   };
 
   const uploadTrack = async (blob, ti) => {
@@ -1861,7 +1885,20 @@ const RecordingStudio = ({ user }) => {
           const avg = peaks.reduce((a,b)=>a+b,0)/peaks.length; const thr = avg * 1.5;
           const beats = []; let last = -1;
           for (let i = 1; i < peaks.length-1; i++) { if (peaks[i]>thr && peaks[i]>peaks[i-1] && peaks[i]>peaks[i+1] && (i-last)>20) { beats.push(i*0.01); last=i; } }
-          if (beats.length > 3) { const intervals = beats.slice(1).map((b,i)=>b-beats[i]); const avgInt = intervals.reduce((a,b)=>a+b,0)/intervals.length; const det = Math.round(60/avgInt); if (det>=60&&det<=200) { setBpm(det); setStatus('♩ BPM: '+det+' from "'+name+'"'); } }
+          if (beats.length > 3) {
+            const intervals = beats.slice(1).map((b,i)=>b-beats[i]);
+            const avgInt = intervals.reduce((a,b)=>a+b,0)/intervals.length;
+            const det = Math.round(60/avgInt);
+            if (det>=60&&det<=200) {
+              const projectHasAudio = tracks.some((t,idx) => idx !== ti && (t.regions||[]).some(r => r.audioUrl || r.durationSeconds));
+              if (!projectHasAudio) {
+                setBpm(det); setStatus('♩ BPM: '+det+' from "'+name+'"');
+              } else if (Math.abs(det - bpm) >= 1) {
+                const msg = `Detected BPM: ${det}\nProject BPM: ${bpm}\n\nSet project to ${det} BPM?`;
+                if (window.confirm(msg)) { setBpm(det); setStatus('♩ BPM: '+det+' from "'+name+'"'); }
+              }
+            }
+          }
         } catch(e) {}
         updateTrack(ti, { audioBuffer: buf, audio_url: audioUrl, name }); createRegionFromImport(ti, buf, name, audioUrl);
         setStatus(`✓ Track ${ti + 1}`);
