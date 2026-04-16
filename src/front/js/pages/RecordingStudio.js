@@ -2193,10 +2193,15 @@ const RecordingStudio = ({ user }) => {
                           {tracks.filter(b=>b.trackType==="bus").map(bus=>(
                             <div key={bus.id} className="daw-ch-send-row">
                               <span className="daw-ch-send-name">{bus.name}</span>
-                              <input type="range" className="daw-ch-send-level" min={0} max={1} step={0.01}
-                                defaultValue={(t.sends||[]).find(s=>s.busId===bus.id)?.level||0}
-                                onClick={e=>e.stopPropagation()}
-                                onChange={e=>{const v=parseFloat(e.target.value);const newSends=[...(t.sends||[]).filter(s=>s.busId!==bus.id),{busId:bus.id,level:v}];updateTrack(i,{sends:newSends});}}/>
+                              <div style={{display:"flex",alignItems:"center",gap:4,flex:1}}>
+                                <input type="range" className="daw-ch-send-level" min={0} max={1} step={0.01}
+                                  defaultValue={(t.sends||[]).find(s=>s.busId===bus.id)?.level||0}
+                                  onClick={e=>e.stopPropagation()}
+                                  onChange={e=>{const v=parseFloat(e.target.value);const newSends=[...(t.sends||[]).filter(s=>s.busId!==bus.id),{busId:bus.id,level:v}];updateTrack(i,{sends:newSends});}}/>
+                                <span style={{color:"#4e6a82",fontSize:8,minWidth:24,textAlign:"right"}}>
+                                  {Math.round(((t.sends||[]).find(s=>s.busId===bus.id)?.level||0)*100)}%
+                                </span>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -2629,7 +2634,7 @@ const RecordingStudio = ({ user }) => {
 
         {/* INSERT PICKER */}
         {insertPickerState && (
-          <div className="daw-insert-picker" style={{position:"fixed", left:Math.min(insertPickerState.x, window.innerWidth-340), top:Math.min(insertPickerState.y, window.innerHeight-520), zIndex:9999, maxHeight:"65vh", overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+          <div className="daw-insert-picker" style={{position:"fixed", left:Math.min(insertPickerState.x, window.innerWidth-340), top:80, zIndex:9999, maxHeight:"80vh", overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <InsertPickerMenu
               insertPickerState={insertPickerState}
               setInsertPickerState={setInsertPickerState}
@@ -2744,7 +2749,7 @@ const RecordingStudio = ({ user }) => {
               <span style={{color:"#cdd9e5",fontSize:11,fontWeight:700}}>🎬 VIDEO SCORE</span>
               <button onClick={()=>{setVideoUrl(null);setVideoFile(null);}} style={{background:"none",border:"none",color:"#8ba3bc",cursor:"pointer"}}>✕</button>
             </div>
-            <video src={videoUrl} controls style={{width:320,display:"block"}} onTimeUpdate={e=>{}}/>
+            <video src={videoUrl} controls style={{width:320,display:"block"}} ref={el=>{if(el){el.currentTime=currentTime;}}} onTimeUpdate={e=>{}}/>
           </div>
         )}
         {/* FX POPUP */}
