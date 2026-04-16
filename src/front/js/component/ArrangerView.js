@@ -763,6 +763,30 @@ const ArrangerView = ({
     })));
   }, [bpm, setTracks]);
 
+  // ── Recalc region durations when BPM changes ──
+  // Regions store durationSeconds as source of truth; duration (beats) is derived.
+  const lastBpmRef = useRef(bpm);
+  useEffect(() => {
+    if (lastBpmRef.current === bpm) return;
+    const oldBpm = lastBpmRef.current;
+    lastBpmRef.current = bpm;
+    setTracks(prev => prev.map(t => ({
+      ...t,
+      regions: (t.regions || []).map(r => {
+        // If region has durationSeconds, recalc duration from it
+        if (typeof r.durationSeconds === "number" && r.durationSeconds > 0) {
+          return { ...r, duration: r.durationSeconds * (bpm / 60) };
+        }
+        // Legacy region (no durationSeconds) — rescale from old BPM
+        if (typeof r.duration === "number" && r.duration > 0 && oldBpm > 0) {
+          const seconds = r.duration * (60 / oldBpm);
+          return { ...r, duration: seconds * (bpm / 60), durationSeconds: seconds };
+        }
+        return r;
+      }),
+    })));
+  }, [bpm, setTracks]);
+
   // ── Scroll sync ──
   const handleScroll = useCallback((e) => {
     setScrollLeft(e.target.scrollLeft);

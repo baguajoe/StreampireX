@@ -263,15 +263,19 @@ const DEFAULT_EFFECTS = () => ({
   gainUtility:   { gain: 0, phaseInvert: false, monoSum: false, enabled: false },
 });
 
-const DEFAULT_TRACK = (i, type = "audio") => ({
-  id: uid(),
-  name: `${type === "midi" ? "MIDI" : type === "bus" ? "Bus" : type === "aux" ? "Aux" : "Audio"} ${i + 1}`,
-  trackType: type,
-  instrument: type === "midi" ? { program: 0, name: "Acoustic Grand" } : null,
-  volume: 1.0, pan: 0, muted: false, solo: false, armed: false,
-  audio_url: null, color: TRACK_COLORS[i % TRACK_COLORS.length],
-  audioBuffer: null, effects: DEFAULT_EFFECTS(), regions: [],
-});
+const DEFAULT_TRACK = (i, type = "audio") => {
+  const track = {
+    id: uid(),
+    name: `${type === "midi" ? "MIDI" : type === "bus" ? "Bus" : type === "aux" ? "Aux" : "Audio"} ${i + 1}`,
+    trackType: type,
+    instrument: type === "midi" ? { program: 0, name: "Acoustic Grand" } : null,
+    volume: 1.0, pan: 0, muted: false, solo: false, armed: false,
+    audio_url: null, color: TRACK_COLORS[i % TRACK_COLORS.length],
+    audioBuffer: null, effects: DEFAULT_EFFECTS(), regions: [],
+  };
+  console.log(`[DEBUG] DEFAULT_TRACK created: ${track.name}, volume=${track.volume}, type=${type}`);
+  return track;
+};
 
 // =============================================================================
 // CUBASE METER (canvas stereo VU)
@@ -746,6 +750,9 @@ const RecordingStudio = ({ user }) => {
       }),
     })));
   }, [bpm]);
+
+  // ── Recalc region durations when BPM changes ──
+  // durationSeconds is source of truth; duration (beats) is derived.
 
   // ── Monitor EQ sync ──
   useEffect(() => {
@@ -1596,6 +1603,7 @@ const RecordingStudio = ({ user }) => {
   }, [masterPan]);
 
   useEffect(() => {
+    console.log(`[DEBUG] Tracks changed:`, tracks.map(t => `${t.name}:vol=${t.volume}`));
     if (!audioCtxRef.current || !masterGainRef.current) return;
     tracks.filter(t => t.trackType === "bus" || t.trackType === "aux").forEach(t => ensureBusGraph(t));
     tracks.filter(t => t.trackType !== "bus" && t.trackType !== "aux").forEach(t => ensureTrackGraph(t));
@@ -1834,7 +1842,10 @@ const RecordingStudio = ({ user }) => {
   };
 
   // ── Track CRUD ──
-  const updateTrack = useCallback((i, u) => setTracks(p => p.map((t, idx) => idx === i ? { ...t, ...u } : t)), []);
+  const updateTrack = useCallback((i, u) => {
+    if (u.volume !== undefined) console.log(`[DEBUG] updateTrack: Track ${i} volume ${u.volume}`);
+    setTracks(p => p.map((t, idx) => idx === i ? { ...t, ...u } : t));
+  }, []);
   const updateEffect = (ti, fx, param, val) => setTracks(p => p.map((t, i) => i !== ti ? t : { ...t, effects: { ...t.effects, [fx]: { ...t.effects[fx], [param]: val } } }));
 
   const addTrack = () => {
