@@ -2065,7 +2065,9 @@ const RecordingStudio = ({ user }) => {
                     <div className="daw-ch-routing"><span className="daw-ch-routing-value">Stereo Out</span></div>
                     <div className="daw-ch-inserts">
                       <div className="daw-ch-inserts-label">INSERTS</div>
-                      <div className="daw-ch-insert-slot empty" onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setInsertPickerState({ trackIndex: -1, x: rect.right + 4, y: rect.top }); }}>+ Insert</div>
+                      {Array.from({length:6}).map((_,si)=>(
+                        <div key={"ms"+si} className="daw-ch-insert-slot empty" onClick={e=>{e.stopPropagation();const rect=e.currentTarget.getBoundingClientRect();setInsertPickerState({trackIndex:-1,x:rect.right+4,y:rect.top});}}></div>
+                      ))}
                     </div>
                     <div className="daw-ch-controls">
                       <div className="daw-ch-badge">M</div>
