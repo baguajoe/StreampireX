@@ -487,11 +487,17 @@ const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, upd
     <>
       {groups.map(group => (
         <div key={group.cat}>
-          <div style={{cursor:"pointer",display:"flex",justifyContent:"space-between",padding:"5px 12px",background:"rgba(255,255,255,.04)",borderBottom:"1px solid #1e2638"}}
-            onClick={()=>toggleCat(group.cat)}>
-            <span style={{color:group.cls==="vocal"?"#a78bfa":"#8ba3bc",fontSize:9,letterSpacing:1,textTransform:"uppercase",fontWeight:700}}>{group.cat}</span>
-            <span style={{fontSize:9,color:"#4e6a82"}}>{openCats[group.cat]?"▲":"▼"} {group.items.length}</span>
-          </div>
+          {group.cls === 'header' ? (
+            <div style={{padding:"8px 12px 4px",color:"#00ffc8",fontSize:9,letterSpacing:2,fontWeight:800,textTransform:"uppercase",borderTop:"1px solid #1e2638",marginTop:4,background:"#060a10"}}>
+              {group.cat.replace(/^──\s*|\s*──$/g,"")}
+            </div>
+          ) : (
+            <div style={{cursor:"pointer",display:"flex",justifyContent:"space-between",padding:"6px 12px",background:"rgba(255,255,255,.04)",borderBottom:"1px solid #1e2638"}}
+              onClick={()=>toggleCat(group.cat)}>
+              <span style={{color:group.cls==="spx"?"#ff6600":group.cls==="vocal"?"#a78bfa":"#cdd9e5",fontSize:11,letterSpacing:1,textTransform:"uppercase",fontWeight:700}}>{group.cat}</span>
+              <span style={{fontSize:10,color:"#8ba3bc"}}>{openCats[group.cat]?"▲":"▼"} {group.items.length}</span>
+            </div>
+          )}
           {group.cls !== 'header' && openCats[group.cat] && group.items.map(fx => {
             const isVocal = fx.key.startsWith("__");
             const already = !isVocal && insertPickerState.trackIndex >= 0 && tracks[insertPickerState.trackIndex] && tracks[insertPickerState.trackIndex].effects && tracks[insertPickerState.trackIndex].effects[fx.key] && tracks[insertPickerState.trackIndex].effects[fx.key].enabled;
@@ -2704,10 +2710,10 @@ const RecordingStudio = ({ user }) => {
         )}
         {/* FX POPUP */}
         {afx && openFxKey && (
-          <div className="daw-fx-panel-popup">
+          <DraggablePanel title={"FX — " + (afx.name || "Track")} onClose={() => { setActiveEffectsTrack(null); setOpenFxKey(null); }} initialX={window.innerWidth-680} initialY={60}>
             <ConsoleFXPanel track={afx} trackIndex={activeEffectsTrack} updateEffect={updateEffect}
               onClose={() => { setActiveEffectsTrack(null); setOpenFxKey(null); }} openFxKey={openFxKey}/>
-          </div>
+          </DraggablePanel>
         )}
 
         {/* SAVE AS */}

@@ -80,11 +80,11 @@
 .rs-flex-scroll-darker { display:flex; flex-direction:column; height:100%; overflow-y:auto; background:#0a1018; }
 .daw-console { display:flex; flex-direction:column; height:100%; overflow:hidden; background:#0f1520; }
 .daw-console-scroll { display:flex; flex-direction:row; align-items:flex-start; gap:2px; padding:8px; overflow-x:auto; overflow-y:hidden; height:100%; background:#0c111c; }
-.daw-channel { display:flex; flex-direction:column; align-items:center; background:#181e2d; border:1px solid #243048; border-radius:6px; cursor:pointer; flex-shrink:0; width:160px; min-width:160px; height:auto; min-height:660px; overflow:visible; transition:border-color .15s, background .15s; overflow:hidden; }
+.daw-channel { display:flex; flex-direction:column; align-items:center; background:#181e2d; border:1px solid #243048; border-radius:6px; cursor:pointer; flex-shrink:0; width:160px; min-width:160px; height:auto; min-height:660px; overflow:visible; padding-bottom:8px; transition:border-color .15s, background .15s; overflow:hidden; }
 .daw-channel:hover { border-color:#2e3d5a; background:#1e263a; }
 .daw-channel.selected { border-color:var(--rs-teal); background:rgba(0,255,200,.04); }
 .daw-channel.armed { border-color:rgba(255,59,48,.6); }
-.daw-channel.master-channel { width:180px; min-width:180px; height:auto; min-height:660px; overflow:visible; border-color:rgba(255,102,0,.3); }
+.daw-channel.master-channel { width:180px; min-width:180px; height:auto; min-height:660px; overflow:visible; padding-bottom:8px; border-color:rgba(255,102,0,.3); }
 .daw-channel.master-channel.selected { border-color:var(--rs-orange); }
 .daw-ch-colorbar { width:100%; height:5px; border-radius:5px 5px 0 0; flex-shrink:0; }
 .daw-ch-header { display:flex; align-items:center; gap:4px; padding:5px 6px; width:100%; }
