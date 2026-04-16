@@ -705,7 +705,7 @@ const ArrangerView = ({
   onCycleChange, onCycleToggle,
   instrumentEngine,
   onBrowseSounds, onOpenPianoRoll, onTimelineDoubleClick,
-  MidiRegionPreview, onAddTrack,
+  MidiRegionPreview, onAddTrack, onBpmDetected,
 }) => {
   // ── State ──
   const [zoom,          setZoom]          = useState(DEFAULT_ZOOM);
