@@ -453,18 +453,35 @@ const midiFromNotes = ({ notes = [], bpm = 120, ppq = 480 }) => {
 
 const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, updateEffect, setActiveEffectsTrack, setOpenFxKey, setShowVocalModal, setShowMicSimModal, setStatus }) => {
   const [openCats, setOpenCats] = React.useState({});
+  const [dragOffset, setDragOffset] = React.useState({x:0,y:0});
+  const dragRef = React.useRef(null);
   const toggleCat = cat => setOpenCats(p => ({...p, [cat]: !p[cat]}));
+  const onDragStart = e => {
+    dragRef.current = {startX: e.clientX - dragOffset.x, startY: e.clientY - dragOffset.y};
+    const onMove = e2 => setDragOffset({x: e2.clientX - dragRef.current.startX, y: e2.clientY - dragRef.current.startY});
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+  const SPX_KEYS = new Set(ALL_FX_EXTENDED.filter(f=>f.component).map(f=>f.key));
   const groups = [
-    { cat: "Vocal Tools", cls: "vocal", items: [{key:"__vocal_processor",name:"Vocal Processor"},{key:"__mic_simulator",name:"Mic Simulator"}] },
-    { cat: "Dynamics",    cls: "", items: ALL_FX_EXTENDED.filter(f=>["comp","limit"].includes(f.type)) },
-    { cat: "EQ",          cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="eq") },
-    { cat: "Reverb",      cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="reverb") },
-    { cat: "Delay",       cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="delay") },
-    { cat: "Modulation",  cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="filter") },
-    { cat: "Saturation",  cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="distortion") },
-    { cat: "Spectral/Peak",cls: "", items: ALL_FX_EXTENDED.filter(f=>["peak","shaped","lowpass","highpass"].includes(f.type)) },
-    { cat: "Creative",    cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="creative") },
-    { cat: "Utility",     cls: "", items: ALL_FX_EXTENDED.filter(f=>!["comp","limit","eq","reverb","delay","filter","distortion","peak","shaped","lowpass","highpass","creative"].includes(f.type)) },
+    { cat: "Vocal Tools",   cls: "vocal", items: [{key:"__vocal_processor",name:"Vocal Processor"},{key:"__mic_simulator",name:"Mic Simulator"}] },
+    { cat: "── Standard FX ──", cls: "header", items: [] },
+    { cat: "EQ",            cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="eq" && !SPX_KEYS.has(f.key)) },
+    { cat: "Dynamics",      cls: "", items: ALL_FX_EXTENDED.filter(f=>["comp","limit"].includes(f.type) && !SPX_KEYS.has(f.key)) },
+    { cat: "Reverb",        cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="reverb" && !SPX_KEYS.has(f.key)) },
+    { cat: "Delay",         cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="delay" && !SPX_KEYS.has(f.key)) },
+    { cat: "Modulation",    cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="filter" && !SPX_KEYS.has(f.key)) },
+    { cat: "Saturation",    cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="distortion" && !SPX_KEYS.has(f.key)) },
+    { cat: "Utility",       cls: "", items: ALL_FX_EXTENDED.filter(f=>!["comp","limit","eq","reverb","delay","filter","distortion"].includes(f.type) && !SPX_KEYS.has(f.key)) },
+    { cat: "── SPX Plugins ──", cls: "header", items: [] },
+    { cat: "SPX Dynamics",  cls: "spx", items: ALL_FX_EXTENDED.filter(f=>["comp","limit"].includes(f.type) && SPX_KEYS.has(f.key)) },
+    { cat: "SPX EQ",        cls: "spx", items: ALL_FX_EXTENDED.filter(f=>f.type==="eq" && SPX_KEYS.has(f.key)) },
+    { cat: "SPX Reverb",    cls: "spx", items: ALL_FX_EXTENDED.filter(f=>f.type==="reverb" && SPX_KEYS.has(f.key)) },
+    { cat: "SPX Delay",     cls: "spx", items: ALL_FX_EXTENDED.filter(f=>f.type==="delay" && SPX_KEYS.has(f.key)) },
+    { cat: "SPX Modulation",cls: "spx", items: ALL_FX_EXTENDED.filter(f=>f.type==="filter" && SPX_KEYS.has(f.key)) },
+    { cat: "SPX Saturation",cls: "spx", items: ALL_FX_EXTENDED.filter(f=>f.type==="distortion" && SPX_KEYS.has(f.key)) },
+    { cat: "SPX Creative",  cls: "spx", items: ALL_FX_EXTENDED.filter(f=>!["comp","limit","eq","reverb","delay","filter","distortion"].includes(f.type) && SPX_KEYS.has(f.key)) },
   ];
   return (
     <>
@@ -475,7 +492,7 @@ const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, upd
             <span style={{color:group.cls==="vocal"?"#a78bfa":"#8ba3bc",fontSize:9,letterSpacing:1,textTransform:"uppercase",fontWeight:700}}>{group.cat}</span>
             <span style={{fontSize:9,color:"#4e6a82"}}>{openCats[group.cat]?"▲":"▼"} {group.items.length}</span>
           </div>
-          {openCats[group.cat] && group.items.map(fx => {
+          {group.cls !== 'header' && openCats[group.cat] && group.items.map(fx => {
             const isVocal = fx.key.startsWith("__");
             const already = !isVocal && insertPickerState.trackIndex >= 0 && tracks[insertPickerState.trackIndex] && tracks[insertPickerState.trackIndex].effects && tracks[insertPickerState.trackIndex].effects[fx.key] && tracks[insertPickerState.trackIndex].effects[fx.key].enabled;
             return (
@@ -2515,7 +2532,7 @@ const RecordingStudio = ({ user }) => {
         {/* INSERT PICKER */}
         {insertPickerState && (
           <div className="daw-insert-picker" style={{ left: insertPickerState.x, top: insertPickerState.y }} onClick={e => e.stopPropagation()}>
-            <div className="daw-insert-picker-title">ADD INSERT</div>
+            <div className="daw-insert-picker-title" onMouseDown={onDragStart} style={{cursor:"grab",userSelect:"none"}}>⠿ ADD INSERT</div>
             <InsertPickerMenu
               insertPickerState={insertPickerState}
               setInsertPickerState={setInsertPickerState}
