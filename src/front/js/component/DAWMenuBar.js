@@ -15,6 +15,7 @@
 // =============================================================================
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import ReactDOM from "react-dom";
 import "../../styles/DAWMenuBar.css";
 
 // =============================================================================
@@ -424,12 +425,16 @@ const DAWMenuBar = ({
             {menu.label}
           </button>
 
-          {openMenu === idx && (
-            <div
-              className="daw-menubar-dropdown"
-              role="menu"
-              onClick={(e) => e.stopPropagation()}
-            >
+          {openMenu === idx && (() => {
+            const btnEl = barRef.current?.querySelectorAll('.daw-menubar-label')[idx];
+            const rect = btnEl?.getBoundingClientRect() || {left:0,bottom:40};
+            return ReactDOM.createPortal(
+              <div
+                className="daw-menubar-dropdown"
+                role="menu"
+                style={{position:"fixed",left:rect.left,top:rect.bottom+4,zIndex:99999}}
+                onClick={(e) => e.stopPropagation()}
+              >
               {menu.items.map((item, iIdx) => {
                 if (item.type === "separator") {
                   return (
@@ -463,8 +468,10 @@ const DAWMenuBar = ({
                   </button>
                 );
               })}
-            </div>
-          )}
+              </div>,
+              document.body
+            );
+          })()}
         </div>
       ))}
 
