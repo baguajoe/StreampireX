@@ -24,6 +24,26 @@
  */
 
 import React, { useState, useCallback, useRef } from 'react';
+import * as Tone from 'tone';
+
+let tonesampler = null;
+let samplerReady = false;
+
+function getsampler() {
+  if (tonesampler) return Promise.resolve(tonesampler);
+  return new Promise((resolve) => {
+    tonesampler = new Tone.Sampler({
+      urls: {
+        C4: 'C4.mp3', 'D#4': 'Ds4.mp3', 'F#4': 'Fs4.mp3',
+        A4: 'A4.mp3', C5: 'C5.mp3', 'D#5': 'Ds5.mp3',
+        'F#5': 'Fs5.mp3', A5: 'A5.mp3', C3: 'C3.mp3',
+      },
+      release: 1.2,
+      baseUrl: 'https://tonejs.github.io/audio/salamander/',
+      onload: () => { samplerReady = true; resolve(tonesampler); },
+    }).toDestination();
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Music theory engine
@@ -177,20 +197,17 @@ function buildMIDIFile(chords, bpm = 120) {
 // Web Audio chord preview
 // ---------------------------------------------------------------------------
 function playChord(chord, audioCtx) {
-  if (!audioCtx) return;
-  const now = audioCtx.currentTime;
-  chord.semitones.forEach(s => {
-    const freq = 261.63 * Math.pow(2, (chord.midiRoot - 60 + s) / 12);
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.15, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start(now);
-    osc.stop(now + 1.5);
+  const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  getsampler().then((sampler) => {
+    if (!samplerReady) return;
+    Tone.start();
+    const notes = chord.semitones.map(s => {
+      const midi = chord.midiRoot + s;
+      const name = noteNames[midi % 12];
+      const oct = Math.floor(midi / 12) - 1;
+      return name + oct;
+    });
+    sampler.triggerAttackRelease(notes, '2n');
   });
 }
 
