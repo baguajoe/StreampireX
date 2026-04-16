@@ -412,7 +412,7 @@ const AIStemSeparation = () => {
           </p>
           <div className="stem-badges">
             <span className="stem-badge ai">AI-Powered</span>
-            <span className="stem-badge">4-Stem Output</span>
+            <span className="stem-badge">{selectedModel === "htdemucs_6s" ? "6-Stem Output" : "4-Stem Output"}</span>
             <span className="stem-badge">320kbps MP3</span>
             {capabilities?.gpu_available && (
               <span className="stem-badge gpu">GPU Accelerated</span>
