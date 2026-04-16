@@ -156,7 +156,7 @@
 .daw-ch-mic-item.active { background:rgba(0,255,200,.07); }
 .daw-ch-mic-item-name { color:var(--rs-text); font-size:10px; font-weight:600; }
 .daw-ch-mic-item-desc { color:var(--rs-text3); font-size:9px; margin-top:1px; }
-.rs-split-screen { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+.rs-split-screen { display:flex; flex-direction:column; height:100%; overflow:auto; }
 .rs-split-top,.rs-split-bottom { overflow:auto; position:relative; display:flex; flex-direction:column; }
 .rs-split-handle { background:var(--rs-border); cursor:ns-resize; flex-shrink:0; height:5px; transition:background .1s; }
 .rs-split-handle:hover { background:var(--rs-teal); }
