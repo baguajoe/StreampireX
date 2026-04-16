@@ -2161,6 +2161,18 @@ const RecordingStudio = ({ user }) => {
                         <div className="daw-ch-pan">
                           <PanKnob value={t.pan} onChange={v => updateTrack(i, { pan: v })} size={56}/>
                         </div>
+                        <div className="daw-ch-sends">
+                          <div className="daw-ch-sends-label">SENDS</div>
+                          {tracks.filter(b=>b.trackType==="bus").map(bus=>(
+                            <div key={bus.id} className="daw-ch-send-row">
+                              <span className="daw-ch-send-name">{bus.name}</span>
+                              <input type="range" className="daw-ch-send-level" min={0} max={1} step={0.01}
+                                defaultValue={(t.sends||[]).find(s=>s.busId===bus.id)?.level||0}
+                                onClick={e=>e.stopPropagation()}
+                                onChange={e=>{const v=parseFloat(e.target.value);updateTrack(i,{sends:[...(t.sends||[]).filter(s=>s.busId!==bus.id),{busId:bus.id,level:v}]});}}/>
+                            </div>
+                          ))}
+                        </div>
                         <div className="daw-ch-fader-area">
                           <div className="daw-ch-fader-row">
                             <div className="daw-ch-db-scale" style={{textAlign:"right"}}><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>

@@ -79,8 +79,8 @@
 .rs-flex-scroll-dark { display:flex; flex-direction:column; height:100%; overflow-y:auto; background:#0e1520; padding:12px; }
 .rs-flex-scroll-darker { display:flex; flex-direction:column; height:100%; overflow-y:auto; background:#0a1018; }
 .daw-console { display:flex; flex-direction:column; height:100%; overflow:hidden; background:#0f1520; }
-.daw-console-scroll { display:flex; flex-direction:row; align-items:flex-start; gap:2px; padding:8px; overflow-x:auto; overflow-y:hidden; height:100%; background:#0c111c; }
-.daw-channel { display:flex; flex-direction:column; align-items:center; background:#181e2d; border:1px solid #243048; border-radius:6px; cursor:pointer; flex-shrink:0; width:160px; min-width:160px; height:auto; min-height:660px; overflow:visible; padding-bottom:8px; transition:border-color .15s, background .15s; overflow:hidden; }
+.daw-console-scroll { display:flex; flex-direction:row; align-items:flex-start; gap:2px; padding:8px 8px 32px; overflow-x:auto; overflow-y:auto; height:100%; background:#0c111c; }
+.daw-channel { display:flex; flex-direction:column; align-items:center; background:#181e2d; border:1px solid #243048; border-radius:6px; cursor:pointer; flex-shrink:0; width:160px; min-width:160px; height:auto; min-height:660px; overflow:visible; padding-bottom:12px; transition:border-color .15s, background .15s; }
 .daw-channel:hover { border-color:#2e3d5a; background:#1e263a; }
 .daw-channel.selected { border-color:var(--rs-teal); background:rgba(0,255,200,.04); }
 .daw-channel.armed { border-color:rgba(255,59,48,.6); }
@@ -448,3 +448,10 @@
 .daw-insert-picker-item { font-size:12px !important; padding:8px 18px !important; }
 .daw-insert-picker-cat { font-size:10px !important; padding:7px 14px !important; }
 .rs-remove-item { font-size:12px !important; padding:8px 14px !important; }
+
+/* ── Sends section ── */
+.daw-ch-sends { width:100%; padding:2px 4px; flex-shrink:0; }
+.daw-ch-sends-label { color:#8ba3bc; font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:0 2px 3px; display:block; }
+.daw-ch-send-row { display:flex; align-items:center; gap:4px; padding:2px 2px; border-bottom:1px solid #0d1219; }
+.daw-ch-send-name { color:#4e6a82; font-size:9px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.daw-ch-send-level { width:60px; height:3px; accent-color:#00ffc8; cursor:pointer; }
