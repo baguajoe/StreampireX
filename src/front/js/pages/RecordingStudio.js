@@ -3230,8 +3230,15 @@ const RecordingStudio = ({ user }) => {
           </button>
           <button className={"daw-transport-btn rs-transport-label"+(countIn?" active":"")} onClick={()=>setCountIn(!countIn)} title="Count-in">1234</button>
           <button className={"daw-transport-btn"+(cycleEnabled?" active":"")} onClick={()=>setCycleEnabled(e=>!e)} title="Cycle">⟳ CYCLE</button>
+          <div className="daw-bt-divider"/>
+          <span className="daw-bt-snap-label">LUFS</span>
+          <span className="daw-bt-lufs" style={{color:lufsValue>-14?"#ff6b6b":lufsValue>-18?"#ffaa00":"#00ffc8",fontFamily:"JetBrains Mono,monospace",fontSize:11,minWidth:36}}>{lufsValue.toFixed(1)}</span>
+          <div className="daw-bt-divider"/>
+          <button className={"daw-transport-btn"+(monoCheck?" active":"")} onClick={()=>setMonoCheck(p=>!p)} title="Mono check">MONO</button>
+          <div className="daw-bt-divider"/>
           <MidiDeviceIndicator devices={instrumentEngine.midiDevices} activeDevice={instrumentEngine.activeMidiDevice} midiActivity={instrumentEngine.midiActivity} onConnect={instrumentEngine.connectMidiDevice} onDisconnect={instrumentEngine.disconnectMidiDevice}/>
           <KeyboardOctaveIndicator octave={instrumentEngine.keyboardOctave} onOctaveChange={instrumentEngine.setKeyboardOctave}/>
+          <span className="daw-bt-status">{status}</span>
         </div>
       </div>
     </div>
