@@ -773,6 +773,51 @@ const ArrangerView = ({
     setSelectedTrack(i);
   }, [tracks.length, maxTracks, setTracks]);
 
+  const handleFileDrop = useCallback(async (e) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('audio/') || f.name.match(/\.(mp3|wav|ogg|aac|flac|m4a)$/i));
+    if (!files.length) return;
+    const scrollEl = e.currentTarget;
+    const rect = scrollEl.getBoundingClientRect();
+    const dropX = e.clientX - rect.left + scrollEl.scrollLeft;
+    const startBeat = Math.max(0, Math.floor(pxToBeat(dropX, zoom)));
+    for (const file of files) {
+      const url = URL.createObjectURL(file);
+      const arrayBuf = await file.arrayBuffer();
+      let duration = 4;
+      let decodedBuf = null;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        decodedBuf = await ctx.decodeAudioData(arrayBuf);
+        duration = decodedBuf.duration;
+        ctx.close();
+      } catch(err) {}
+      const beatsPerSecond = bpm / 60;
+      const regionBeats = Math.ceil(duration * beatsPerSecond);
+      const i = tracks.length;
+      const newTrack = {
+        id: `trk_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        name: file.name.replace(/\.[^.]+$/, ''),
+        trackType: 'audio',
+        volume: 0.8, pan: 0,
+        muted: false, solo: false, armed: false,
+        color: TRACK_COLORS[i % TRACK_COLORS.length],
+        audioBuffer: decodedBuf,
+        audio_url: url,
+        regions: [{
+          id: `reg_${Date.now()}`,
+          startBeat: startBeat,
+          duration: regionBeats,
+          audioUrl: url,
+          name: file.name.replace(/\.[^.]+$/, ''),
+          color: TRACK_COLORS[i % TRACK_COLORS.length],
+        }],
+      };
+      setTracks(prev => [...prev, newTrack]);
+      setSelectedTrack(i);
+    }
+  }, [tracks.length, bpm, zoom, setTracks]);
+
   const removeTrack = useCallback((index) => {
     if (tracks.length <= 1) return;
     setTracks(prev => prev.filter((_, i) => i !== index));
@@ -1109,6 +1154,8 @@ const ArrangerView = ({
             ref={scrollRef}
             className="arr-lanes-scroll"
             onScroll={handleScroll}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleFileDrop}
           >
             <div className="arr-lanes-inner" style={{ width: timelineWidth, height: tracks.length * trackHeight }}>
 

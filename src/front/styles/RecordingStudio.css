@@ -10,7 +10,7 @@
 .daw { position:fixed; top:0; left:0; right:0; bottom:0; width:100vw; height:100vh; z-index:1300; display:flex; flex-direction:column; background:var(--rs-bg); color:var(--rs-text); font-family:var(--rs-font); font-size:12px; overflow:hidden; }
 .daw-topbar { background:var(--rs-bg2); border-bottom:1px solid var(--rs-border); flex-shrink:0; }
 .daw-topbar-row1 { display:flex; align-items:center; gap:6px; padding:0 10px; height:50px; overflow:visible; }
-.daw-topbar-row2 { display:flex; align-items:center; height:32px; padding:0 10px; border-top:1px solid var(--rs-border2); }
+.daw-topbar-row2 { display:flex; align-items:center; height:40px; padding:0 10px; border-top:1px solid var(--rs-border2); }
 .daw-topbar-left { display:flex; align-items:center; gap:4px; }
 .daw-topbar-right { display:flex; align-items:center; gap:6px; margin-left:auto; }
 .daw-icon-btn { background:transparent; border:1px solid transparent; border-radius:4px; color:var(--rs-text3); cursor:pointer; display:flex; align-items:center; justify-content:center; height:26px; width:26px; transition:all .15s; flex-shrink:0; }
@@ -54,11 +54,11 @@
 .rs-wam-badge { background:rgba(0,255,200,.08); border:1px solid rgba(0,255,200,.25); border-radius:10px; flex-shrink:0; }
 .rs-wam-text { color:var(--rs-teal); font-size:10px; padding:2px 8px; display:block; }
 .daw-tabs-row { display:flex; align-items:center; height:100%; }
-.daw-view-tab { background:transparent; border:none; border-bottom:2px solid transparent; color:var(--rs-text3); cursor:pointer; font-family:var(--rs-font); font-size:11px; height:32px; padding:0 14px; transition:all .15s; white-space:nowrap; }
+.daw-view-tab { background:transparent; border:none; border-bottom:2px solid transparent; color:var(--rs-text3); cursor:pointer; font-family:var(--rs-font); font-size:13px; height:40px; padding:0 14px; transition:all .15s; white-space:nowrap; }
 .daw-view-tab:hover { color:var(--rs-text); background:rgba(255,255,255,.03); }
 .daw-view-tab.active { color:var(--rs-teal); border-bottom-color:var(--rs-teal); }
 .daw-mix-dropdown { position:relative; }
-.daw-mix-dropdown-btn { background:transparent; border:none; border-bottom:2px solid transparent; color:var(--rs-text3); cursor:pointer; font-family:var(--rs-font); font-size:11px; height:32px; padding:0 14px; transition:all .15s; }
+.daw-mix-dropdown-btn { background:transparent; border:none; border-bottom:2px solid transparent; color:var(--rs-text3); cursor:pointer; font-family:var(--rs-font); font-size:13px; height:36px; padding:0 14px; transition:all .15s; }
 .daw-mix-dropdown-btn:hover { color:var(--rs-text); }
 .daw-mix-dropdown-btn.active { color:var(--rs-orange); border-bottom-color:var(--rs-orange); }
 .daw-mix-dropdown-menu { position:absolute; top:100%; left:0; background:var(--rs-bg2); border:1px solid var(--rs-border); border-radius:6px; min-width:160px; z-index:300; box-shadow:0 8px 24px rgba(0,0,0,.6); }
@@ -145,7 +145,7 @@
 .daw-ch-name-bottom { flex-direction:column-reverse; }
 .daw-ch-name-input { background:var(--rs-surface); border:1px solid var(--rs-border); border-radius:3px; color:var(--rs-text); font-family:var(--rs-font); font-size:9px; padding:2px 4px; text-align:center; width:100%; }
 .daw-ch-console-select { background:var(--rs-surface); border:1px solid var(--rs-border); border-radius:3px; color:var(--rs-text2); font-family:var(--rs-font); font-size:9px; padding:1px 2px; width:100%; }
-.daw-ch-track-label { font-size:9px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; text-align:center; }
+.daw-ch-track-label { font-size:12px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; text-align:center; }
 .rs-master-label { color:var(--rs-orange); font-size:11px; font-weight:700; letter-spacing:1px; }
 .daw-ch-mic-btn { background:rgba(255,255,255,.03); border:1px solid var(--rs-border); border-radius:3px; color:var(--rs-text3); cursor:pointer; font-size:9px; font-family:var(--rs-font); padding:2px 4px; width:100%; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:all .12s; }
 .daw-ch-mic-btn:hover { border-color:var(--rs-teal); color:var(--rs-teal); }

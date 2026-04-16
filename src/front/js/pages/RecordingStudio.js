@@ -486,6 +486,7 @@ const RecordingStudio = ({ user }) => {
   const [analogSubview, setAnalogSubview] = useState("ampsim");
   const [trackConsoleChar, setTrackConsoleChar] = useState({});
   const [masterConsoleChar, setMasterConsoleChar] = useState("none");
+  const [binauralOn, setBinauralOn] = useState(false);
   const [monitorSpeaker, setMonitorSpeaker] = useState("flat");
   const [showMonitorSelector, setShowMonitorSelector] = useState(false);
   const [showVoxEngine, setShowVoxEngine] = useState(false);
@@ -749,6 +750,7 @@ const RecordingStudio = ({ user }) => {
   };
 
   const buildSends = (ctx, track, dry, master) => {
+    if (!track.effects) return;
     const fx = track.effects;
     if (fx.reverb?.enabled && fx.reverb.mix > 0) { const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.reverb.decay); const g = ctx.createGain(); g.gain.value = fx.reverb.mix; dry.connect(conv); conv.connect(g); g.connect(master); }
     if (fx.delay?.enabled && fx.delay.mix > 0)   { const d = ctx.createDelay(5); d.delayTime.value = fx.delay.time; const fb = ctx.createGain(); fb.gain.value = fx.delay.feedback; const mx = ctx.createGain(); mx.gain.value = fx.delay.mix; dry.connect(d); d.connect(fb); fb.connect(d); d.connect(mx); mx.connect(master); }
@@ -1171,11 +1173,11 @@ const RecordingStudio = ({ user }) => {
       const splitter = ctx.createChannelSplitter(2);
       const analyserL = ctx.createAnalyser(); analyserL.fftSize = 256; analyserL.smoothingTimeConstant = 0.7;
       const analyserR = ctx.createAnalyser(); analyserR.fftSize = 256; analyserR.smoothingTimeConstant = 0.7;
-      const fxNodes = buildFxChain(ctx, t); let last = s;
+      const fxNodes = (t.effects && Object.keys(t.effects).length) ? buildFxChain(ctx, t) : []; let last = s;
       fxNodes.forEach(n => { last.connect(n); last = n; });
       last.connect(g); g.connect(p); p.connect(splitter);
       splitter.connect(analyserL, 0); splitter.connect(analyserR, 1);
-      p.connect(masterGainRef.current); buildSends(ctx, t, p, masterGainRef.current);
+      p.connect(masterGainRef.current); if (t.effects) buildSends(ctx, t, p, masterGainRef.current);
       s.start(0, playOffsetRef.current);
       trackSourcesRef.current[i] = s; trackGainsRef.current[i] = g; trackPansRef.current[i] = p;
       trackAnalysersRef.current[i] = { left: analyserL, right: analyserR };
