@@ -2032,26 +2032,39 @@ const RecordingStudio = ({ user }) => {
                   })}
                   <div className="daw-channel master-channel">
                     <div className="daw-ch-colorbar" style={{ background: "#ff8a3d" }}/>
+                    <div className="daw-ch-header">
+                      <span className="daw-ch-type-icon">🎚</span>
+                      <span className="daw-ch-header-num" style={{color:"#ff8a3d"}}>M</span>
+                    </div>
+                    <div className="daw-ch-routing"><span className="daw-ch-routing-value">Stereo Out</span></div>
+                    <div className="daw-ch-inserts">
+                      <div className="daw-ch-inserts-label">INSERTS</div>
+                      <div className="daw-ch-insert-slot empty" onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setInsertPickerState({ trackIndex: -1, x: rect.right + 4, y: rect.top }); }}>+ Insert</div>
+                    </div>
                     <div className="daw-ch-controls">
-                      <button className="daw-ch-btn">M</button>
-                      <button className="daw-ch-btn">S</button>
+                      <div className="daw-ch-badge">M</div>
+                      <div className="daw-ch-badge">S</div>
+                      <div className="daw-ch-badge e-on" onClick={e => { e.stopPropagation(); setActiveEffectsTrack(-1); }}>e</div>
+                    </div>
+                    <div className="daw-ch-pan">
+                      <PanKnob value={masterPan || 0} onChange={v => { setMasterPan(v); if (masterPanRef.current) masterPanRef.current.pan.value = v; }} size={56}/>
                     </div>
                     <div className="daw-ch-fader-area">
                       <div className="daw-ch-fader-row">
                         <div className="daw-ch-fader">
-                          <input type="range" min={0} max={1.26} step={0.005} value={masterVolume ?? 1.0} onChange={e => setMasterVolume(parseFloat(e.target.value))}/>
+                          <input type="range" min={0} max={1.26} step={0.005} value={masterVolume ?? 1.0} onChange={e => { const v = parseFloat(e.target.value); setMasterVolume(v); if (masterGainRef.current) masterGainRef.current.gain.value = v; }}/>
                         </div>
-                        <div className="daw-ch-meter" style={{display:"flex",flexDirection:"row",gap:"2px",width:"auto"}}>
-                          <div style={{width:"7px",height:"190px",background:"#060a0e",borderRadius:"2px",overflow:"hidden",display:"flex",flexDirection:"column",justifyContent:"flex-end",border:"1px solid #0d1219"}}>
-                            <div style={{width:"100%",borderRadius:"2px 2px 0 0",transition:"height .04s",background:(masterMeterLevels?.left||0)>0.9?"#ff3b30":(masterMeterLevels?.left||0)>0.7?"#ffd700":"#ff8a3d",height:`${Math.round((masterMeterLevels?.left||0)*100)}%`}}/>
-                          </div>
-                          <div style={{width:"7px",height:"190px",background:"#060a0e",borderRadius:"2px",overflow:"hidden",display:"flex",flexDirection:"column",justifyContent:"flex-end",border:"1px solid #0d1219"}}>
-                            <div style={{width:"100%",borderRadius:"2px 2px 0 0",transition:"height .04s",background:(masterMeterLevels?.right||0)>0.9?"#ff3b30":(masterMeterLevels?.right||0)>0.7?"#ffd700":"#ff8a3d",height:`${Math.round((masterMeterLevels?.right||0)*100)}%`}}/>
-                          </div>
-                        </div>
+                        <CubaseMeter leftLevel={masterMeterLevels?.left||0} rightLevel={masterMeterLevels?.right||0} height={180} showScale={false}/>
+                        <div className="daw-ch-db-scale"><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
+                      </div>
+                      <div className="daw-ch-vol-display">
+                        <span className="daw-ch-vol-val rs-orange">{masterVolume > 0 ? (20 * Math.log10(masterVolume)).toFixed(1) : "-∞"} dB</span>
                       </div>
                     </div>
-                    <div className="daw-ch-vol-display"><div className="daw-ch-vol-readout rs-orange">{masterVolume > 0 ? (20 * Math.log10(masterVolume)).toFixed(1) : "-∞"} dB</div></div>
+                    <div className="daw-ch-automation">
+                      <div className="daw-ch-rw">R</div>
+                      <div className="daw-ch-rw">W</div>
+                    </div>
                     <div className="daw-ch-name daw-ch-name-bottom">
                       <select className="daw-ch-console-select" value={masterConsoleChar} onChange={e => setMasterConsoleChar(e.target.value)}>
                         {Object.entries(CONSOLE_BOARDS).map(([id, b]) => <option key={id} value={id}>{b.name}</option>)}
