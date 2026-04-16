@@ -1993,12 +1993,11 @@ const RecordingStudio = ({ user }) => {
                               {fx.name}
                             </div>
                           ))}
-                          {ALL_FX_EXTENDED.filter(fx => t.effects?.[fx.key]?.enabled).length < 8 && (
-                            <div className="daw-ch-insert-slot empty"
+                          {Array.from({length: Math.max(0, 6 - ALL_FX_EXTENDED.filter(fx => t.effects?.[fx.key]?.enabled).length)}).map((_, si) => (
+                            <div key={"empty"+si} className="daw-ch-insert-slot empty"
                               onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setInsertPickerState({ trackIndex: i, x: rect.right + 4, y: rect.top }); }}>
-                              + Insert
                             </div>
-                          )}
+                          ))}
                         </div>
                         <div className="daw-ch-controls">
                           <div className={"daw-ch-badge" + (t.muted ? " m-on" : "")} onClick={e => { e.stopPropagation(); const nm = !t.muted; updateTrack(i, { muted: nm }); const audible = !nm && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? t.volume : 0; }}>M</div>
