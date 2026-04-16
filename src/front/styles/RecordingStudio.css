@@ -277,23 +277,23 @@
 .daw-ch-fader input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none !important;
   appearance: none !important;
-  width: 52px !important;
-  height: 14px !important;
+  width: 34px !important;
+  height: 28px !important;
   border-radius: 2px !important;
   background:
-    linear-gradient(180deg, transparent 46%, #111 46%, #111 54%, transparent 54%),
-    linear-gradient(180deg,
-      #e0e4ec 0%,
-      #b0bcc8 25%,
+    linear-gradient(180deg, transparent 47%, #111 47%, #111 53%, transparent 53%),
+    linear-gradient(90deg,
+      #d0d8e4 0%,
+      #a0b0c0 20%,
       #7a8fa0 50%,
-      #b0bcc8 75%,
-      #e0e4ec 100%
+      #a0b0c0 80%,
+      #d0d8e4 100%
     ) !important;
-  border-top: 2px solid #eef2f6 !important;
-  border-bottom: 2px solid #3a4858 !important;
-  border-left: 1px solid #607888 !important;
-  border-right: 1px solid #607888 !important;
-  box-shadow: 0 3px 8px rgba(0,0,0,.7), 0 -1px 4px rgba(0,0,0,.4) !important;
+  border-left: 2px solid #eef2f6 !important;
+  border-right: 2px solid #3a4858 !important;
+  border-top: 1px solid #607888 !important;
+  border-bottom: 1px solid #607888 !important;
+  box-shadow: 2px 0 8px rgba(0,0,0,.7), -1px 0 4px rgba(0,0,0,.4) !important;
   cursor: grab !important;
 }
 .daw-ch-fader input[type="range"]:active::-webkit-slider-thumb {
