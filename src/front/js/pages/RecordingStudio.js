@@ -2011,6 +2011,7 @@ const RecordingStudio = ({ user }) => {
                         </div>
                         <div className="daw-ch-fader-area">
                           <div className="daw-ch-fader-row">
+                            <div className="daw-ch-db-scale" style={{textAlign:"right"}}><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
                             <div className="daw-ch-fader">
                               <input type="range" min={0} max={1.26} step={0.005} value={t.volume ?? 1.0} onChange={e => { const v = parseFloat(e.target.value); updateTrack(i, { volume: v }); const audible = !t.muted && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? v : 0; }}/>
                             </div>
