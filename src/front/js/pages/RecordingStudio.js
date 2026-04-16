@@ -2584,8 +2584,7 @@ const RecordingStudio = ({ user }) => {
 
         {/* INSERT PICKER */}
         {insertPickerState && (
-          <div className="daw-insert-picker" style={{position:"fixed", zIndex:9999}} onClick={e=>e.stopPropagation()}>
-            <div className="daw-insert-picker-title" onMouseDown={onDragStart} style={{cursor:"grab",userSelect:"none"}}>⠿ ADD INSERT</div>
+          <div className="daw-insert-picker" style={{position:"fixed", left:Math.min(insertPickerState.x, window.innerWidth-340), top:Math.min(insertPickerState.y, window.innerHeight-520), zIndex:9999, maxHeight:"65vh", overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
             <InsertPickerMenu
               insertPickerState={insertPickerState}
               setInsertPickerState={setInsertPickerState}
