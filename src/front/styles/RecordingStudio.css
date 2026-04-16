@@ -593,3 +593,79 @@
   position: relative !important;
   z-index: 1 !important;
 }
+
+
+/* Uniform Channel Strips - Identical Structure */
+.daw-channel {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+  height: 500px !important;
+  min-height: 500px !important;
+  max-height: 500px !important;
+  background: #1a1a1a !important;
+  border: 1px solid #333 !important;
+  border-radius: 4px !important;
+  overflow: hidden !important;
+}
+
+.daw-channel.master-channel {
+  border-color: #00ffc8 !important;
+  background: #1a1f1a !important;
+}
+
+/* All sections same height ratios */
+.daw-ch-routing { height: 40px !important; padding: 4px !important; border-bottom: 1px solid #333 !important; }
+.daw-ch-inserts { height: 60px !important; padding: 4px !important; border-bottom: 1px solid #333 !important; }
+.daw-ch-controls { height: 30px !important; padding: 4px !important; border-bottom: 1px solid #333 !important; }
+.daw-ch-pan { height: 30px !important; padding: 4px !important; border-bottom: 1px solid #333 !important; }
+.daw-ch-fader-area { height: 240px !important; padding: 4px !important; border-bottom: 1px solid #333 !important; }
+.daw-ch-rec { height: 25px !important; padding: 4px !important; border-bottom: 1px solid #333 !important; }
+.daw-ch-name { height: 45px !important; padding: 4px !important; }
+
+/* Routing */
+.daw-ch-routing-label { font-size: 9px !important; color: #888 !important; text-transform: uppercase !important; }
+.daw-ch-routing-value { font-size: 10px !important; color: #ccc !important; }
+
+/* Insert slots */
+.daw-ch-inserts { display: flex !important; flex-direction: column !important; gap: 2px !important; }
+.daw-ch-insert-slot {
+  height: 12px !important;
+  background: #333 !important;
+  border-radius: 2px !important;
+  font-size: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #999 !important;
+}
+.daw-ch-insert-slot.eq { background: #004080 !important; color: #66ccff !important; }
+.daw-ch-insert-slot.comp { background: #806600 !important; color: #ffcc66 !important; }
+.daw-ch-insert-slot.reverb { background: #800080 !important; color: #cc66ff !important; }
+
+/* Fader area - identical for both channels */
+.daw-ch-fader-row {
+  display: flex !important;
+  height: 180px !important;
+  gap: 4px !important;
+  align-items: stretch !important;
+}
+
+.daw-ch-meter { width: 20px !important; }
+.daw-ch-fader { 
+  width: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.vertical-fader {
+  -webkit-appearance: slider-vertical !important;
+  width: 30px !important;
+  height: 160px !important;
+  background: #444 !important;
+  outline: none !important;
+  cursor: pointer !important;
+}

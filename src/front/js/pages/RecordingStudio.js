@@ -263,19 +263,15 @@ const DEFAULT_EFFECTS = () => ({
   gainUtility:   { gain: 0, phaseInvert: false, monoSum: false, enabled: false },
 });
 
-const DEFAULT_TRACK = (i, type = "audio") => {
-  const track = {
-    id: uid(),
-    name: `${type === "midi" ? "MIDI" : type === "bus" ? "Bus" : type === "aux" ? "Aux" : "Audio"} ${i + 1}`,
-    trackType: type,
-    instrument: type === "midi" ? { program: 0, name: "Acoustic Grand" } : null,
-    volume: 1.0, pan: 0, muted: false, solo: false, armed: false,
-    audio_url: null, color: TRACK_COLORS[i % TRACK_COLORS.length],
-    audioBuffer: null, effects: DEFAULT_EFFECTS(), regions: [],
-  };
-  console.log(`[DEBUG] DEFAULT_TRACK created: ${track.name}, volume=${track.volume}, type=${type}`);
-  return track;
-};
+const DEFAULT_TRACK = (i, type = "audio") => ({
+  id: uid(),
+  name: `${type === "midi" ? "MIDI" : type === "bus" ? "Bus" : type === "aux" ? "Aux" : "Audio"} ${i + 1}`,
+  trackType: type,
+  instrument: type === "midi" ? { program: 0, name: "Acoustic Grand" } : null,
+  volume: 1.0, pan: 0, muted: false, solo: false, armed: false,
+  audio_url: null, color: TRACK_COLORS[i % TRACK_COLORS.length],
+  audioBuffer: null, effects: DEFAULT_EFFECTS(), regions: [],
+});
 
 // =============================================================================
 // CUBASE METER (canvas stereo VU)
@@ -728,31 +724,6 @@ const RecordingStudio = ({ user }) => {
   useEffect(() => { trackConsoleCharRef.current = trackConsoleChar; }, [trackConsoleChar]);
   useEffect(() => { masterConsoleCharRef.current = masterConsoleChar; }, [masterConsoleChar]);
   useEffect(() => { setWamPlugins(getInstalledWAMPlugins() || []); }, []);
-
-  // ── Recalc region durations when BPM changes ──
-  // durationSeconds is source of truth; duration (beats) is derived.
-  const lastBpmRef = useRef(bpm);
-  useEffect(() => {
-    if (lastBpmRef.current === bpm) return;
-    const oldBpm = lastBpmRef.current;
-    lastBpmRef.current = bpm;
-    setTracks(prev => prev.map(t => ({
-      ...t,
-      regions: (t.regions || []).map(r => {
-        if (typeof r.durationSeconds === "number" && r.durationSeconds > 0) {
-          return { ...r, duration: secondsToBeat(r.durationSeconds, bpm), startBeat: typeof r.startSeconds === "number" ? secondsToBeat(r.startSeconds, bpm) : r.startBeat };
-        }
-        if (typeof r.duration === "number" && r.duration > 0 && oldBpm > 0) {
-          const seconds = beatToSeconds(r.duration, oldBpm);
-          return { ...r, duration: secondsToBeat(seconds, bpm), durationSeconds: seconds };
-        }
-        return r;
-      }),
-    })));
-  }, [bpm]);
-
-  // ── Recalc region durations when BPM changes ──
-  // durationSeconds is source of truth; duration (beats) is derived.
 
   // ── Monitor EQ sync ──
   useEffect(() => {
@@ -1603,7 +1574,6 @@ const RecordingStudio = ({ user }) => {
   }, [masterPan]);
 
   useEffect(() => {
-    console.log(`[DEBUG] Tracks changed:`, tracks.map(t => `${t.name}:vol=${t.volume}`));
     if (!audioCtxRef.current || !masterGainRef.current) return;
     tracks.filter(t => t.trackType === "bus" || t.trackType === "aux").forEach(t => ensureBusGraph(t));
     tracks.filter(t => t.trackType !== "bus" && t.trackType !== "aux").forEach(t => ensureTrackGraph(t));
@@ -1783,16 +1753,14 @@ const RecordingStudio = ({ user }) => {
   const createRegionFromRecording = (trackIndex, audioBuffer, audioUrl) => {
     const regionId = `rgn_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const startBeat = secondsToBeat(playOffsetRef.current, bpm);
-    const durationSeconds = audioBuffer.duration;
-    const durationBeat = secondsToBeat(durationSeconds, bpm);
-    setTracks(prev => prev.map((t, i) => i === trackIndex ? { ...t, regions: [...(t.regions || []), { id: regionId, name: tracks[trackIndex]?.name || `Track ${trackIndex + 1}`, startBeat, duration: durationBeat, durationSeconds, originalBpm: bpm, audioUrl, color: tracks[trackIndex]?.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length], loopEnabled: false, loopCount: 1 }] } : t));
+    const durationBeat = secondsToBeat(audioBuffer.duration, bpm);
+    setTracks(prev => prev.map((t, i) => i === trackIndex ? { ...t, regions: [...(t.regions || []), { id: regionId, name: tracks[trackIndex]?.name || `Track ${trackIndex + 1}`, startBeat, duration: durationBeat, audioUrl, color: tracks[trackIndex]?.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length], loopEnabled: false, loopCount: 1 }] } : t));
   };
 
   const createRegionFromImport = (trackIndex, audioBuffer, name, audioUrl) => {
     const regionId = `rgn_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-    const durationSeconds = audioBuffer.duration;
-    const durationBeat = secondsToBeat(durationSeconds, bpm);
-    setTracks(prev => prev.map((t, i) => i === trackIndex ? { ...t, regions: [...(t.regions || []), { id: regionId, name: name || `Import ${trackIndex + 1}`, startBeat: 0, duration: durationBeat, durationSeconds, originalBpm: bpm, audioUrl, color: t.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length], loopEnabled: false, loopCount: 1 }] } : t));
+    const durationBeat = secondsToBeat(audioBuffer.duration, bpm);
+    setTracks(prev => prev.map((t, i) => i === trackIndex ? { ...t, regions: [...(t.regions || []), { id: regionId, name: name || `Import ${trackIndex + 1}`, startBeat: 0, duration: durationBeat, audioUrl, color: t.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length], loopEnabled: false, loopCount: 1 }] } : t));
   };
 
   const uploadTrack = async (blob, ti) => {
@@ -1842,10 +1810,7 @@ const RecordingStudio = ({ user }) => {
   };
 
   // ── Track CRUD ──
-  const updateTrack = useCallback((i, u) => {
-    if (u.volume !== undefined) console.log(`[DEBUG] updateTrack: Track ${i} volume ${u.volume}`);
-    setTracks(p => p.map((t, idx) => idx === i ? { ...t, ...u } : t));
-  }, []);
+  const updateTrack = useCallback((i, u) => setTracks(p => p.map((t, idx) => idx === i ? { ...t, ...u } : t)), []);
   const updateEffect = (ti, fx, param, val) => setTracks(p => p.map((t, i) => i !== ti ? t : { ...t, effects: { ...t.effects, [fx]: { ...t.effects[fx], [param]: val } } }));
 
   const addTrack = () => {
@@ -1896,20 +1861,7 @@ const RecordingStudio = ({ user }) => {
           const avg = peaks.reduce((a,b)=>a+b,0)/peaks.length; const thr = avg * 1.5;
           const beats = []; let last = -1;
           for (let i = 1; i < peaks.length-1; i++) { if (peaks[i]>thr && peaks[i]>peaks[i-1] && peaks[i]>peaks[i+1] && (i-last)>20) { beats.push(i*0.01); last=i; } }
-          if (beats.length > 3) {
-            const intervals = beats.slice(1).map((b,i)=>b-beats[i]);
-            const avgInt = intervals.reduce((a,b)=>a+b,0)/intervals.length;
-            const det = Math.round(60/avgInt);
-            if (det>=60&&det<=200) {
-              const projectHasAudio = tracks.some((t,idx) => idx !== ti && (t.regions||[]).some(r => r.audioUrl || r.durationSeconds));
-              if (!projectHasAudio) {
-                setBpm(det); setStatus('♩ BPM: '+det+' from "'+name+'"');
-              } else if (Math.abs(det - bpm) >= 1) {
-                const msg = `Detected BPM: ${det}\nProject BPM: ${bpm}\n\nSet project to ${det} BPM?`;
-                if (window.confirm(msg)) { setBpm(det); setStatus('♩ BPM: '+det+' from "'+name+'"'); }
-              }
-            }
-          }
+          if (beats.length > 3) { const intervals = beats.slice(1).map((b,i)=>b-beats[i]); const avgInt = intervals.reduce((a,b)=>a+b,0)/intervals.length; const det = Math.round(60/avgInt); if (det>=60&&det<=200) { setBpm(det); setStatus('♩ BPM: '+det+' from "'+name+'"'); } }
         } catch(e) {}
         updateTrack(ti, { audioBuffer: buf, audio_url: audioUrl, name }); createRegionFromImport(ti, buf, name, audioUrl);
         setStatus(`✓ Track ${ti + 1}`);

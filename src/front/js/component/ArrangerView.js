@@ -739,54 +739,6 @@ const ArrangerView = ({
     return Math.ceil(maxBeat + 16);
   }, [tracks]);
 
-  // ── Recalc region durations when BPM changes ──
-  // Regions store durationSeconds as source of truth; duration (beats) is derived.
-  const lastBpmRef = useRef(bpm);
-  useEffect(() => {
-    if (lastBpmRef.current === bpm) return;
-    const oldBpm = lastBpmRef.current;
-    lastBpmRef.current = bpm;
-    setTracks(prev => prev.map(t => ({
-      ...t,
-      regions: (t.regions || []).map(r => {
-        // If region has durationSeconds, recalc duration from it
-        if (typeof r.durationSeconds === "number" && r.durationSeconds > 0) {
-          return { ...r, duration: r.durationSeconds * (bpm / 60) };
-        }
-        // Legacy region (no durationSeconds) — rescale from old BPM
-        if (typeof r.duration === "number" && r.duration > 0 && oldBpm > 0) {
-          const seconds = r.duration * (60 / oldBpm);
-          return { ...r, duration: seconds * (bpm / 60), durationSeconds: seconds };
-        }
-        return r;
-      }),
-    })));
-  }, [bpm, setTracks]);
-
-  // ── Recalc region durations when BPM changes ──
-  // Regions store durationSeconds as source of truth; duration (beats) is derived.
-  const lastBpmRef = useRef(bpm);
-  useEffect(() => {
-    if (lastBpmRef.current === bpm) return;
-    const oldBpm = lastBpmRef.current;
-    lastBpmRef.current = bpm;
-    setTracks(prev => prev.map(t => ({
-      ...t,
-      regions: (t.regions || []).map(r => {
-        // If region has durationSeconds, recalc duration from it
-        if (typeof r.durationSeconds === "number" && r.durationSeconds > 0) {
-          return { ...r, duration: r.durationSeconds * (bpm / 60) };
-        }
-        // Legacy region (no durationSeconds) — rescale from old BPM
-        if (typeof r.duration === "number" && r.duration > 0 && oldBpm > 0) {
-          const seconds = r.duration * (60 / oldBpm);
-          return { ...r, duration: seconds * (bpm / 60), durationSeconds: seconds };
-        }
-        return r;
-      }),
-    })));
-  }, [bpm, setTracks]);
-
   // ── Scroll sync ──
   const handleScroll = useCallback((e) => {
     setScrollLeft(e.target.scrollLeft);
@@ -829,16 +781,11 @@ const ArrangerView = ({
     const rect = scrollEl.getBoundingClientRect();
     const dropX = e.clientX - rect.left + scrollEl.scrollLeft;
     const startBeat = Math.max(0, Math.floor(pxToBeat(dropX, zoom)));
-
-    // Project is "empty" if no existing track has any audio regions
-    const projectHasAudio = tracks.some(t => (t.regions || []).some(r => r.audioUrl || r.durationSeconds));
-
     for (const file of files) {
       const url = URL.createObjectURL(file);
       const arrayBuf = await file.arrayBuffer();
       let duration = 4;
       let decodedBuf = null;
-      let detectedBpm = null;
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         decodedBuf = await ctx.decodeAudioData(arrayBuf);
@@ -862,36 +809,13 @@ const ArrangerView = ({
             const intervals = beats.slice(1).map((b,i)=>b-beats[i]);
             const avgInt = intervals.reduce((a,b)=>a+b,0)/intervals.length;
             const det = Math.round(60/avgInt);
-            if (det>=60 && det<=200) detectedBpm = det;
+            if (det>=60 && det<=200 && onBpmDetected) onBpmDetected(det);
           }
         } catch(e) {}
         ctx.close();
       } catch(err) {}
-
-      // Decide which BPM to use for sizing this region
-      let effectiveBpm = bpm;
-      if (detectedBpm) {
-        if (!projectHasAudio) {
-          // Empty project: silently adopt detected BPM
-          effectiveBpm = detectedBpm;
-          if (onBpmDetected) onBpmDetected(detectedBpm);
-        } else if (Math.abs(detectedBpm - bpm) >= 1) {
-          // Has audio: ask
-          const msg = `Detected BPM: ${detectedBpm}\nProject BPM: ${bpm}\n\nSet project to ${detectedBpm} BPM?`;
-          if (window.confirm(msg)) {
-            effectiveBpm = detectedBpm;
-            if (onBpmDetected) onBpmDetected(detectedBpm);
-          }
-          // else: keep project BPM; region will be sized to detected BPM visually
-          // so waveform still lines up to itself but won't be on-grid
-          else {
-            effectiveBpm = detectedBpm;
-          }
-        }
-      }
-
-      const beatsPerSecond = effectiveBpm / 60;
-      const regionBeats = duration * beatsPerSecond;
+      const beatsPerSecond = bpm / 60;
+      const regionBeats = Math.ceil(duration * beatsPerSecond);
       const i = tracks.length;
       const newTrack = {
         id: `trk_${Date.now()}_${Math.random().toString(36).slice(2)}`,
@@ -906,8 +830,6 @@ const ArrangerView = ({
           id: `reg_${Date.now()}`,
           startBeat: startBeat,
           duration: regionBeats,
-          durationSeconds: duration,       // source of truth
-          originalBpm: effectiveBpm,       // BPM region was created at
           audioUrl: url,
           name: file.name.replace(/\.[^.]+$/, ''),
           color: TRACK_COLORS[i % TRACK_COLORS.length],
@@ -916,7 +838,7 @@ const ArrangerView = ({
       setTracks(prev => [...prev, newTrack]);
       setSelectedTrack(i);
     }
-  }, [tracks, bpm, zoom, setTracks, onBpmDetected]);
+  }, [tracks.length, bpm, zoom, setTracks]);
 
   const removeTrack = useCallback((index) => {
     if (tracks.length <= 1) return;
@@ -1011,43 +933,9 @@ const ArrangerView = ({
   }, [onTimelineDoubleClick]);
 
   // ── Region context menu ──
-  // ── Detect tempo of an existing region ──
-  const detectRegionTempo = useCallback(async (trackIndex, regionId) => {
-    const track = tracks[trackIndex];
-    const region = (track?.regions || []).find(r => r.id === regionId);
-    if (!region?.audioUrl) return null;
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const resp = await fetch(region.audioUrl);
-      const arrayBuf = await resp.arrayBuffer();
-      const decoded = await ctx.decodeAudioData(arrayBuf);
-      const ch = decoded.getChannelData(0); const sr = decoded.sampleRate;
-      const step = Math.floor(sr * 0.01);
-      const peaks = [];
-      for (let s = 0; s < ch.length - step; s += step) {
-        let r = 0; for (let k = 0; k < step; k++) r += ch[s+k]*ch[s+k];
-        peaks.push(Math.sqrt(r/step));
-      }
-      const avg = peaks.reduce((a,b)=>a+b,0)/peaks.length;
-      const thr = avg * 1.5;
-      const hits = []; let last = -1;
-      for (let i = 1; i < peaks.length-1; i++) {
-        if (peaks[i]>thr && peaks[i]>peaks[i-1] && peaks[i]>peaks[i+1] && (i-last)>20) { hits.push(i*0.01); last=i; }
-      }
-      ctx.close();
-      if (hits.length < 4) return null;
-      const intervals = hits.slice(1).map((b,i)=>b-hits[i]);
-      const avgInt = intervals.reduce((a,b)=>a+b,0)/intervals.length;
-      const det = Math.round(60/avgInt);
-      if (det>=60 && det<=200) return det;
-      return null;
-    } catch(e) { return null; }
-  }, [tracks]);
-
   const handleRegionContextMenu = useCallback((e, region, trackIndex) => {
     e.preventDefault(); e.stopPropagation();
     const clickBeat = pxToBeat(e.clientX - timelineRef.current?.getBoundingClientRect().left + scrollLeft, zoom);
-    const isAudioRegion = !!region.audioUrl;
     setContextMenu({
       x: e.clientX, y: e.clientY,
       items: [
@@ -1057,23 +945,11 @@ const ArrangerView = ({
           ? [{ label: "Edit in Piano Roll", icon: "🎹", action: () => onOpenPianoRoll && onOpenPianoRoll(trackIndex, region.id) }]
           : []
         ),
-        ...(isAudioRegion ? [
-          "---",
-          { label: "Detect tempo", icon: "♩", action: async () => {
-            const det = await detectRegionTempo(trackIndex, region.id);
-            if (det) {
-              const msg = `Detected ${det} BPM\n\nCurrent project BPM: ${bpm}\n\nSet project BPM to ${det}?`;
-              if (window.confirm(msg) && onBpmChange) onBpmChange(det);
-            } else {
-              window.alert("Could not detect tempo from this region.");
-            }
-          }},
-        ] : []),
         "---",
         { label: "Delete",      icon: "🗑", danger: true, action: () => deleteRegion(trackIndex, region.id) },
       ],
     });
-  }, [zoom, scrollLeft, tracks, bpm, duplicateRegion, splitRegion, deleteRegion, onOpenPianoRoll, detectRegionTempo, onBpmChange]);
+  }, [zoom, scrollLeft, tracks, duplicateRegion, splitRegion, deleteRegion, onOpenPianoRoll]);
 
   // ── Track context menu ──
   const handleTrackContextMenu = useCallback((e, trackIndex) => {
