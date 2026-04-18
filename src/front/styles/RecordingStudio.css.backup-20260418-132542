@@ -568,34 +568,3 @@
   }
 }
 /* ───────────────────────── END context menu ───────────────── */
-
-/* ── METER dB scale (right side of channel) ──
-   Aligned to CubaseMeter: pos = (db + 60) / 66 on 180px track
-   Top pixel offset = 180 - pos*180 - 4 (to center 8px label on meter tick) */
-.daw-ch-meter-scale {
-  display: flex;
-  flex-direction: column;
-  height: 180px;
-  padding: 0;
-  margin-left: 3px;
-  flex-shrink: 0;
-  pointer-events: none;
-  width: 18px;
-  position: relative;
-}
-.daw-ch-meter-scale span:nth-child(1) { position: absolute; top: 12px; }   /* 0dB   = 90.9% */
-.daw-ch-meter-scale span:nth-child(2) { position: absolute; top: 28px; }   /* -6dB  = 81.8% */
-.daw-ch-meter-scale span:nth-child(3) { position: absolute; top: 45px; }   /* -12dB = 72.7% */
-.daw-ch-meter-scale span:nth-child(4) { position: absolute; top: 61px; }   /* -18dB = 63.6% */
-.daw-ch-meter-scale span:nth-child(5) { position: absolute; top: 78px; }   /* -24dB = 54.5% */
-.daw-ch-meter-scale span:nth-child(6) { position: absolute; bottom: 0px; } /* -inf  = bottom */
-.daw-ch-meter-scale span {
-  font-size: 8px;
-  color: #7a9ab6;
-  font-weight: 600;
-  font-family: var(--rs-font);
-  line-height: 1;
-  display: block;
-  text-align: left;
-  padding-left: 2px;
-}

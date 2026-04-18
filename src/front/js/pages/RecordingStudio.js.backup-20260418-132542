@@ -2679,7 +2679,7 @@ const RecordingStudio = ({ user }) => {
                               <input type="range" min={0} max={1.26} step={0.005} value={t.volume ?? 1.0} ref={(input) => { if(input) console.log(`Track volume: ${t.volume ?? 1.0}, fader position: ${input.value}`); }} onChange={e => { const v = parseFloat(e.target.value); updateTrack(i, { volume: v }); const audible = !t.muted && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? v : 0; }}/>
                             </div>
                             <CubaseMeter leftLevel={meter.left||0} rightLevel={meter.right||0} height={180} showScale={false}/>
-                        <div className="daw-ch-meter-scale"><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-∞</span></div>
+                        <div className="daw-ch-db-scale"><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-∞</span></div>
                           </div>
                           <div className="daw-ch-vol-display">
                             <span className="daw-ch-vol-val">{t.volume > 0 ? (20 * Math.log10(t.volume)).toFixed(1) : "-∞"} dB</span>
@@ -2731,7 +2731,7 @@ const RecordingStudio = ({ user }) => {
                           <input type="range" min={0} max={1.26} step={0.005} value={masterVolume ?? 1.0} onChange={e => { const v = parseFloat(e.target.value); setMasterVolume(v); if (masterGainRef.current) masterGainRef.current.gain.value = v; }}/>
                         </div>
                         <CubaseMeter leftLevel={masterMeterLevels?.left||0} rightLevel={masterMeterLevels?.right||0} height={180} showScale={false}/>
-                        <div className="daw-ch-meter-scale"><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-∞</span></div>
+                        <div className="daw-ch-db-scale"><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-∞</span></div>
                       </div>
                       <div className="daw-ch-vol-display">
                         <span className="daw-ch-vol-val rs-orange">{masterVolume > 0 ? (20 * Math.log10(masterVolume)).toFixed(1) : "-∞"} dB</span>
@@ -2832,7 +2832,7 @@ const RecordingStudio = ({ user }) => {
                             onChange={e => { const v = parseFloat(e.target.value); updateTrack(i, { volume: v }); const audible = !t.muted && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? v : 0; }}/>
                         </div>
                         <CubaseMeter leftLevel={meter.left || 0} rightLevel={meter.right || 0} height={180} showScale={false}/>
-                        <div className="daw-ch-meter-scale"><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-∞</span></div>
+                        <div className="daw-ch-db-scale"><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-∞</span></div>
                       </div>
                       <div className="daw-ch-vol-display" onClick={e => e.stopPropagation()}>
                         <input
@@ -2898,7 +2898,7 @@ const RecordingStudio = ({ user }) => {
                         onChange={e => { const v = parseFloat(e.target.value); setMasterVolume(v); if (masterGainRef.current) masterGainRef.current.gain.value = v; }}/>
                     </div>
                     <CubaseMeter leftLevel={masterMeterLevels?.left || 0} rightLevel={masterMeterLevels?.right || 0} height={180} showScale={false}/>
-                        <div className="daw-ch-meter-scale"><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-∞</span></div>
+                        <div className="daw-ch-db-scale"><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-∞</span></div>
                   </div>
                   <div className="daw-ch-vol-display">
                     <span className="daw-ch-vol-val rs-orange">{masterVolume > 0 ? (20 * Math.log10(masterVolume)).toFixed(1) : "-∞"} dB</span>
