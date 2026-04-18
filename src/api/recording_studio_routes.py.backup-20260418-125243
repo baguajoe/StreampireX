@@ -89,7 +89,7 @@ def _parse_time_signature(ts_string):
 # =============================================================================
 # HELPER: Normalize master_volume
 # =============================================================================
-def _normalize_master_volume_to_0_1(raw_vol, default=1.0):
+def _normalize_master_volume_to_0_1(raw_vol, default=0.8):
     """
     Frontend sends 0..1 typically.
     If someone sends 0..100 (legacy UI), we convert to 0..1.

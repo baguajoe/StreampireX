@@ -1996,7 +1996,7 @@ class RecordingProject(db.Model):
     time_signature_bottom = db.Column(db.Integer, nullable=False, default=4)
 
     # ✅ Store master_volume as 0..1 float (WebAudio-native)
-    master_volume = db.Column(db.Float, nullable=False, default=1.0)
+    master_volume = db.Column(db.Float, nullable=False, default=0.8)
 
     metronome_enabled = db.Column(db.Boolean, nullable=False, default=False)
     count_in_enabled = db.Column(db.Boolean, nullable=False, default=False)
@@ -2154,7 +2154,7 @@ class RecordingProject(db.Model):
             "time_signature": f"{self.time_signature_top}/{self.time_signature_bottom}",
 
             # ✅ always 0..1
-            "master_volume": float(self.master_volume or 1.0),
+            "master_volume": float(self.master_volume or 0.8),
 
             "metronome_enabled": self.metronome_enabled,
             "count_in_enabled": self.count_in_enabled,
@@ -2407,7 +2407,7 @@ class StudioProject(db.Model):
 
     bpm = db.Column(db.Integer, nullable=False, default=120)
     time_signature = db.Column(db.String(16), nullable=False, default="4/4")  # "4/4", "3/4", "6/8", etc.
-    master_volume = db.Column(db.Float, nullable=False, default=1.0)
+    master_volume = db.Column(db.Float, nullable=False, default=0.8)
 
     # Piano roll / MIDI editor state saved from your frontend:
     piano_roll_notes = db.Column(db.JSON, nullable=True)   # list of notes (dicts)
@@ -2482,7 +2482,7 @@ class StudioTrack(db.Model):
     track_index = db.Column(db.Integer, nullable=False, default=0)
     name = db.Column(db.String(160), nullable=False, default="Audio 1")
     track_type = db.Column(db.String(16), nullable=False, default="audio")
-    volume = db.Column(db.Float, nullable=False, default=1.0)
+    volume = db.Column(db.Float, nullable=False, default=0.8)
     pan = db.Column(db.Float, nullable=False, default=0.0)
     muted = db.Column(db.Boolean, nullable=False, default=False)
     solo = db.Column(db.Boolean, nullable=False, default=False)
@@ -7474,7 +7474,7 @@ class SamplerProject(db.Model):
     swing = db.Column(db.Integer, default=0)
     key_note = db.Column(db.String(10), default="C")       # "key" is reserved in some DBs
     scale = db.Column(db.String(20), default="major")
-    master_volume = db.Column(db.Float, default=1.0)        # 0..1 like RecordingProject
+    master_volume = db.Column(db.Float, default=0.8)        # 0..1 like RecordingProject
     step_count = db.Column(db.Integer, default=16)
 
     # Genre / tags for discovery

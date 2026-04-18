@@ -1979,7 +1979,7 @@ const RecordingStudio = ({ user }) => {
       const data = await res.json();
       if (data?.success) {
         const p = data.project;
-        setProjectId(p.id); setProjectName(p.name); setBpm(p.bpm); setMasterVolume(p.master_volume || 1.0); setMasterPan(p.master_pan || 0);
+        setProjectId(p.id); setProjectName(p.name); setBpm(p.bpm); setMasterVolume(p.master_volume || 0.8); setMasterPan(p.master_pan || 0);
         if (p.time_signature) { const ts = p.time_signature.split("/").map(Number); if (ts.length === 2) setTimeSignature(ts); }
         if (p.piano_roll_notes) setPianoRollNotes(p.piano_roll_notes);
         if (p.piano_roll_key) setPianoRollKey(p.piano_roll_key);
@@ -2008,7 +2008,7 @@ const RecordingStudio = ({ user }) => {
   };
 
   const newProject = () => {
-    stopEverything(); setProjectId(null); setProjectName("Untitled Project"); setBpm(120); setMasterVolume(1.0); setMasterPan(0);
+    stopEverything(); setProjectId(null); setProjectName("Untitled Project"); setBpm(120); setMasterVolume(0.8); setMasterPan(0);
     setActiveEffectsTrack(null); setTimeSignature([4, 4]); setTracks(Array.from({ length: 1 }, (_, i) => DEFAULT_TRACK(i)));
     setSelectedTrackIndex(0); setPianoRollNotes([]); setPianoRollKey("C"); setPianoRollScale("major");
     setEditingRegion(null); setStatus("New project"); setViewMode("arrange");
@@ -2026,7 +2026,7 @@ const RecordingStudio = ({ user }) => {
         if (!t.audioBuffer || t.muted) return;
         if (tracks.some(x => x.solo) && !t.solo) return;
         const src = offCtx.createBufferSource(); src.buffer = t.audioBuffer;
-        const g = offCtx.createGain(); g.gain.value = t.volume ?? 1.0;
+        const g = offCtx.createGain(); g.gain.value = t.volume ?? 0.8;
         const pan = offCtx.createStereoPanner(); pan.pan.value = t.pan ?? 0;
         let last = src; const fxLocal = t.effects ?? {};
         if (fxLocal.eq?.enabled) { const lo = offCtx.createBiquadFilter(); lo.type = "lowshelf"; lo.frequency.value = 200; lo.gain.value = fxLocal.eq.lowGain ?? 0; const mi = offCtx.createBiquadFilter(); mi.type = "peaking"; mi.frequency.value = 1000; mi.Q.value = 1; mi.gain.value = fxLocal.eq.midGain ?? 0; const hi = offCtx.createBiquadFilter(); hi.type = "highshelf"; hi.frequency.value = 8000; hi.gain.value = fxLocal.eq.highGain ?? 0; last.connect(lo); lo.connect(mi); mi.connect(hi); last = hi; }
@@ -2104,7 +2104,7 @@ const RecordingStudio = ({ user }) => {
       const sr = audioCtxRef.current?.sampleRate || 48000;
       const offCtx = new OfflineAudioContext(2, Math.ceil(sr * (t.audioBuffer.duration + 0.5)), sr);
       const src = offCtx.createBufferSource(); src.buffer = t.audioBuffer;
-      const g = offCtx.createGain(); g.gain.value = t.volume ?? 1.0;
+      const g = offCtx.createGain(); g.gain.value = t.volume ?? 0.8;
       const pan = offCtx.createStereoPanner(); pan.pan.value = t.pan ?? 0;
       src.connect(g); g.connect(pan); pan.connect(offCtx.destination); src.start(0);
       const rendered = await offCtx.startRendering();
@@ -2389,7 +2389,7 @@ const RecordingStudio = ({ user }) => {
       case "file:new": newProject(); break;
       case "file:open": loadProjectList(); break;
       case "file:save": saveProject(); break;
-      case "file:openLocal": { const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".spx,.json"; inp.onchange = async (e) => { const f = e.target.files[0]; if (!f) return; try { const text = await f.text(); const data = JSON.parse(text); if (data.format !== "streampirex-daw") { setStatus("Not a valid StreamPireX project"); return; } stopEverything(); setProjectId(null); setProjectName(data.name || "Imported Project"); setBpm(data.bpm || 120); setMasterVolume(data.master_volume || 1.0); if (data.time_signature) { const ts = data.time_signature.split("/").map(Number); if (ts.length === 2) setTimeSignature(ts); } if (data.piano_roll_notes) setPianoRollNotes(data.piano_roll_notes); const trackCount = Math.min(Math.max(data.tracks?.length || 1, 1), maxTracks); const loaded = Array.from({ length: trackCount }, (_, i) => ({ ...DEFAULT_TRACK(i), ...(data.tracks[i] || {}), audioBuffer: null, effects: data.tracks[i]?.effects || DEFAULT_EFFECTS(), regions: data.tracks[i]?.regions || [] })); setTracks(loaded); setSelectedTrackIndex(0); setStatus("Opened: " + (data.name || "project")); } catch (err) { setStatus("Failed to open: " + err.message); } }; inp.click(); break; }
+      case "file:openLocal": { const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".spx,.json"; inp.onchange = async (e) => { const f = e.target.files[0]; if (!f) return; try { const text = await f.text(); const data = JSON.parse(text); if (data.format !== "streampirex-daw") { setStatus("Not a valid StreamPireX project"); return; } stopEverything(); setProjectId(null); setProjectName(data.name || "Imported Project"); setBpm(data.bpm || 120); setMasterVolume(data.master_volume || 0.8); if (data.time_signature) { const ts = data.time_signature.split("/").map(Number); if (ts.length === 2) setTimeSignature(ts); } if (data.piano_roll_notes) setPianoRollNotes(data.piano_roll_notes); const trackCount = Math.min(Math.max(data.tracks?.length || 1, 1), maxTracks); const loaded = Array.from({ length: trackCount }, (_, i) => ({ ...DEFAULT_TRACK(i), ...(data.tracks[i] || {}), audioBuffer: null, effects: data.tracks[i]?.effects || DEFAULT_EFFECTS(), regions: data.tracks[i]?.regions || [] })); setTracks(loaded); setSelectedTrackIndex(0); setStatus("Opened: " + (data.name || "project")); } catch (err) { setStatus("Failed to open: " + err.message); } }; inp.click(); break; }
       case "file:saveAs": { const saveData = { name: projectName, bpm, time_signature: timeSignature[0] + "/" + timeSignature[1], master_volume: masterVolume, tracks: tracks.map(t => ({ name: t.name, volume: t.volume, pan: t.pan, muted: t.muted, solo: t.solo, effects: t.effects, color: t.color, regions: (t.regions || []).map(r => ({ ...r, audioUrl: null })), audio_url: typeof t.audio_url === "string" && !t.audio_url.startsWith("blob:") ? t.audio_url : null })), piano_roll_notes: pianoRollNotes, created_at: new Date().toISOString(), format: "streampirex-daw", version: "1.0" }; setSaveAsData(JSON.stringify(saveData, null, 2)); setShowSaveAsModal(true); break; }
       case "file:saveDesktop": { const dlData = { name: projectName, bpm, time_signature: `${timeSignature[0]}/${timeSignature[1]}`, master_volume: masterVolume, tracks: tracks.map(t => ({ name: t.name, volume: t.volume, pan: t.pan, muted: t.muted, solo: t.solo, effects: t.effects, color: t.color, regions: (t.regions || []).map(r => ({ ...r, audioUrl: null })) })), piano_roll_notes: pianoRollNotes, created_at: new Date().toISOString(), format: "streampirex-daw", version: "1.0" }; const dlBlob = new Blob([JSON.stringify(dlData, null, 2)], { type: "application/json" }); const dlUrl = URL.createObjectURL(dlBlob); const dlA = document.createElement("a"); dlA.href = dlUrl; dlA.download = `${projectName.replace(/\s+/g, "_")}.spx`; document.body.appendChild(dlA); dlA.click(); document.body.removeChild(dlA); URL.revokeObjectURL(dlUrl); setStatus(`Downloaded: ${projectName}.spx`); break; }
       case "file:importAudio": setViewMode("arrange"); handleImport(sel); break;
@@ -2748,32 +2748,32 @@ const RecordingStudio = ({ user }) => {
                 </div>
 
                 {channelCtxMenu && (
-                  <div className="channel-context-menu" onMouseLeave={()=>setChannelCtxMenu(null)}>
+                  <div style={{position:"fixed",left:channelCtxMenu.x,top:channelCtxMenu.y,background:"#1a1e2a",border:"1px solid #2a3248",borderRadius:6,zIndex:9999,minWidth:380,boxShadow:"0 8px 24px rgba(0,0,0,.8)"}} onMouseLeave={()=>setChannelCtxMenu(null)}>
                     <div style={{color:"#4e6a82",fontSize:9,padding:"8px 12px 4px",letterSpacing:1,textTransform:"uppercase"}}>Channel Options</div>
                     <button className="arr-ctx-item" onClick={()=>{setSelectedChannels(prev=>{const n=new Set(prev);n.add(channelCtxMenu.trackId);return n;});setChannelCtxMenu(null);}}>🔗 Link Selected Channels</button>
-                    <div className="ctx-separator" />
+                    <div style={{height:1,background:"#1e2638",margin:"4px 0"}}/>
                     <button className="arr-ctx-item" onClick={()=>{addEffectTrack();setChannelCtxMenu(null);}}>🎛 Add Effect Track</button>
                     <button className="arr-ctx-item" onClick={()=>{addGroupTrack();setChannelCtxMenu(null);}}>⊕ Add Group Track (Bus)</button>
                     <button className="arr-ctx-item" onClick={()=>{addCubaseGroupTrack();setChannelCtxMenu(null);}}>👥 Add Group Master</button>
                     <button className="arr-ctx-item" onClick={()=>{addVCATrack();setChannelCtxMenu(null);}}>🎚 Add VCA Track</button>
-                    <div className="ctx-separator" />
+                    <div style={{height:1,background:"#1e2638",margin:"4px 0"}}/>
                     <button className="arr-ctx-item" onClick={()=>{addEffectTrack();selectedChannels.forEach(id=>{const idx=tracks.findIndex(t=>t.id===id);if(idx>=0) updateTrack(idx,{sends:[...(tracks[idx].sends||[]),{fxId:'fx_'+Date.now(),level:0.5}]});});setChannelCtxMenu(null);}}>🎛 Add Effect Track to Selected</button>
                     <button className="arr-ctx-item" onClick={()=>{addCubaseGroupTrack();setChannelCtxMenu(null);}}>👥 Add Group Master to Selected</button>
                     <button className="arr-ctx-item" onClick={()=>{addVCATrack();setChannelCtxMenu(null);}}>🎚 Add VCA Track to Selected</button>
-                    <div className="ctx-separator" />
+                    <div style={{height:1,background:"#1e2638",margin:"4px 0"}}/>
                     <button className="arr-ctx-item" onClick={()=>{copyTrackSettings();setChannelCtxMenu(null);}}>📋 Copy Track Settings</button>
                     <button className="arr-ctx-item" onClick={()=>{pasteTrackSettings();setChannelCtxMenu(null);}}>📄 Paste Settings to Selected</button>
-                    <div className="ctx-separator" />
+                    <div style={{height:1,background:"#1e2638",margin:"4px 0"}}/>
                     <button className="arr-ctx-item" onClick={()=>{moveSelectedChannels("up");setChannelCtxMenu(null);}}>⬆️ Move Selected Up</button>
                     <button className="arr-ctx-item" onClick={()=>{moveSelectedChannels("down");setChannelCtxMenu(null);}}>⬇️ Move Selected Down</button>
-                    <div className="ctx-separator" />
+                    <div style={{height:1,background:"#1e2638",margin:"4px 0"}}/>
                     <button className="arr-ctx-item" onClick={()=>{updateTrack(channelCtxMenu.trackIndex,{color:"#a855f7"});setChannelCtxMenu(null);}}>🎨 Purple</button>
                     <button className="arr-ctx-item" onClick={()=>{updateTrack(channelCtxMenu.trackIndex,{color:"#3b82f6"});setChannelCtxMenu(null);}}>🎨 Blue</button>
                     <button className="arr-ctx-item" onClick={()=>{updateTrack(channelCtxMenu.trackIndex,{color:"#00ffc8"});setChannelCtxMenu(null);}}>🎨 Teal</button>
                     <button className="arr-ctx-item" onClick={()=>{updateTrack(channelCtxMenu.trackIndex,{color:"#ff3b30"});setChannelCtxMenu(null);}}>🎨 Red</button>
                     <button className="arr-ctx-item" onClick={()=>{updateTrack(channelCtxMenu.trackIndex,{color:"#ff6600"});setChannelCtxMenu(null);}}>🎨 Orange</button>
-                    <div className="ctx-separator" />
-                    <button className="arr-ctx-item danger" onClick={()=>{setTracks(prev=>prev.filter((_,idx)=>idx!==channelCtxMenu.trackIndex));setChannelCtxMenu(null);}}>🗑 Remove Track</button>
+                    <div style={{height:1,background:"#1e2638",margin:"4px 0"}}/>
+                    <button className="arr-ctx-item" style={{color:"#ff3b30"}} onClick={()=>{setTracks(prev=>prev.filter((_,idx)=>idx!==channelCtxMenu.trackIndex));setChannelCtxMenu(null);}}>🗑 Remove Track</button>
                   </div>
                 )}
               </div>

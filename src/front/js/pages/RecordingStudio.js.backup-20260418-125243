@@ -1979,7 +1979,7 @@ const RecordingStudio = ({ user }) => {
       const data = await res.json();
       if (data?.success) {
         const p = data.project;
-        setProjectId(p.id); setProjectName(p.name); setBpm(p.bpm); setMasterVolume(p.master_volume || 1.0); setMasterPan(p.master_pan || 0);
+        setProjectId(p.id); setProjectName(p.name); setBpm(p.bpm); setMasterVolume(p.master_volume || 0.8); setMasterPan(p.master_pan || 0);
         if (p.time_signature) { const ts = p.time_signature.split("/").map(Number); if (ts.length === 2) setTimeSignature(ts); }
         if (p.piano_roll_notes) setPianoRollNotes(p.piano_roll_notes);
         if (p.piano_roll_key) setPianoRollKey(p.piano_roll_key);
@@ -2008,7 +2008,7 @@ const RecordingStudio = ({ user }) => {
   };
 
   const newProject = () => {
-    stopEverything(); setProjectId(null); setProjectName("Untitled Project"); setBpm(120); setMasterVolume(1.0); setMasterPan(0);
+    stopEverything(); setProjectId(null); setProjectName("Untitled Project"); setBpm(120); setMasterVolume(0.8); setMasterPan(0);
     setActiveEffectsTrack(null); setTimeSignature([4, 4]); setTracks(Array.from({ length: 1 }, (_, i) => DEFAULT_TRACK(i)));
     setSelectedTrackIndex(0); setPianoRollNotes([]); setPianoRollKey("C"); setPianoRollScale("major");
     setEditingRegion(null); setStatus("New project"); setViewMode("arrange");
@@ -2026,7 +2026,7 @@ const RecordingStudio = ({ user }) => {
         if (!t.audioBuffer || t.muted) return;
         if (tracks.some(x => x.solo) && !t.solo) return;
         const src = offCtx.createBufferSource(); src.buffer = t.audioBuffer;
-        const g = offCtx.createGain(); g.gain.value = t.volume ?? 1.0;
+        const g = offCtx.createGain(); g.gain.value = t.volume ?? 0.8;
         const pan = offCtx.createStereoPanner(); pan.pan.value = t.pan ?? 0;
         let last = src; const fxLocal = t.effects ?? {};
         if (fxLocal.eq?.enabled) { const lo = offCtx.createBiquadFilter(); lo.type = "lowshelf"; lo.frequency.value = 200; lo.gain.value = fxLocal.eq.lowGain ?? 0; const mi = offCtx.createBiquadFilter(); mi.type = "peaking"; mi.frequency.value = 1000; mi.Q.value = 1; mi.gain.value = fxLocal.eq.midGain ?? 0; const hi = offCtx.createBiquadFilter(); hi.type = "highshelf"; hi.frequency.value = 8000; hi.gain.value = fxLocal.eq.highGain ?? 0; last.connect(lo); lo.connect(mi); mi.connect(hi); last = hi; }
@@ -2104,7 +2104,7 @@ const RecordingStudio = ({ user }) => {
       const sr = audioCtxRef.current?.sampleRate || 48000;
       const offCtx = new OfflineAudioContext(2, Math.ceil(sr * (t.audioBuffer.duration + 0.5)), sr);
       const src = offCtx.createBufferSource(); src.buffer = t.audioBuffer;
-      const g = offCtx.createGain(); g.gain.value = t.volume ?? 1.0;
+      const g = offCtx.createGain(); g.gain.value = t.volume ?? 0.8;
       const pan = offCtx.createStereoPanner(); pan.pan.value = t.pan ?? 0;
       src.connect(g); g.connect(pan); pan.connect(offCtx.destination); src.start(0);
       const rendered = await offCtx.startRendering();
