@@ -346,7 +346,7 @@ const TrackHeader = React.memo(({
 
       {/* Volume + Pan readout */}
       <div className="arr-th-vol-readout" onClick={e => e.stopPropagation()} title="Volume">
-        <span className="arr-th-vol-db">{(track.volume??1.0)>0?(20*Math.log10(track.volume??1.0)).toFixed(1):"-∞"} dB</span>
+        <span className="arr-th-vol-db">{(track.volume??0.8)>0?(20*Math.log10(track.volume??0.8)).toFixed(1):"-∞"} dB</span>
         <span className="arr-th-pan-val" style={{marginLeft:6,color:'#7a8aaa',fontSize:'8px'}}>{track.pan===0?'C':track.pan>0?`R${Math.round(track.pan*100)}`:`L${Math.round(Math.abs(track.pan)*100)}`}</span>
       </div>
 
@@ -801,7 +801,7 @@ const ArrangerView = ({
       id: `trk_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       name: `${type === "instrument" ? "MIDI" : "Audio"} ${i + 1}`,
       trackType: type,
-      volume: 1.0, pan: 0,
+      volume: 0.8, pan: 0,
       muted: false, solo: false, armed: false,
       color: TRACK_COLORS[i % TRACK_COLORS.length],
       regions: [],
@@ -857,7 +857,7 @@ const ArrangerView = ({
         id: `trk_${Date.now()}_${Math.random().toString(36).slice(2)}`,
         name: file.name.replace(/\.[^.]+$/, ''),
         trackType: 'audio',
-        volume: 1.0, pan: 0,
+        volume: 0.8, pan: 0,
         muted: false, solo: false, armed: false,
         color: TRACK_COLORS[i % TRACK_COLORS.length],
         audioBuffer: decodedBuf,
