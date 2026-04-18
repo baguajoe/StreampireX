@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback } from "react";
 
 const SPEAKERS = [
   { id: "flat",      name: "Flat (Bypass)",      icon: "📊", category: "Studio Monitor", description: "No processing — your raw mix" },
@@ -53,16 +53,13 @@ const SPEAKER_EQ = {
 const TRACK_COLORS = ["#00ffc8","#FF6600","#a78bfa","#f472b6","#facc15","#38bdf8","#4ade80","#fb923c"];
 let trackIdCounter = 0;
 
-const SpeakerSimulator = ({ audioContext, inputNode }) => {
+const SpeakerSimulator = ({ audioContext }) => {
   const [activeSpeaker, setActiveSpeaker] = useState("flat");
   const [isMono, setIsMono] = useState(false);
   const [masterVolume, setMasterVolume] = useState(0.8);
   const [isPlaying, setIsPlaying] = useState(false);
   const [tracks, setTracks] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [mode, setMode] = useState("monitor");  // "monitor" = master-bus, "reference" = multi-track
-  const [bypassAB, setBypassAB] = useState(false);  // A/B toggle in monitor mode
-  const masterChainRef = useRef({ input: null, output: null, nodes: [] });
 
   const sourceRefs = useRef({});
   const gainRefs = useRef({});
@@ -101,88 +98,6 @@ const SpeakerSimulator = ({ audioContext, inputNode }) => {
     gainRefs.current = {};
     setIsPlaying(false);
   }, []);
-
-  // ── Master-bus monitoring: wire inputNode through EQ chain to destination ──
-  useEffect(() => {
-    if (mode !== "monitor" || !inputNode || !audioContext) return;
-
-    // Teardown previous chain
-    try {
-      masterChainRef.current.nodes.forEach(n => { try { n.disconnect(); } catch(e){} });
-    } catch(e){}
-
-    if (bypassAB) {
-      // A/B bypass: route inputNode directly to destination
-      try { inputNode.disconnect(); } catch(e){}
-      inputNode.connect(audioContext.destination);
-      masterChainRef.current = { input: inputNode, output: audioContext.destination, nodes: [] };
-      return;
-    }
-
-    // Build EQ chain for activeSpeaker
-    const eq = SPEAKER_EQ[activeSpeaker] || SPEAKER_EQ.flat;
-    const lowShelf = audioContext.createBiquadFilter();
-    lowShelf.type = "lowshelf";
-    lowShelf.frequency.value = 200;
-    lowShelf.gain.value = eq.low;
-
-    const lowMid = audioContext.createBiquadFilter();
-    lowMid.type = "peaking";
-    lowMid.frequency.value = 500;
-    lowMid.Q.value = 0.7;
-    lowMid.gain.value = eq.lowMid;
-
-    const highMid = audioContext.createBiquadFilter();
-    highMid.type = "peaking";
-    highMid.frequency.value = 3000;
-    highMid.Q.value = 0.7;
-    highMid.gain.value = eq.highMid;
-
-    const highShelf = audioContext.createBiquadFilter();
-    highShelf.type = "highshelf";
-    highShelf.frequency.value = 8000;
-    highShelf.gain.value = eq.high;
-
-    const gainNode = audioContext.createGain();
-    gainNode.gain.value = Math.pow(10, eq.gain / 20) * masterVolume;
-
-    const monoMerger = isMono ? audioContext.createChannelMerger(2) : null;
-    const monoSplitter = isMono ? audioContext.createChannelSplitter(2) : null;
-
-    try { inputNode.disconnect(); } catch(e){}
-
-    if (isMono && monoSplitter && monoMerger) {
-      inputNode.connect(monoSplitter);
-      monoSplitter.connect(monoMerger, 0, 0);
-      monoSplitter.connect(monoMerger, 0, 1);  // L->R (mono)
-      monoMerger.connect(lowShelf);
-    } else {
-      inputNode.connect(lowShelf);
-    }
-
-    lowShelf.connect(lowMid);
-    lowMid.connect(highMid);
-    highMid.connect(highShelf);
-    highShelf.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    masterChainRef.current = {
-      input: inputNode,
-      output: audioContext.destination,
-      nodes: [lowShelf, lowMid, highMid, highShelf, gainNode, monoMerger, monoSplitter].filter(Boolean),
-    };
-
-    return () => {
-      try {
-        masterChainRef.current.nodes.forEach(n => { try { n.disconnect(); } catch(e){} });
-        // Restore direct connection when unmounting / switching mode
-        try { inputNode.disconnect(); } catch(e){}
-        inputNode.connect(audioContext.destination);
-      } catch(e){}
-    };
-  }, [mode, activeSpeaker, isMono, masterVolume, bypassAB, inputNode, audioContext]);
-
-
 
   const playAll = useCallback(async (speakerId, trackList) => {
     const spk = speakerId || activeSpeaker;
@@ -440,145 +355,4 @@ const SpeakerSimulator = ({ audioContext, inputNode }) => {
   );
 };
 
-
-
-// ═══════════════════════════════════════════════════════════════════════
-// Monitor Room wrapper — adds master-bus monitoring mode
-// ═══════════════════════════════════════════════════════════════════════
-const MonitorRoomWrapper = (props) => {
-  const [mode, setMode] = React.useState("monitor");
-  const [activeSpeaker, setActiveSpeaker] = React.useState("flat");
-  const [bypassAB, setBypassAB] = React.useState(false);
-  const [isMono, setIsMono] = React.useState(false);
-  const [masterVol, setMasterVol] = React.useState(0.8);
-  const chainRef = React.useRef({ nodes: [] });
-
-  const { audioContext, inputNode } = props;
-
-  // Master-bus monitoring effect
-  React.useEffect(() => {
-    if (mode !== "monitor" || !inputNode || !audioContext) return;
-
-    // Teardown
-    chainRef.current.nodes.forEach(n => { try { n.disconnect(); } catch(e){} });
-
-    if (bypassAB || activeSpeaker === "flat") {
-      try { inputNode.disconnect(); } catch(e){}
-      inputNode.connect(audioContext.destination);
-      chainRef.current = { nodes: [] };
-      return;
-    }
-
-    const eq = SPEAKER_EQ[activeSpeaker] || SPEAKER_EQ.flat;
-    const ctx = audioContext;
-
-    const ls = ctx.createBiquadFilter(); ls.type="lowshelf"; ls.frequency.value=200; ls.gain.value=eq.low;
-    const lm = ctx.createBiquadFilter(); lm.type="peaking"; lm.frequency.value=500; lm.Q.value=0.7; lm.gain.value=eq.lowMid;
-    const hm = ctx.createBiquadFilter(); hm.type="peaking"; hm.frequency.value=3000; hm.Q.value=0.7; hm.gain.value=eq.highMid;
-    const hs = ctx.createBiquadFilter(); hs.type="highshelf"; hs.frequency.value=8000; hs.gain.value=eq.high;
-    const g = ctx.createGain(); g.gain.value = Math.pow(10, eq.gain/20) * masterVol;
-
-    let entry = ls;
-    let monoNodes = [];
-    if (isMono) {
-      const splitter = ctx.createChannelSplitter(2);
-      const merger = ctx.createChannelMerger(2);
-      splitter.connect(merger, 0, 0);
-      splitter.connect(merger, 0, 1);
-      merger.connect(ls);
-      entry = splitter;
-      monoNodes = [splitter, merger];
-    }
-
-    try { inputNode.disconnect(); } catch(e){}
-    inputNode.connect(entry);
-    ls.connect(lm); lm.connect(hm); hm.connect(hs); hs.connect(g); g.connect(ctx.destination);
-
-    chainRef.current = { nodes: [...monoNodes, ls, lm, hm, hs, g] };
-
-    return () => {
-      chainRef.current.nodes.forEach(n => { try { n.disconnect(); } catch(e){} });
-      try { inputNode.disconnect(); } catch(e){}
-      try { inputNode.connect(ctx.destination); } catch(e){}
-    };
-  }, [mode, activeSpeaker, isMono, masterVol, bypassAB, inputNode, audioContext]);
-
-  const spk = SPEAKERS.find(s => s.id === activeSpeaker) || SPEAKERS[0];
-  const cats = ["All", "Studio Monitor", "Consumer"];
-  const [cat, setCat] = React.useState("All");
-  const filteredSpeakers = cat === "All" ? SPEAKERS : SPEAKERS.filter(s => s.category === cat);
-
-  return (
-    <div className="mr-wrapper">
-      <div className="mr-mode-tabs">
-        <button className={"mr-mode-tab" + (mode === "monitor" ? " active" : "")} onClick={() => setMode("monitor")}>
-          🎧 Master Monitoring
-        </button>
-        <button className={"mr-mode-tab" + (mode === "reference" ? " active" : "")} onClick={() => setMode("reference")}>
-          📊 Reference Mixing
-        </button>
-      </div>
-
-      {mode === "monitor" && (
-        <div className="mr-monitor-mode">
-          <div className="mr-header">
-            <div>
-              <h2 className="mr-title">🎧 Monitor Room</h2>
-              <div className="mr-subtitle">Monitoring through: <strong>{spk.name}</strong></div>
-            </div>
-            <div className="mr-header-controls">
-              <button
-                className={"mr-ab-btn" + (bypassAB ? " active" : "")}
-                onClick={() => setBypassAB(v => !v)}
-                title="A/B compare: toggle between Flat (Bypass) and selected profile"
-              >
-                A/B {bypassAB ? "(Flat)" : "(Profile)"}
-              </button>
-              <button
-                className={"mr-mono-btn" + (isMono ? " active" : "")}
-                onClick={() => setIsMono(v => !v)}
-              >
-                MONO {isMono ? "ON" : "OFF"}
-              </button>
-              <div className="mr-vol">
-                <label>MONITOR</label>
-                <input type="range" min="0" max="1" step="0.01" value={masterVol}
-                       onChange={e => setMasterVol(parseFloat(e.target.value))}/>
-                <span>{Math.round(masterVol * 100)}%</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mr-cat-tabs">
-            {cats.map(c => (
-              <button key={c} className={"mr-cat-tab" + (cat === c ? " active" : "")} onClick={() => setCat(c)}>
-                {c}
-              </button>
-            ))}
-          </div>
-
-          <div className="mr-profile-grid">
-            {filteredSpeakers.map(s => (
-              <div
-                key={s.id}
-                className={"mr-profile-card" + (s.id === activeSpeaker ? " active" : "")}
-                onClick={() => setActiveSpeaker(s.id)}
-              >
-                <div className="mr-profile-icon">{s.icon}</div>
-                <div className="mr-profile-name">{s.name}</div>
-                <div className="mr-profile-desc">{s.description}</div>
-                <div className="mr-profile-cat">{s.category}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {mode === "reference" && (
-        <SpeakerSimulator audioContext={audioContext} inputNode={inputNode} />
-      )}
-    </div>
-  );
-};
-
-export default MonitorRoomWrapper;
+export default SpeakerSimulator;

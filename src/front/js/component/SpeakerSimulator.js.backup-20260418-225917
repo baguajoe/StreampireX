@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback } from "react";
 
 const SPEAKERS = [
   { id: "flat",      name: "Flat (Bypass)",      icon: "📊", category: "Studio Monitor", description: "No processing — your raw mix" },

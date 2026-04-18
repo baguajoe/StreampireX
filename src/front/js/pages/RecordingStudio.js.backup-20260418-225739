@@ -10,7 +10,7 @@ function MixDropdown({ viewMode, setViewMode }) {
   const ref = React.useRef(null);
   const items = [
     ["aimix","AI Mix"],["fx","FX Chain"],["multiband","Multiband"],
-    ["mastering","Mastering"],["speakersim","Monitor Room"],
+    ["mastering","Mastering"],["speakersim","Mix Translator"],
     ["analog","Analog Suite"],["vocal","Vocal"],["keyfinder","Key Finder"],
   ];
   const isActive = items.some(([m]) => m === viewMode);
