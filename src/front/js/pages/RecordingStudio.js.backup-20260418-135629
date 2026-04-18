@@ -263,45 +263,6 @@ const DEFAULT_EFFECTS = () => ({
   gainUtility:   { gain: 0, phaseInvert: false, monoSum: false, enabled: false },
 });
 
-
-// ── Cubase-style fader curve ──────────────────────────────────
-// Slider int 0..1000 maps to dB -inf..+6 with 0 dB at 75% travel
-const SLIDER_MAX = 1000;
-const DB_MIN = -60;
-const DB_MAX = 6;
-// Cubase taper: 0dB at 75% (slider=750), +6dB at 100% (slider=1000)
-const faderToDb = (s) => {
-  if (s <= 0) return DB_MIN;
-  const t = s / SLIDER_MAX;
-  // Piecewise: bottom 75% = log from -inf to 0 dB, top 25% = linear 0 to +6
-  if (t >= 0.75) return (t - 0.75) / 0.25 * DB_MAX;
-  // Below 0 dB: logarithmic taper so -6 at 50%, -12 at 25%, -inf at 0
-  // t * 100 = 0, 25, 50, 75 -> db = -inf, -12, -6, 0
-  // Use curve: db = -24 * log10(1 / (t/0.75))  ... but clamp
-  const norm = t / 0.75; // 0..1 across working range
-  if (norm <= 0.001) return DB_MIN;
-  const db = 24 * Math.log10(norm); // 0 dB at norm=1, -24 at norm=0.1, etc.
-  return Math.max(DB_MIN, db);
-};
-const dbToFader = (db) => {
-  if (db <= DB_MIN) return 0;
-  if (db >= DB_MAX) return SLIDER_MAX;
-  if (db >= 0) return (0.75 + (db / DB_MAX) * 0.25) * SLIDER_MAX;
-  // Inverse of log taper: norm = 10^(db/24)
-  const norm = Math.pow(10, db / 24);
-  return Math.max(0, norm * 0.75 * SLIDER_MAX);
-};
-const volumeToFader = (vol) => {
-  if (vol <= 0) return 0;
-  const db = 20 * Math.log10(vol);
-  return dbToFader(db);
-};
-const faderToVolume = (s) => {
-  const db = faderToDb(s);
-  if (db <= DB_MIN) return 0;
-  return Math.pow(10, db / 20);
-};
-
 const DEFAULT_TRACK = (i, type = "audio") => ({
   id: uid(),
   name: `${type === "midi" ? "MIDI" : type === "bus" ? "Bus" : type === "aux" ? "Aux" : "Audio"} ${i + 1}`,
@@ -2715,7 +2676,7 @@ const RecordingStudio = ({ user }) => {
                           <div className="daw-ch-fader-row">
                             <div className="daw-ch-db-scale" style={{textAlign:"right"}}><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
                             <div className="daw-ch-fader">
-                              <input type="range" min={0} max={SLIDER_MAX} step={1} value={volumeToFader(t.volume ?? 1.0)} onChange={e => { const v = faderToVolume(parseFloat(e.target.value)); updateTrack(i, { volume: v }); const audible = !t.muted && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? v : 0; }}/>
+                              <input type="range" min={0} max={1.26} step={0.005} value={t.volume ?? 1.0} ref={(input) => { if(input) console.log(`Track volume: ${t.volume ?? 1.0}, fader position: ${input.value}`); }} onChange={e => { const v = parseFloat(e.target.value); updateTrack(i, { volume: v }); const audible = !t.muted && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? v : 0; }}/>
                             </div>
                             <CubaseMeter leftLevel={meter.left||0} rightLevel={meter.right||0} height={180} showScale={false}/>
                         <div className="daw-ch-meter-scale"><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-∞</span></div>
@@ -2767,7 +2728,7 @@ const RecordingStudio = ({ user }) => {
                       <div className="daw-ch-fader-row">
                         <div className="daw-ch-db-scale" style={{textAlign:"right"}}><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
                         <div className="daw-ch-fader">
-                          <input type="range" min={0} max={SLIDER_MAX} step={1} value={volumeToFader(masterVolume ?? 1.0)} onChange={e => { const v = faderToVolume(parseFloat(e.target.value)); setMasterVolume(v); if (masterGainRef.current) masterGainRef.current.gain.value = v; }}/>
+                          <input type="range" min={0} max={1.26} step={0.005} value={masterVolume ?? 1.0} onChange={e => { const v = parseFloat(e.target.value); setMasterVolume(v); if (masterGainRef.current) masterGainRef.current.gain.value = v; }}/>
                         </div>
                         <CubaseMeter leftLevel={masterMeterLevels?.left||0} rightLevel={masterMeterLevels?.right||0} height={180} showScale={false}/>
                         <div className="daw-ch-meter-scale"><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-∞</span></div>
@@ -2867,8 +2828,8 @@ const RecordingStudio = ({ user }) => {
                       <div className="daw-ch-fader-row">
                         <div className="daw-ch-db-scale" style={{textAlign:"right"}}><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
                         <div className="daw-ch-fader">
-                          <input type="range" min="0" max={SLIDER_MAX} step="1" value={volumeToFader(t.volume)}
-                            onChange={e => { const v = faderToVolume(parseFloat(e.target.value)); updateTrack(i, { volume: v }); const audible = !t.muted && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? v : 0; }}/>
+                          <input type="range" min="0" max="1.26" step="0.005" value={t.volume}
+                            onChange={e => { const v = parseFloat(e.target.value); updateTrack(i, { volume: v }); const audible = !t.muted && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? v : 0; }}/>
                         </div>
                         <CubaseMeter leftLevel={meter.left || 0} rightLevel={meter.right || 0} height={180} showScale={false}/>
                         <div className="daw-ch-meter-scale"><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-∞</span></div>
@@ -2933,8 +2894,8 @@ const RecordingStudio = ({ user }) => {
                   <div className="daw-ch-fader-row">
                         <div className="daw-ch-db-scale" style={{textAlign:"right"}}><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
                     <div className="daw-ch-fader">
-                      <input type="range" min="0" max={SLIDER_MAX} step="1" value={volumeToFader(masterVolume)}
-                        onChange={e => { const v = faderToVolume(parseFloat(e.target.value)); setMasterVolume(v); if (masterGainRef.current) masterGainRef.current.gain.value = v; }}/>
+                      <input type="range" min="0" max="1.26" step="0.005" value={masterVolume}
+                        onChange={e => { const v = parseFloat(e.target.value); setMasterVolume(v); if (masterGainRef.current) masterGainRef.current.gain.value = v; }}/>
                     </div>
                     <CubaseMeter leftLevel={masterMeterLevels?.left || 0} rightLevel={masterMeterLevels?.right || 0} height={180} showScale={false}/>
                         <div className="daw-ch-meter-scale"><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-∞</span></div>
