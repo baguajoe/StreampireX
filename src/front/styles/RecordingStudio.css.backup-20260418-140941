@@ -281,12 +281,12 @@
   width:14px;
   position:relative;
 }
-.daw-ch-db-scale span:nth-child(1) { position:absolute; top:0px; }      /* +6  at 100% */
-.daw-ch-db-scale span:nth-child(2) { position:absolute; top:41px; }     /* 0   at 75% */
-.daw-ch-db-scale span:nth-child(3) { position:absolute; top:86px; }     /* -6  at 50% */
-.daw-ch-db-scale span:nth-child(4) { position:absolute; top:131px; }    /* -12 at 25% */
-.daw-ch-db-scale span:nth-child(5) { position:absolute; top:153px; }    /* -18 at 13% */
-.daw-ch-db-scale span:nth-child(6) { position:absolute; bottom:0px; }   /* -∞  at 0% */
+.daw-ch-db-scale span:nth-child(1) { position:absolute; top:0px; }      /* +6dB  = top (100%) */
+.daw-ch-db-scale span:nth-child(2) { position:absolute; top:41px; }     /* 0dB   = 75% travel */
+.daw-ch-db-scale span:nth-child(3) { position:absolute; top:86px; }     /* -6dB  = 50% travel */
+.daw-ch-db-scale span:nth-child(4) { position:absolute; top:131px; }    /* -12dB = 25% travel */
+.daw-ch-db-scale span:nth-child(5) { position:absolute; top:149px; }    /* -18dB = 12% travel */
+.daw-ch-db-scale span:nth-child(6) { position:absolute; bottom:0px; }   /* -∞    = bottom */
 .daw-ch-db-scale span { font-size:8px; color:#7a9ab6; font-weight:600; font-family:var(--rs-font); line-height:1; display:block; text-align:right; padding-right:2px; }
 
 
@@ -583,12 +583,12 @@
   width: 18px;
   position: relative;
 }
-.daw-ch-meter-scale span:nth-child(1) { position: absolute; top: 0px; }    /* 0   at 100% top */
-.daw-ch-meter-scale span:nth-child(2) { position: absolute; top: 45px; }   /* -6  at 75% */
-.daw-ch-meter-scale span:nth-child(3) { position: absolute; top: 90px; }   /* -12 at 50% */
-.daw-ch-meter-scale span:nth-child(4) { position: absolute; top: 131px; }  /* -18 at 28% */
-.daw-ch-meter-scale span:nth-child(5) { position: absolute; top: 153px; }  /* -24 at 13% */
-.daw-ch-meter-scale span:nth-child(6) { position: absolute; bottom: 0px; } /* -inf at 0% */
+.daw-ch-meter-scale span:nth-child(1) { position: absolute; top: 12px; }   /* 0dB   = 90.9% */
+.daw-ch-meter-scale span:nth-child(2) { position: absolute; top: 28px; }   /* -6dB  = 81.8% */
+.daw-ch-meter-scale span:nth-child(3) { position: absolute; top: 45px; }   /* -12dB = 72.7% */
+.daw-ch-meter-scale span:nth-child(4) { position: absolute; top: 61px; }   /* -18dB = 63.6% */
+.daw-ch-meter-scale span:nth-child(5) { position: absolute; top: 78px; }   /* -24dB = 54.5% */
+.daw-ch-meter-scale span:nth-child(6) { position: absolute; bottom: 0px; } /* -inf  = bottom */
 .daw-ch-meter-scale span {
   font-size: 8px;
   color: #7a9ab6;
