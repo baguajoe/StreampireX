@@ -95,7 +95,6 @@ import SamplerInstrument from "../component/SamplerInstrument";
 import MicSimulator from "../component/MicSimulator";
 import CustomMicBuilder from "../component/CustomMicBuilder";
 import SpeakerSimulator from "../component/SpeakerSimulator";
-import MonitorRoomPro from "../component/MonitorRoomPro";
 import VirtualPiano from "../component/VirtualPiano";
 import FreesoundBrowser from "../component/FreesoundBrowser";
 import KeyFinder from "../component/KeyFinder";
@@ -2994,7 +2993,7 @@ const RecordingStudio = ({ user }) => {
         {viewMode === "fx"           && <div className="rs-flex-scroll-dark"><UnifiedFXChain track={tracks[selectedTrackIndex]} trackIndex={selectedTrackIndex} audioContext={audioCtxRef.current} updateEffect={updateEffect} onClose={() => setViewMode("arrange")} isEmbedded={true}/></div>}
         {viewMode === "multiband"    && <div className="rs-flex-scroll-dark"><MultibandEffects audioContext={audioCtxRef.current} inputNode={selectedTrackIndex !== null && trackGainsRef.current[selectedTrackIndex] ? trackGainsRef.current[selectedTrackIndex] : masterGainRef.current} outputNode={masterGainRef.current} onClose={() => setViewMode("arrange")} isEmbedded={true}/></div>}
         {viewMode === "mastering"    && <div className="rs-flex-scroll-dark"><MasteringChain audioContext={audioCtxRef.current} inputNode={masterConsoleOutRef.current || masterGainRef.current} outputNode={audioCtxRef.current?.destination} masterVolume={masterVolume} onClose={() => setViewMode("arrange")} isEmbedded={true}/></div>}
-        {viewMode === "speakersim"   && <MonitorRoomPro audioContext={audioCtxRef.current} inputNode={masterConsoleOutRef.current || masterGainRef.current}/>}
+        {viewMode === "speakersim"   && <SpeakerSimulator audioContext={audioCtxRef.current} inputNode={masterConsoleOutRef.current || masterGainRef.current}/>}
         {showVoxEngine && (
           <div style={{position:'fixed',inset:0,zIndex:9998,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center'}}>
             <div style={{width:'min(95vw,900px)',maxHeight:'90vh',overflow:'auto',borderRadius:'8px',border:'1px solid #1a2d45'}}>

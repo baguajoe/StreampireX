@@ -165,53 +165,16 @@ const TIER_TRACK_LIMITS = { free: 4, starter: 8, creator: 16, pro: 32 };
 const DEFAULT_MAX = 4;
 
 const CONSOLE_BOARDS = {
-  none:        { name: "Bypass",         color: "#555",    desc: "Clean pass-through, no coloration" },
-  ssl4ke:      { name: "SSL 4000E",      color: "#e8a020", desc: "British punch, tight drum bus" },
-  ssl4kg:      { name: "SSL 4000G",      color: "#d4941c", desc: "Classic R&B/pop, smoother than E" },
-  ssl9000j:    { name: "SSL 9000J",      color: "#f5b544", desc: "Refined midrange, modern R&B/pop" },
-  sslduality:  { name: "SSL Duality",    color: "#d68c00", desc: "Hybrid analog/digital, clean punch" },
-  neve8078:    { name: "Neve 8078",      color: "#4a9eff", desc: "Big vintage Neve, huge rock sound" },
-  neve1073:    { name: "Neve 1073",      color: "#3a7acc", desc: "The classic — warm creamy mids" },
-  neve88r:     { name: "Neve 88R",       color: "#6ba3ff", desc: "Modern Neve, tight bass, clarity" },
-  nevevr:      { name: "Neve VR",        color: "#2e5c99", desc: "80s/90s rock, massive drums" },
-  api1604:     { name: "API 1604",       color: "#00ffc8", desc: "Aggressive midrange, rock punch" },
-  apilegacy:   { name: "API Legacy+",    color: "#33ffd4", desc: "Big modern API, heavy drums" },
-  apivision:   { name: "API Vision",     color: "#00d9aa", desc: "Punchy, drum-friendly" },
-  tridentA:    { name: "Trident A",      color: "#a78bfa", desc: "British vibe, creative indie" },
-  trident80b:  { name: "Trident 80B",    color: "#c19bff", desc: "Warm British mids, indie rock" },
-  harrison32c: { name: "Harrison 32C",   color: "#ff5050", desc: "Thriller/MJ signature console" },
-  emitg:       { name: "EMI TG12345",    color: "#ffa500", desc: "Pink Floyd/Abbey Road warmth" },
-  helios69:    { name: "Helios Type 69", color: "#b08d57", desc: "Led Zeppelin, creamy rock" },
-  rnd5088:     { name: "RND 5088",       color: "#7ab8ff", desc: "Rupert Neve modern, glassy clarity" },
-  studer900:   { name: "Studer 900",     color: "#ff6b6b", desc: "Clean tape-machine feel" },
-  mciJH636:    { name: "MCI JH-636",     color: "#ff8c42", desc: "Muscle Shoals southern soul" },
+  none:      { name: "Bypass",      color: "#555" },
+  ssl4ke:    { name: "SSL 4000E",   color: "#e8a020" },
+  ssl4kg:    { name: "SSL 4000G",   color: "#d4941c" },
+  neve8078:  { name: "Neve 8078",   color: "#4a9eff" },
+  neve1073:  { name: "Neve 1073",   color: "#3a7acc" },
+  api1604:   { name: "API 1604",    color: "#00ffc8" },
+  tridentA:  { name: "Trident A",   color: "#a78bfa" },
+  studer900: { name: "Studer 900",  color: "#ff6b6b" },
+  mciJH636:  { name: "MCI JH-636",  color: "#ff8c42" },
 };
-
-// ── Console EQ signatures (applied to master bus when selected) ──
-// Each: low shelf, low-mid peak, high-mid peak, high shelf, saturation amount (0-1)
-const CONSOLE_EQ = {
-  none:        { low: 0,   lowMid: 0,  highMid: 0,  high: 0,  sat: 0   },
-  ssl4ke:      { low: 1,   lowMid: -1, highMid: 2,  high: 1,  sat: 0.15 },
-  ssl4kg:      { low: 1,   lowMid: 0,  highMid: 1,  high: 1,  sat: 0.12 },
-  ssl9000j:    { low: 1,   lowMid: 1,  highMid: 1,  high: 2,  sat: 0.08 },
-  sslduality:  { low: 1,   lowMid: 0,  highMid: 1,  high: 1,  sat: 0.06 },
-  neve8078:    { low: 2,   lowMid: 2,  highMid: 1,  high: 1,  sat: 0.25 },
-  neve1073:    { low: 2,   lowMid: 3,  highMid: 2,  high: 1,  sat: 0.22 },
-  neve88r:     { low: 1,   lowMid: 2,  highMid: 1,  high: 2,  sat: 0.15 },
-  nevevr:      { low: 3,   lowMid: 2,  highMid: 1,  high: 2,  sat: 0.28 },
-  api1604:     { low: 1,   lowMid: -1, highMid: 3,  high: 2,  sat: 0.20 },
-  apilegacy:   { low: 2,   lowMid: -1, highMid: 3,  high: 2,  sat: 0.22 },
-  apivision:   { low: 2,   lowMid: 0,  highMid: 2,  high: 2,  sat: 0.18 },
-  tridentA:    { low: 1,   lowMid: 2,  highMid: 1,  high: 1,  sat: 0.18 },
-  trident80b:  { low: 1,   lowMid: 3,  highMid: 1,  high: 1,  sat: 0.20 },
-  harrison32c: { low: 2,   lowMid: 1,  highMid: 2,  high: 3,  sat: 0.25 },
-  emitg:       { low: 2,   lowMid: 3,  highMid: 1,  high: 0,  sat: 0.30 },
-  helios69:    { low: 2,   lowMid: 3,  highMid: 2,  high: 1,  sat: 0.28 },
-  rnd5088:     { low: 1,   lowMid: 1,  highMid: 2,  high: 3,  sat: 0.10 },
-  studer900:   { low: 1,   lowMid: 0,  highMid: 0,  high: 0,  sat: 0.12 },
-  mciJH636:    { low: 2,   lowMid: 2,  highMid: 1,  high: 0,  sat: 0.22 },
-};
-
 
 const MIC_MODELS = {
   none:   { name: "No Mic Model",        eqCurve: null, rolloff: 0 },
