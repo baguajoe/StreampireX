@@ -3,6 +3,7 @@ import React, { useRef, useCallback } from "react";
 // Cubase-style log fader: 0 dB at 75% travel, +6 dB at top, -60 dB floor
 const DB_MIN = -60;
 const DB_MAX = 6;
+const FADER_HEIGHT = 180;
 const FADER_WIDTH = 28;
 const THUMB_HEIGHT = 14;
 const THUMB_WIDTH = 32;
@@ -50,9 +51,7 @@ const SvgFader = ({
   activeColor = "#00ffc8",
   showScale = true,
   isMaster = false,
-  height = 180,
 }) => {
-  const FADER_HEIGHT = height;
   const ref = useRef(null);
   const dragging = useRef(false);
 

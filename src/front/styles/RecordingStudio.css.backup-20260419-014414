@@ -1736,8 +1736,3 @@
   opacity: 1;
   transform: translateX(-50%) translateY(8px);
 }
-
-/* ═══════════ SVG FADER INSIDE MIXER CHANNEL ═══════════ */
-.daw-ch-fader { display: flex; align-items: center; justify-content: center; }
-.daw-ch-fader .svg-fader-wrapper { height: 180px; }
-.daw-ch-fader .svg-fader-wrapper svg { height: 180px; }
