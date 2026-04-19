@@ -640,6 +640,7 @@ const RecordingStudio = ({ user }) => {
   const [flexPitchTrack, setFlexPitchTrack] = useState(null);
   const [splitScreen, setSplitScreen] = useState(false);
   const [splitTopH, setSplitTopH] = useState(50);
+  const [mixerHeightPx, setMixerHeightPx] = useState(450);
   const splitDragRef = useRef(false);
   const splitContainerRef = useRef(null);
   const [projectName, setProjectName] = useState("Untitled Project");
@@ -720,6 +721,8 @@ const RecordingStudio = ({ user }) => {
   const [videoUrl, setVideoUrl] = useState(null);
   const [activeEffectsTrack, setActiveEffectsTrack] = useState(null);
   const [insertPickerState, setInsertPickerState] = useState(null);
+  const [mixerUpperH, setMixerUpperH] = useState(180);
+  const mixerUpperDragRef = useRef(false);
   const [openFxKey, setOpenFxKey] = useState(null);
   const [micSimStream, setMicSimStream] = useState(null);
   const [showMicBuilder, setShowMicBuilder] = useState(false);
@@ -791,6 +794,44 @@ const RecordingStudio = ({ user }) => {
   const hasSolo = tracks.some(t => t.solo);
   const isAudible = (t) => !t.muted && (!hasSolo || t.solo);
   const playheadBeat = useMemo(() => secondsToBeat(currentTime, bpm), [currentTime, bpm]);
+
+  // ── Mixer upper height CSS var sync ──
+  useEffect(() => {
+    document.documentElement.style.setProperty('--mixer-upper-h', mixerUpperH + 'px');
+  }, [mixerUpperH]);
+
+  useEffect(() => {
+    const syncScroll = (e) => {
+      const src = e.target;
+      if (!src.classList || !src.classList.contains('ch-upper')) return;
+      const y = src.scrollTop;
+      document.querySelectorAll('.ch-upper').forEach(el => {
+        if (el !== src && el.scrollTop !== y) el.scrollTop = y;
+      });
+    };
+    document.addEventListener('scroll', syncScroll, true);
+    return () => document.removeEventListener('scroll', syncScroll, true);
+  }, []);
+
+  const handleMixerResizeStart = useCallback((e) => {
+    e.preventDefault();
+    mixerUpperDragRef.current = true;
+    const startY = e.clientY;
+    const startH = mixerUpperH;
+    const onMove = (me) => {
+      if (!mixerUpperDragRef.current) return;
+      const delta = me.clientY - startY;
+      const newH = Math.max(60, Math.min(400, startH + delta));
+      setMixerUpperH(newH);
+    };
+    const onUp = () => {
+      mixerUpperDragRef.current = false;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [mixerUpperH]);
 
   // ── Sync refs ──
   useEffect(() => { trackConsoleCharRef.current = trackConsoleChar; }, [trackConsoleChar]);
@@ -2302,10 +2343,18 @@ const RecordingStudio = ({ user }) => {
   const handleSplitMouseDown = useCallback((e) => {
     e.preventDefault(); splitDragRef.current = true;
     const container = splitContainerRef.current; if (!container) return;
-    const onMove = (me) => { if (!splitDragRef.current) return; const rect = container.getBoundingClientRect(); const pct = Math.max(20, Math.min(80, ((me.clientY - rect.top) / rect.height) * 100)); setSplitTopH(Math.round(pct)); };
+    const startY = e.clientY;
+    const startH = mixerHeightPx;
+    const onMove = (me) => {
+      if (!splitDragRef.current) return;
+      const delta = startY - me.clientY;
+      const containerH = container.getBoundingClientRect().height;
+      const newH = Math.max(250, Math.min(700, startH + delta));
+      setMixerHeightPx(newH);
+    };
     const onUp = () => { splitDragRef.current = false; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
     window.addEventListener("mousemove", onMove); window.addEventListener("mouseup", onUp);
-  }, []);
+  }, [mixerHeightPx]);
 
 
   const addVCATrack = useCallback(() => {
@@ -2701,7 +2750,7 @@ const RecordingStudio = ({ user }) => {
         {/* SPLIT SCREEN */}
         {splitScreen && (
           <div ref={splitContainerRef} className="rs-split-screen">
-            <div className="rs-split-top" style={{ height: `${splitTopH}%` }}>
+            <div className="rs-split-top" style={{ flex: "1 1 auto", minHeight: 0 }}>
               <span className="rs-split-pane-label">ARRANGE</span>
               <ArrangerView onBpmDetected={det => { setBpm(det); setStatus("♩ BPM detected: " + det); }} tracks={tracks} setTracks={setTracks} bpm={bpm} currentTime={currentTime} isPlaying={isPlaying}
                 selectedTrack={selectedTrack} onSelectTrack={setSelectedTrack} zoom={zoom} onZoomChange={setZoom}
@@ -2709,9 +2758,15 @@ const RecordingStudio = ({ user }) => {
                 onTimelineDoubleClick={handleTimelineDoubleClick} MidiRegionPreview={MidiRegionPreview}/>
             </div>
             <div className="rs-split-handle" onMouseDown={handleSplitMouseDown} title="Drag to resize"/>
-            <div className="rs-split-bottom" style={{ height: `${100 - splitTopH}%` }}>
+            <div className="rs-split-bottom" style={{ flex: "0 0 auto", height: `${mixerHeightPx}px` }}>
               <span className="rs-split-pane-label">MIXER</span>
               <div className="daw-console">
+                <div
+                  className="mixer-resize-handle"
+                  style={{ top: `calc(${mixerUpperH}px + 74px)` }}
+                  onMouseDown={handleMixerResizeStart}
+                  title="Drag to resize inserts/sends"
+                />
                 <div className="daw-console-scroll">
                   {tracks.map((t, i) => {
                     const meter = meterLevels?.[i] || { left: 0, right: 0, peak: 0 };
@@ -2728,6 +2783,7 @@ const RecordingStudio = ({ user }) => {
                             {Object.entries(CONSOLE_BOARDS).map(([id, b]) => <option key={id} value={id}>{b.name}</option>)}
                           </select>
                         </div>
+                        <div className="ch-upper">
                         <div className="daw-ch-inserts">
                           <div className="daw-ch-inserts-label">INSERTS</div>
                           {ALL_FX_EXTENDED.filter(fx => t.effects?.[fx.key]?.enabled).map(fx => (
@@ -2742,17 +2798,14 @@ const RecordingStudio = ({ user }) => {
                             </div>
                           ))}
                         </div>
-                        <div className="daw-ch-controls">
-                          <div className={"daw-ch-badge" + (t.muted ? " m-on" : "")} onClick={e => { e.stopPropagation(); const nm = !t.muted; updateTrack(i, { muted: nm }); const audible = !nm && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? t.volume : 0; }}>M</div>
-                          <div className={"daw-ch-badge" + (t.solo ? " s-on" : "")} onClick={e => { e.stopPropagation(); const ns = !t.solo; updateTrack(i, { solo: ns }); const whs = tracks.some((x, idx) => idx === i ? ns : x.solo); tracks.forEach((x, idx) => { const gn = trackGainsRef.current[idx]; if (!gn) return; const s = idx === i ? ns : x.solo; gn.gain.value = (!x.muted && (!whs || s)) ? x.volume : 0; }); }}>S</div>
-                          <div className={"daw-ch-badge" + (selectedTrack === i ? " e-on" : "")} onClick={e => { e.stopPropagation(); setSelectedTrack(i); setActiveEffectsTrack(i); }}>e</div>
-                          <button className={"daw-ch-rec-btn" + (t.armed ? " armed" : "")} onClick={e => { e.stopPropagation(); updateTrack(i, { armed: !t.armed }); }}>●</button>
-                        </div>
-                        <div className="daw-ch-pan">
-                          <PanKnob value={t.pan} onChange={v => updateTrack(i, { pan: v })} size={32}/>
-                        </div>
                         <div className="daw-ch-sends">
                           <div className="daw-ch-sends-label">SENDS</div>
+                          {tracks.filter(b=>b.trackType==="bus").length === 0 && (
+                            <>
+                              <div className="daw-ch-send-slot empty"></div>
+                              <div className="daw-ch-send-slot empty"></div>
+                            </>
+                          )}
                           {tracks.filter(b=>b.trackType==="bus").map(bus=>(
                             <div key={bus.id} className="daw-ch-send-row">
                               <span className="daw-ch-send-name">{bus.name}</span>
@@ -2768,6 +2821,19 @@ const RecordingStudio = ({ user }) => {
                             </div>
                           ))}
                         </div>
+                        </div>
+                        <div className="ch-mid">
+                        <div className="daw-ch-controls">
+                          <div className={"daw-ch-badge" + (t.muted ? " m-on" : "")} onClick={e => { e.stopPropagation(); const nm = !t.muted; updateTrack(i, { muted: nm }); const audible = !nm && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? t.volume : 0; }}>M</div>
+                          <div className={"daw-ch-badge" + (t.solo ? " s-on" : "")} onClick={e => { e.stopPropagation(); const ns = !t.solo; updateTrack(i, { solo: ns }); const whs = tracks.some((x, idx) => idx === i ? ns : x.solo); tracks.forEach((x, idx) => { const gn = trackGainsRef.current[idx]; if (!gn) return; const s = idx === i ? ns : x.solo; gn.gain.value = (!x.muted && (!whs || s)) ? x.volume : 0; }); }}>S</div>
+                          <div className={"daw-ch-badge" + (selectedTrack === i ? " e-on" : "")} onClick={e => { e.stopPropagation(); setSelectedTrack(i); setActiveEffectsTrack(i); }}>e</div>
+                          <button className={"daw-ch-rec-btn" + (t.armed ? " armed" : "")} onClick={e => { e.stopPropagation(); updateTrack(i, { armed: !t.armed }); }}>●</button>
+                        </div>
+                        <div className="daw-ch-pan">
+                          <PanKnob value={t.pan} onChange={v => updateTrack(i, { pan: v })} size={32}/>
+                        </div>
+                        </div>
+                        <div className="ch-lower">
                         <div className="daw-ch-fader-area">
                           <div className="daw-ch-fader-row">
                             <div className="daw-ch-db-scale" style={{textAlign:"right"}}><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
@@ -2788,6 +2854,7 @@ const RecordingStudio = ({ user }) => {
                         <div className="daw-ch-name daw-ch-name-bottom">
                           <input className="daw-ch-name-input" value={t.name || `Track ${i+1}`} onChange={e => updateTrack(i, {name: e.target.value})} onClick={e => e.stopPropagation()} style={{color: t.color || "#cdd9e5"}}/>
                         </div>
+                        </div>
                       </div>
                     );
                   })}
@@ -2803,12 +2870,20 @@ const RecordingStudio = ({ user }) => {
                         {Object.entries(CONSOLE_BOARDS).map(([id, b]) => <option key={id} value={id}>{b.name}</option>)}
                       </select>
                     </div>
+                    <div className="ch-upper">
                     <div className="daw-ch-inserts">
                       <div className="daw-ch-inserts-label">INSERTS</div>
                       {Array.from({length:6}).map((_,si)=>(
                         <div key={"ms"+si} className="daw-ch-insert-slot empty" onClick={e=>{e.stopPropagation();const rect=e.currentTarget.getBoundingClientRect();setInsertPickerState({trackIndex:-1,x:rect.right+4,y:rect.top});}}></div>
                       ))}
                     </div>
+                    <div className="daw-ch-sends">
+                      <div className="daw-ch-sends-label">SENDS</div>
+                      <div className="daw-ch-send-slot empty"></div>
+                      <div className="daw-ch-send-slot empty"></div>
+                    </div>
+                    </div>
+                    <div className="ch-mid">
                     <div className="daw-ch-controls">
                       <div className="daw-ch-badge">M</div>
                       <div className="daw-ch-badge">S</div>
@@ -2817,9 +2892,8 @@ const RecordingStudio = ({ user }) => {
                     <div className="daw-ch-pan">
                       <PanKnob value={masterPan || 0} onChange={v => { setMasterPan(v); if (masterPanRef.current) masterPanRef.current.pan.value = v; }} size={32}/>
                     </div>
-                    <div className="daw-ch-sends">
-                      <div className="daw-ch-sends-label">SENDS</div>
                     </div>
+                    <div className="ch-lower">
                     <div className="daw-ch-fader-area">
                       <div className="daw-ch-fader-row">
                         <div className="daw-ch-db-scale" style={{textAlign:"right"}}><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
@@ -2839,6 +2913,7 @@ const RecordingStudio = ({ user }) => {
                     </div>
                     <div className="daw-ch-name daw-ch-name-bottom">
                       <span className="daw-ch-track-label rs-orange">MASTER</span>
+                    </div>
                     </div>
                   </div>
                 </div>
@@ -2895,6 +2970,7 @@ const RecordingStudio = ({ user }) => {
                       <span className="daw-ch-routing-value">{t.input || "Default In"}</span>
                       <MicModelSelector trackIndex={i} currentModel={trackMicModels[i] || "none"} onApply={handleConsoleMicModel}/>
                     </div>
+                    <div className="ch-upper">
                     <div className="daw-ch-inserts">
                       <div className="daw-ch-inserts-label">INSERTS</div>
                       {loaded.map(fx => (
@@ -2911,6 +2987,8 @@ const RecordingStudio = ({ user }) => {
                         </div>
                       )}
                     </div>
+                    </div>
+                    <div className="ch-mid">
                     <div className="daw-ch-controls">
                       <div className={"daw-ch-badge" + (t.muted ? " m-on" : "")} onClick={e => { e.stopPropagation(); const nm = !t.muted; updateTrack(i, { muted: nm }); const audible = !nm && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? t.volume : 0; }}>M</div>
                       <div className={"daw-ch-badge" + (t.solo ? " s-on" : "")} onClick={e => { e.stopPropagation(); const ns = !t.solo; updateTrack(i, { solo: ns }); const whs = tracks.some((x, idx) => idx === i ? ns : x.solo); tracks.forEach((x, idx) => { const gn = trackGainsRef.current[idx]; if (!gn) return; const s = idx === i ? ns : x.solo; gn.gain.value = (!x.muted && (!whs || s)) ? x.volume : 0; }); }}>S</div>
@@ -2920,6 +2998,8 @@ const RecordingStudio = ({ user }) => {
                     <div className="daw-ch-pan">
                       <PanKnob value={t.pan} onChange={v => updateTrack(i, { pan: v })} size={32}/>
                     </div>
+                    </div>
+                    <div className="ch-lower">
                     <div className="daw-ch-fader-area">
                       <div className="daw-ch-fader-row">
                         <div className="daw-ch-db-scale" style={{textAlign:"right"}}><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
@@ -2958,6 +3038,7 @@ const RecordingStudio = ({ user }) => {
                         {Object.entries(CONSOLE_BOARDS).map(([id, b]) => <option key={id} value={id}>{b.name}</option>)}
                       </select>
                     </div>
+                    </div>
                   </div>
                 );
               })}
@@ -2970,10 +3051,13 @@ const RecordingStudio = ({ user }) => {
                   <span className="daw-ch-header-num">M</span>
                 </div>
                 <div className="daw-ch-routing"><span className="daw-ch-routing-value">Stereo Out</span></div>
+                <div className="ch-upper">
                 <div className="daw-ch-inserts">
                   <div className="daw-ch-inserts-label">INSERTS</div>
                   <div className="daw-ch-insert-slot empty" onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setInsertPickerState({ trackIndex: -1, x: rect.right + 4, y: rect.top }); }}>+ Insert</div>
                 </div>
+                </div>
+                <div className="ch-mid">
                                 <div className="daw-ch-pan" style={{padding:"4px 0"}}>
                   <PanKnob value={masterPan || 0} onChange={v => { setMasterPan(v); if (masterPanRef.current) masterPanRef.current.pan.value = v; }} size={32}/>
                 </div>
@@ -2986,6 +3070,8 @@ const RecordingStudio = ({ user }) => {
                 <div className="daw-ch-pan">
                   <PanKnob value={masterPan} onChange={v => setMasterPan(v)} size={32}/>
                 </div>
+                </div>
+                <div className="ch-lower">
                 <div className="daw-ch-fader-area">
                   <div className="daw-ch-fader-row">
                         <div className="daw-ch-db-scale" style={{textAlign:"right"}}><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
@@ -3009,6 +3095,7 @@ const RecordingStudio = ({ user }) => {
                   <select className="daw-ch-console-select" value={masterConsoleChar} onChange={e => setMasterConsoleChar(e.target.value)}>
                     {Object.entries(CONSOLE_BOARDS).map(([id, b]) => <option key={id} value={id}>{b.name}</option>)}
                   </select>
+                </div>
                 </div>
               </div>
             </div>

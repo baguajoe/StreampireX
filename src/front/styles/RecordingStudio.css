@@ -1741,3 +1741,38 @@
 .daw-ch-fader { display: flex; align-items: center; justify-content: center; }
 .daw-ch-fader .svg-fader-wrapper { height: 180px; }
 .daw-ch-fader .svg-fader-wrapper svg { height: 180px; }
+
+
+/* CUBASE MIXER - Shared scroll + draggable divider */
+.daw-console-scroll { display: flex !important; flex-direction: row !important; align-items: stretch !important; gap: 1px !important; padding: 8px 8px 0 !important; overflow-x: auto !important; overflow-y: hidden !important; height: 100% !important; min-height: 0 !important; background: #0c111c !important; }
+.daw-channel { display: flex !important; flex-direction: column !important; align-items: stretch !important; background: #181e2d !important; border: 1px solid #243048 !important; border-radius: 4px !important; flex-shrink: 0 !important; width: 92px !important; min-width: 92px !important; height: 100% !important; min-height: 0 !important; max-height: none !important; padding: 0 !important; overflow: visible !important; }
+.daw-channel.master-channel { width: 100px !important; margin-left: 4px !important; }
+.daw-channel.selected { border-color: #00ffc8 !important; background: rgba(0,255,200,.08) !important; }
+.daw-ch-colorbar, .daw-ch-header, .daw-ch-routing { flex: 0 0 auto !important; }
+.ch-upper { display: flex !important; flex-direction: column !important; flex: 0 0 auto !important; height: var(--mixer-upper-h, 180px) !important; overflow-y: auto !important; overflow-x: hidden !important; width: 100% !important; background: #0a0f18 !important; }
+.ch-upper::-webkit-scrollbar { width: 5px; }
+.ch-upper::-webkit-scrollbar-thumb { background: #2a3648; border-radius: 2px; }
+.ch-upper .daw-ch-inserts { padding: 4px 5px !important; width: 100% !important; height: auto !important; min-height: 0 !important; max-height: none !important; overflow: visible !important; flex: 0 0 auto !important; }
+.ch-upper .daw-ch-sends { padding: 4px 5px !important; width: 100% !important; height: auto !important; min-height: 0 !important; max-height: none !important; overflow: visible !important; flex: 0 0 auto !important; }
+.daw-ch-insert-slot { display: block !important; width: 100% !important; height: 17px !important; margin-bottom: 2px !important; padding: 2px 5px !important; border-radius: 2px !important; box-sizing: border-box !important; font-size: 9px !important; line-height: 13px !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+.daw-ch-insert-slot.empty { background: #0d1420 !important; border: 1px solid #243048 !important; color: transparent !important; }
+.daw-ch-insert-slot.empty:hover { border-color: #00ffc8 !important; }
+.daw-ch-insert-slot.active { background: rgba(0,255,200,.08) !important; border: 1px solid rgba(0,255,200,.3) !important; color: #00ffc8 !important; }
+.daw-ch-send-slot { display: block !important; width: 100% !important; height: 17px !important; margin-bottom: 2px !important; padding: 2px 5px !important; border-radius: 2px !important; box-sizing: border-box !important; }
+.daw-ch-send-slot.empty { background: #0d1420 !important; border: 1px solid #243048 !important; }
+.daw-ch-send-slot.empty:hover { border-color: #00ffc8 !important; }
+.ch-mid { display: flex !important; flex-direction: column !important; flex: 0 0 auto !important; width: 100% !important; background: #13182a !important; padding: 3px 0 !important; }
+.ch-lower { display: flex !important; flex-direction: column !important; flex: 0 0 auto !important; width: 100% !important; background: #13182a !important; padding-bottom: 3px !important; }
+.daw-ch-name, .daw-ch-automation { flex: 0 0 auto !important; }
+.mixer-resize-handle { position: absolute; left: 0; right: 0; height: 4px; background: #4a4a4a; cursor: ns-resize; z-index: 20; transition: background 0.1s; }
+.mixer-resize-handle:hover, .mixer-resize-handle.dragging { background: #666; box-shadow: 0 0 8px rgba(0,255,200,.5); }
+
+.daw-console { position: relative !important; }
+
+/* Lock mixer lower section to fixed height at bottom */
+.ch-mid { height: 50px !important; flex: 0 0 50px !important; }
+.ch-lower { height: 260px !important; flex: 0 0 260px !important; overflow: visible !important; }
+.ch-lower .daw-ch-fader-area { height: 170px !important; max-height: 170px !important; flex: 0 0 170px !important; }
+
+/* Mixer fixed at bottom — split container flex col */
+.rs-split-screen { display: flex !important; flex-direction: column !important; height: 100% !important; overflow: hidden !important; }
