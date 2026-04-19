@@ -1216,38 +1216,3 @@
 }
 .rs-sb-toggle-btn:hover { background: #131a2b; color: #cdd9e5; }
 .rs-sb-toggle-btn.active { background: #00ffc8; color: #06060f; border-color: #00ffc8; }
-
-/* ═══ SIDEBAR LAYOUT — override .daw position:fixed when wrapped ═══ */
-.rs-layout-root {
-  display: flex;
-  flex-direction: row;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1300;  /* same z-index as original .daw to replace it */
-}
-.rs-layout-main {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
-}
-.rs-layout-main > .daw {
-  position: static !important;  /* undo the position:fixed */
-  width: 100% !important;
-  height: 100% !important;
-  top: auto !important;
-  left: auto !important;
-  right: auto !important;
-  bottom: auto !important;
-  z-index: auto !important;
-  flex: 1 1 auto;
-}
-.rs-sidebar { flex: 0 0 auto; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-.rs-sidebar-left { width: 240px; }
-.rs-sidebar-right { width: 300px; }
