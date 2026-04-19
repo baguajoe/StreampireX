@@ -818,10 +818,18 @@ const RecordingStudio = ({ user }) => {
     mixerUpperDragRef.current = true;
     const startY = e.clientY;
     const startH = mixerUpperH;
+    // Cubase-style clamp: fader section must stay fully visible
+    // Fixed below mid-handle: ch-mid (~50) + ch-lower (~340: controls+fader+auto+name)
+    const FIXED_BELOW = 390;
+    // Fixed above ch-upper: colorbar(5) + header(26) + routing(40) = ~71
+    const FIXED_ABOVE = 71;
+    const MIN_UPPER = 40;   // just enough to see INSERTS + SENDS labels
     const onMove = (me) => {
       if (!mixerUpperDragRef.current) return;
       const delta = me.clientY - startY;
-      const newH = Math.max(60, Math.min(400, startH + delta));
+      // Max upper = pane height - fader section - header area
+      const maxUpper = Math.max(MIN_UPPER + 1, mixerHeightPx - FIXED_BELOW - FIXED_ABOVE);
+      const newH = Math.max(MIN_UPPER, Math.min(maxUpper, startH + delta));
       setMixerUpperH(newH);
     };
     const onUp = () => {
@@ -831,7 +839,7 @@ const RecordingStudio = ({ user }) => {
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
-  }, [mixerUpperH]);
+  }, [mixerUpperH, mixerHeightPx]);
 
   // ── Sync refs ──
   useEffect(() => { trackConsoleCharRef.current = trackConsoleChar; }, [trackConsoleChar]);
