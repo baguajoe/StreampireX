@@ -2541,6 +2541,10 @@ const RecordingStudio = ({ user }) => {
           onSelectTrack={setSelectedTrack}
           onToggleVisible={(i, v) => updateTrack(i, { visible: v })}
           onUpdateTrack={updateTrack}
+          bpm={bpm}
+          onBpmChange={setBpm}
+          projectName={projectName}
+          onProjectNameChange={setProjectName}
         />
       )}
       <div className="rs-layout-main">

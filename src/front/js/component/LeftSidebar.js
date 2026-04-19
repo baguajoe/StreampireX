@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
-// ── Mini fader component (thin SVG, 140px tall) ──
+// ── Log fader math ──
 const DB_MIN = -60, DB_MAX = 6;
 const volumeToPos = (vol) => {
   if (vol <= 0) return 0;
@@ -8,8 +8,7 @@ const volumeToPos = (vol) => {
   if (db >= DB_MAX) return 1;
   if (db <= DB_MIN) return 0;
   if (db >= 0) return 0.75 + (db / DB_MAX) * 0.25;
-  const norm = Math.pow(10, db / 24);
-  return norm * 0.75;
+  return Math.pow(10, db / 24) * 0.75;
 };
 const posToVolume = (pos) => {
   if (pos <= 0) return 0;
@@ -65,12 +64,10 @@ const ChannelFader = ({ value = 1.0, onChange, height = 140 }) => {
   );
 };
 
-// ── Pan knob (rotary) ──
 const PanKnob = ({ value = 0, onChange, size = 36 }) => {
-  const ref = useRef(null);
   const startY = useRef(0);
   const startVal = useRef(0);
-  const angle = value * 135;  // -1..1 -> -135..135 deg
+  const angle = value * 135;
 
   const handleDown = (e) => {
     e.preventDefault();
@@ -78,8 +75,7 @@ const PanKnob = ({ value = 0, onChange, size = 36 }) => {
     startVal.current = value;
     const onMove = (ev) => {
       const dy = startY.current - ev.clientY;
-      const newVal = Math.max(-1, Math.min(1, startVal.current + dy * 0.005));
-      onChange && onChange(newVal);
+      onChange && onChange(Math.max(-1, Math.min(1, startVal.current + dy * 0.005)));
     };
     const onUp = () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
     window.addEventListener("mousemove", onMove);
@@ -100,9 +96,44 @@ const PanKnob = ({ value = 0, onChange, size = 36 }) => {
   );
 };
 
-// ── Mini EQ curve preview ──
+// Compact rotary knob (for Trim, HPF freq, etc)
+const MiniKnob = ({ value = 0, min = 0, max = 1, onChange, size = 28, label, unit = "", format = (v) => v.toFixed(1) }) => {
+  const startY = useRef(0);
+  const startVal = useRef(0);
+  const range = max - min;
+  const norm = (value - min) / range;
+  const angle = norm * 270 - 135;
+
+  const handleDown = (e) => {
+    e.preventDefault();
+    startY.current = e.clientY;
+    startVal.current = value;
+    const onMove = (ev) => {
+      const dy = startY.current - ev.clientY;
+      const newVal = Math.max(min, Math.min(max, startVal.current + dy * (range / 200)));
+      onChange && onChange(newVal);
+    };
+    const onUp = () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  return (
+    <div className="lsb-mini-knob" onMouseDown={handleDown} onDoubleClick={() => onChange && onChange((min + max) / 2)}>
+      {label && <div className="lsb-mini-knob-label">{label}</div>}
+      <svg width={size} height={size} viewBox="0 0 28 28">
+        <circle cx="14" cy="14" r="11" fill="#0f1422" stroke="#2a3248" strokeWidth="1"/>
+        <g transform={`rotate(${angle} 14 14)`}>
+          <line x1="14" y1="14" x2="14" y2="5" stroke="#00ffc8" strokeWidth="1.5" strokeLinecap="round"/>
+        </g>
+        <circle cx="14" cy="14" r="1.5" fill="#00ffc8"/>
+      </svg>
+      <div className="lsb-mini-knob-val">{format(value)}{unit}</div>
+    </div>
+  );
+};
+
 const MiniEQ = ({ bands = [] }) => {
-  // bands = [{freq, gain, q}, ...]  — synthesize a simple curve
   const points = [];
   for (let i = 0; i < 60; i++) {
     const freq = 20 * Math.pow(22050/20, i/59);
@@ -113,7 +144,7 @@ const MiniEQ = ({ bands = [] }) => {
       const bw = Math.log2(ratio);
       g += b.gain * Math.exp(-Math.pow(bw * (b.q || 1), 2));
     });
-    const y = 20 - g * 1.5;  // center=20, +1dB=-1.5px
+    const y = 20 - g * 1.5;
     points.push(`${i * 3},${Math.max(2, Math.min(38, y))}`);
   }
 
@@ -126,40 +157,36 @@ const MiniEQ = ({ bands = [] }) => {
   );
 };
 
-// ── Level meter (vertical) ──
 const LevelMeter = ({ peakL = 0, peakR = 0, height = 140 }) => {
   const toY = (p) => {
     if (p <= 0) return height;
     const db = 20 * Math.log10(p);
     if (db >= 6) return 0;
     if (db <= -60) return height;
-    const norm = volumeToPos(p);
-    return height - norm * height;
+    return height - volumeToPos(p) * height;
   };
-  const yL = toY(peakL);
-  const yR = toY(peakR);
-
   return (
     <svg width="12" height={height} className="lsb-meter">
       <defs>
         <linearGradient id="lsb-mtr-grad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#ff3030"/>
-          <stop offset="15%" stopColor="#ffaa00"/>
-          <stop offset="45%" stopColor="#ffee00"/>
-          <stop offset="60%" stopColor="#00ffc8"/>
+          <stop offset="0%" stopColor="#ff3030"/><stop offset="15%" stopColor="#ffaa00"/>
+          <stop offset="45%" stopColor="#ffee00"/><stop offset="60%" stopColor="#00ffc8"/>
           <stop offset="100%" stopColor="#006655"/>
         </linearGradient>
       </defs>
       <rect x="0" y="0" width="5" height={height} fill="#060a10" stroke="#0d1520"/>
       <rect x="7" y="0" width="5" height={height} fill="#060a10" stroke="#0d1520"/>
-      <rect x="0" y={yL} width="5" height={height - yL} fill="url(#lsb-mtr-grad)"/>
-      <rect x="7" y={yR} width="5" height={height - yR} fill="url(#lsb-mtr-grad)"/>
+      <rect x="0" y={toY(peakL)} width="5" height={height - toY(peakL)} fill="url(#lsb-mtr-grad)"/>
+      <rect x="7" y={toY(peakR)} width="5" height={height - toY(peakR)} fill="url(#lsb-mtr-grad)"/>
     </svg>
   );
 };
 
+const AUTO_PARAMS = ["Volume", "Pan", "Mute", "Send 1", "Send 2", "EQ Low", "EQ Mid", "EQ High", "Reverb Mix"];
+const GROUP_COLORS = ["#ff6600", "#00ffc8", "#a78bfa", "#facc15", "#f472b6", "#38bdf8", "#4ade80", "#fb923c"];
+
 // ═════════════════════════════════════════════════════════════
-// LEFT SIDEBAR MAIN
+// MAIN COMPONENT
 // ═════════════════════════════════════════════════════════════
 const LeftSidebar = ({
   tracks = [],
@@ -168,26 +195,126 @@ const LeftSidebar = ({
   onToggleVisible,
   onUpdateTrack,
   onTrackAction,
+  bpm = 120,
+  onBpmChange,
+  projectName = "Untitled Project",
+  onProjectNameChange,
 }) => {
   const [tab, setTab] = useState(() => localStorage.getItem("rs_left_tab") || "channel");
   const [vizSearch, setVizSearch] = useState("");
+
+  // Groups state (persists in localStorage)
+  const [groups, setGroups] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("rs_groups") || "[]"); } catch { return []; }
+  });
+  useEffect(() => { localStorage.setItem("rs_groups", JSON.stringify(groups)); }, [groups]);
+
+  // Markers state
+  const [markers, setMarkers] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("rs_markers") || "[]"); } catch { return []; }
+  });
+  useEffect(() => { localStorage.setItem("rs_markers", JSON.stringify(markers)); }, [markers]);
+
+  // Project metadata
+  const [projectMeta, setProjectMeta] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("rs_project_meta") || "{}"); } catch { return {}; }
+  });
+  useEffect(() => { localStorage.setItem("rs_project_meta", JSON.stringify(projectMeta)); }, [projectMeta]);
+
+  // History (undo stack visualizer — reads from window if RecordingStudio exposes)
+  const [history, setHistory] = useState([]);
+  useEffect(() => {
+    const refresh = () => {
+      if (window.__spxHistory) setHistory(window.__spxHistory);
+    };
+    refresh();
+    const interval = setInterval(refresh, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => { localStorage.setItem("rs_left_tab", tab); }, [tab]);
 
   const t = tracks[selectedTrack] || null;
 
-  // Bulk track ops for Visibility tab
   const showAll = () => tracks.forEach((_, i) => onToggleVisible && onToggleVisible(i, true));
   const hideAll = () => tracks.forEach((_, i) => onToggleVisible && onToggleVisible(i, false));
 
   const filteredTracks = tracks.map((tr, i) => ({ ...tr, _i: i }))
     .filter(tr => !vizSearch || (tr.name || "").toLowerCase().includes(vizSearch.toLowerCase()));
 
+  // Groups helpers
+  const addGroup = () => {
+    const name = prompt("Group name:", `Group ${groups.length + 1}`);
+    if (!name) return;
+    setGroups([...groups, { id: `g${Date.now()}`, name, color: GROUP_COLORS[groups.length % GROUP_COLORS.length], trackIds: [], collapsed: false, muted: false, solo: false }]);
+  };
+  const deleteGroup = (gid) => {
+    if (!confirm("Delete this group? (tracks stay)")) return;
+    setGroups(groups.filter(g => g.id !== gid));
+  };
+  const toggleGroupCollapse = (gid) => setGroups(groups.map(g => g.id === gid ? { ...g, collapsed: !g.collapsed } : g));
+  const toggleGroupMute = (gid) => {
+    const g = groups.find(g => g.id === gid);
+    if (!g) return;
+    setGroups(groups.map(gg => gg.id === gid ? { ...gg, muted: !gg.muted } : gg));
+    g.trackIds.forEach(ti => onUpdateTrack && onUpdateTrack(ti, { muted: !g.muted }));
+  };
+  const assignTrackToGroup = (trackIdx, gid) => {
+    setGroups(groups.map(g => {
+      if (g.id === gid) return { ...g, trackIds: [...new Set([...g.trackIds, trackIdx])] };
+      return { ...g, trackIds: g.trackIds.filter(ti => ti !== trackIdx) };
+    }));
+  };
+  const removeTrackFromGroup = (trackIdx, gid) => {
+    setGroups(groups.map(g => g.id === gid ? { ...g, trackIds: g.trackIds.filter(ti => ti !== trackIdx) } : g));
+  };
+
+  // Markers helpers
+  const addMarker = () => {
+    const name = prompt("Marker name (e.g. Intro, Verse, Chorus):", "New Marker");
+    if (!name) return;
+    const time = parseFloat(prompt("At time (seconds):", "0") || "0");
+    setMarkers([...markers, { id: `m${Date.now()}`, name, time, color: GROUP_COLORS[markers.length % GROUP_COLORS.length] }].sort((a, b) => a.time - b.time));
+  };
+  const deleteMarker = (mid) => setMarkers(markers.filter(m => m.id !== mid));
+  const jumpToMarker = (m) => {
+    if (window.__spxJumpToTime) window.__spxJumpToTime(m.time);
+    else onTrackAction && onTrackAction("jumpTo", m.time);
+  };
+
+  const updateMeta = (key, val) => setProjectMeta({ ...projectMeta, [key]: val });
+
   return (
     <div className="rs-sidebar rs-sidebar-left lsb-root">
-      <div className="rs-sb-tabs">
-        <button className={"rs-sb-tab" + (tab === "channel" ? " active" : "")} onClick={() => setTab("channel")}>Channel</button>
-        <button className={"rs-sb-tab" + (tab === "inspector" ? " active" : "")} onClick={() => setTab("inspector")}>Inspector</button>
-        <button className={"rs-sb-tab" + (tab === "visibility" ? " active" : "")} onClick={() => setTab("visibility")}>Visibility</button>
+      <div className="lsb-icon-tabs">
+        <button className={"lsb-icon-tab" + (tab === "channel" ? " active" : "")}
+                onClick={() => setTab("channel")} title="Channel">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="9"/><rect x="12" y="7" width="3" height="12"/><rect x="17" y="13" width="3" height="6"/></svg>
+        </button>
+        <button className={"lsb-icon-tab" + (tab === "inspector" ? " active" : "")}
+                onClick={() => setTab("inspector")} title="Inspector">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </button>
+        <button className={"lsb-icon-tab" + (tab === "visibility" ? " active" : "")}
+                onClick={() => setTab("visibility")} title="Visibility">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+        <button className={"lsb-icon-tab" + (tab === "groups" ? " active" : "")}
+                onClick={() => setTab("groups")} title="Groups">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        </button>
+        <button className={"lsb-icon-tab" + (tab === "markers" ? " active" : "")}
+                onClick={() => setTab("markers")} title="Markers">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </button>
+        <button className={"lsb-icon-tab" + (tab === "project" ? " active" : "")}
+                onClick={() => setTab("project")} title="Project">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </button>
+        <button className={"lsb-icon-tab" + (tab === "history" ? " active" : "")}
+                onClick={() => setTab("history")} title="History">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+        </button>
       </div>
 
       <div className="rs-sb-content lsb-content">
@@ -195,7 +322,6 @@ const LeftSidebar = ({
         {tab === "channel" && !t && <div className="rs-sb-empty">Click any track to inspect it</div>}
         {tab === "channel" && t && (
           <div className="lsb-channel">
-            {/* Header: name + color */}
             <div className="lsb-hdr">
               <div className="lsb-color-tag" style={{background: t.color || "#00ffc8"}}/>
               <input className="lsb-name" type="text" value={t.name || ""}
@@ -204,7 +330,27 @@ const LeftSidebar = ({
                      onChange={e => onUpdateTrack && onUpdateTrack(selectedTrack, { color: e.target.value })}/>
             </div>
 
-            {/* EQ curve preview */}
+            {/* Input stage: Trim / Phase / HPF */}
+            <div className="lsb-block">
+              <div className="lsb-block-hdr">INPUT STAGE</div>
+              <div className="lsb-input-stage">
+                <MiniKnob value={t.inputTrim != null ? t.inputTrim : 0} min={-24} max={24}
+                          onChange={v => onUpdateTrack && onUpdateTrack(selectedTrack, { inputTrim: v })}
+                          label="TRIM" unit=" dB" format={v => v.toFixed(1)}/>
+                <button className={"lsb-toggle-btn" + (t.phaseFlipped ? " on" : "")}
+                        onClick={() => onUpdateTrack && onUpdateTrack(selectedTrack, { phaseFlipped: !t.phaseFlipped })}
+                        title="Polarity invert (180°)">Ø</button>
+                <button className={"lsb-toggle-btn" + (t.hpfOn ? " on" : "")}
+                        onClick={() => onUpdateTrack && onUpdateTrack(selectedTrack, { hpfOn: !t.hpfOn })}
+                        title="High-pass filter">HPF</button>
+                {t.hpfOn && (
+                  <MiniKnob value={t.hpfFreq != null ? t.hpfFreq : 80} min={20} max={500}
+                            onChange={v => onUpdateTrack && onUpdateTrack(selectedTrack, { hpfFreq: v })}
+                            label="FREQ" unit=" Hz" format={v => Math.round(v)}/>
+                )}
+              </div>
+            </div>
+
             <div className="lsb-block">
               <div className="lsb-block-hdr">EQ CURVE</div>
               <MiniEQ bands={t.eqBands || [
@@ -215,7 +361,6 @@ const LeftSidebar = ({
               ]}/>
             </div>
 
-            {/* Inserts */}
             <div className="lsb-block">
               <div className="lsb-block-hdr">INSERTS</div>
               <div className="lsb-inserts">
@@ -238,7 +383,6 @@ const LeftSidebar = ({
               </div>
             </div>
 
-            {/* Sends */}
             <div className="lsb-block">
               <div className="lsb-block-hdr">SENDS</div>
               <div className="lsb-sends">
@@ -259,7 +403,25 @@ const LeftSidebar = ({
               </div>
             </div>
 
-            {/* Routing */}
+            <div className="lsb-block">
+              <div className="lsb-block-hdr">CUE / MONITOR</div>
+              <div className="lsb-cue-row">
+                <label>Cue Send</label>
+                <input type="range" min="0" max="1" step="0.01" value={t.cueSend || 0}
+                       onChange={e => onUpdateTrack && onUpdateTrack(selectedTrack, { cueSend: parseFloat(e.target.value) })}/>
+                <span>{Math.round((t.cueSend || 0)*100)}%</span>
+              </div>
+              <div className="lsb-cue-row">
+                <label>Source</label>
+                <select value={t.monitorSource || "playback"}
+                        onChange={e => onUpdateTrack && onUpdateTrack(selectedTrack, { monitorSource: e.target.value })}>
+                  <option value="playback">Playback</option>
+                  <option value="input">Input</option>
+                  <option value="auto">Auto</option>
+                </select>
+              </div>
+            </div>
+
             <div className="lsb-block">
               <div className="lsb-block-hdr">ROUTING</div>
               <div className="lsb-routing">
@@ -279,10 +441,39 @@ const LeftSidebar = ({
                     <option>Group A</option><option>Group B</option>
                   </select>
                 </div>
+                <div className="lsb-route-row">
+                  <label>GRP</label>
+                  <select value={t.group || ""} onChange={e => {
+                    const gid = e.target.value;
+                    onUpdateTrack && onUpdateTrack(selectedTrack, { group: gid });
+                    if (gid) assignTrackToGroup(selectedTrack, gid);
+                  }}>
+                    <option value="">None</option>
+                    {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
 
-            {/* Transport buttons */}
+            <div className="lsb-block">
+              <div className="lsb-block-hdr">AUTOMATION LANE</div>
+              <div className="lsb-route-row">
+                <label>Param</label>
+                <select value={t.automationParam || "Volume"}
+                        onChange={e => onUpdateTrack && onUpdateTrack(selectedTrack, { automationParam: e.target.value })}>
+                  {AUTO_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div className="lsb-route-row">
+                <label>Mode</label>
+                <select value={t.automationMode || "read"}
+                        onChange={e => onUpdateTrack && onUpdateTrack(selectedTrack, { automationMode: e.target.value })}>
+                  <option value="off">Off</option><option value="read">Read</option>
+                  <option value="touch">Touch</option><option value="latch">Latch</option><option value="write">Write</option>
+                </select>
+              </div>
+            </div>
+
             <div className="lsb-msr">
               <button className={"lsb-msr-btn" + (t.muted ? " on" : "")}
                       onClick={() => onUpdateTrack && onUpdateTrack(selectedTrack, { muted: !t.muted })}>M</button>
@@ -290,22 +481,20 @@ const LeftSidebar = ({
                       onClick={() => onUpdateTrack && onUpdateTrack(selectedTrack, { solo: !t.solo })}>S</button>
               <button className={"lsb-msr-btn" + (t.armed ? " rec" : "")}
                       onClick={() => onUpdateTrack && onUpdateTrack(selectedTrack, { armed: !t.armed })}>R</button>
+              {t.frozen && <span className="lsb-frozen">❄ FROZEN</span>}
             </div>
 
-            {/* Pan */}
             <div className="lsb-pan-row">
               <div className="lsb-pan-label">PAN</div>
               <PanKnob value={t.pan || 0} onChange={v => onUpdateTrack && onUpdateTrack(selectedTrack, { pan: v })}/>
             </div>
 
-            {/* Fader + meter */}
             <div className="lsb-fader-row">
               <ChannelFader value={t.volume != null ? t.volume : 1.0}
                             onChange={v => onUpdateTrack && onUpdateTrack(selectedTrack, { volume: v })}/>
               <LevelMeter peakL={t.peakL || 0} peakR={t.peakR || 0}/>
             </div>
 
-            {/* Readouts */}
             <div className="lsb-readouts">
               <div className="lsb-readout"><span>Volume</span><strong>{t.volume > 0 ? (20*Math.log10(t.volume)).toFixed(1) : "-∞"} dB</strong></div>
               <div className="lsb-readout"><span>Peak</span><strong>{t.peakL > 0 ? (20*Math.log10(Math.max(t.peakL, t.peakR || 0))).toFixed(1) : "-∞"} dB</strong></div>
@@ -324,8 +513,8 @@ const LeftSidebar = ({
               <div className="lsb-kv"><label>Channels</label><span>{t.channels || "Stereo"}</span></div>
               <div className="lsb-kv"><label>Sample Rate</label><span>{t.sampleRate || "48 kHz"}</span></div>
               <div className="lsb-kv"><label>Bit Depth</label><span>{t.bitDepth || "24-bit"}</span></div>
+              <div className="lsb-kv"><label>Duration</label><span>{t.duration != null ? `${t.duration.toFixed(2)}s` : "—"}</span></div>
             </div>
-
             <div className="lsb-block">
               <div className="lsb-block-hdr">TIMING</div>
               <div className="lsb-kv"><label>Delay</label>
@@ -344,18 +533,6 @@ const LeftSidebar = ({
                 <span>{t.swing || 0}%</span>
               </div>
             </div>
-
-            <div className="lsb-block">
-              <div className="lsb-block-hdr">AUTOMATION</div>
-              <div className="lsb-kv"><label>Mode</label>
-                <select value={t.automationMode || "read"}
-                        onChange={e => onUpdateTrack && onUpdateTrack(selectedTrack, { automationMode: e.target.value })}>
-                  <option value="off">Off</option><option value="read">Read</option>
-                  <option value="touch">Touch</option><option value="latch">Latch</option><option value="write">Write</option>
-                </select>
-              </div>
-            </div>
-
             <div className="lsb-block">
               <div className="lsb-block-hdr">NOTES</div>
               <textarea className="lsb-notes" value={t.notes || ""}
@@ -397,6 +574,162 @@ const LeftSidebar = ({
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* ═══════════ GROUPS TAB ═══════════ */}
+        {tab === "groups" && (
+          <div className="lsb-groups">
+            <div className="lsb-tab-hdr">
+              <div className="lsb-tab-title">TRACK GROUPS</div>
+              <button className="lsb-btn-sm" onClick={addGroup}>+ New Group</button>
+            </div>
+            {groups.length === 0 && <div className="rs-sb-empty">No groups yet<br/><span className="rs-sb-hint">Create groups to organize tracks (Drums, Vocals, FX, etc.)</span></div>}
+            {groups.map(g => (
+              <div key={g.id} className="lsb-group" style={{borderLeftColor: g.color}}>
+                <div className="lsb-group-hdr">
+                  <button className="lsb-group-toggle" onClick={() => toggleGroupCollapse(g.id)}>
+                    {g.collapsed ? "▶" : "▼"}
+                  </button>
+                  <div className="lsb-group-color" style={{background: g.color}}/>
+                  <span className="lsb-group-name">{g.name}</span>
+                  <span className="lsb-group-count">{g.trackIds.length}</span>
+                  <button className={"lsb-msr-btn sm" + (g.muted ? " on" : "")}
+                          onClick={() => toggleGroupMute(g.id)}>M</button>
+                  <button className="lsb-insert-x" onClick={() => deleteGroup(g.id)}>×</button>
+                </div>
+                {!g.collapsed && (
+                  <div className="lsb-group-tracks">
+                    {g.trackIds.length === 0 && <div className="lsb-empty-sm">No tracks — assign from Channel tab routing</div>}
+                    {g.trackIds.map(ti => {
+                      const tr = tracks[ti];
+                      if (!tr) return null;
+                      return (
+                        <div key={ti} className="lsb-group-track" onClick={() => onSelectTrack && onSelectTrack(ti)}>
+                          <div className="lsb-viz-color" style={{background: tr.color || "#2a3248"}}/>
+                          <span>{tr.name || `Track ${ti+1}`}</span>
+                          <button className="lsb-insert-x" onClick={e => { e.stopPropagation(); removeTrackFromGroup(ti, g.id); }}>×</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ═══════════ MARKERS TAB ═══════════ */}
+        {tab === "markers" && (
+          <div className="lsb-markers">
+            <div className="lsb-tab-hdr">
+              <div className="lsb-tab-title">SONG MARKERS</div>
+              <button className="lsb-btn-sm" onClick={addMarker}>+ New Marker</button>
+            </div>
+            {markers.length === 0 && <div className="rs-sb-empty">No markers yet<br/><span className="rs-sb-hint">Add markers like Intro, Verse, Chorus, Bridge, Outro to navigate your song</span></div>}
+            {markers.map(m => (
+              <div key={m.id} className="lsb-marker" style={{borderLeftColor: m.color}} onClick={() => jumpToMarker(m)}>
+                <div className="lsb-marker-color" style={{background: m.color}}/>
+                <span className="lsb-marker-name">{m.name}</span>
+                <span className="lsb-marker-time">{Math.floor(m.time / 60)}:{String(Math.floor(m.time % 60)).padStart(2,"0")}</span>
+                <button className="lsb-insert-x" onClick={e => { e.stopPropagation(); deleteMarker(m.id); }}>×</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ═══════════ PROJECT TAB ═══════════ */}
+        {tab === "project" && (
+          <div className="lsb-project">
+            <div className="lsb-tab-hdr">
+              <div className="lsb-tab-title">PROJECT METADATA</div>
+            </div>
+            <div className="lsb-block">
+              <div className="lsb-block-hdr">BASIC</div>
+              <div className="lsb-kv"><label>Title</label>
+                <input type="text" value={projectName} onChange={e => onProjectNameChange && onProjectNameChange(e.target.value)}/>
+              </div>
+              <div className="lsb-kv"><label>Artist</label>
+                <input type="text" value={projectMeta.artist || ""} onChange={e => updateMeta("artist", e.target.value)}/>
+              </div>
+              <div className="lsb-kv"><label>Genre</label>
+                <select value={projectMeta.genre || ""} onChange={e => updateMeta("genre", e.target.value)}>
+                  <option value="">—</option>
+                  <option>Hip Hop</option><option>R&B</option><option>Pop</option><option>Rock</option>
+                  <option>EDM</option><option>House</option><option>Trap</option><option>Lo-Fi</option>
+                  <option>Jazz</option><option>Classical</option><option>Country</option><option>Folk</option>
+                  <option>Reggae</option><option>Afrobeats</option><option>Latin</option><option>Other</option>
+                </select>
+              </div>
+              <div className="lsb-kv"><label>Key</label>
+                <select value={projectMeta.key || ""} onChange={e => updateMeta("key", e.target.value)}>
+                  <option value="">—</option>
+                  {["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"].map(k => [
+                    <option key={k+"maj"} value={`${k} Maj`}>{k} Major</option>,
+                    <option key={k+"min"} value={`${k} Min`}>{k} Minor</option>
+                  ])}
+                </select>
+              </div>
+              <div className="lsb-kv"><label>BPM</label>
+                <input type="number" value={bpm} min="40" max="300" step="1"
+                       onChange={e => onBpmChange && onBpmChange(parseInt(e.target.value) || 120)}/>
+              </div>
+              <div className="lsb-kv"><label>Time Sig</label>
+                <select value={projectMeta.timeSig || "4/4"} onChange={e => updateMeta("timeSig", e.target.value)}>
+                  <option>4/4</option><option>3/4</option><option>6/8</option><option>5/4</option><option>7/8</option>
+                </select>
+              </div>
+            </div>
+            <div className="lsb-block">
+              <div className="lsb-block-hdr">CREDITS</div>
+              <div className="lsb-kv"><label>Composer</label>
+                <input type="text" value={projectMeta.composer || ""} onChange={e => updateMeta("composer", e.target.value)}/>
+              </div>
+              <div className="lsb-kv"><label>Producer</label>
+                <input type="text" value={projectMeta.producer || ""} onChange={e => updateMeta("producer", e.target.value)}/>
+              </div>
+              <div className="lsb-kv"><label>Engineer</label>
+                <input type="text" value={projectMeta.engineer || ""} onChange={e => updateMeta("engineer", e.target.value)}/>
+              </div>
+              <div className="lsb-kv"><label>© Year</label>
+                <input type="number" value={projectMeta.year || new Date().getFullYear()} min="1900" max="2100"
+                       onChange={e => updateMeta("year", parseInt(e.target.value))}/>
+              </div>
+              <div className="lsb-kv"><label>ISRC</label>
+                <input type="text" placeholder="AA-AAA-YY-NNNNN" value={projectMeta.isrc || ""} onChange={e => updateMeta("isrc", e.target.value)}/>
+              </div>
+            </div>
+            <div className="lsb-block">
+              <div className="lsb-block-hdr">STATS</div>
+              <div className="lsb-kv"><label>Tracks</label><span>{tracks.length}</span></div>
+              <div className="lsb-kv"><label>Sample Rate</label><span>{projectMeta.sampleRate || "48 kHz"}</span></div>
+              <div className="lsb-kv"><label>Bit Depth</label><span>{projectMeta.bitDepth || "24-bit"}</span></div>
+            </div>
+            <div className="lsb-block">
+              <div className="lsb-block-hdr">DESCRIPTION</div>
+              <textarea className="lsb-notes" value={projectMeta.description || ""}
+                        onChange={e => updateMeta("description", e.target.value)}
+                        placeholder="Describe this project..."/>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════ HISTORY TAB ═══════════ */}
+        {tab === "history" && (
+          <div className="lsb-history">
+            <div className="lsb-tab-hdr">
+              <div className="lsb-tab-title">UNDO HISTORY</div>
+              <span className="lsb-history-count">{history.length} actions</span>
+            </div>
+            {history.length === 0 && <div className="rs-sb-empty">No history yet<br/><span className="rs-sb-hint">Every action will appear here — click any to jump back</span></div>}
+            {history.map((h, i) => (
+              <div key={i} className={"lsb-history-row" + (i === history.length - 1 ? " current" : "")}
+                   onClick={() => window.__spxJumpToHistory && window.__spxJumpToHistory(i)}>
+                <span className="lsb-history-dot">{i === history.length - 1 ? "●" : "○"}</span>
+                <span className="lsb-history-action">{h.action || "Action"}</span>
+                <span className="lsb-history-time">{h.time ? new Date(h.time).toLocaleTimeString() : ""}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>
