@@ -2172,6 +2172,7 @@ const SamplerBeatMaker = ({
 
   // ── Manual chop — click on waveform to place marker ──
   const addManualChopPoint = useCallback((samplePos) => {
+    const audioBuffer = pads[selectedPad || 0]?.buffer;
     if (!audioBuffer) return;
     const clipped = Math.max(0, Math.min(audioBuffer.duration, samplePos));
     setChopPts(prev => {
@@ -2179,7 +2180,7 @@ const SamplerBeatMaker = ({
       // Deduplicate within 0.01s
       return next.filter((v,i) => i===0 || v - next[i-1] > 0.01);
     });
-  }, [audioBuffer]);
+  }, [pads, selectedPad]);
 
   const removeChopPoint = useCallback((idx) => {
     setChopPts(prev => prev.filter((_,i) => i !== idx));
