@@ -6,6 +6,16 @@
  */
 import { useReducer, useCallback, useRef } from 'react';
 
+// ── Blob URL tracking (revoke on delete to prevent memory leaks) ──
+const ownedBlobUrls = new Set();
+function trackBlobUrl(url) { if (url && url.startsWith('blob:')) ownedBlobUrls.add(url); return url; }
+function revokeIfOwned(url) {
+  if (url && ownedBlobUrls.has(url)) {
+    try { URL.revokeObjectURL(url); } catch (e) {}
+    ownedBlobUrls.delete(url);
+  }
+}
+
 // ── Initial State ─────────────────────────────────────────────
 const INITIAL_TRACKS = [
   { id: 1, name: 'Overlay 1', type: 'video', zIndex: 3, muted: true,  locked: false, solo: false, color: '#ff6b6b', clips: [], transitions: [] },
@@ -76,10 +86,10 @@ function computeDuration(tracks) {
   return max;
 }
 
-/** Find the lowest zIndex non-muted non-locked video track (never Overlay = zIndex≥3 that's muted by default) */
+/** Find the lowest zIndex non-muted non-locked video track */
 function getDefaultVideoTrack(tracks) {
   const candidates = tracks.filter(
-    t => t.type === 'video' && !t.muted && !t.locked && t.name.toLowerCase().startsWith('video')
+    t => t.type === 'video' && !t.muted && !t.locked
   );
   if (!candidates.length) return tracks.find(t => t.type === 'video') || null;
   return candidates.reduce((prev, cur) => (cur.zIndex < prev.zIndex ? cur : prev));
@@ -113,7 +123,15 @@ function snapValue(value, pps, snapEnabled, tracks, excludeId) {
 
 /** Produce a deep-cloned tracks snapshot for undo */
 function cloneTracks(tracks) {
-  return tracks.map(t => ({ ...t, clips: t.clips.map(c => ({ ...c })), transitions: [...t.transitions] }));
+  return tracks.map(t => ({
+    ...t,
+    clips: t.clips.map(c => ({
+      ...c,
+      effects: (c.effects || []).map(e => ({ ...e, params: { ...(e.params || {}) } })),
+      transform: { ...(c.transform || {}) },
+    })),
+    transitions: [...(t.transitions || [])],
+  }));
 }
 
 // ── Reducer ───────────────────────────────────────────────────
@@ -244,6 +262,9 @@ function editorReducer(state, action) {
     }
 
     case 'REMOVE_TRACK': {
+      // Revoke blob URLs of clips on the removed track (memory leak fix)
+      const removedTrack = state.tracks.find(t => t.id === action.payload);
+      if (removedTrack) removedTrack.clips.forEach(c => revokeIfOwned(c.src));
       const tracks = state.tracks.filter(t => t.id !== action.payload);
       return { ...state, tracks, duration: computeDuration(tracks), isDirty: true };
     }
@@ -273,7 +294,7 @@ function editorReducer(state, action) {
         trackId,
         name:        name || (file ? file.name : 'Clip'),
         mediaType:   mediaType || 'video',
-        src:         src || (file ? URL.createObjectURL(file) : ''),
+        src:         src || (file ? trackBlobUrl(URL.createObjectURL(file)) : ''),
         startTime:   clampTime(startTime),
         duration:    duration || 5,
         inPoint:     clipIn,
@@ -321,7 +342,7 @@ function editorReducer(state, action) {
         if (vTrack) {
           const clip = {
             id: generateClipId(), trackId: vTrack.id,
-            name: file.name, mediaType: 'video', src: URL.createObjectURL(file),
+            name: file.name, mediaType: 'video', src: trackBlobUrl(URL.createObjectURL(file)),
             startTime, duration: clipDuration, inPoint: mIn, outPoint: mIn + clipDuration,
             linkGroup: mode === 'both' ? linkGroup : null,
             effects: [], waveformData: null,
@@ -335,7 +356,7 @@ function editorReducer(state, action) {
         if (aTrack) {
           const clip = {
             id: generateClipId(), trackId: aTrack.id,
-            name: file.name, mediaType: 'audio', src: URL.createObjectURL(file),
+            name: file.name, mediaType: 'audio', src: trackBlobUrl(URL.createObjectURL(file)),
             startTime, duration: clipDuration, inPoint: mIn, outPoint: mIn + clipDuration,
             linkGroup: mode === 'both' ? linkGroup : null,
             effects: [], waveformData: null,
@@ -426,6 +447,8 @@ function editorReducer(state, action) {
     case 'DELETE_CLIPS': {
       const prevTracks = cloneTracks(state.tracks);
       const ids = new Set(action.payload);
+      // Revoke blob URLs of deleted clips (memory leak fix)
+      state.tracks.forEach(t => t.clips.forEach(c => { if (ids.has(c.id)) revokeIfOwned(c.src); }));
       const tracks = state.tracks.map(t => ({ ...t, clips: t.clips.filter(c => !ids.has(c.id)) }));
       return {
         ...state, tracks,
@@ -454,8 +477,11 @@ function editorReducer(state, action) {
           const rightDuration = clip.duration - leftDuration;
           const leftInPoint = clip.inPoint;
           const rightInPoint = clip.inPoint + leftDuration;
-          newClips.push({ ...clip, id: generateClipId(), duration: leftDuration, outPoint: leftInPoint + leftDuration, linkGroup: null });
-          newClips.push({ ...clip, id: generateClipId(), startTime: splitTime, duration: rightDuration, inPoint: rightInPoint, outPoint: rightInPoint + rightDuration, linkGroup: null });
+          // Preserve linkGroup on split — left half keeps original, right half gets matched new link
+          const splitLinkLeft  = clip.linkGroup;
+          const splitLinkRight = clip.linkGroup ? `${clip.linkGroup}_split_${Date.now()}` : null;
+          newClips.push({ ...clip, id: generateClipId(), duration: leftDuration, outPoint: leftInPoint + leftDuration, linkGroup: splitLinkLeft });
+          newClips.push({ ...clip, id: generateClipId(), startTime: splitTime, duration: rightDuration, inPoint: rightInPoint, outPoint: rightInPoint + rightDuration, linkGroup: splitLinkRight });
         });
         return { ...track, clips: newClips };
       });
@@ -519,6 +545,7 @@ function editorReducer(state, action) {
     }
 
     case 'TOGGLE_EFFECT': {
+      const prevTracks = cloneTracks(state.tracks);
       const { clipId, effectId } = action.payload;
       const tracks = state.tracks.map(t => ({
         ...t,
@@ -528,10 +555,11 @@ function editorReducer(state, action) {
             : c
         ),
       }));
-      return { ...state, tracks, isDirty: true };
+      return { ...state, tracks, isDirty: true, undoStack: [...state.undoStack.slice(-49), prevTracks], redoStack: [] };
     }
 
     case 'UPDATE_EFFECT_PARAM': {
+      const prevTracks = cloneTracks(state.tracks);
       const { clipId, effectId, paramKey, value } = action.payload;
       const tracks = state.tracks.map(t => ({
         ...t,
@@ -541,19 +569,21 @@ function editorReducer(state, action) {
             : c
         ),
       }));
-      return { ...state, tracks, isDirty: true };
+      return { ...state, tracks, isDirty: true, undoStack: [...state.undoStack.slice(-49), prevTracks], redoStack: [] };
     }
 
     case 'REORDER_EFFECTS': {
+      const prevTracks = cloneTracks(state.tracks);
       const { clipId, effects } = action.payload;
       const tracks = state.tracks.map(t => ({
         ...t,
         clips: t.clips.map(c => c.id === clipId ? { ...c, effects } : c),
       }));
-      return { ...state, tracks, isDirty: true };
+      return { ...state, tracks, isDirty: true, undoStack: [...state.undoStack.slice(-49), prevTracks], redoStack: [] };
     }
 
     case 'UPDATE_CLIP_TRANSFORM': {
+      const prevTracks = cloneTracks(state.tracks);
       const { clipId, transform } = action.payload;
       const tracks = state.tracks.map(t => ({
         ...t,
@@ -561,7 +591,7 @@ function editorReducer(state, action) {
           c.id === clipId ? { ...c, transform: { ...c.transform, ...transform } } : c
         ),
       }));
-      return { ...state, tracks, isDirty: true };
+      return { ...state, tracks, isDirty: true, undoStack: [...state.undoStack.slice(-49), prevTracks], redoStack: [] };
     }
 
     /* ─── Undo / Redo ───────────────────────────────────────── */

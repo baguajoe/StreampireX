@@ -12,7 +12,7 @@ const TOOLS = [
   { sep: true },
   { id: 'slip',    icon: '↔',  label: 'Slip Tool',        shortcut: 'Y' },
   { id: 'slide',   icon: '⇔',  label: 'Slide Tool',       shortcut: 'U' },
-  { id: 'ripple',  icon: '⟷',  label: 'Ripple Edit',      shortcut: 'B' },
+  { id: 'ripple',  icon: '⟷',  label: 'Ripple Edit',      shortcut: '' },
   { id: 'roll',    icon: '⟺',  label: 'Roll Edit',        shortcut: 'N' },
   { sep: true },
   { id: 'zoom',    icon: '🔍', label: 'Zoom (Z)',          shortcut: 'Z' },

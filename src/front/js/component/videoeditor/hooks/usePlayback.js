@@ -32,6 +32,9 @@ export function usePlayback({ state, actions }) {
   const rafRef      = useRef(null);
   const lastTimeRef = useRef(null);
   const videoRefs   = useRef({});  // clipId → <video> element
+  // Refs to avoid stale closure in RAF loop
+  const stateRef    = useRef(state);
+  useEffect(() => { stateRef.current = state; }, [state]);
 
   // Register/unregister video elements for sync
   const registerVideoRef = useCallback((clipId, el) => {
@@ -39,18 +42,19 @@ export function usePlayback({ state, actions }) {
     else delete videoRefs.current[clipId];
   }, []);
 
-  // ── RAF loop ──────────────────────────────────────────────
+  // ── RAF loop — reads from stateRef to avoid stale closure ──
   const tick = useCallback((timestamp) => {
-    if (!state.isPlaying) return;
+    const s = stateRef.current;
+    if (!s.isPlaying) return;
     if (lastTimeRef.current === null) { lastTimeRef.current = timestamp; }
     const elapsed = (timestamp - lastTimeRef.current) / 1000;
     lastTimeRef.current = timestamp;
 
-    let nextPlayhead = state.isPlaying ? state.playhead + elapsed : state.playhead;
+    let nextPlayhead = s.playhead + elapsed;
 
     // Loop at outPoint or duration
-    const loopEnd = state.outPoint !== null ? state.outPoint : state.duration;
-    const loopStart = state.inPoint !== null ? state.inPoint : 0;
+    const loopEnd = s.outPoint !== null ? s.outPoint : s.duration;
+    const loopStart = s.inPoint !== null ? s.inPoint : 0;
 
     if (loopEnd > 0 && nextPlayhead >= loopEnd) {
       nextPlayhead = loopStart;
@@ -58,7 +62,7 @@ export function usePlayback({ state, actions }) {
 
     actions.setPlayhead(nextPlayhead);
     rafRef.current = requestAnimationFrame(tick);
-  }, [state.isPlaying, state.playhead, state.duration, state.inPoint, state.outPoint, actions]);
+  }, [actions]);
 
   useEffect(() => {
     if (state.isPlaying) {
@@ -69,7 +73,7 @@ export function usePlayback({ state, actions }) {
       lastTimeRef.current = null;
     }
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [state.isPlaying]); // eslint-disable-line
+  }, [state.isPlaying, tick]);
 
   // ── Sync video elements to playhead ──────────────────────
   useEffect(() => {
