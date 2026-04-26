@@ -2392,6 +2392,16 @@ const SamplerBeatMaker = ({
     setSteps(p => { const u = p.map(r => [...r]); u[pi] = Array(stepCount).fill(false); return u; });
   }, [stepCount]);
 
+  // Helper used by Sounds/Loops/VoiceMIDI/etc. tabs to drop a buffer onto a pad
+  const loadBufferToPad = useCallback((pi, buffer, name) => {
+    if (pi == null || pi < 0 || pi >= 16 || !buffer) return;
+    setPads(p => {
+      const u = [...p];
+      u[pi] = { ...u[pi], buffer, name: name || `Sample ${pi + 1}`, trimEnd: buffer.duration };
+      return u;
+    });
+  }, []);
+
   // =========================================================================
   // EXPORT — WAV / MP3 / OGG / WEBM / Stems / MIDI
   // =========================================================================
@@ -3223,14 +3233,14 @@ const SamplerBeatMaker = ({
         {/* ── SOUNDS TAB ── */}
         {activeTab === 'sounds' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
-            <FreesoundBrowser onSoundSelect={(buffer, name) => { if (activePad !== null) loadBufferToPad(activePad, buffer, name); }} isEmbedded={true} />
+            <FreesoundBrowser onSoundSelect={(buffer, name) => { if (selectedPad !== null) loadBufferToPad(selectedPad, buffer, name); }} isEmbedded={true} />
           </div>
         )}
 
         {/* ── LOOPS TAB ── */}
         {activeTab === 'loops' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
-            <LoopermanBrowser onLoopSelect={(buffer, name) => { if (activePad !== null) loadBufferToPad(activePad, buffer, name); }} isEmbedded={true} />
+            <LoopermanBrowser onLoopSelect={(buffer, name) => { if (selectedPad !== null) loadBufferToPad(selectedPad, buffer, name); }} isEmbedded={true} />
           </div>
         )}
 
@@ -3253,7 +3263,7 @@ const SamplerBeatMaker = ({
               isEmbedded={true}
               onNote={(note) => console.log('voice note:', note)}
               onAssignToPad={(note) => {
-                if (activePad !== null) console.log('assign note to pad', activePad, note);
+                if (selectedPad !== null) console.log('assign note to pad', selectedPad, note);
               }}
             />}
           </div>
@@ -3277,7 +3287,7 @@ const SamplerBeatMaker = ({
                 if (typeof onLoadSample === 'function') onLoadSample(buffer, name, null, null);
               }}
               onLoadToPad={(buffer, name) => {
-                if (activePad !== null) loadBufferToPad(activePad, buffer, name);
+                if (selectedPad !== null) loadBufferToPad(selectedPad, buffer, name);
               }}
             />}
           </div>
