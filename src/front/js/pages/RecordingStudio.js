@@ -687,6 +687,9 @@ const RecordingStudio = ({ user }) => {
   const [monitoringEnabled, setMonitoringEnabled] = useState(false);
   const [latencyCompMs, setLatencyCompMs] = useState(0);
   const monitorGainRef = useRef(null);
+  const monitorSrcRef = useRef(null);
+  const monitorDelayRef = useRef(null);
+  const monitorStreamRef = useRef(null);
   const [tapeDrive, setTapeDrive] = useState(0.3);
   const [tapeWarmth, setTapeWarmth] = useState(0.5);
   const [tapeEnabled, setTapeEnabled] = useState(false);
@@ -1412,10 +1415,12 @@ const RecordingStudio = ({ user }) => {
   };
 
   const buildSends = (ctx, track, dry, master) => {
-    if (!track.effects) return;
+    const sendNodes = [];
+    if (!track.effects) return sendNodes;
     const fx = track.effects;
-    if (fx.reverb?.enabled && fx.reverb.mix > 0) { const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.reverb.decay); const g = ctx.createGain(); g.gain.value = fx.reverb.mix; dry.connect(conv); conv.connect(g); g.connect(master); }
-    if (fx.delay?.enabled && fx.delay.mix > 0)   { const d = ctx.createDelay(5); d.delayTime.value = fx.delay.time; const fb = ctx.createGain(); fb.gain.value = fx.delay.feedback; const mx = ctx.createGain(); mx.gain.value = fx.delay.mix; dry.connect(d); d.connect(fb); fb.connect(d); d.connect(mx); mx.connect(master); }
+    if (fx.reverb?.enabled && fx.reverb.mix > 0) { const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.reverb.decay); const g = ctx.createGain(); g.gain.value = fx.reverb.mix; dry.connect(conv); conv.connect(g); g.connect(master); sendNodes.push(conv, g); }
+    if (fx.delay?.enabled && fx.delay.mix > 0)   { const d = ctx.createDelay(5); d.delayTime.value = fx.delay.time; const fb = ctx.createGain(); fb.gain.value = fx.delay.feedback; const mx = ctx.createGain(); mx.gain.value = fx.delay.mix; dry.connect(d); d.connect(fb); fb.connect(d); d.connect(mx); mx.connect(master); sendNodes.push(d, fb, mx); }
+    return sendNodes;
   };
 
   // ── Room simulation configs ──
@@ -1579,8 +1584,16 @@ const RecordingStudio = ({ user }) => {
     const ctx = audioCtxRef.current;
     if (!ctx) return;
     if (abRef) {
-      // Turn off — stop reference
-      if (abRefSourceRef.current) { try { abRefSourceRef.current.stop(); } catch(e) {} abRefSourceRef.current = null; }
+      // Turn off — stop reference and disconnect chain
+      if (abRefSourceRef.current) {
+        try { abRefSourceRef.current.stop(); } catch(e) {}
+        try { abRefSourceRef.current.disconnect(); } catch(e) {}
+        abRefSourceRef.current = null;
+      }
+      if (abRefGainRef.current) {
+        try { abRefGainRef.current.disconnect(); } catch(e) {}
+        abRefGainRef.current = null;
+      }
       setAbRef(false);
     } else if (abRefBuffer) {
       // Turn on — play reference through monitor chain
@@ -1640,14 +1653,14 @@ const RecordingStudio = ({ user }) => {
     last.connect(panNode); panNode.connect(fader); fader.connect(meter);
     const boardId = trackConsoleChar[track.id] || "none";
     const consoleOut = ctx.createGain();
-    applyConsoleCharacter(ctx, meter, consoleOut, boardId);
+    const consoleNodes = applyConsoleCharacter(ctx, meter, consoleOut, boardId) || [];
     const busTrack = track.busTarget ? tracks.find(t => t.id === track.busTarget) : null;
     const busNodes = busTrack ? trackNodesRef.current.get(busTrack.id) : null;
     const dest = (busNodes && busNodes.input) ? busNodes.input : masterGainRef.current;
     consoleOut.connect(dest);
-    buildSends(ctx, track, fader, dest);
+    const sendNodes = buildSends(ctx, track, fader, dest) || [];
     input.connect(preGain);
-    const nodes = { input, preGain, panNode, fader, meter, fxNodes, dest };
+    const nodes = { input, preGain, panNode, fader, meter, fxNodes, consoleOut, consoleNodes, sendNodes, dest };
     trackNodesRef.current.set(track.id, nodes);
     applyTrackToNodes(track, nodes);
     return nodes;
@@ -1665,10 +1678,10 @@ const RecordingStudio = ({ user }) => {
     fxNodes.forEach(n => { last.connect(n); last = n; });
     last.connect(panNode); panNode.connect(fader); fader.connect(meter);
     const busConsoleOut = ctx.createGain();
-    applyConsoleCharacter(ctx, meter, busConsoleOut, trackConsoleChar[busTrack?.id] || "none");
+    const busConsoleNodes = applyConsoleCharacter(ctx, meter, busConsoleOut, trackConsoleChar[busTrack?.id] || "none") || [];
     busConsoleOut.connect(masterGainRef.current);
     input.connect(preGain);
-    const nodes = { input, preGain, panNode, fader, meter, fxNodes, isBus: true };
+    const nodes = { input, preGain, panNode, fader, meter, fxNodes, consoleOut: busConsoleOut, consoleNodes: busConsoleNodes, sendNodes: [], isBus: true };
     trackNodesRef.current.set(busTrack.id, nodes);
     applyTrackToNodes(busTrack, nodes);
     return nodes;
@@ -1679,11 +1692,13 @@ const RecordingStudio = ({ user }) => {
     const track = tracks.find(t => t.id === trackId); if (!track) return;
     const old = trackNodesRef.current.get(trackId);
     if (old) {
-      ["input","preGain","panNode","fader","meter"].forEach(k => { try { old[k].disconnect(); } catch (_) {} });
+      ["input","preGain","panNode","fader","meter","consoleOut"].forEach(k => { try { old[k]?.disconnect(); } catch (_) {} });
       (old.fxNodes || []).forEach(n => {
         try { if (typeof n.stop === "function") n.stop(); } catch (_) {}
         try { n.disconnect(); } catch (_) {}
       });
+      (old.consoleNodes || []).forEach(n => { try { n.disconnect(); } catch (_) {} });
+      (old.sendNodes || []).forEach(n => { try { n.disconnect(); } catch (_) {} });
     }
     trackNodesRef.current.delete(trackId);
     ensureTrackGraph(track);
@@ -2052,12 +2067,27 @@ const RecordingStudio = ({ user }) => {
 
   const toggleMonitoring = useCallback((trackIndex) => {
     const ctx = audioCtxRef?.current; if (!ctx) return;
-    if (monitoringEnabled) { monitorGainRef.current?.disconnect(); monitorGainRef.current = null; setMonitoringEnabled(false); setStatus("Direct monitoring OFF"); return; }
+    if (monitoringEnabled) {
+      // Clean up the entire monitoring chain
+      try { monitorGainRef.current?.disconnect(); } catch (_) {}
+      try { monitorSrcRef.current?.disconnect(); } catch (_) {}
+      try { monitorDelayRef.current?.disconnect(); } catch (_) {}
+      try { monitorStreamRef.current?.getTracks().forEach(t => t.stop()); } catch (_) {}
+      monitorGainRef.current = null;
+      monitorSrcRef.current = null;
+      monitorDelayRef.current = null;
+      monitorStreamRef.current = null;
+      setMonitoringEnabled(false); setStatus("Direct monitoring OFF"); return;
+    }
     navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, latency: 0 } }).then(stream => {
       const src = ctx.createMediaStreamSource(stream); const gain = ctx.createGain(); gain.gain.value = 0.8;
       const delay = ctx.createDelay(0.5); delay.delayTime.value = Math.max(0, latencyCompMs / 1000);
       src.connect(delay); delay.connect(gain); gain.connect(ctx.destination);
-      monitorGainRef.current = gain; setMonitoringEnabled(true);
+      monitorGainRef.current = gain;
+      monitorSrcRef.current = src;
+      monitorDelayRef.current = delay;
+      monitorStreamRef.current = stream;
+      setMonitoringEnabled(true);
       const ms = Math.round(((ctx.baseLatency || 0) + (ctx.outputLatency || 0)) * 1000); setLatencyMs(ms); setStatus(`Direct monitoring ON — ${ms}ms`);
     }).catch(e => setStatus("Monitoring error: " + e.message));
   }, [monitoringEnabled, latencyCompMs]);
