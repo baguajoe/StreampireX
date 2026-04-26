@@ -966,10 +966,10 @@ const RecordingStudio = ({ user }) => {
     if (fx.limiter?.enabled)     { const lim = ctx.createDynamicsCompressor(); lim.threshold.value = fx.limiter.threshold; lim.knee.value = fx.limiter.knee; lim.ratio.value = fx.limiter.ratio; lim.attack.value = fx.limiter.attack; lim.release.value = fx.limiter.release; nodes.push(lim); }
     if (fx.gate?.enabled)        { const gt = ctx.createDynamicsCompressor(); gt.threshold.value = fx.gate.threshold; gt.ratio.value = 20; gt.knee.value = 0; gt.attack.value = fx.gate.attack; gt.release.value = fx.gate.release; nodes.push(gt); }
     if (fx.deesser?.enabled)     { const bp = ctx.createBiquadFilter(); bp.type = "peaking"; bp.frequency.value = fx.deesser.frequency; bp.Q.value = 4; bp.gain.value = -Math.abs(fx.deesser.threshold); nodes.push(bp); }
-    if (fx.chorus?.enabled)      { const cd = ctx.createDelay(0.05); cd.delayTime.value = fx.chorus.depth; const cLfo = ctx.createOscillator(); const cLfoG = ctx.createGain(); cLfo.frequency.value = fx.chorus.rate; cLfoG.gain.value = fx.chorus.depth * 0.5; cLfo.connect(cLfoG); cLfoG.connect(cd.delayTime); cLfo.start(); nodes.push(cd); }
-    if (fx.flanger?.enabled)     { const fd = ctx.createDelay(0.02); fd.delayTime.value = fx.flanger.depth; const fLfo = ctx.createOscillator(); const fLfoG = ctx.createGain(); fLfo.frequency.value = fx.flanger.rate; fLfoG.gain.value = fx.flanger.depth * 0.5; fLfo.connect(fLfoG); fLfoG.connect(fd.delayTime); fLfo.start(); nodes.push(fd); }
+    if (fx.chorus?.enabled)      { const cd = ctx.createDelay(0.05); cd.delayTime.value = fx.chorus.depth; const cLfo = ctx.createOscillator(); const cLfoG = ctx.createGain(); cLfo.frequency.value = fx.chorus.rate; cLfoG.gain.value = fx.chorus.depth * 0.5; cLfo.connect(cLfoG); cLfoG.connect(cd.delayTime); cLfo.start(); nodes.push(cd, cLfo, cLfoG); }
+    if (fx.flanger?.enabled)     { const fd = ctx.createDelay(0.02); fd.delayTime.value = fx.flanger.depth; const fLfo = ctx.createOscillator(); const fLfoG = ctx.createGain(); fLfo.frequency.value = fx.flanger.rate; fLfoG.gain.value = fx.flanger.depth * 0.5; fLfo.connect(fLfoG); fLfoG.connect(fd.delayTime); fLfo.start(); nodes.push(fd, fLfo, fLfoG); }
     if (fx.phaser?.enabled)      { for (let s = 0; s < (fx.phaser.stages || 4); s++) { const ap = ctx.createBiquadFilter(); ap.type = "allpass"; ap.frequency.value = fx.phaser.baseFreq * (1 + s * 0.5); ap.Q.value = fx.phaser.Q; nodes.push(ap); } }
-    if (fx.tremolo?.enabled)     { const tGain = ctx.createGain(); tGain.gain.value = 1 - fx.tremolo.depth * 0.5; const tLfo = ctx.createOscillator(); const tLfoG = ctx.createGain(); tLfo.frequency.value = fx.tremolo.rate; tLfoG.gain.value = fx.tremolo.depth * 0.5; tLfo.connect(tLfoG); tLfoG.connect(tGain.gain); tLfo.start(); nodes.push(tGain); }
+    if (fx.tremolo?.enabled)     { const tGain = ctx.createGain(); tGain.gain.value = 1 - fx.tremolo.depth * 0.5; const tLfo = ctx.createOscillator(); const tLfoG = ctx.createGain(); tLfo.frequency.value = fx.tremolo.rate; tLfoG.gain.value = fx.tremolo.depth * 0.5; tLfo.connect(tLfoG); tLfoG.connect(tGain.gain); tLfo.start(); nodes.push(tGain, tLfo, tLfoG); }
     if (fx.bitcrusher?.enabled)  { const bws = ctx.createWaveShaper(); const steps = Math.pow(2, fx.bitcrusher.bits || 8); const bcurve = new Float32Array(44100); for (let i = 0; i < 44100; i++) { const x = (i * 2) / 44100 - 1; bcurve[i] = Math.round(x * steps) / steps; } bws.curve = bcurve; nodes.push(bws); }
     if (fx.exciter?.enabled)     { const ehpf = ctx.createBiquadFilter(); ehpf.type = "highpass"; ehpf.frequency.value = fx.exciter.frequency; const ews = ctx.createWaveShaper(); const ecurve = new Float32Array(44100); for (let i = 0; i < 44100; i++) { const x = (i * 2) / 44100 - 1; ecurve[i] = x + (fx.exciter.amount / 100) * Math.sin(x * Math.PI); } ews.curve = ecurve; nodes.push(ehpf, ews); }
     if (fx.tapeSaturation?.enabled) { const tws = ctx.createWaveShaper(); const drv = fx.tapeSaturation.drive || 0.3; const tcurve = new Float32Array(44100); for (let i = 0; i < 44100; i++) { const x = (i * 2) / 44100 - 1; tcurve[i] = Math.tanh(x * (1 + drv * 5)); } tws.curve = tcurve; tws.oversample = "4x"; const tlp = ctx.createBiquadFilter(); tlp.type = "lowpass"; tlp.frequency.value = 12000 - fx.tapeSaturation.warmth * 6000; nodes.push(tws, tlp); }
@@ -1312,7 +1312,7 @@ const RecordingStudio = ({ user }) => {
       const lfo = ctx.createOscillator(); const lfoG = ctx.createGain();
       lfo.frequency.value = fx.autoWah.rate||2; lfoG.gain.value = 500;
       lfo.connect(lfoG); lfoG.connect(f.frequency); lfo.start();
-      nodes.push(f);
+      nodes.push(f, lfo, lfoG);
     }
     if (fx.chorusEnsemble?.enabled) {
       const d1 = ctx.createDelay(0.05); d1.delayTime.value = 0.015;
@@ -1323,14 +1323,14 @@ const RecordingStudio = ({ user }) => {
       const lfo2 = ctx.createOscillator(); const lfoG2 = ctx.createGain();
       lfo2.frequency.value = (fx.chorusEnsemble.rate||1.5)*1.3; lfoG2.gain.value = 0.005;
       lfo2.connect(lfoG2); lfoG2.connect(d2.delayTime); lfo2.start();
-      nodes.push(d1, d2);
+      nodes.push(d1, d2, lfo1, lfoG1, lfo2, lfoG2);
     }
     if (fx.vortexMod?.enabled) {
       const d = ctx.createDelay(0.03); d.delayTime.value = 0.02;
       const lfo = ctx.createOscillator(); const lfoG = ctx.createGain();
       lfo.frequency.value = fx.vortexMod.rate||0.5; lfoG.gain.value = fx.vortexMod.depth||0.01;
       lfo.connect(lfoG); lfoG.connect(d.delayTime); lfo.start();
-      nodes.push(d);
+      nodes.push(d, lfo, lfoG);
     }
     if (fx.voiceForge?.enabled) {
       const f = ctx.createBiquadFilter(); f.type="peaking"; f.frequency.value=fx.voiceForge.formant||1000; f.Q.value=3; f.gain.value=fx.voiceForge.amount||4;
@@ -1680,7 +1680,10 @@ const RecordingStudio = ({ user }) => {
     const old = trackNodesRef.current.get(trackId);
     if (old) {
       ["input","preGain","panNode","fader","meter"].forEach(k => { try { old[k].disconnect(); } catch (_) {} });
-      (old.fxNodes || []).forEach(n => { try { n.disconnect(); } catch (_) {} });
+      (old.fxNodes || []).forEach(n => {
+        try { if (typeof n.stop === "function") n.stop(); } catch (_) {}
+        try { n.disconnect(); } catch (_) {}
+      });
     }
     trackNodesRef.current.delete(trackId);
     ensureTrackGraph(track);
