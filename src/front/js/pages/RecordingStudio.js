@@ -2155,10 +2155,36 @@ const RecordingStudio = ({ user }) => {
     try {
       const tok = localStorage.getItem("token") || sessionStorage.getItem("token");
       const bu = process.env.REACT_APP_BACKEND_URL || "";
-      const td = tracks.map(t => ({ name: t.name, volume: t.volume, pan: t.pan, muted: t.muted, solo: t.solo, effects: t.effects, color: t.color, trackType: t.trackType, instrument: t.instrument, regions: (t.regions || []).map(r => ({ ...r, audioUrl: null })), audio_url: typeof t.audio_url === "string" && !t.audio_url.startsWith("blob:") ? t.audio_url : null }));
+      const td = tracks.map(t => ({
+        id: t.id,
+        name: t.name, volume: t.volume, pan: t.pan, muted: t.muted, solo: t.solo,
+        effects: t.effects, color: t.color, trackType: t.trackType, instrument: t.instrument,
+        regions: (t.regions || []).map(r => ({ ...r, audioUrl: null })),
+        audio_url: typeof t.audio_url === "string" && !t.audio_url.startsWith("blob:") ? t.audio_url : null,
+        sends: t.sends || [],
+        busTarget: t.busTarget || null,
+        vcaMembers: t.vcaMembers || null,
+        groupMembers: t.groupMembers || null,
+        vcaController: t.vcaController || null,
+        groupController: t.groupController || null,
+        linkedGroup: t.linkedGroup || null,
+        readAutomation: !!t.readAutomation,
+        writeAutomation: !!t.writeAutomation,
+      }));
       const method = projectId ? "PUT" : "POST";
       const url = projectId ? `${bu}/api/studio/projects/${projectId}` : `${bu}/api/studio/projects`;
-      const res = await fetch(url, { method, headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({ name: projectName, bpm, time_signature: `${timeSignature[0]}/${timeSignature[1]}`, tracks: td, master_volume: masterVolume, master_pan: masterPan, piano_roll_notes: pianoRollNotes, piano_roll_key: pianoRollKey, piano_roll_scale: pianoRollScale, automation, cycle_start: cycleStart, cycle_end: cycleEnd, cycle_enabled: cycleEnabled }) });
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify({
+        name: projectName, bpm, time_signature: `${timeSignature[0]}/${timeSignature[1]}`,
+        tracks: td, master_volume: masterVolume, master_pan: masterPan,
+        piano_roll_notes: pianoRollNotes, piano_roll_key: pianoRollKey, piano_roll_scale: pianoRollScale,
+        automation, cycle_start: cycleStart, cycle_end: cycleEnd, cycle_enabled: cycleEnabled,
+        track_console_char: trackConsoleChar,
+        master_console_char: masterConsoleChar,
+        monitor_speaker: monitorSpeaker,
+        room_sim: roomSim,
+        binaural_on: binauralOn,
+        mono_check: monoCheck,
+      }) });
       const data = await res.json();
       if (data?.success) { setProjectId(data.project.id); setStatus("✓ Saved"); }
       else setStatus("✗ Save failed");
@@ -2183,6 +2209,12 @@ const RecordingStudio = ({ user }) => {
         if (p.cycle_start != null) setCycleStart(p.cycle_start);
         if (p.cycle_end != null) setCycleEnd(p.cycle_end);
         if (p.cycle_enabled != null) setCycleEnabled(p.cycle_enabled);
+        if (p.track_console_char) setTrackConsoleChar(p.track_console_char);
+        if (p.master_console_char) setMasterConsoleChar(p.master_console_char);
+        if (p.monitor_speaker) setMonitorSpeaker(p.monitor_speaker);
+        if (p.room_sim) setRoomSim(p.room_sim);
+        if (p.binaural_on != null) setBinauralOn(p.binaural_on);
+        if (p.mono_check != null) setMonoCheck(p.mono_check);
         const trackCount = Math.min(Math.max(p.tracks?.length || 1, 1), maxTracks);
         const loaded = Array.from({ length: trackCount }, (_, i) => ({ ...DEFAULT_TRACK(i), ...(p.tracks[i] || {}), audioBuffer: null, effects: p.tracks[i]?.effects || DEFAULT_EFFECTS(), regions: p.tracks[i]?.regions || [] }));
         setTracks(loaded); setSelectedTrackIndex(0);
@@ -2593,8 +2625,8 @@ const RecordingStudio = ({ user }) => {
       case "file:open": loadProjectList(); break;
       case "file:save": saveProject(); break;
       case "file:openLocal": { const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".spx,.json"; inp.onchange = async (e) => { const f = e.target.files[0]; if (!f) return; try { const text = await f.text(); const data = JSON.parse(text); if (data.format !== "streampirex-daw") { setStatus("Not a valid StreamPireX project"); return; } stopEverything(); setProjectId(null); setProjectName(data.name || "Imported Project"); setBpm(data.bpm || 120); setMasterVolume(data.master_volume || 1.0); if (data.time_signature) { const ts = data.time_signature.split("/").map(Number); if (ts.length === 2) setTimeSignature(ts); } if (data.piano_roll_notes) setPianoRollNotes(data.piano_roll_notes); const trackCount = Math.min(Math.max(data.tracks?.length || 1, 1), maxTracks); const loaded = Array.from({ length: trackCount }, (_, i) => ({ ...DEFAULT_TRACK(i), ...(data.tracks[i] || {}), audioBuffer: null, effects: data.tracks[i]?.effects || DEFAULT_EFFECTS(), regions: data.tracks[i]?.regions || [] })); setTracks(loaded); setSelectedTrackIndex(0); setStatus("Opened: " + (data.name || "project")); } catch (err) { setStatus("Failed to open: " + err.message); } }; inp.click(); break; }
-      case "file:saveAs": { const saveData = { name: projectName, bpm, time_signature: timeSignature[0] + "/" + timeSignature[1], master_volume: masterVolume, tracks: tracks.map(t => ({ name: t.name, volume: t.volume, pan: t.pan, muted: t.muted, solo: t.solo, effects: t.effects, color: t.color, regions: (t.regions || []).map(r => ({ ...r, audioUrl: null })), audio_url: typeof t.audio_url === "string" && !t.audio_url.startsWith("blob:") ? t.audio_url : null })), piano_roll_notes: pianoRollNotes, created_at: new Date().toISOString(), format: "streampirex-daw", version: "1.0" }; setSaveAsData(JSON.stringify(saveData, null, 2)); setShowSaveAsModal(true); break; }
-      case "file:saveDesktop": { const dlData = { name: projectName, bpm, time_signature: `${timeSignature[0]}/${timeSignature[1]}`, master_volume: masterVolume, tracks: tracks.map(t => ({ name: t.name, volume: t.volume, pan: t.pan, muted: t.muted, solo: t.solo, effects: t.effects, color: t.color, regions: (t.regions || []).map(r => ({ ...r, audioUrl: null })) })), piano_roll_notes: pianoRollNotes, created_at: new Date().toISOString(), format: "streampirex-daw", version: "1.0" }; const dlBlob = new Blob([JSON.stringify(dlData, null, 2)], { type: "application/json" }); const dlUrl = URL.createObjectURL(dlBlob); const dlA = document.createElement("a"); dlA.href = dlUrl; dlA.download = `${projectName.replace(/\s+/g, "_")}.spx`; document.body.appendChild(dlA); dlA.click(); document.body.removeChild(dlA); URL.revokeObjectURL(dlUrl); setStatus(`Downloaded: ${projectName}.spx`); break; }
+      case "file:saveAs": { const saveData = { name: projectName, bpm, time_signature: timeSignature[0] + "/" + timeSignature[1], master_volume: masterVolume, master_pan: masterPan, tracks: tracks.map(t => ({ id: t.id, name: t.name, volume: t.volume, pan: t.pan, muted: t.muted, solo: t.solo, effects: t.effects, color: t.color, trackType: t.trackType, instrument: t.instrument, regions: (t.regions || []).map(r => ({ ...r, audioUrl: null })), audio_url: typeof t.audio_url === "string" && !t.audio_url.startsWith("blob:") ? t.audio_url : null, sends: t.sends || [], busTarget: t.busTarget || null, vcaMembers: t.vcaMembers || null, groupMembers: t.groupMembers || null, vcaController: t.vcaController || null, groupController: t.groupController || null, linkedGroup: t.linkedGroup || null })), piano_roll_notes: pianoRollNotes, track_console_char: trackConsoleChar, master_console_char: masterConsoleChar, monitor_speaker: monitorSpeaker, room_sim: roomSim, binaural_on: binauralOn, mono_check: monoCheck, automation, cycle_start: cycleStart, cycle_end: cycleEnd, cycle_enabled: cycleEnabled, created_at: new Date().toISOString(), format: "streampirex-daw", version: "1.0" }; setSaveAsData(JSON.stringify(saveData, null, 2)); setShowSaveAsModal(true); break; }
+      case "file:saveDesktop": { const dlData = { name: projectName, bpm, time_signature: `${timeSignature[0]}/${timeSignature[1]}`, master_volume: masterVolume, master_pan: masterPan, tracks: tracks.map(t => ({ id: t.id, name: t.name, volume: t.volume, pan: t.pan, muted: t.muted, solo: t.solo, effects: t.effects, color: t.color, trackType: t.trackType, instrument: t.instrument, regions: (t.regions || []).map(r => ({ ...r, audioUrl: null })), sends: t.sends || [], busTarget: t.busTarget || null, vcaMembers: t.vcaMembers || null, groupMembers: t.groupMembers || null, vcaController: t.vcaController || null, groupController: t.groupController || null, linkedGroup: t.linkedGroup || null })), piano_roll_notes: pianoRollNotes, track_console_char: trackConsoleChar, master_console_char: masterConsoleChar, monitor_speaker: monitorSpeaker, room_sim: roomSim, binaural_on: binauralOn, mono_check: monoCheck, automation, cycle_start: cycleStart, cycle_end: cycleEnd, cycle_enabled: cycleEnabled, created_at: new Date().toISOString(), format: "streampirex-daw", version: "1.0" }; const dlBlob = new Blob([JSON.stringify(dlData, null, 2)], { type: "application/json" }); const dlUrl = URL.createObjectURL(dlBlob); const dlA = document.createElement("a"); dlA.href = dlUrl; dlA.download = `${projectName.replace(/\s+/g, "_")}.spx`; document.body.appendChild(dlA); dlA.click(); document.body.removeChild(dlA); URL.revokeObjectURL(dlUrl); setStatus(`Downloaded: ${projectName}.spx`); break; }
       case "file:importAudio": setViewMode("arrange"); handleImport(sel); break;
       case "file:importMidi": case "midi:import": setViewMode("pianoroll"); break;
       case "midi:controller": setMidiEnabled(m => !m); break;
