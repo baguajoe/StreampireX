@@ -849,6 +849,49 @@ const RecordingStudio = ({ user }) => {
   useEffect(() => { masterConsoleCharRef.current = masterConsoleChar; }, [masterConsoleChar]);
   useEffect(() => { setWamPlugins(getInstalledWAMPlugins() || []); }, []);
 
+  // ── Rebuild track graphs when their console board assignment changes ──
+  useEffect(() => {
+    if (!audioCtxRef.current) return;
+    Object.keys(trackConsoleChar).forEach(trackId => {
+      if (trackNodesRef.current.has(trackId)) rebuildTrackGraph(trackId);
+    });
+  }, [trackConsoleChar]);
+
+  // ── Rebuild master bus when its console board assignment changes ──
+  useEffect(() => {
+    const ctx = audioCtxRef.current;
+    if (!ctx || !masterGainRef.current || !masterPanRef.current) return;
+    // Disconnect old master->pan path
+    try { masterGainRef.current.disconnect(); } catch (_) {}
+    if (masterConsoleOutRef.current) {
+      try { masterConsoleOutRef.current.disconnect(); } catch (_) {}
+    }
+    // Rebuild console character on master bus
+    const newConsoleOut = ctx.createGain();
+    masterConsoleOutRef.current = newConsoleOut;
+    applyConsoleCharacter(ctx, masterGainRef.current, newConsoleOut, masterConsoleChar || "none");
+    if (masterConsoleChar && masterConsoleChar !== "none") {
+      newConsoleOut.connect(masterPanRef.current);
+    } else {
+      masterGainRef.current.connect(masterPanRef.current);
+    }
+  }, [masterConsoleChar]);
+
+  // ── Bus mute/solo propagation to audio ──
+  useEffect(() => {
+    if (!audioCtxRef.current) return;
+    const hasSolo = tracks.some(t => t.solo);
+    tracks.forEach(t => {
+      const nodes = trackNodesRef.current.get(t.id);
+      if (!nodes) return;
+      const audible = !t.muted && (!hasSolo || t.solo);
+      const targetGain = audible ? (t.volume ?? 1.0) : 0;
+      if (nodes.fader) {
+        try { nodes.fader.gain.setTargetAtTime(targetGain, audioCtxRef.current.currentTime, 0.01); } catch (_) {}
+      }
+    });
+  }, [tracks]);
+
   // ── Monitor EQ sync ──
   useEffect(() => {
     const nodes = monitorNodesRef.current;
