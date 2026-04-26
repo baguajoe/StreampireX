@@ -1796,7 +1796,7 @@ const RecordingStudio = ({ user }) => {
     }
     if (audioCtxRef.current.state === "suspended") audioCtxRef.current.resume();
     return audioCtxRef.current;
-  }, [masterVolume, masterPan]);
+  }, [masterVolume, masterPan, sampleRate, masterConsoleChar]);
 
   // ── Meter animation ──
   const startMeterAnimation = useCallback(() => {
@@ -2143,9 +2143,11 @@ const RecordingStudio = ({ user }) => {
 // =============================================================================
 
   // ── Autosave ──
+  const saveProjectRef = useRef(null);
+  useEffect(() => { saveProjectRef.current = saveProject; });
   useEffect(() => {
     if (!projectId) return;
-    const interval = setInterval(() => { if (!saving) { saveProject(); setStatus("✓ Auto-saved"); } }, 60000);
+    const interval = setInterval(() => { if (!saving && saveProjectRef.current) { saveProjectRef.current(); setStatus("✓ Auto-saved"); } }, 60000);
     return () => clearInterval(interval);
   }, [projectId, saving]);
 
