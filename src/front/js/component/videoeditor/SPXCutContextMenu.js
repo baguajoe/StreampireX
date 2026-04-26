@@ -67,18 +67,7 @@ function SPXCutContextMenu({ state, actions, selectors, playback }) {
         break;
 
       case 'unlink':
-        // Clear link group: apply to all clips with same linkGroup
-        if (clip?.linkGroup) {
-          state.tracks.forEach(t => {
-            t.clips.forEach(c => {
-              if (c.linkGroup === clip.linkGroup) {
-                // Update each linked clip to remove linkGroup — via transform update as proxy
-                // A proper UNLINK_CLIP action could be added to the store
-                actions.updateTransform(c.id, { ...c.transform }); // no-op to trigger re-render
-              }
-            });
-          });
-        }
+        if (clip?.linkGroup) actions.unlinkGroup(clip.linkGroup);
         break;
 
       case 'speed':
@@ -88,10 +77,7 @@ function SPXCutContextMenu({ state, actions, selectors, playback }) {
 
       case 'rename': {
         const newName = window.prompt('Clip name:', clip?.name || '');
-        if (newName && clip) {
-          // Patch clip name via a moveClip delta-zero to trigger re-render with name change
-          // In production: ADD_RENAME_CLIP action
-        }
+        if (newName && clip) actions.renameClip(clip.id, newName);
         break;
       }
 
@@ -209,6 +195,11 @@ function SPXCutContextMenu({ state, actions, selectors, playback }) {
       )}
 
       <div className="spxcut-ctx-sep" />
+
+      <button className="spxcut-ctx-item" onClick={() => execute('rename')}>
+        <span>Rename...</span>
+        <span className="spxcut-ctx-shortcut">F2</span>
+      </button>
 
       <button className="spxcut-ctx-item" onClick={() => execute('properties')}>
         <span>Clip Properties</span>

@@ -6,6 +6,7 @@
  */
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { formatTimecode } from './hooks/usePlayback';
+import { trackBlobUrl, revokeIfOwned } from './hooks/useEditorStore';
 
 const MEDIA_TYPE_ICONS = { video: '🎬', audio: '🎵', image: '🖼️' };
 
@@ -26,7 +27,7 @@ function SPXCutMediaBin({ state, actions, drag }) {
         id:        `media_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
         name:      file.name,
         file,
-        src:       URL.createObjectURL(file),
+        src:       trackBlobUrl(URL.createObjectURL(file)),
         mediaType,
         duration:  0,
         size:      file.size,

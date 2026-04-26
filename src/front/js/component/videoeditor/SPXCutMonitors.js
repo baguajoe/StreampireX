@@ -4,11 +4,16 @@
  */
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { formatTimecode } from './hooks/usePlayback';
+import { trackBlobUrl, revokeIfOwned } from './hooks/useEditorStore';
 
 function SourceMonitor({ state, actions, selectors }) {
   const videoRef   = useRef(null);
   const inOutRef   = useRef(null);
   const [sourceFile,      setSourceFile]      = useState(null);
+  // Revoke source blob URL on unmount
+  useEffect(() => () => {
+    if (sourceFile?.src) revokeIfOwned(sourceFile.src);
+  }, []); // eslint-disable-line
   const [sourceDuration,  setSourceDuration]  = useState(0);
   const [sourceTime,      setSourceTime]      = useState(0);
   const [sourcePlaying,   setSourcePlaying]   = useState(false);
@@ -72,7 +77,7 @@ function SourceMonitor({ state, actions, selectors }) {
         <div className="spxcut-monitor-header-btns">
           <button className="spxcut-monitor-hbtn" onClick={() => document.getElementById('spxcut-source-input')?.click()}>📂</button>
           <input id="spxcut-source-input" type="file" accept="video/*,audio/*" className="spxcut-visually-hidden"
-            onChange={e => { const f = e.target.files[0]; if (f) { setSourceFile({ file: f, src: URL.createObjectURL(f) }); e.target.value = ''; } }} />
+            onChange={e => { const f = e.target.files[0]; if (f) { setSourceFile(prev => { if (prev?.src) revokeIfOwned(prev.src); return { file: f, src: trackBlobUrl(URL.createObjectURL(f)) }; }); e.target.value = ''; } }} />
         </div>
       </div>
 

@@ -8,8 +8,8 @@ import { useReducer, useCallback, useRef } from 'react';
 
 // ── Blob URL tracking (revoke on delete to prevent memory leaks) ──
 const ownedBlobUrls = new Set();
-function trackBlobUrl(url) { if (url && url.startsWith('blob:')) ownedBlobUrls.add(url); return url; }
-function revokeIfOwned(url) {
+export function trackBlobUrl(url) { if (url && url.startsWith('blob:')) ownedBlobUrls.add(url); return url; }
+export function revokeIfOwned(url) {
   if (url && ownedBlobUrls.has(url)) {
     try { URL.revokeObjectURL(url); } catch (e) {}
     ownedBlobUrls.delete(url);
@@ -621,6 +621,28 @@ function editorReducer(state, action) {
       };
     }
 
+    case 'UNLINK_GROUP': {
+      const prevTracks = cloneTracks(state.tracks);
+      const linkGroup = action.payload;
+      if (!linkGroup) return state;
+      const tracks = state.tracks.map(t => ({
+        ...t,
+        clips: t.clips.map(c => c.linkGroup === linkGroup ? { ...c, linkGroup: null } : c),
+      }));
+      return { ...state, tracks, isDirty: true, undoStack: [...state.undoStack.slice(-49), prevTracks], redoStack: [] };
+    }
+
+    case 'RENAME_CLIP': {
+      const prevTracks = cloneTracks(state.tracks);
+      const { clipId, name } = action.payload;
+      if (!clipId || !name) return state;
+      const tracks = state.tracks.map(t => ({
+        ...t,
+        clips: t.clips.map(c => c.id === clipId ? { ...c, name } : c),
+      }));
+      return { ...state, tracks, isDirty: true, undoStack: [...state.undoStack.slice(-49), prevTracks], redoStack: [] };
+    }
+
     default:
       return state;
   }
@@ -691,6 +713,8 @@ export function useEditorStore() {
     updateEffectParam:useCallback((clipId, effectId, paramKey, value) => dispatch({ type: 'UPDATE_EFFECT_PARAM', payload: { clipId, effectId, paramKey, value } }), []),
     reorderEffects:   useCallback((clipId, effects) => dispatch({ type: 'REORDER_EFFECTS', payload: { clipId, effects } }), []),
     updateTransform:  useCallback((clipId, transform) => dispatch({ type: 'UPDATE_CLIP_TRANSFORM', payload: { clipId, transform } }), []),
+    unlinkGroup:      useCallback(linkGroup => dispatch({ type: 'UNLINK_GROUP', payload: linkGroup }), []),
+    renameClip:       useCallback((clipId, name) => dispatch({ type: 'RENAME_CLIP', payload: { clipId, name } }), []),
 
     // Undo/Redo
     undo:             useCallback(() => dispatch({ type: 'UNDO' }), []),
