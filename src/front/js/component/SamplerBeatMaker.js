@@ -293,9 +293,9 @@ const SamplerBeatMaker = ({
   const [songPlaying, setSongPlaying] = useState(false);
 
   // ==== TRANSPORT ====
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);  const [bpm, setBpm] = useState(140);
+
   const masterClock = useSamplerMasterClock(bpm, isPlaying);
-  const [bpm, setBpm] = useState(140);
 
   // ── Advanced sequencer features ─────────────────────────────────────────
   const [stepProbability, setStepProbability] = useState(
