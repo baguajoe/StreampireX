@@ -855,7 +855,7 @@ const SamplerBeatMaker = ({
       }
       return u;
     });
-    setStatus(`Euclidean ${hits}/${steps} applied to pad ${pad + 1}`);
+    console.log(`Euclidean ${hits}/${steps} applied to pad ${pad + 1}`);
   }, []);
 
   // ── Apply step probability during playback ───────────────────────────────
@@ -1248,7 +1248,8 @@ const SamplerBeatMaker = ({
 
     // Phase 7: Apply per-step automation overrides
     const autoData = automationRef.current?.[pi];
-    const autoStep = time ? Math.round((time - (nextStepT.current - 60.0 / bpmRef.current / 4)) / (60.0 / bpmRef.current / 4)) : -1;
+    // autoStep is computed from current sequencer step ref, not derived from `time`
+    const autoStep = curStepRef.current >= 0 ? curStepRef.current : -1;
     let autoFilterFreq = pad.filterFreq, autoPitch = pad.pitch, autoPan = pad.pan;
     let autoReverbSend = pad.reverbOn ? pad.reverbMix : 0;
     let autoDelaySend = pad.delayOn ? pad.delayMix : 0;
@@ -1883,13 +1884,14 @@ const SamplerBeatMaker = ({
           const barDur = beatDur * 4;
           const elapsed = c.currentTime - (nextStepT.current || c.currentTime);
           const nextBar = barDur - (elapsed % barDur);
-          const launchTime = c.currentTime + nextBar;
           setTimeout(() => {
-            // Check still queued before launching
-            const currentState = clipStates[key];
-            if (currentState === 'queued' || !clipSources.current[key]) {
-              launchClip(sceneIdx, padIdx);
-            }
+            // Check via setState callback to avoid stale closure on clipStates
+            setClipStates(curStates => {
+              if (curStates[key] === 'queued' && !clipSources.current[key]) {
+                launchClip(sceneIdx, padIdx);
+              }
+              return curStates;
+            });
           }, nextBar * 1000);
         } else {
           launchClip(sceneIdx, padIdx);
@@ -2784,7 +2786,33 @@ const SamplerBeatMaker = ({
   // =========================================================================
   // CLEANUP
   // =========================================================================
-  useEffect(() => { return () => { stopSeq(); if (ctxRef.current) ctxRef.current.close(); if (mediaStream.current) mediaStream.current.getTracks().forEach(t => t.stop()); blobUrls.current.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { } }); Object.keys(clipSources.current).forEach(k => { try { clipSources.current[k].source.stop(); } catch (e) { } }); }; }, [stopSeq]);
+  useEffect(() => {
+    return () => {
+      stopSeq();
+      // Clear reverb IR cache (frees memory per decay value)
+      reverbBufCache.current = {};
+      // Stop and clean clip launcher sources
+      Object.keys(clipSources.current).forEach(k => { try { clipSources.current[k].source.stop(); } catch (e) {} });
+      clipSources.current = {};
+      // Clean master filter sweep node
+      if (masterFilterRef.current) { try { masterFilterRef.current.disconnect(); } catch (e) {} masterFilterRef.current = null; }
+      // Stop active sources
+      Object.keys(activeSrc.current).forEach(k => { try { activeSrc.current[k].source.stop(); } catch (e) {} });
+      activeSrc.current = {};
+      // Stop loop recorder
+      if (loopRecorderRef.current) { try { loopRecorderRef.current.recorder.stop(); } catch (e) {} loopRecorderRef.current = null; }
+      if (loopSrcRef.current) { try { loopSrcRef.current.stop(); } catch (e) {} loopSrcRef.current = null; }
+      // Stop media stream tracks
+      if (mediaStream.current) mediaStream.current.getTracks().forEach(t => t.stop());
+      // Revoke blob URLs
+      blobUrls.current.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) {} });
+      blobUrls.current = [];
+      // Close audio context last
+      if (ctxRef.current && ctxRef.current.state !== 'closed') {
+        try { ctxRef.current.close(); } catch (e) {}
+      }
+    };
+  }, [stopSeq]);
 
   // =========================================================================
   // RENDER
