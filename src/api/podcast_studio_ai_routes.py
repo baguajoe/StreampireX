@@ -80,9 +80,9 @@ def transcribe_audio():
                 id=episode_id, user_id=user_id
             ).first()
             if episode:
-                episode.transcript = result['full_text']
-                episode.transcript_words = json.dumps(result['words'])
-                db.session.commit()
+                # NOTE: transcript / transcript_words deferred — columns not in PodcastEpisode model.
+                # Transcript is returned in response; persistence requires DB migration.
+                pass
 
         return jsonify(result), 200
 
@@ -273,9 +273,8 @@ def apply_text_edits():
                     id=episode_id, user_id=user_id
                 ).first()
                 if episode:
-                    new_transcript = ' '.join(w['word'] for w in updated_words)
-                    episode.transcript = new_transcript
-                    episode.audio_url = edited_url
+                    # NOTE: transcript column deferred — return in response only.
+                    episode.file_url = edited_url
                     db.session.commit()
 
             return jsonify({
@@ -492,8 +491,8 @@ def magic_audio():
                     id=episode_id, user_id=user_id
                 ).first()
                 if episode:
-                    episode.audio_url = enhanced_url
-                    episode.enhanced = True
+                    # NOTE: episode.enhanced deferred — column not in PodcastEpisode model.
+                    episode.file_url = enhanced_url
                     db.session.commit()
 
             return jsonify({
@@ -562,18 +561,16 @@ def generate_show_notes():
                 id=episode_id, user_id=user_id
             ).first()
             if episode:
-                episode.summary = result.get('summary', '')
-                episode.show_notes = result.get('show_notes', '')
-                episode.seo_description = result.get('seo_description', '')
-                episode.tags = json.dumps(result.get('tags', []))
+                # NOTE: summary / show_notes / seo_description / tags deferred —
+                # columns not in PodcastEpisode model. Returned in response only.
 
-                # Save chapters
+                # Save chapters at podcast level (PodcastChapter has podcast_id, no episode_id)
                 for ch in result.get('chapters', []):
                     chapter = PodcastChapter(
-                        episode_id=episode.id,
+                        podcast_id=episode.podcast_id,
                         title=ch.get('title', ''),
-                        timestamp=ch.get('timestamp', 0),
-                        description=ch.get('description', '')
+                        timestamp=int(ch.get('timestamp', 0)),
+                        manual_edit=False,
                     )
                     db.session.add(chapter)
 

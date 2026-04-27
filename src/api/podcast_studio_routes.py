@@ -92,7 +92,7 @@ def upload_track():
     Upload an individual recording track (host, guest, or soundboard).
     These are stored as stems for optional multitrack editing.
     """
-    from .models import db, PodcastRecordingSession, PodcastRecordingTrack
+    from api.models import db, PodcastRecordingSession, PodcastRecordingTrack
 
     try:
         file = request.files.get("file")
@@ -168,8 +168,8 @@ def publish_episode():
     - PodcastPlayer (playback with chapters)
     - User's profile podcast section
     """
-    from .models import db, Podcast, PodcastEpisode, PodcastChapter, User
-    from .models import PodcastRecordingSession
+    from api.models import db, Podcast, PodcastEpisode, PodcastChapter, User
+    from api.models import PodcastRecordingSession
 
     try:
         user_id = get_jwt_identity()
@@ -198,34 +198,31 @@ def publish_episode():
         audio_url = upload_file(file, unique_name, folder="podcast-studio/episodes")
 
         # 2. Find or create user's podcast
-        podcast = Podcast.query.filter_by(user_id=user_id).first()
+        podcast = Podcast.query.filter_by(creator_id=user_id).first()
 
         if not podcast:
             # Auto-create podcast for user
             podcast = Podcast(
-                user_id=user_id,
+                creator_id=user_id,
                 title=f"{user.username}'s Podcast",
                 description=f"Podcast by {user.username}",
                 category="General",
-                language="en",
-                is_published=True,
-                created_at=datetime.utcnow(),
             )
             db.session.add(podcast)
             db.session.flush()
 
         # 3. Create PodcastEpisode
+        # NOTE: episode_number / show_notes deferred — columns not in PodcastEpisode model.
+        # When DB migration adds them, restore the corresponding kwargs on the PodcastEpisode insert above.
         episode = PodcastEpisode(
             podcast_id=podcast.id,
+            user_id=user_id,
             title=title,
             description=description,
-            audio_url=audio_url,
-            episode_number=episode_number,
+            file_url=audio_url,
             duration=duration,
-            show_notes=show_notes,
             is_published=True,
             release_date=datetime.utcnow(),
-            created_at=datetime.utcnow(),
         )
         db.session.add(episode)
         db.session.flush()
@@ -278,7 +275,7 @@ def publish_episode():
 @jwt_required()
 def list_sessions():
     """List user's recording sessions."""
-    from .models import PodcastRecordingSession
+    from api.models import PodcastRecordingSession
 
     user_id = get_jwt_identity()
     sessions = (
@@ -302,7 +299,7 @@ def list_sessions():
 @jwt_required()
 def get_session(session_id):
     """Get session details with all tracks."""
-    from .models import PodcastRecordingSession
+    from api.models import PodcastRecordingSession
 
     user_id = get_jwt_identity()
     session = PodcastRecordingSession.query.filter_by(

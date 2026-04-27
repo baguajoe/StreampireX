@@ -507,9 +507,9 @@ const PodcastStudio = ({ user }) => {
     const backendUrl = process.env.REACT_APP_BACKEND_URL;
     if (!backendUrl || socketRef.current?.connected) return;
     const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-    socketRef.current = io(backendUrl, {
+    socketRef.current = io(`${backendUrl}/podcast`, {
       transports: ["websocket", "polling"], withCredentials: true,
-      path: "/socket.io/", namespace: "/podcast",
+      path: "/socket.io/",
       query: { token, sessionId }, reconnection: true,
       reconnectionAttempts: 10, reconnectionDelay: 2000,
     });
