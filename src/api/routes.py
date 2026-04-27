@@ -16079,7 +16079,7 @@ def get_creator_profile():
             return jsonify({"error": "User not found"}), 404
         
         # Count followers and following
-        followers_count = Follow.query.filter_by(followed_id=user_id).count()
+        followers_count = Follow.query.filter_by(following_id=user_id).count()  # SP-2a.1
         following_count = Follow.query.filter_by(follower_id=user_id).count()
         
         return jsonify({
@@ -22977,7 +22977,7 @@ def get_stories_feed():
         user_id = get_jwt_identity()
         
         # Get users current user follows
-        following_ids = [f.followed_id for f in Follow.query.filter_by(follower_id=user_id).all()]
+        following_ids = [f.following_id for f in Follow.query.filter_by(follower_id=user_id).all()]  # SP-2a.1
         
         # Include own stories
         all_user_ids = [user_id] + following_ids
