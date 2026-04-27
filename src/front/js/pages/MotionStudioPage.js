@@ -8,22 +8,8 @@ import { useEditorStore } from "../store/useEditorStore";
 import usePlaybackEngine from "../hooks/usePlaybackEngine";
 import { renderLayers } from "../utils/motionstudio/renderEngine";
 import { exportFrame, exportProject, exportVideo, importProject } from "../utils/export/exportEngine";
-import { saveToCloud, listCloudProjects, loadFromCloud, deleteCloudProject } from "../utils/cloudSave";
+import { saveToCloud, listCloudProjects, loadFromCloud } from "../utils/cloudSave";
 import { ANIMATABLE_PROPS } from "../utils/motionstudio/keyframeEngine";
-import MotionToolbar from "../component/motionstudio/MotionToolbar";
-import MotionTimelinePanel from "../component/motionstudio/MotionTimelinePanel";
-import MotionLayerPanel from "../component/motionstudio/MotionLayerPanel";
-import MotionPropertyInspector from "../component/motionstudio/MotionPropertyInspector";
-import MotionPreviewStage from "../component/motionstudio/MotionPreviewStage";
-import MotionExportPanel from "../component/motionstudio/MotionExportPanel";
-import MotionCameraPanel from "../component/motionstudio/MotionCameraPanel";
-import MotionKeyframePanel from "../component/motionstudio/MotionKeyframePanel";
-import MotionPresetBrowser from "../component/motionstudio/MotionPresetBrowser";
-import MotionTemplatePanel from "../component/motionstudio/MotionTemplatePanel";
-import MotionPathPanel from "../component/motionstudio/MotionPathPanel";
-import MotionMaskEffectsPanel from "../component/motionstudio/MotionMaskEffectsPanel";
-import MotionGraphEditorV2 from "../component/motionstudio/MotionGraphEditorV2";
-import useMotionPresets from "../component/motionstudio/engine/useMotionPresets";
 
 // ─── Expressions Engine ───────────────────────────────────────────────────────
 const EXPR_LIBRARY = [
@@ -592,9 +578,13 @@ export default function MotionStudioPage() {
 
         <div style={S.body}>
           {/* ── Left Toolbar (AE-style) ── */}
-          <div style={S.toolbar}>
+          {/* B1 NOTE: Tool buttons set activeTool state but don't dispatch to canvas behavior.
+              MotionPreviewStage handles drag/select directly on layers. Tool-driven interactions
+              (e.g. shape/text/rotate brushes) require a tool prop wired to the stage — coming in v1.1. */}
+          <div style={S.toolbar} title="Layers are draggable. Tool-driven interactions coming in v1.1.">
             {TOOLS.map(tool => (
-              <button key={tool.id} style={S.toolBtn(activeTool===tool.id)} title={tool.label}
+              <button key={tool.id} style={S.toolBtn(activeTool===tool.id)}
+                title={tool.label + (tool.id === 'select' ? '' : ' (preview — direct manipulation works; full tool wiring in v1.1)')}
                 onClick={()=>setActiveTool(tool.id)}>{tool.icon}</button>
             ))}
             <div style={{flex:1}}/>

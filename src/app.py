@@ -663,25 +663,16 @@ try:
 except Exception as e:
     print(f'⚠️  epk_collab_routes_bp: {e}')
 
-try:
-    from api.video_export_routes import video_export_bp
-    app.register_blueprint(video_export_bp)
-    print('✅ video_export_bp registered')
-except Exception as e:
-    print(f'⚠️  video_export_bp: {e}')
+from api.video_export_routes import video_export_bp
+app.register_blueprint(video_export_bp)
+print('✅ video_export_bp registered')
 
-try:
-    from api.projects_routes import projects_bp
-    app.register_blueprint(projects_bp)
-    print('✅ projects_bp registered')
-except Exception as e:
-    print(f'⚠️  projects_bp: {e}')
-try:
-    from api.ai_fill_routes import ai_fill_bp
-    app.register_blueprint(ai_fill_bp)
-    print('✅ ai_fill_bp registered')
-except Exception as e:
-    print(f'⚠️  ai_fill_bp: {e}')
+from api.projects_routes import projects_bp
+app.register_blueprint(projects_bp)
+print('✅ projects_bp registered')
+from api.ai_fill_routes import ai_fill_bp
+app.register_blueprint(ai_fill_bp)
+print('✅ ai_fill_bp registered')
 from api.routes.script_routes import script_bp
 from api.routes.script_collab_ws import register_collab_ws
 app.register_blueprint(script_bp)

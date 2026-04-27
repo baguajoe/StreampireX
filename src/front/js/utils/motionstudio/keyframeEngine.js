@@ -80,5 +80,17 @@ export function getLayerValueAtTime(layer, prop, time) {
   return interpolateKeyframes(layer.keyframes, time)[prop] ?? layer[prop];
 }
 
+// ─── Visibility ──────────────────────────────────────────────────────────────
+// Filters layers down to only those visible at currentTime, based on
+// inPoint/outPoint and layer.visible flag. Used by useMotionEngine.
+export function evaluateVisibleLayers(layers = [], currentTime = 0) {
+  return (layers || []).filter(layer => {
+    if (!layer || layer.visible === false) return false;
+    const inPt = layer.inPoint != null ? layer.inPoint : 0;
+    const outPt = layer.outPoint != null ? layer.outPoint : Infinity;
+    return currentTime >= inPt && currentTime <= outPt;
+  });
+}
+
 export default { interpolateKeyframes, createKeyframe, addKeyframe, removeKeyframe,
-  getAllKeyframeTimes, hasKeyframes, getLayerValueAtTime, ANIMATABLE_PROPS };
+  getAllKeyframeTimes, hasKeyframes, getLayerValueAtTime, ANIMATABLE_PROPS, evaluateVisibleLayers };
