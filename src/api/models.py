@@ -6268,6 +6268,46 @@ class VideoQuality(db.Model):
             'is_ready': self.is_ready
         }
 
+class ScriptDraft(db.Model):
+    """SPX Script — User's screenplay/comic drafts.
+    Stores the entire script document as JSON in `content`.
+    One row per draft; users can have many drafts."""
+    __tablename__ = 'script_drafts'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False, index=True)
+    title = db.Column(db.String(255), nullable=False, default='Untitled Script')
+    format = db.Column(db.String(50), default='screenplay')  # screenplay, comic, tv, stage
+    content = db.Column(db.Text, nullable=False, default='{}')  # JSON string of full document
+    thumbnail_url = db.Column(db.String(500))
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('script_drafts', lazy='dynamic'))
+
+    def serialize(self, include_content=True):
+        import json
+        try:
+            parsed_content = json.loads(self.content) if self.content else {}
+        except Exception:
+            parsed_content = {}
+        data = {
+            'id': self.id,
+            'user_id': self.user_id,
+            'title': self.title,
+            'format': self.format,
+            'thumbnail_url': self.thumbnail_url,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+        if include_content:
+            data['content'] = parsed_content
+        return data
+
+
+
 class VideoProject(db.Model):
     __tablename__ = 'video_projects'
     __table_args__ = {'extend_existing': True}

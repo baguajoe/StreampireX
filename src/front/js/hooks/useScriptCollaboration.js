@@ -94,8 +94,13 @@ export function useScriptCollaboration(scriptId, userId, userName) {
         break;
 
       case "element_edit":
-        // Another user edited an element — apply to pending edits queue
-        setPendingEdits((prev) => [...prev, msg]);
+        // Another user edited an element — append to pending queue, FIFO-cap at 500
+        // to prevent unbounded memory growth in long collaboration sessions.
+        // The page consumes/clears pendingEdits after applying them.
+        setPendingEdits((prev) => {
+          const next = [...prev, msg];
+          return next.length > 500 ? next.slice(-500) : next;
+        });
         break;
 
       case "comment_add":

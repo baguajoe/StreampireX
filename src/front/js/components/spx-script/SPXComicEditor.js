@@ -72,6 +72,57 @@ export default function SPXComicEditor({
     }));
   };
 
+  // Generate panel image via FLUX 1.1 Pro (backend route /api/script/generate-panel).
+  // Sets the panel's generatedImage to "loading" optimistically; replaces with the
+  // returned URL on success, or null on failure. Race-safe via panelId capture.
+  const generatePanelImage = async (panelId) => {
+    const targetPanel = page?.panels.find((p) => p.id === panelId);
+    if (!targetPanel) return;
+    const prompt = (targetPanel.description || "").trim();
+    if (!prompt || prompt === "New panel — add description...") {
+      alert("Add a description for this panel before generating.");
+      return;
+    }
+
+    // Optimistic loading state
+    updatePanel(panelId, "generatedImage", "loading");
+
+    try {
+      const token =
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("token") ||
+        "";
+      const backend = process.env.REACT_APP_BACKEND_URL || "";
+      const res = await fetch(`${backend}/api/script/generate-panel`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          prompts: [prompt],
+          style: targetPanel.balloonType === "Caption" ? "noir" : "comic",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = data?.error || data?.details || `HTTP ${res.status}`;
+        throw new Error(msg);
+      }
+      const firstPanel = Array.isArray(data?.panels) ? data.panels[0] : null;
+      const imageUrl = firstPanel?.image_url || firstPanel?.url || null;
+      if (imageUrl) {
+        updatePanel(panelId, "generatedImage", imageUrl);
+      } else {
+        updatePanel(panelId, "generatedImage", null);
+        alert("Panel generated but no image URL returned. Check backend logs.");
+      }
+    } catch (err) {
+      updatePanel(panelId, "generatedImage", null);
+      alert(`Generate failed: ${err.message || err}`);
+    }
+  };
+
   const addPage = () => {
     const newPageId = Date.now();
     setComic((prev) => ({
@@ -238,6 +289,12 @@ export default function SPXComicEditor({
                 {/* Panel controls */}
                 {selectedPanelId === panel.id && (
                   <div className="spx-panel-controls">
+                    <button
+                      className="spx-panel-ctrl"
+                      onClick={(e) => { e.stopPropagation(); generatePanelImage(panel.id); }}
+                      title="Generate image from description (uses SPX Credits)"
+                      disabled={panel.generatedImage === "loading"}
+                    >{panel.generatedImage === "loading" ? "⏳" : "🎨"}</button>
                     <button
                       className="spx-panel-ctrl danger"
                       onClick={(e) => { e.stopPropagation(); deletePanel(panel.id); }}
