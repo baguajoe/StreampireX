@@ -7864,3 +7864,23 @@ class VectorAsset(db.Model):
             "file_type": self.file_type,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+class ProcessedStripeEvent(db.Model):
+    """Idempotency table for Stripe webhooks.
+
+    Stripe retries the same event multiple times (~3x in 5 days for failures).
+    Each retry carries the same event['id']. Without dedup, every retry creates
+    duplicate Purchase/Tip rows, double-credits creators, and double-decrements
+    inventory. Insert event_id on first receipt; subsequent retries are no-ops.
+
+    Used by SP-1.3 webhook idempotency check.
+    """
+    __tablename__ = "processed_stripe_events"
+
+    event_id = db.Column(db.String(255), primary_key=True)
+    event_type = db.Column(db.String(120), nullable=True)
+    processed_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def __repr__(self):
+        return f"<ProcessedStripeEvent {self.event_id} {self.event_type}>"
+
