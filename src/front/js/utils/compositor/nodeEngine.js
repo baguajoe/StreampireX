@@ -55,7 +55,11 @@ export function topoSortNodes(nodes = [], edges = []) {
       if (indegree.get(next) === 0) queue.push(next);
     }
   }
-  return out.length === nodes.length ? out : nodes;
+  if (out.length !== nodes.length) {
+    console.warn('[nodeEngine] Cycle detected in graph; refusing to evaluate.');
+    return [];
+  }
+  return out;
 }
 
 export function getInputNodes(node, nodes = [], edges = []) {

@@ -158,8 +158,7 @@ const PBR_DEFAULTS = {
 };
 const CAMERA_MODES = ['perspective','orthographic'];
 const ANIM_INTERPS  = ['linear','ease','step'];
-import { requestRender } from "../utils/render/renderClient";
-import { saveToCloud, listCloudProjects, loadFromCloud, deleteCloudProject } from "../utils/cloudSave";
+import { saveToCloud, listCloudProjects, loadFromCloud } from "../utils/cloudSave";
 import { useEditorStore } from "../store/useEditorStore";
 
 const COMP_KEY = "spx_compositor_project";
@@ -206,7 +205,6 @@ function MenuDropdown({ label, items }) {
   );
 }
 
-import NodeGraph from "../component/compositor/NodeGraph";
 import NodeGraphPro from "../component/compositor/NodeGraphPro";
 import { evaluateGraph } from "../utils/compositor/nodeEngine";
 import { SHADER_NODE_PRESETS } from "../component/nodecompositor/vfx/shaderNodePresets";
@@ -227,49 +225,9 @@ import RotoTimelinePanel from "../component/nodecompositor/pro/RotoTimelinePanel
 import DependencyGraphPanel from "../component/nodecompositor/pro/DependencyGraphPanel";
 import { createGraphRunner } from "../utils/compositor/engine/graphRunner";
 import NodeEnginePanel from "../component/nodecompositor/pro/NodeEnginePanel";
-import NodeGraphCanvas from "../component/nodecompositor/NodeGraphCanvas";
-import NodeLibraryPanel from "../component/nodecompositor/NodeLibraryPanel";
-import NodeInspectorPanel from "../component/nodecompositor/NodeInspectorPanel";
-import NodeTimelinePanel from "../component/nodecompositor/NodeTimelinePanel";
-import VFXToolPanel from "../component/nodecompositor/VFXToolPanel";
-import AIAutoEditPanel from "../component/nodecompositor/AIAutoEditPanel";
-import BeatSyncPanel from "../component/nodecompositor/BeatSyncPanel";
-import RotoMaskPanel from "../component/nodecompositor/RotoMaskPanel";
-import TrackingToolPanel from "../component/nodecompositor/TrackingToolPanel";
-import Camera25DPanel from "../component/nodecompositor/Camera25DPanel";
-import MinimapPanel from "../component/nodecompositor/MinimapPanel";
-import NodeVFXPreviewPanel from "../component/nodecompositor/NodeVFXPreviewPanel";
-import VideoExportPanel from "../component/nodecompositor/VideoExportPanel";
 
 export default function NodeCompositorPage() {
-  const [ncNodes,          setNcNodes]          = React.useState([]);
-  const [ncEdges,          setNcEdges]          = React.useState([]);
-  const [ncSelectedNode,   setNcSelectedNode]   = React.useState(null);
-  const [ncCurrentTime,    setNcCurrentTime]    = React.useState(0);
-  const [ncIsPlaying,      setNcIsPlaying]      = React.useState(false);
-  const [ncDuration,       setNcDuration]       = React.useState(10);
-  const [vfxEnabled,       setVfxEnabled]       = React.useState(true);
-  const [shaderQuality,    setShaderQuality]    = React.useState('high');
-  const [globalEffects,    setGlobalEffects]    = React.useState([]);
-  const [showNodeLib,      setShowNodeLib]      = React.useState(false);
-  const [showNodeInspect,  setShowNodeInspect]  = React.useState(false);
-  const [showNodeTimeline, setShowNodeTimeline] = React.useState(false);
-  const [showVFXPanel,     setShowVFXPanel]     = React.useState(false);
-  const [showAIAutoEdit,   setShowAIAutoEdit]   = React.useState(false);
-  const [showBeatSync,     setShowBeatSync]     = React.useState(false);
-  const [showRotoMask,     setShowRotoMask]     = React.useState(false);
-  const [showTracking,     setShowTracking]     = React.useState(false);
-  const [showCamera25D,    setShowCamera25D]    = React.useState(false);
-  const [showMinimap,      setShowMinimap]      = React.useState(true);
-  const [showVFXPreview,   setShowVFXPreview]   = React.useState(false);
-  const [showVideoExport,  setShowVideoExport]  = React.useState(false);
-  const [showNodeCanvas,   setShowNodeCanvas]   = React.useState(false);
-  const addNcNode = React.useCallback((type) => {
-    const id = `node_${Date.now()}`;
-    const nodeType = type || { label:'New Node', inputs:[], outputs:[] };
-    setNcNodes(prev => [...prev, { id, x:200+prev.length*20, y:150+prev.length*20, width:180, ...nodeType }]);
-    setStatus?.(`Added node: ${nodeType.label||type}`);
-  }, []);
+  // [2D.8] 22 dead state vars + addNcNode removed (none of these were ever read in the JSX tree)
   const init3DScene = React.useCallback(() => {
     const canvas = threeCanvasRef.current;
     if (!canvas || threeRendererRef.current) return;
@@ -1393,7 +1351,7 @@ export default function NodeCompositorPage() {
 
     const code = `<!-- SPX 3D Embed — streampirex.com -->
 <div id="spx-3d-embed" style="width:100%;aspect-ratio:16/9;"></div>
-<script src="https://streampirex.com/embed/spx3d.js"></script>
+<!-- SPX 3D embed coming in v1.1 - external script not yet deployed -->
 <script>
   SPX3D.init('#spx-3d-embed', {
     scene: '${encoded.slice(0,80)}...', // full scene data
@@ -1682,6 +1640,12 @@ export default function NodeCompositorPage() {
 
 
 
+  const nodes = useEditorStore((s) => s.nodes);
+  const setNodes = useEditorStore((s) => s.setNodes);
+  const addNode = useEditorStore((s) => s.addNode);
+  const selection = useEditorStore((s) => s.selection);
+  const setSelection = useEditorStore((s) => s.setSelection);
+
   // Auto-save nodes/edges
   React.useEffect(() => {
     if (nodes.length > 0) {
@@ -1703,12 +1667,6 @@ export default function NodeCompositorPage() {
       }
     } catch(e) {}
   }, []);
-
-  const nodes = useEditorStore((s) => s.nodes);
-  const setNodes = useEditorStore((s) => s.setNodes);
-  const addNode = useEditorStore((s) => s.addNode);
-  const selection = useEditorStore((s) => s.selection);
-  const setSelection = useEditorStore((s) => s.setSelection);
 
   useEffect(() => {
     if (!nodes.length) {
@@ -1744,7 +1702,7 @@ export default function NodeCompositorPage() {
     }
   }, [nodes.length, setNodes]);
 
-  const graphResult = useMemo(() => evaluateGraph(nodes), [nodes]);
+  const graphResult = useMemo(() => evaluateGraph(nodes, edges), [nodes, edges]);
 
   graphRunnerRef.current.setGraph(nodes, edges);
   const engineEvaluation = React.useMemo(() => {
@@ -1795,9 +1753,14 @@ export default function NodeCompositorPage() {
   };
 
   const handleRenderProject = () => {
+    // NOTE: Real render output sink deferred for v1.1.
+    // The pipeline produces a result canvas (graphRunner.runFrame), but no UI
+    // currently displays/exports it. To wire: pipe result to a preview canvas
+    // or call exportFrame from utils/compositor/exportEngine.
+    setStatus("Render pipeline ready — output sink coming in v1.1");
     if (graphRunnerRef.current) {
       const result = graphRunnerRef.current.runFrame(Math.floor(currentTime * 30));
-      console.log("Render result:", result);
+      console.log("[NodeCompositor] Render result:", result);
     }
   };
 
@@ -1843,17 +1806,17 @@ export default function NodeCompositorPage() {
             } },
             { label: "Save", shortcut: "Ctrl+S", action: () => { try { localStorage.setItem(COMP_KEY, JSON.stringify({nodes,edges,name:projectName,savedAt:Date.now()})); setStatus("✅ Saved locally"); } catch(e){ setStatus("Save failed"); } } },
             "---",
-            { label: "Export PNG",  action: () => {} },
-            { label: "Export EXR",  action: () => {} },
+            { label: "Export PNG",  action: () => setStatus("Export PNG — coming in v1.1") },
+            { label: "Export EXR",  action: () => setStatus("Export EXR — coming in v1.1") },
             { label: "Render Queue", action: handleRenderProject },
           ]},
           { label: "Edit", items: [
-            { label: "Undo",       shortcut: "Ctrl+Z",       action: () => {} },
-            { label: "Redo",       shortcut: "Ctrl+Shift+Z", action: () => {} },
+            { label: "Undo",       shortcut: "Ctrl+Z",       action: () => setStatus("Undo — coming in v1.1") },
+            { label: "Redo",       shortcut: "Ctrl+Shift+Z", action: () => setStatus("Redo — coming in v1.1") },
             "---",
-            { label: "Select All",    action: () => {} },
-            { label: "Delete Node",   action: () => {} },
-            { label: "Duplicate Node", action: () => {} },
+            { label: "Select All",    action: () => setStatus("Select All — coming in v1.1") },
+            { label: "Delete Node",   action: () => setStatus("Delete Node — coming in v1.1") },
+            { label: "Duplicate Node", action: () => setStatus("Duplicate Node — coming in v1.1") },
           ]},
           { label: "Node", items: [
             { label: "Add Media",      action: () => addNode({type:"media",     x:200,y:150,inputs:{},outputs:{}}) },
@@ -1869,21 +1832,21 @@ export default function NodeCompositorPage() {
             { label: "Reset Canvas",    action: () => { setNodes([]); setEdges([]); } },
           ]},
           { label: "View", items: [
-            { label: "Zoom In",    action: () => {} },
-            { label: "Zoom Out",   action: () => {} },
-            { label: "Fit All",    action: () => {} },
+            { label: "Zoom In",    action: () => setStatus("Zoom In — coming in v1.1") },
+            { label: "Zoom Out",   action: () => setStatus("Zoom Out — coming in v1.1") },
+            { label: "Fit All",    action: () => setStatus("Fit All — coming in v1.1") },
             "---",
-            { label: "Toggle Preview",        action: () => {} },
-            { label: "Toggle Color Pipeline", action: () => {} },
+            { label: "Toggle Preview",        action: () => setStatus("Toggle Preview — coming in v1.1") },
+            { label: "Toggle Color Pipeline", action: () => setStatus("Toggle Color Pipeline — coming in v1.1") },
           ]},
           { label: "Render", items: [
             { label: "Render Frame",   action: handleRenderProject },
-            { label: "Render Range",   action: () => {} },
-            { label: "Add to Queue",   action: () => {} },
+            { label: "Render Range",   action: () => setStatus("Render Range — coming in v1.1") },
+            { label: "Add to Queue",   action: () => setStatus("Add to Queue — coming in v1.1") },
             "---",
-            { label: "Output: PNG",    action: () => {} },
-            { label: "Output: ProRes", action: () => {} },
-            { label: "Output: EXR",    action: () => {} },
+            { label: "Output: PNG",    action: () => setStatus("Output PNG — coming in v1.1") },
+            { label: "Output: ProRes", action: () => setStatus("Output ProRes — coming in v1.1") },
+            { label: "Output: EXR",    action: () => setStatus("Output EXR — coming in v1.1") },
           ]},
           { label: "Help", items: [
             { label: "Node Reference", action: () => setShowNodeRef(true) },
@@ -1901,7 +1864,7 @@ export default function NodeCompositorPage() {
           <div style={{ flex:1 }}/>
           <button className="spx-comp-btn" onClick={() => setEdges([])}>Clear Edges</button>
           <button className="spx-comp-btn" onClick={() => { setNodes([]); setEdges([]); }}>Reset</button>
-          <button className="spx-comp-btn spx-comp-btn-primary" onClick={handleRenderProject}>▶ Render</button>
+          <button className="spx-comp-btn spx-comp-btn-primary" onClick={handleRenderProject} title="Render pipeline ready — display/export coming in v1.1">▶ Render (preview)</button>
         </div>
         {/* ── 3-Panel Fusion-style Layout ── */}
         <div style={{ display:"flex", flex:1, overflow:"hidden", gap:0 }}>
