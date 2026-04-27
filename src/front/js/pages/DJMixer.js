@@ -545,6 +545,7 @@ export default function DJMixer(){
   const[recBlob,setRecBlob]=useState(null);
   const[master,setMaster]=useState("A");
   const[prog,setProg]=useState({A:0,B:0});
+  const progRef=useRef({A:0,B:0});
   const[saveModal,setSaveModal]=useState(false);
   const[mixTitle,setMixTitle]=useState("");
   const[saving,setSaving]=useState(false);
@@ -596,8 +597,25 @@ export default function DJMixer(){
   useEffect(()=>{if(!xgA.current)return;xgA.current.gain.value=Math.cos(xf*Math.PI/2);xgB.current.gain.value=Math.sin(xf*Math.PI/2);},[xf]);
   useEffect(()=>{if(mgRef.current)mgRef.current.gain.value=mvol;},[mvol]);
   useEffect(()=>{
-    const tick=()=>{setProg({A:deckA.buffer?Math.min(deckA.currentTime()/deckA.duration(),1):0,B:deckB.buffer?Math.min(deckB.currentTime()/deckB.duration(),1):0});rafRef.current=requestAnimationFrame(tick);};
-    tick();return()=>cancelAnimationFrame(rafRef.current);
+    let frame=0;
+    const tick=()=>{
+      const a=deckA.buffer?Math.min(deckA.currentTime()/deckA.duration(),1):0;
+      const b=deckB.buffer?Math.min(deckB.currentTime()/deckB.duration(),1):0;
+      progRef.current.A=a; progRef.current.B=b;
+      // Throttle React state updates to ~10fps (every 6 frames @ 60fps)
+      if((frame++ & 5)===0) setProg({A:a,B:b});
+      rafRef.current=requestAnimationFrame(tick);
+    };
+    tick();
+    return()=>cancelAnimationFrame(rafRef.current);
+  },[]);
+
+  // Pause module-level decks on unmount (otherwise audio keeps playing after navigate-away)
+  useEffect(()=>{
+    return()=>{
+      try{if(deckA.playing)deckA.pause();}catch(_){}
+      try{if(deckB.playing)deckB.pause();}catch(_){}
+    };
   },[]);
 
   useEffect(()=>{
@@ -662,12 +680,18 @@ export default function DJMixer(){
     upd(sid,{pitch:ratio});
   };
 
+  const recDestRef=useRef(null);
   const startRec=()=>{
     initAudio();const c=getCtx();const dest=c.createMediaStreamDestination();
     mgRef.current.connect(dest);
+    recDestRef.current=dest;
     const r=new MediaRecorder(dest.stream,{mimeType:"audio/webm"});
     chunks.current=[];r.ondataavailable=e=>chunks.current.push(e.data);
-    r.onstop=()=>setRecBlob(new Blob(chunks.current,{type:"audio/webm"}));
+    r.onstop=()=>{
+      setRecBlob(new Blob(chunks.current,{type:"audio/webm"}));
+      // Disconnect destination node to free resources
+      try{if(recDestRef.current){mgRef.current?.disconnect(recDestRef.current);recDestRef.current=null;}}catch(_){}
+    };
     r.start();recRef.current=r;setRec(true);
   };
   const stopRec=()=>{if(recRef.current)recRef.current.stop();setRec(false);};
@@ -841,7 +865,10 @@ export default function DJMixer(){
   },[midiMap]);
 
   const handleMidiNote=useCallback((note)=>{
-    if(note>=36&&note<=43){const hcIdx=note-36;if(hcIdx<4){deckA.jumpHotcue(hcIdx);upd("A",{hotcues:[...deckA.hotcues]});}}
+    // Pads 36-39 → Deck A hotcues 0-3
+    if(note>=36&&note<=39){const hcIdx=note-36;deckA.jumpHotcue(hcIdx);upd("A",{hotcues:[...deckA.hotcues]});return;}
+    // Pads 40-43 → Deck B hotcues 0-3
+    if(note>=40&&note<=43){const hcIdx=note-40;deckB.jumpHotcue(hcIdx);upd("B",{hotcues:[...deckB.hotcues]});return;}
     if(note===44)togglePlay("A");
     if(note===45)togglePlay("B");
     if(note===46)syncBPM();
