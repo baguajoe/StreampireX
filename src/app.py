@@ -75,6 +75,8 @@ from api.film_screening_socket import register_screening_events
 from api.extensions import db
 from api.messages_routes import messages_bp  # Add src. prefix 
 from api.video_editor_routes import video_editor_bp
+from api.dj_harmonic_routes import dj_harmonic_bp
+from api.live_stream_routes import live_stream_bp
 from api.follow_routes import follow_bp  # ADD THIS
 from api.video_tier_routes import video_tier_bp  # ADD THIS
 from api.notifications import notifications_bp
@@ -326,6 +328,8 @@ register_commands(app)
 app.register_blueprint(api, url_prefix='/api')
 app.register_blueprint(messages_bp)
 app.register_blueprint(video_editor_bp)
+app.register_blueprint(dj_harmonic_bp)
+app.register_blueprint(live_stream_bp)
 app.register_blueprint(follow_bp) 
 app.register_blueprint(video_tier_bp, url_prefix='/api')  # ADD THIS
 app.register_blueprint(notifications_bp)
