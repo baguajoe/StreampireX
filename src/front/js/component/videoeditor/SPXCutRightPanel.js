@@ -29,7 +29,7 @@ function EffectsStackTab({ clip, actions }) {
   return (
     <div>
       {clip.effects.length === 0 && (
-        <div className="spxcut-no-clip-msg" style={{ height: 80 }}>
+        <div className="spxcut-no-clip-msg size-h80">
           <span className="spxcut-no-clip-msg-text">Drag effects from the FX Library panel</span>
         </div>
       )}
@@ -48,7 +48,7 @@ function EffectsStackTab({ clip, actions }) {
               title={fx.enabled ? 'Disable' : 'Enable'}
             />
             <span className={`spxcut-fx-name${fx.enabled ? ' fx-enabled' : ''}`}>
-              {fx.icon && <span style={{ marginRight: 4 }}>{fx.icon}</span>}
+              {fx.icon && <span className="spxcut-fx-icon-spacer">{fx.icon}</span>}
               {fx.name}
             </span>
             <button
@@ -281,7 +281,7 @@ function PresetsTab({ clip, actions }) {
   return (
     <div className="spxcut-presets-panel">
       {!clip && (
-        <div className="spxcut-no-clip-msg" style={{ height: 60 }}>
+        <div className="spxcut-no-clip-msg size-h60">
           <span className="spxcut-no-clip-msg-text">Select a clip to apply presets</span>
         </div>
       )}

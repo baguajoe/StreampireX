@@ -101,7 +101,7 @@ function DropdownMenu({ items, menuKey, state, onAction, onClose }) {
   }, [onClose]);
 
   return (
-    <div className="spxcut-dropdown" ref={ref} style={{ position: 'absolute' }}>
+    <div className="spxcut-dropdown spxcut-dropdown-abs" ref={ref}>
       {items.map((item, i) => {
         if (item.sep) return <div key={i} className="spxcut-dropdown-separator" />;
         const disabled = item.disabled ? item.disabled(state) : false;
@@ -365,9 +365,9 @@ function SPXCutHeader({ state, actions, selectors, playback }) {
       </div>
 
       {/* Menu buttons */}
-      <div className="spxcut-header-menu" style={{ position: 'relative' }}>
+      <div className="spxcut-header-menu spxcut-header-menu-rel">
         {Object.keys(MENUS).map(menuKey => (
-          <div key={menuKey} style={{ position: 'relative' }}>
+          <div key={menuKey} className="spxcut-menu-item-wrap">
             <button
               className={`spxcut-menu-btn${openMenu === menuKey ? ' menu-active' : ''}`}
               onClick={(e) => toggleMenu(menuKey, e)}
@@ -395,7 +395,7 @@ function SPXCutHeader({ state, actions, selectors, playback }) {
           onChange={e => actions.setProjectName(e.target.value)}
           title="Project Name"
         />
-        {state.isDirty && <span style={{ fontSize: 10, color: 'var(--orange)' }}>●</span>}
+        {state.isDirty && <span className="spxcut-dirty-dot">●</span>}
       </div>
 
       {/* Undo/Redo + Save + Export */}

@@ -1,8 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import ReactDOM from "react-dom";
 import VideoEditorComponent from "../component/videoeditor/SPXCutEditor";
-import '../../styles/VideoEditor.css';
-import '../../styles/VideoEditorComponent.css';
+// CSS lives in src/front/styles/SPXCut.css (loaded via index.css)
 
 const VideoEditor = () => {
   const portalRef = useRef(null);

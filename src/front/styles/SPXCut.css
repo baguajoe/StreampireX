@@ -1916,3 +1916,97 @@ a { text-decoration: none; }
   font-weight: 700;
   flex-shrink: 0;
 }
+
+
+/* SPX-CUT BATCH-3 UTILITY CLASSES */
+/* Beta warning banner (export modal) */
+.spxcut-beta-warning {
+  background: rgba(255, 102, 0, 0.08);
+  border: 1px solid var(--orange);
+  padding: 8px;
+  border-radius: 4px;
+}
+.spxcut-beta-warning-title {
+  font-size: 11px;
+  color: var(--orange);
+  font-weight: 600;
+}
+.spxcut-beta-warning-msg {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* Form input small widths */
+.spxcut-form-input.input-w70 {
+  width: 70px;
+}
+
+/* Form unit labels */
+.spxcut-form-unit-x {
+  color: var(--text-dim);
+  padding: 0 4px;
+}
+.spxcut-form-unit-suffix {
+  color: var(--text-dim);
+  font-size: 10px;
+  margin-left: 4px;
+}
+
+/* In/Out range hint */
+.spxcut-range-hint {
+  font-size: 10px;
+  color: var(--teal);
+}
+
+/* Header inline elements */
+.spxcut-dirty-dot {
+  font-size: 10px;
+  color: var(--orange);
+}
+
+.spxcut-header-menu-rel,
+.spxcut-menu-item-wrap {
+  position: relative;
+}
+
+.spxcut-dropdown-abs {
+  position: absolute;
+}
+
+/* FxPanel small markers */
+.spxcut-fx-cat-icon-spacer {
+  margin-right: 4px;
+}
+.spxcut-fx-active-clip-hint {
+  font-size: 9px;
+}
+
+/* Preset wrapper padding */
+.spxcut-preset-wrap {
+  padding: 4px 8px;
+}
+
+/* RightPanel sized empty messages */
+.spxcut-no-clip-msg.size-h80 {
+  height: 80px;
+}
+.spxcut-no-clip-msg.size-h60 {
+  height: 60px;
+}
+
+/* RightPanel fx icon spacer */
+.spxcut-fx-icon-spacer {
+  margin-right: 4px;
+}
+
+/* Timeline empty drop zone */
+.spxcut-media-drop-zone.dz-empty {
+  margin: 16px;
+}
+
+/* Timeline marker static positioning (top/bottom; left stays inline because dynamic) */
+.spxcut-marker {
+  top: 0;
+  bottom: 0;
+}

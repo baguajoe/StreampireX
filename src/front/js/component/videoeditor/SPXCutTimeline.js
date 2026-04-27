@@ -184,7 +184,7 @@ function SPXCutTimeline({ state, actions, selectors, drag, playback }) {
             <div
               key={i}
               className="spxcut-marker"
-              style={{ left: m.time * pps - state.scrollLeft, bottom: 0, top: 0 }}
+              style={{ left: m.time * pps - state.scrollLeft }}
               onClick={() => actions.setPlayhead(m.time)}
               title={m.label || formatTimecode(m.time)}
             >
@@ -223,7 +223,7 @@ function SPXCutTimeline({ state, actions, selectors, drag, playback }) {
           ))}
           {/* Empty drop zone if no tracks */}
           {state.tracks.length === 0 && (
-            <div className="spxcut-media-drop-zone" style={{ margin: 16 }}>
+            <div className="spxcut-media-drop-zone dz-empty">
               Drop media here or add tracks
             </div>
           )}

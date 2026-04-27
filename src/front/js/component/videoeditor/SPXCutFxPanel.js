@@ -366,7 +366,7 @@ function FxCategory({ cat, onApply, drag, searchQuery }) {
     <div className="spxcut-fx-category">
       <button className="spxcut-fx-cat-header" onClick={() => setOpen(o => !o)}>
         <span className="spxcut-fx-cat-arrow">{isOpen ? '▼' : '▶'}</span>
-        <span style={{ marginRight: 4 }}>{cat.icon}</span>
+        <span className="spxcut-fx-cat-icon-spacer">{cat.icon}</span>
         <span className="spxcut-fx-cat-name">{cat.category}</span>
         <span className="spxcut-fx-cat-count">{filtered.length}</span>
       </button>
@@ -410,7 +410,7 @@ function PresetChipList({ presets, onApply }) {
         <span className="spxcut-fx-cat-count">{presets.items.length}</span>
       </button>
       {open && (
-        <div style={{ padding: '4px 8px' }}>
+        <div className="spxcut-preset-wrap">
           <div className="spxcut-preset-grid">
             {presets.items.map((p, i) => {
               const name = typeof p === 'string' ? p : p.name;
@@ -445,7 +445,7 @@ function TransitionGroup({ group, onApply, drag, searchQuery }) {
     <div className="spxcut-fx-category">
       <button className="spxcut-fx-cat-header" onClick={() => setOpen(o => !o)}>
         <span className="spxcut-fx-cat-arrow">{isOpen ? '▼' : '▶'}</span>
-        <span style={{ marginRight: 4 }}>{group.icon}</span>
+        <span className="spxcut-fx-cat-icon-spacer">{group.icon}</span>
         <span className="spxcut-fx-cat-name">{group.category}</span>
         <span className="spxcut-fx-cat-count">{filtered.length}</span>
       </button>
@@ -539,7 +539,7 @@ function SPXCutFxPanel({ state, actions, selectors, drag }) {
     <div className="spxcut-fx-panel">
       <div className="spxcut-fx-panel-header">
         <span className="spxcut-panel-title">FX Library</span>
-        {activeClip && <span className="spxcut-text-teal" style={{ fontSize: 9 }}>→ {activeClip.name.slice(0, 16)}</span>}
+        {activeClip && <span className="spxcut-text-teal spxcut-fx-active-clip-hint">→ {activeClip.name.slice(0, 16)}</span>}
       </div>
 
       <div className="spxcut-fx-search">
@@ -562,7 +562,7 @@ function SPXCutFxPanel({ state, actions, selectors, drag }) {
             <span className="spxcut-fx-cat-count">{filteredSPX190.length}</span>
           </button>
           {effOpen.spx190 && (
-            <div style={{ padding: '4px 8px' }}>
+            <div className="spxcut-preset-wrap">
               <div className="spxcut-preset-grid">
                 {filteredSPX190.map((name, i) => (
                   <button
@@ -589,7 +589,7 @@ function SPXCutFxPanel({ state, actions, selectors, drag }) {
             <span className="spxcut-fx-cat-count">{filteredSPX300.length}</span>
           </button>
           {effOpen.spx300 && (
-            <div style={{ padding: '4px 8px' }}>
+            <div className="spxcut-preset-wrap">
               <div className="spxcut-preset-grid">
                 {filteredSPX300.map((name, i) => (
                   <button

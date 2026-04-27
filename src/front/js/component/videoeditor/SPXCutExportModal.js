@@ -164,9 +164,9 @@ function SPXCutExportModal({ state, actions, selectors }) {
         <div className="spxcut-modal-body">
 
           {/* Beta warning */}
-          <div className="spxcut-export-section" style={{ background: 'rgba(255,102,0,0.08)', border: '1px solid var(--orange)', padding: 8, borderRadius: 4 }}>
-            <div style={{ fontSize: 11, color: 'var(--orange)', fontWeight: 600 }}>⚠ Export is in beta</div>
-            <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 4 }}>
+          <div className="spxcut-beta-warning">
+            <div className="spxcut-beta-warning-title">⚠ Export is in beta</div>
+            <div className="spxcut-beta-warning-msg">
               Output is currently a placeholder file. Server-side rendering coming soon.
             </div>
           </div>
@@ -193,17 +193,15 @@ function SPXCutExportModal({ state, actions, selectors }) {
             <div className="spxcut-form-row">
               <span className="spxcut-form-label">Resolution</span>
               <input
-                className="spxcut-form-input"
+                className="spxcut-form-input input-w70"
                 type="number" value={settings.w}
                 onChange={e => updateSetting('w', parseInt(e.target.value))}
-                style={{ width: 70 }}
               />
-              <span style={{ color: 'var(--text-dim)', padding: '0 4px' }}>×</span>
+              <span className="spxcut-form-unit-x">×</span>
               <input
-                className="spxcut-form-input"
+                className="spxcut-form-input input-w70"
                 type="number" value={settings.h}
                 onChange={e => updateSetting('h', parseInt(e.target.value))}
-                style={{ width: 70 }}
               />
             </div>
             <div className="spxcut-form-row">
@@ -227,7 +225,7 @@ function SPXCutExportModal({ state, actions, selectors }) {
                 type="number" value={settings.bitrate}
                 onChange={e => updateSetting('bitrate', parseInt(e.target.value))}
               />
-              <span style={{ color: 'var(--text-dim)', fontSize: 10, marginLeft: 4 }}>kbps</span>
+              <span className="spxcut-form-unit-suffix">kbps</span>
             </div>
             <div className="spxcut-form-row">
               <span className="spxcut-form-label">Profile</span>
@@ -277,7 +275,7 @@ function SPXCutExportModal({ state, actions, selectors }) {
                 onChange={e => setFilename(e.target.value)}
                 placeholder="export"
               />
-              <span style={{ color: 'var(--text-dim)', fontSize: 10, marginLeft: 4 }}>.{format}</span>
+              <span className="spxcut-form-unit-suffix">.{format}</span>
             </div>
             <div className="spxcut-form-row">
               <span className="spxcut-form-label">Destination</span>
@@ -289,7 +287,7 @@ function SPXCutExportModal({ state, actions, selectors }) {
             {state.inPoint !== null && state.outPoint !== null && (
               <div className="spxcut-form-row">
                 <span className="spxcut-form-label">Range</span>
-                <span style={{ fontSize: 10, color: 'var(--teal)' }}>
+                <span className="spxcut-range-hint">
                   In/Out only ({(state.outPoint - state.inPoint).toFixed(2)}s)
                 </span>
               </div>
