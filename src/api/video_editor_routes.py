@@ -673,3 +673,49 @@ def apply_effect():
             'intensity': intensity
         }), 200
 
+
+# ── SPX Cut export upload endpoint ───────────────────────────────────────
+# Frontend SPXCutExportModal calls POST /api/video/upload_r2.
+# SPX Cut export is currently a placeholder (beta banner shown to user).
+# This endpoint accepts the call, uploads if a real file is provided,
+# and returns success with a URL so the frontend modal completes cleanly.
+@video_editor_bp.route('/api/video/upload_r2', methods=['POST'])
+def spx_cut_upload_r2():
+    """
+    Accepts SPX Cut exports.
+    - With file (production): uploads to R2 via reused s3_client, returns public URL.
+    - Without file (current beta): returns placeholder URL so modal completes.
+    Multipart fields:
+      file (optional)        - actual rendered video blob
+      filename (required)    - desired output filename
+      project_id (optional)  - project identifier for traceability
+    """
+    try:
+        filename   = request.form.get('filename', 'spx_export.mp4')
+        project_id = request.form.get('project_id', 'unknown')
+        upload     = request.files.get('file', None)
+
+        if upload and upload.filename:
+            from src.api.r2_storage_setup import uploadFile
+            url = uploadFile(upload, filename=filename)
+            return jsonify({
+                'ok': True,
+                'url': url,
+                'filename': filename,
+                'project_id': project_id,
+                'placeholder': False,
+            }), 200
+
+        placeholder_url = f"{R2_PUBLIC_URL}/spx-cut-placeholder/{project_id}/{filename}"
+        return jsonify({
+            'ok': True,
+            'url': placeholder_url,
+            'filename': filename,
+            'project_id': project_id,
+            'placeholder': True,
+            'note': 'Export is in beta. Real rendered file upload not yet wired.',
+        }), 200
+
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
