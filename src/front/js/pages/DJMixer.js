@@ -754,8 +754,8 @@ export default function DJMixer(){
     const ad=analyzeData.A||analyzeData.B;
     if(!ad){setDjStatus("Analyze a deck first");return;}
     const camelot=ad.camelot||"8A";
-    const bpm=decks.A.bpm||decks.B.bpm||120;
-    const library=(store.store.libraryTracks||[]).map(t=>({id:t.id,title:t.title,artist:t.artist||"",bpm:t.bpm,camelot:t.camelot||t.key,energy:t.energy,artwork_url:t.artwork_url,audio_url:t.audio_url||t.file_url}));
+    const bpm=ds.A.bpm||ds.B.bpm||120;
+    const library=(lib||[]).map(t=>({id:t.id,title:t.title,artist:t.artist||"",bpm:t.bpm,camelot:t.camelot||t.key,energy:t.energy,artwork_url:t.artwork_url,audio_url:t.audio_url||t.file_url}));
     try{
       const res=await fetch(`${BACKEND}/api/dj/mashup-suggest`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({camelot,bpm,library})});
       const data=await res.json();
@@ -764,7 +764,7 @@ export default function DJMixer(){
   };
 
   const buildSetOrder=async()=>{
-    const tracks=(store.store.libraryTracks||[]).map(t=>({id:t.id,title:t.title,bpm:t.bpm||120,energy:t.energy||5,camelot:t.camelot||"8A",artwork_url:t.artwork_url}));
+    const tracks=(lib||[]).map(t=>({id:t.id,title:t.title,bpm:t.bpm||120,energy:t.energy||5,camelot:t.camelot||"8A",artwork_url:t.artwork_url}));
     try{
       const res=await fetch(`${BACKEND}/api/dj/set-order`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tracks})});
       const data=await res.json();
@@ -773,7 +773,7 @@ export default function DJMixer(){
   };
 
   const exportRekordbox=async()=>{
-    const tracks=setOrderTracks.length?setOrderTracks:(store.store.libraryTracks||[]);
+    const tracks=setOrderTracks.length?setOrderTracks:(lib||[]);
     const res=await fetch(`${BACKEND}/api/dj/export/rekordbox`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tracks})});
     const data=await res.json();
     const blob=new Blob([data.xml],{type:"text/xml"});
@@ -782,7 +782,7 @@ export default function DJMixer(){
   };
 
   const exportTraktor=async()=>{
-    const tracks=setOrderTracks.length?setOrderTracks:(store.store.libraryTracks||[]);
+    const tracks=setOrderTracks.length?setOrderTracks:(lib||[]);
     const res=await fetch(`${BACKEND}/api/dj/export/traktor`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tracks})});
     const data=await res.json();
     const blob=new Blob([data.nml],{type:"text/xml"});
@@ -1180,7 +1180,7 @@ export default function DJMixer(){
         <div className="dj-analyze-panel">
           <div className="dj-analyze-decks">
             {["A","B"].map(id=>{
-              const d=decks[id];const ad=analyzeData[id];
+              const d=ds[id];const ad=analyzeData[id];
               return(
                 <div key={id} className={"dj-analyze-deck dj-analyze-deck-"+id.toLowerCase()}>
                   <div className="dj-analyze-header">DECK {id}{d.title&&<span className="dj-analyze-title"> {d.title}</span>}</div>
@@ -1206,7 +1206,7 @@ export default function DJMixer(){
           <div className="dj-piano-toggle-row">
             <button className={"dj-tab"+(showPiano?" active":"")} onClick={()=>setShowPiano(v=>!v)}>🎹 Piano Reference</button>
           </div>
-          {showPiano&&<PianoReference currentKey={analyzeData.A?.key||analyzeData.B?.key||decks.A.key||decks.B.key}/>}
+          {showPiano&&<PianoReference currentKey={analyzeData.A?.key||analyzeData.B?.key||ds.A.key||ds.B.key}/>}
         </div>
       )}
 
@@ -1215,8 +1215,8 @@ export default function DJMixer(){
           <div className="dj-cues-header">
             <span>Auto Cue Points</span>
             <div className="dj-cues-actions">
-              <button className="dj-btn-sm" onClick={()=>analyzeDeck("A")} disabled={!decks.A.loaded}>🔬 Detect A</button>
-              <button className="dj-btn-sm" onClick={()=>analyzeDeck("B")} disabled={!decks.B.loaded}>🔬 Detect B</button>
+              <button className="dj-btn-sm" onClick={()=>analyzeDeck("A")} disabled={!ds.A.loaded}>🔬 Detect A</button>
+              <button className="dj-btn-sm" onClick={()=>analyzeDeck("B")} disabled={!ds.B.loaded}>🔬 Detect B</button>
             </div>
           </div>
           {["A","B"].map(id=>(
@@ -1249,7 +1249,7 @@ export default function DJMixer(){
           <div className="dj-mashup-header">
             <div className="dj-mashup-source">
               Source: {analyzeData.A?.camelot||analyzeData.B?.camelot||"Analyze a deck first"}
-              {(decks.A.bpm||decks.B.bpm)&&<span> @ {Math.round(decks.A.bpm||decks.B.bpm)} BPM</span>}
+              {(ds.A.bpm||ds.B.bpm)&&<span> @ {Math.round(ds.A.bpm||ds.B.bpm)} BPM</span>}
             </div>
             <button className="dj-btn-analyze" onClick={getMashupSuggestions}>🧩 Find Matches</button>
           </div>
@@ -1264,7 +1264,7 @@ export default function DJMixer(){
                     <div className="dj-mashup-meta">{t.camelot} · {t.bpm?Math.round(t.bpm):"?"}BPM</div>
                   </div>
                   <div className="dj-compat-badge" style={{color:t.compatibility>=90?"#00ffc8":t.compatibility>=75?"#ffcc00":"#ff8800"}}>{t.compatibility}%</div>
-                  <button className="dj-btn-sm" onClick={()=>loadTrack("B",t)}>→ B</button>
+                  <button className="dj-btn-sm" onClick={()=>loadLib("B",t)}>→ B</button>
                 </div>
               ))}
             </div>
@@ -1302,7 +1302,7 @@ export default function DJMixer(){
                       <div className="dj-mashup-name">{t.title}</div>
                       <div className="dj-mashup-meta">{t.camelot||""} · {t.bpm?Math.round(t.bpm):"?"}BPM · Energy {t.energy||"?"}/10</div>
                     </div>
-                    <button className="dj-btn-sm" onClick={()=>loadTrack("A",t)}>→ A</button>
+                    <button className="dj-btn-sm" onClick={()=>loadLib("A",t)}>→ A</button>
                   </div>
                 ))}
               </div>
