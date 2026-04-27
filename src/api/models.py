@@ -1044,6 +1044,7 @@ class RadioStation(db.Model):
     # Live Broadcasting
     is_live = db.Column(db.Boolean, default=False)
     stream_url = db.Column(db.String(500), nullable=True)
+    stream_key = db.Column(db.String(255), nullable=True, index=True)  # OBS/RTMP authentication key
     is_webrtc_enabled = db.Column(db.Boolean, default=False)
     max_listeners = db.Column(db.Integer, default=100)
     
@@ -1109,6 +1110,7 @@ class RadioStation(db.Model):
             "is_ticketed": self.is_ticketed,
             "ticket_price": self.ticket_price,
             "is_live": self.is_live,
+            "stream_key": self.stream_key,
             "stream_url": self.stream_url,
             "is_webrtc_enabled": self.is_webrtc_enabled,
             "max_listeners": self.max_listeners,

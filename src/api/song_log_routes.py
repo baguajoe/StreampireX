@@ -23,6 +23,13 @@ def get_user_from_token():
         return User.query.get(data.get("sub") or data.get("id"))
     except: return None
 
+def assert_station_owned(station_id, user):
+    """Returns (station, None) if user owns the station, otherwise (None, error_response)."""
+    station = RadioStation.query.filter_by(id=station_id, user_id=user.id).first()
+    if not station:
+        return None, (jsonify({"error": "Station not found or access denied"}), 404)
+    return station, None
+
 # ── Song Log Model (in-memory for beta, move to DB for production) ─────────────
 # We store logs in the existing RadioPlaylist model with extra fields
 # Full DB model to add to models.py:
@@ -56,6 +63,9 @@ def log_song_play(station_id):
     user = get_user_from_token()
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
+    station, err = assert_station_owned(station_id, user)
+    if err:
+        return err
 
     data = request.get_json() or {}
     title = data.get("title", "Unknown Title")
@@ -93,6 +103,9 @@ def get_song_log(station_id):
     user = get_user_from_token()
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
+    station, err = assert_station_owned(station_id, user)
+    if err:
+        return err
 
     days = request.args.get("days", 30, type=int)
     since = datetime.utcnow() - timedelta(days=days)
@@ -127,6 +140,9 @@ def export_pro_report(station_id):
     user = get_user_from_token()
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
+    station, err = assert_station_owned(station_id, user)
+    if err:
+        return err
 
     station = RadioStation.query.filter_by(id=station_id, user_id=user.id).first()
     if not station:
@@ -219,6 +235,9 @@ def get_song_log_stats(station_id):
     user = get_user_from_token()
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
+    station, err = assert_station_owned(station_id, user)
+    if err:
+        return err
 
     days = request.args.get("days", 30, type=int)
     since = datetime.utcnow() - timedelta(days=days)

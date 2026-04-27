@@ -36,9 +36,19 @@ def get_stream_key(station_id):
     if not station:
         return jsonify({"error": "Station not found"}), 404
 
-    # Generate deterministic stream key (regeneratable)
-    stream_key = f"spx_{station_id}_{user.id}_{station.name[:8].replace(' ','_').lower()}"
-    return jsonify({"stream_key": stream_key, "rtmp_url": "rtmp://stream.streampirex.com/live"})
+    # Use persisted stream_key. If not yet set, generate a deterministic one
+    # and persist it so subsequent calls return the same value.
+    if not station.stream_key:
+        try:
+            station.stream_key = f"spx_{station_id}_{user.id}_{station.name[:8].replace(' ','_').lower()}"
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+    return jsonify({
+        "success": True,
+        "stream_key": station.stream_key,
+        "rtmp_url": "rtmp://stream.streampirex.com/live"
+    })
 
 @radio_live_bp.route("/api/radio/<int:station_id>/stream-key/regenerate", methods=["POST"])
 def regenerate_stream_key(station_id):
@@ -48,8 +58,14 @@ def regenerate_stream_key(station_id):
     station = RadioStation.query.filter_by(id=station_id, user_id=user.id).first()
     if not station:
         return jsonify({"error": "Station not found"}), 404
-    new_key = f"spx_{station_id}_{user.id}_{uuid.uuid4().hex[:8]}"
-    return jsonify({"stream_key": new_key})
+    try:
+        new_key = f"spx_{station_id}_{user.id}_{uuid.uuid4().hex[:8]}"
+        station.stream_key = new_key
+        db.session.commit()
+        return jsonify({"success": True, "stream_key": new_key})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": "Failed to regenerate stream key", "details": str(e)}), 500
 
 # ── Toggle Live (enhanced) ────────────────────────────────────────────────────
 @radio_live_bp.route("/api/radio/<int:station_id>/toggle-live", methods=["POST"])
@@ -65,13 +81,14 @@ def toggle_live(station_id):
     data = request.get_json() or {}
     is_live = data.get("is_live", not station.is_live)
     mode = data.get("mode", "audio")  # audio | video
-    stream_key = data.get("stream_key")
+    incoming_stream_key = data.get("stream_key")
 
     station.is_live = is_live
     if is_live:
-        station.stream_url = station.stream_url  # keep existing
         station.is_webrtc_enabled = True
-        # Store mode in metadata if needed
+        # Persist the stream_key if the client provided one (e.g. from regenerate)
+        if incoming_stream_key:
+            station.stream_key = incoming_stream_key
     else:
         station.is_webrtc_enabled = False
 
@@ -81,7 +98,7 @@ def toggle_live(station_id):
         "success": True,
         "is_live": station.is_live,
         "mode": mode,
-        "stream_key": stream_key,
+        "stream_key": station.stream_key,
         "station": station.serialize()
     })
 

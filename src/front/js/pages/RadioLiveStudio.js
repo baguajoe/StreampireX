@@ -426,23 +426,39 @@ export default function RadioLiveStudio() {
   // ─── Actions ──────────────────────────────────────────────────────────────
   const goLive = async () => {
     if (!localStream) return;
+
+    // Confirm with backend BEFORE flipping UI to "live" — prevents the user from
+    // seeing "LIVE" while actually offline. Optimistic UI hides outages.
+    if (stationId) {
+      try {
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || "";
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${backendUrl}/api/radio/${stationId}/toggle-live`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ is_live: true, has_video: true, title, is_ticketed: isTicketed, ticket_price: ticketPrice })
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          alert(`Failed to go live: ${data?.error || res.status}`);
+          return;
+        }
+      } catch (e) {
+        alert(`Failed to go live: ${e.message || e}`);
+        return;
+      }
+    }
+
     setIsLive(true);
     setPhase("live");
     setChatMessages(p => [...p, { type: "system", text: `🔴 You are now LIVE on ${stationInfo?.name || "SPX Broadcast Studio"}` }]);
     startRecording();
-
-    if (stationId) {
-      const backendUrl = process.env.BACKEND_URL || "";
-      const token = localStorage.getItem("token");
-      fetch(`${backendUrl}/api/radio/${stationId}/toggle-live`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ is_live: true, has_video: true, title, is_ticketed: isTicketed, ticket_price: ticketPrice })
-      }).catch(console.error);
-    }
   };
 
-  const endBroadcast = () => {
+  const endBroadcast = async () => {
+    // Stop local media + UI immediately (safer to be "off" than stuck "live"),
+    // then notify backend. If backend fails, user can retry from the UI but
+    // their stream is already stopped locally.
     setIsLive(false);
     setPhase("ended");
     stopRecording();
@@ -450,13 +466,20 @@ export default function RadioLiveStudio() {
     screenStreamRef.current?.getTracks().forEach(t => t.stop());
 
     if (stationId) {
-      const backendUrl = process.env.BACKEND_URL || "";
-      const token = localStorage.getItem("token");
-      fetch(`${backendUrl}/api/radio/${stationId}/toggle-live`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ is_live: false })
-      }).catch(console.error);
+      try {
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || "";
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${backendUrl}/api/radio/${stationId}/toggle-live`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ is_live: false })
+        });
+        if (!res.ok) {
+          console.warn("[RadioLiveStudio] Backend toggle-live=false failed:", res.status);
+        }
+      } catch (e) {
+        console.warn("[RadioLiveStudio] endBroadcast backend call failed:", e);
+      }
     }
   };
 
