@@ -13,7 +13,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
-const WS_BASE = process.env.REACT_APP_WS_URL || "wss://caboose.proxy.rlwy.net:23256";
+const WS_BASE = process.env.REACT_APP_WS_URL || "";
 
 export function useScriptCollaboration(scriptId, userId, userName) {
   const wsRef = useRef(null);

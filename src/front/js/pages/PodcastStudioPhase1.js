@@ -501,7 +501,7 @@ const TranscriptEditor = ({ audioUrl, episodeId, onEditComplete }) => {
     const handleTranscribe = async () => {
         setIsTranscribing(true);
         try {
-            const res = await fetch('/api/podcast-studio/transcribe', {
+            const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ''}/api/podcast-studio/transcribe`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -642,7 +642,7 @@ const TranscriptEditor = ({ audioUrl, episodeId, onEditComplete }) => {
     const applyEdits = async () => {
         const edl = generateEDL();
         try {
-            const res = await fetch('/api/podcast-studio/apply-text-edits', {
+            const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ''}/api/podcast-studio/apply-text-edits`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -851,7 +851,7 @@ class ProgressiveUploader {
             formData.append('chunk_index', chunkIndex);
             formData.append('duration', currentDuration);
 
-            const res = await fetch('/api/podcast-studio/upload-chunk', {
+            const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ''}/api/podcast-studio/upload-chunk`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${this.token}` },
                 body: formData
@@ -878,7 +878,7 @@ class ProgressiveUploader {
         formData.append('is_final', 'true');
         formData.append('uploaded_chunks', JSON.stringify(this.uploadedChunks));
 
-        const res = await fetch('/api/podcast-studio/upload-track', {
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ''}/api/podcast-studio/upload-track`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${this.token}` },
             body: formData

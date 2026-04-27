@@ -1,7 +1,7 @@
 // src/front/js/utils/render/renderClient.js
 // SPX Render Client — sends render jobs to backend or handles in browser
 
-const BACKEND = process.env.REACT_APP_BACKEND_URL || 'https://streampirex-api.up.railway.app';
+const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
 
 export async function requestRender({ jobId, format, width, height, fps, frames, colorspace, canvasDataUrl } = {}) {
   // Browser-capable formats render locally

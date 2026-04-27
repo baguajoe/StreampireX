@@ -41,6 +41,7 @@ from flask_mail import Mail, Message as MailMessage
 from flask_jwt_extended import JWTManager, decode_token, exceptions as jwt_exceptions
 from flask_cors import CORS
 from flask_socketio import emit, join_room
+from flask_sock import Sock
 from flask_caching import Cache
 from flask_apscheduler import APScheduler
 from flask_migrate import Migrate
@@ -113,6 +114,7 @@ static_file_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../
 
 # ✅ Create Flask app
 app = Flask(__name__)
+sock = Sock(app)
 
 # Initialize scheduler
 scheduler = APScheduler()
@@ -680,11 +682,8 @@ try:
     print('✅ ai_fill_bp registered')
 except Exception as e:
     print(f'⚠️  ai_fill_bp: {e}')
-try:
-    from .routes.script_routes import script_bp
-    from .routes.script_collab_ws import register_collab_ws
-    app.register_blueprint(script_bp)
-    register_collab_ws(sock)
-    print('✅ script_bp registered')
-except Exception as e:
-    print(f'⚠️  script_bp: {e}')
+from api.routes.script_routes import script_bp
+from api.routes.script_collab_ws import register_collab_ws
+app.register_blueprint(script_bp)
+register_collab_ws(sock)
+print('✅ script_bp registered')

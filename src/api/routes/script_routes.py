@@ -10,7 +10,7 @@ import time
 import requests
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from ..models import db, User
+from api.models import db, User
 
 script_bp = Blueprint("script", __name__, url_prefix="/api/script")
 

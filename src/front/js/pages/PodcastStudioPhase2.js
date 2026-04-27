@@ -144,7 +144,7 @@ const MagicClips = ({ episodeId, audioUrl, videoUrl, transcript, words, onClipCr
     const generateClips = async () => {
         setIsGenerating(true);
         try {
-            const res = await fetch("/api/podcast-studio/magic-clips", {
+            const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/podcast-studio/magic-clips`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -170,7 +170,7 @@ const MagicClips = ({ episodeId, audioUrl, videoUrl, transcript, words, onClipCr
     const exportClip = async (clip) => {
         setExportProgress({ clipId: clip.id, progress: 0 });
         try {
-            const res = await fetch("/api/podcast-studio/export-clip", {
+            const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/podcast-studio/export-clip`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -489,7 +489,7 @@ const StudioBranding = ({ brandSettings, onUpdate }) => {
         formData.append("type", type);
 
         try {
-            const res = await fetch("/api/podcast-studio/upload-brand-asset", {
+            const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/podcast-studio/upload-brand-asset`, {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${token}` },
                 body: formData
@@ -515,7 +515,7 @@ const StudioBranding = ({ brandSettings, onUpdate }) => {
         };
 
         try {
-            await fetch("/api/podcast-studio/save-branding", {
+            await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/podcast-studio/save-branding`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -708,7 +708,7 @@ const AsyncRecording = ({ onCreateLink, existingLinks = [] }) => {
     const createAsyncLink = async () => {
         setIsCreating(true);
         try {
-            const res = await fetch("/api/podcast-studio/create-async-link", {
+            const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/podcast-studio/create-async-link`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -851,7 +851,7 @@ const AsyncGuestRecordPage = () => {
     const linkId = window.location.pathname.split("/").pop();
 
     useEffect(() => {
-        fetch(`/api/podcast-studio/async-link/${linkId}`)
+        fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/podcast-studio/async-link/${linkId}`)
             .then((r) => r.json())
             .then((data) => setLinkData(data))
             .catch((err) => console.error(err));
@@ -902,7 +902,7 @@ const AsyncGuestRecordPage = () => {
         formData.append("duration", duration);
 
         try {
-            const res = await fetch("/api/podcast-studio/upload-async-recording", {
+            const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/podcast-studio/upload-async-recording`, {
                 method: "POST",
                 body: formData
             });

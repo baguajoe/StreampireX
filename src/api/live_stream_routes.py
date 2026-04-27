@@ -6,11 +6,13 @@ When real RTMP infrastructure ships, replace these with real implementations.
 The frontend (DJMixer.js) calls these on Go Live / Stop buttons.
 """
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 live_stream_bp = Blueprint("live_stream", __name__)
 
 
 @live_stream_bp.route("/api/live-stream/start-rtmp", methods=["POST"])
+@jwt_required()
 def start_rtmp():
     """
     Start an RTMP stream to an external destination (Twitch, YouTube).
@@ -32,6 +34,7 @@ def start_rtmp():
 
 
 @live_stream_bp.route("/api/live-stream/create", methods=["POST"])
+@jwt_required()
 def create_stream():
     """
     Create a StreamPireX-native live stream (audio-only DJ broadcast).
@@ -56,6 +59,7 @@ def create_stream():
 
 
 @live_stream_bp.route("/api/live-stream/stop", methods=["POST"])
+@jwt_required()
 def stop_stream():
     """
     Stop a previously started stream (any destination).
