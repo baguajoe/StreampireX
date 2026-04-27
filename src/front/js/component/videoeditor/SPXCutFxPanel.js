@@ -1,13 +1,13 @@
 /**
  * SPXCutFxPanel.js
  * Full effects tree — rightmost panel.
- * All 191 SPX-190, all 300 SPX-300, all 15 LUT presets.
+ * SPX-190 + SPX-300 preset banks, 15 SPX LUT presets.
  * All video/audio effects categories. All video transitions.
  * Draggable to clips. Zero inline CSS.
  */
 import React, { useState, useCallback, useMemo } from 'react';
 
-// ── SPX-190 Presets (191) ─────────────────────────────────────
+// ── SPX-190 Presets ─────────────────────────────────────
 const SPX190_PRESETS = [
   'Cinematic Warm','Cinematic Cool','Bleach Bypass','Cross Process','Vintage Film',
   'Kodak Vision','Fuji Velvia','Agfa Optima','Ilford HP5','Kodak Tri-X',
@@ -54,7 +54,7 @@ const SPX190_PRESETS = [
   'Black Point Set','White Point Set','Midtone Push','Balance Cool','Balance Warm',
 ];
 
-// ── SPX-300 Presets (300) ─────────────────────────────────────
+// ── SPX-300 Presets ─────────────────────────────────────
 const SPX300_PRESETS = [
   // Cinematic (30)
   'Epic Blockbuster','Summer Blockbuster','Winter Epic','War Epic','Space Opera',
@@ -351,19 +351,28 @@ const VIDEO_TRANSITIONS = [
 ];
 
 // ── Category Component ────────────────────────────────────────
-function FxCategory({ cat, onApply, drag }) {
+function FxCategory({ cat, onApply, drag, searchQuery }) {
   const [open, setOpen] = useState(false);
+  const items = cat.effects || cat.items || [];
+  const filtered = searchQuery
+    ? items.filter(e => {
+        const name = typeof e === 'string' ? e : e.name;
+        return name.toLowerCase().includes(searchQuery.toLowerCase());
+      })
+    : items;
+  const isOpen = searchQuery && filtered.length > 0 ? true : open;
+  if (searchQuery && filtered.length === 0) return null;
   return (
     <div className="spxcut-fx-category">
       <button className="spxcut-fx-cat-header" onClick={() => setOpen(o => !o)}>
-        <span className="spxcut-fx-cat-arrow">{open ? '▼' : '▶'}</span>
+        <span className="spxcut-fx-cat-arrow">{isOpen ? '▼' : '▶'}</span>
         <span style={{ marginRight: 4 }}>{cat.icon}</span>
         <span className="spxcut-fx-cat-name">{cat.category}</span>
-        <span className="spxcut-fx-cat-count">{cat.effects ? cat.effects.length : (cat.items ? cat.items.length : 0)}</span>
+        <span className="spxcut-fx-cat-count">{filtered.length}</span>
       </button>
-      {open && (
+      {isOpen && (
         <div className="spxcut-fx-items">
-          {(cat.effects || cat.items || []).map((effect, i) => {
+          {filtered.map((effect, i) => {
             const name   = typeof effect === 'string' ? effect : effect.name;
             const icon   = typeof effect === 'string' ? '⚡' : (effect.icon || '⚡');
             const params = typeof effect === 'string' ? {} : (effect.defaultParams || {});
@@ -425,19 +434,24 @@ function PresetChipList({ presets, onApply }) {
 }
 
 // ── Transition List ───────────────────────────────────────────
-function TransitionGroup({ group, onApply, drag }) {
+function TransitionGroup({ group, onApply, drag, searchQuery }) {
   const [open, setOpen] = useState(false);
+  const filtered = searchQuery
+    ? group.items.filter(n => n.toLowerCase().includes(searchQuery.toLowerCase()))
+    : group.items;
+  const isOpen = searchQuery && filtered.length > 0 ? true : open;
+  if (searchQuery && filtered.length === 0) return null;
   return (
     <div className="spxcut-fx-category">
       <button className="spxcut-fx-cat-header" onClick={() => setOpen(o => !o)}>
-        <span className="spxcut-fx-cat-arrow">{open ? '▼' : '▶'}</span>
+        <span className="spxcut-fx-cat-arrow">{isOpen ? '▼' : '▶'}</span>
         <span style={{ marginRight: 4 }}>{group.icon}</span>
         <span className="spxcut-fx-cat-name">{group.category}</span>
-        <span className="spxcut-fx-cat-count">{group.items.length}</span>
+        <span className="spxcut-fx-cat-count">{filtered.length}</span>
       </button>
-      {open && (
+      {isOpen && (
         <div className="spxcut-fx-items">
-          {group.items.map((name, i) => {
+          {filtered.map((name, i) => {
             const fxObj = { name, type: 'transition', icon: group.icon, defaultParams: { duration: 0.5 } };
             return (
               <div
@@ -491,6 +505,36 @@ function SPXCutFxPanel({ state, actions, selectors, drag }) {
     return SPX300_PRESETS.filter(n => n.toLowerCase().includes(search.toLowerCase()));
   }, [search]);
 
+  const searchActive = !!search;
+  const videoFxMatches = useMemo(() => {
+    if (!searchActive) return false;
+    const q = search.toLowerCase();
+    return VIDEO_EFFECTS.some(cat => cat.effects.some(e => e.name.toLowerCase().includes(q)));
+  }, [search, searchActive]);
+  const audioFxMatches = useMemo(() => {
+    if (!searchActive) return false;
+    const q = search.toLowerCase();
+    return AUDIO_EFFECTS.some(cat => cat.effects.some(e => e.name.toLowerCase().includes(q)));
+  }, [search, searchActive]);
+  const transitionsMatches = useMemo(() => {
+    if (!searchActive) return false;
+    const q = search.toLowerCase();
+    return VIDEO_TRANSITIONS.some(g => g.items.some(n => n.toLowerCase().includes(q)));
+  }, [search, searchActive]);
+  const lutMatches = useMemo(() => {
+    if (!searchActive) return false;
+    const q = search.toLowerCase();
+    return LUT_PACK.some(l => l.name.toLowerCase().includes(q));
+  }, [search, searchActive]);
+  const effOpen = {
+    spx190:      searchActive ? filteredSPX190.length > 0 : effOpen.spx190,
+    spx300:      searchActive ? filteredSPX300.length > 0 : effOpen.spx300,
+    luts:        searchActive ? lutMatches : effOpen.luts,
+    videoFx:     searchActive ? videoFxMatches : effOpen.videoFx,
+    audioFx:     searchActive ? audioFxMatches : effOpen.audioFx,
+    transitions: searchActive ? transitionsMatches : effOpen.transitions,
+  };
+
   return (
     <div className="spxcut-fx-panel">
       <div className="spxcut-fx-panel-header">
@@ -512,12 +556,12 @@ function SPXCutFxPanel({ state, actions, selectors, drag }) {
         {/* SPX-190 Presets */}
         <div className="spxcut-fx-category">
           <button className="spxcut-fx-cat-header" onClick={() => toggleSection('spx190')}>
-            <span className="spxcut-fx-cat-arrow">{sectionOpen.spx190 ? '▼' : '▶'}</span>
+            <span className="spxcut-fx-cat-arrow">{effOpen.spx190 ? '▼' : '▶'}</span>
             <span>🎞️</span>
             <span className="spxcut-fx-cat-name">SPX-190 Presets</span>
             <span className="spxcut-fx-cat-count">{filteredSPX190.length}</span>
           </button>
-          {sectionOpen.spx190 && (
+          {effOpen.spx190 && (
             <div style={{ padding: '4px 8px' }}>
               <div className="spxcut-preset-grid">
                 {filteredSPX190.map((name, i) => (
@@ -539,12 +583,12 @@ function SPXCutFxPanel({ state, actions, selectors, drag }) {
         {/* SPX-300 Presets */}
         <div className="spxcut-fx-category">
           <button className="spxcut-fx-cat-header" onClick={() => toggleSection('spx300')}>
-            <span className="spxcut-fx-cat-arrow">{sectionOpen.spx300 ? '▼' : '▶'}</span>
+            <span className="spxcut-fx-cat-arrow">{effOpen.spx300 ? '▼' : '▶'}</span>
             <span>🎬</span>
             <span className="spxcut-fx-cat-name">SPX-300 Presets</span>
             <span className="spxcut-fx-cat-count">{filteredSPX300.length}</span>
           </button>
-          {sectionOpen.spx300 && (
+          {effOpen.spx300 && (
             <div style={{ padding: '4px 8px' }}>
               <div className="spxcut-preset-grid">
                 {filteredSPX300.map((name, i) => (
@@ -566,12 +610,12 @@ function SPXCutFxPanel({ state, actions, selectors, drag }) {
         {/* LUT Pack */}
         <div className="spxcut-fx-category">
           <button className="spxcut-fx-cat-header" onClick={() => toggleSection('luts')}>
-            <span className="spxcut-fx-cat-arrow">{sectionOpen.luts ? '▼' : '▶'}</span>
+            <span className="spxcut-fx-cat-arrow">{effOpen.luts ? '▼' : '▶'}</span>
             <span>🎨</span>
             <span className="spxcut-fx-cat-name">SPX LUT Pack</span>
             <span className="spxcut-fx-cat-count">{LUT_PACK.length}</span>
           </button>
-          {sectionOpen.luts && (
+          {effOpen.luts && (
             <div className="spxcut-fx-items">
               {LUT_PACK.map((lut, i) => {
                 const fxObj = { name: lut.name, type: 'lut', icon: '🎨', defaultParams: { intensity: 100 }, desc: lut.desc };
@@ -601,14 +645,14 @@ function SPXCutFxPanel({ state, actions, selectors, drag }) {
         {/* Video Effects */}
         <div className="spxcut-fx-category">
           <button className="spxcut-fx-cat-header" onClick={() => toggleSection('videoFx')}>
-            <span className="spxcut-fx-cat-arrow">{sectionOpen.videoFx ? '▼' : '▶'}</span>
+            <span className="spxcut-fx-cat-arrow">{effOpen.videoFx ? '▼' : '▶'}</span>
             <span>🎥</span>
             <span className="spxcut-fx-cat-name">Video Effects</span>
             <span className="spxcut-fx-cat-count">{VIDEO_EFFECTS.reduce((s, c) => s + c.effects.length, 0)}</span>
           </button>
-          {sectionOpen.videoFx && VIDEO_EFFECTS.map((cat, i) => (
+          {effOpen.videoFx && VIDEO_EFFECTS.map((cat, i) => (
             <div key={i} className="spxcut-fx-sub-category">
-              <FxCategory cat={cat} onApply={applyEffect} drag={drag} />
+              <FxCategory cat={cat} onApply={applyEffect} drag={drag} searchQuery={search} />
             </div>
           ))}
         </div>
@@ -616,14 +660,14 @@ function SPXCutFxPanel({ state, actions, selectors, drag }) {
         {/* Audio Effects */}
         <div className="spxcut-fx-category">
           <button className="spxcut-fx-cat-header" onClick={() => toggleSection('audioFx')}>
-            <span className="spxcut-fx-cat-arrow">{sectionOpen.audioFx ? '▼' : '▶'}</span>
+            <span className="spxcut-fx-cat-arrow">{effOpen.audioFx ? '▼' : '▶'}</span>
             <span>🎵</span>
             <span className="spxcut-fx-cat-name">Audio Effects</span>
             <span className="spxcut-fx-cat-count">{AUDIO_EFFECTS.reduce((s, c) => s + c.effects.length, 0)}</span>
           </button>
-          {sectionOpen.audioFx && AUDIO_EFFECTS.map((cat, i) => (
+          {effOpen.audioFx && AUDIO_EFFECTS.map((cat, i) => (
             <div key={i} className="spxcut-fx-sub-category">
-              <FxCategory cat={cat} onApply={applyEffect} drag={drag} />
+              <FxCategory cat={cat} onApply={applyEffect} drag={drag} searchQuery={search} />
             </div>
           ))}
         </div>
@@ -631,14 +675,14 @@ function SPXCutFxPanel({ state, actions, selectors, drag }) {
         {/* Video Transitions */}
         <div className="spxcut-fx-category">
           <button className="spxcut-fx-cat-header" onClick={() => toggleSection('transitions')}>
-            <span className="spxcut-fx-cat-arrow">{sectionOpen.transitions ? '▼' : '▶'}</span>
+            <span className="spxcut-fx-cat-arrow">{effOpen.transitions ? '▼' : '▶'}</span>
             <span>🔀</span>
             <span className="spxcut-fx-cat-name">Video Transitions</span>
             <span className="spxcut-fx-cat-count">{VIDEO_TRANSITIONS.reduce((s, g) => s + g.items.length, 0)}</span>
           </button>
-          {sectionOpen.transitions && VIDEO_TRANSITIONS.map((group, i) => (
+          {effOpen.transitions && VIDEO_TRANSITIONS.map((group, i) => (
             <div key={i} className="spxcut-fx-sub-category">
-              <TransitionGroup group={group} onApply={applyEffect} drag={drag} />
+              <TransitionGroup group={group} onApply={applyEffect} drag={drag} searchQuery={search} />
             </div>
           ))}
         </div>
