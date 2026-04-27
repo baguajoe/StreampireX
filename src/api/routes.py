@@ -7408,7 +7408,14 @@ def stripe_webhook():
     
     # Log webhook event
     current_app.logger.info(f"Received webhook: {event['type']}")
-    
+
+    # Idempotency: skip events we have already processed.
+    from api.stripe_helpers import is_event_processed, mark_event_processed
+    _event_id = event.get('id')
+    if _event_id and is_event_processed(_event_id):
+        current_app.logger.info(f"Webhook {_event_id} already processed, skipping")
+        return jsonify({"status": "success", "duplicate": True}), 200
+
     try:
         # Handle different event types with your comprehensive logic
         if event['type'] == 'checkout.session.completed':
@@ -7431,6 +7438,10 @@ def stripe_webhook():
         
         else:
             current_app.logger.info(f"Unhandled event type: {event['type']}")
+
+        # Mark event processed only on successful handler completion.
+        if _event_id:
+            mark_event_processed(_event_id, event.get('type'))
 
         return jsonify({"status": "success"}), 200
         
@@ -21961,18 +21972,32 @@ def send_tip():
             if not stripe.api_key:
                 return jsonify({'error': 'Stripe not configured'}), 500
             
-            # Create Stripe payment intent
-            payment_intent = stripe.PaymentIntent.create(
-                amount=int(amount * 100),  # Stripe uses cents
-                currency=currency.lower(),
-                metadata={
-                    'sender_id': sender_id,
-                    'recipient_id': recipient_id,
-                    'tip_type': 'creator_tip',
-                    'content_type': content_type or '',
-                    'content_id': content_id or ''
-                }
+            # Create Stripe payment intent — route 90% to recipient via
+            # destination charge when they have a connected Stripe account.
+            from api.stripe_helpers import (
+                get_creator_destination,
+                build_payment_intent_destination_kwargs,
             )
+            _tip_creator_destination = get_creator_destination(recipient_id) if recipient_id else None
+            _tip_metadata = {
+                'sender_id': sender_id,
+                'recipient_id': recipient_id,
+                'tip_type': 'creator_tip',
+                'content_type': content_type or '',
+                'content_id': content_id or '',
+                'creator_id': str(recipient_id) if recipient_id else '',
+            }
+            _tip_pi_kwargs = dict(
+                amount=int(round(float(amount) * 100)),  # Stripe uses cents
+                currency=currency.lower(),
+                metadata=_tip_metadata,
+            )
+            _tip_pi_kwargs.update(
+                build_payment_intent_destination_kwargs(
+                    float(amount), _tip_creator_destination, _tip_metadata
+                )
+            )
+            payment_intent = stripe.PaymentIntent.create(**_tip_pi_kwargs)
             
             # Create tip record with pending status
             tip = Tip(
@@ -22357,16 +22382,28 @@ def create_quick_tip_payment():
         db.session.flush()
         
         # Create Payment Intent
-        payment_intent = stripe.PaymentIntent.create(
-            amount=int(float(amount) * 100),
-            currency='usd',
-            metadata={
-                'type': 'tip',
-                'tip_id': str(tip.id),
-                'sender_id': str(sender_id),
-                'creator_id': str(creator_id)
-            }
+        from api.stripe_helpers import (
+            get_creator_destination,
+            build_payment_intent_destination_kwargs,
         )
+        _tip_creator_destination = get_creator_destination(creator_id) if creator_id else None
+        _tip_metadata = {
+            'type': 'tip',
+            'tip_id': str(tip.id),
+            'sender_id': str(sender_id),
+            'creator_id': str(creator_id),
+        }
+        _tip_pi_kwargs = dict(
+            amount=int(round(float(amount) * 100)),
+            currency='usd',
+            metadata=_tip_metadata,
+        )
+        _tip_pi_kwargs.update(
+            build_payment_intent_destination_kwargs(
+                float(amount), _tip_creator_destination, _tip_metadata
+            )
+        )
+        payment_intent = stripe.PaymentIntent.create(**_tip_pi_kwargs)
         
         tip.stripe_payment_intent_id = payment_intent.id
         db.session.commit()

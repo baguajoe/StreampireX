@@ -84,14 +84,29 @@ def subscribe_membership(podcast_id):
     stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
     podcast = Podcast.query.get_or_404(podcast_id)
 
+    from api.stripe_helpers import (
+        get_creator_destination,
+        build_subscription_fee_kwargs,
+    )
+    creator_id = getattr(podcast, "creator_id", None)
+    creator_destination = get_creator_destination(creator_id) if creator_id else None
+
+    metadata = {
+        "user_id": str(user_id),
+        "podcast_id": str(podcast_id),
+        "tier_id": str(tier_id),
+        "creator_id": str(creator_id) if creator_id else "",
+        "purchase_type": "podcast_membership",
+    }
+
     try:
-        session = stripe.checkout.Session.create(
+        checkout_kwargs = dict(
             payment_method_types=["card"],
             mode="subscription",
             line_items=[{
                 "price_data": {
                     "currency": "usd",
-                    "unit_amount": int(price * 100),
+                    "unit_amount": int(round(float(price) * 100)),
                     "recurring": {"interval": "month"},
                     "product_data": {"name": f"{podcast.title} — {tier_id.title()} Membership"},
                 },
@@ -99,8 +114,12 @@ def subscribe_membership(podcast_id):
             }],
             success_url=f"{os.environ.get('FRONTEND_URL','')}/podcast/{podcast_id}?subscribed=1",
             cancel_url=f"{os.environ.get('FRONTEND_URL','')}/podcast/{podcast_id}",
-            metadata={"user_id": user_id, "podcast_id": podcast_id, "tier_id": tier_id},
+            metadata=metadata,
         )
+        checkout_kwargs.update(
+            build_subscription_fee_kwargs(creator_destination, metadata)
+        )
+        session = stripe.checkout.Session.create(**checkout_kwargs)
         return jsonify({"checkout_url": session.url})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
