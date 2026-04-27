@@ -128,6 +128,7 @@ function SPXMenuDropdown({ label, items }) {
 
 export default function SPXCanvasPage() {
   const canvasRef   = useRef(null);
+  const aiFillPreviewRef = useRef(null);
   const stageRef    = useRef(null);
   const rafRef      = useRef(null);
   const timeRef     = useRef(0);
@@ -359,7 +360,7 @@ export default function SPXCanvasPage() {
   // ─── Cloud save/load ────────────────────────────────────────────────────────
   const handleCloudSave = useCallback(async () => {
     try {
-      await saveToCloud(project);
+      await saveToCloud('canvas', project.name, project);
       setStatus('✓ Saved to cloud');
     } catch(e) { setStatus('Cloud save failed: ' + e.message); }
   }, [project]);
@@ -483,14 +484,14 @@ export default function SPXCanvasPage() {
   const applySharpenToLayer = React.useCallback(() => {
     if (!selectedLayer) return;
     snapshot();
-    applyAdjustToCanvas(layer => applySharpening(layer, sharpAmount));
+    applyAdjustToCanvas(imgData => applySharpening(imgData, canvasRef.current?.width || project.width, canvasRef.current?.height || project.height, sharpAmount));
     setStatus('Sharpening applied');
   }, [selectedLayer, sharpAmount, snapshot, applyAdjustToCanvas]);
 
   const applyNoiseRedToLayer = React.useCallback(() => {
     if (!selectedLayer) return;
     snapshot();
-    applyAdjustToCanvas(layer => applyNoiseReduction(layer, noiseAmount));
+    applyAdjustToCanvas(imgData => applyNoiseReduction(imgData, canvasRef.current?.width || project.width, canvasRef.current?.height || project.height, noiseAmount));
     setStatus('Noise reduction applied');
   }, [selectedLayer, noiseAmount, snapshot, applyAdjustToCanvas]);
 
@@ -749,7 +750,7 @@ export default function SPXCanvasPage() {
       if (canvas) {
         const ctx = canvas.getContext('2d');
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const sel = magicWandSelect(imgData, Math.floor(pt.x), Math.floor(pt.y), canvas.width, 30);
+        const sel = magicWandSelect(imgData, canvas.width, canvas.height, Math.floor(pt.x), Math.floor(pt.y), 30);
         setSelection(sel);
         setStatus(`Magic Wand: selected region at (${Math.floor(pt.x)}, ${Math.floor(pt.y)})`);
       }
@@ -829,7 +830,46 @@ export default function SPXCanvasPage() {
         Math.abs(pt.x-dragState.startX), Math.abs(pt.y-dragState.startY)
       ));
     }
-  }, [dragState, getCanvasPoint, updateLayer, project.width, project.height]);
+
+    if (dragState.kind==='retouch') {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const W = canvas.width;
+      const H = canvas.height;
+      const x = Math.floor(pt.x);
+      const y = Math.floor(pt.y);
+      const radius = brushSize / 2;
+      const strength = brushOpacity;
+      const lp = lastRetouchPt.current || { x, y };
+      switch (dragState.tool) {
+        case 'dodge':
+          applyDodge(imgData, x, y, radius, strength, W);
+          break;
+        case 'burn':
+          applyBurn(imgData, x, y, radius, strength, W);
+          break;
+        case 'smudge':
+          applySmudge(imgData, lp.x, lp.y, x - lp.x, y - lp.y, radius, strength, W);
+          break;
+        case 'clone':
+          if (cloneSource) {
+            const dx = x - lp.x;
+            const dy = y - lp.y;
+            applyCloneStamp(imgData, cloneSource.x + dx, cloneSource.y + dy, x, y, radius, W);
+          }
+          break;
+        case 'heal':
+          applyHealing(imgData, x, y, radius, W, H);
+          break;
+        default:
+          break;
+      }
+      ctx.putImageData(imgData, 0, 0);
+      lastRetouchPt.current = { x, y };
+    }
+  }, [dragState, getCanvasPoint, updateLayer, project.width, project.height, brushSize, brushOpacity, cloneSource]);
 
   const onPointerUp = useCallback(() => {
     if (dragState?.kind==='crop' && selection) {
@@ -1159,7 +1199,7 @@ export default function SPXCanvasPage() {
                 <div style={{display:'flex',gap:4,marginTop:4}}>
                   <button onClick={()=>setCurvesPoints([{x:0,y:0},{x:255,y:255}])}
                     style={{...S.btn(false),flex:1,fontSize:9}}>Reset</button>
-                  <button onClick={applyCurvesToLayer} disabled={!selectedLayer}
+                  <button onClick={applyCurvesToLayer} disabled={!selectedLayer} title="Note: adjustments apply to the live canvas but persistence to layers requires v1.1's per-layer raster buffers"
                     style={{...S.btn(true),flex:1,fontSize:9,opacity:selectedLayer?1:0.4}}>Apply</button>
                 </div>
               </div>
@@ -1179,7 +1219,7 @@ export default function SPXCanvasPage() {
                       onChange={e=>setter(Number(e.target.value))} style={{width:'100%'}}/>
                   </div>
                 ))}
-                <button onClick={applyLevelsToLayer} disabled={!selectedLayer}
+                <button onClick={applyLevelsToLayer} disabled={!selectedLayer} title="Note: adjustments apply to the live canvas but persistence to layers requires v1.1's per-layer raster buffers"
                   style={{...S.btn(true),width:'100%',fontSize:9,opacity:selectedLayer?1:0.4}}>Apply Levels</button>
               </div>
 
@@ -1197,7 +1237,7 @@ export default function SPXCanvasPage() {
                       onChange={e=>setter(Number(e.target.value))} style={{width:'100%'}}/>
                   </div>
                 ))}
-                <button onClick={applyBCToLayer} disabled={!selectedLayer}
+                <button onClick={applyBCToLayer} disabled={!selectedLayer} title="Note: adjustments apply to the live canvas but persistence to layers requires v1.1's per-layer raster buffers"
                   style={{...S.btn(true),width:'100%',fontSize:9,opacity:selectedLayer?1:0.4}}>Apply B/C</button>
               </div>
 
@@ -1218,9 +1258,9 @@ export default function SPXCanvasPage() {
                   </div>
                 ))}
                 <div style={{display:'flex',gap:4}}>
-                  <button onClick={applyHSLToLayer} disabled={!selectedLayer}
+                  <button onClick={applyHSLToLayer} disabled={!selectedLayer} title="Note: adjustments apply to the live canvas but persistence to layers requires v1.1's per-layer raster buffers"
                     style={{...S.btn(true),flex:1,fontSize:9,opacity:selectedLayer?1:0.4}}>Apply H/S</button>
-                  <button onClick={applyVibranceToLayer} disabled={!selectedLayer}
+                  <button onClick={applyVibranceToLayer} disabled={!selectedLayer} title="Note: adjustments apply to the live canvas but persistence to layers requires v1.1's per-layer raster buffers"
                     style={{...S.btn(true),flex:1,fontSize:9,opacity:selectedLayer?1:0.4}}>Apply Vib</button>
                 </div>
               </div>
@@ -1235,7 +1275,7 @@ export default function SPXCanvasPage() {
                   </div>
                   <input type="range" min={0} max={2} step={0.05} value={sharpAmount}
                     onChange={e=>setSharpAmount(Number(e.target.value))} style={{width:'100%'}}/>
-                  <button onClick={applySharpenToLayer} disabled={!selectedLayer}
+                  <button onClick={applySharpenToLayer} disabled={!selectedLayer} title="Note: adjustments apply to the live canvas but persistence to layers requires v1.1's per-layer raster buffers"
                     style={{...S.btn(true),width:'100%',marginTop:4,fontSize:9,opacity:selectedLayer?1:0.4}}>Apply Sharpen</button>
                 </div>
                 <div>
@@ -1245,7 +1285,7 @@ export default function SPXCanvasPage() {
                   </div>
                   <input type="range" min={0} max={1} step={0.05} value={noiseAmount}
                     onChange={e=>setNoiseAmount(Number(e.target.value))} style={{width:'100%'}}/>
-                  <button onClick={applyNoiseRedToLayer} disabled={!selectedLayer}
+                  <button onClick={applyNoiseRedToLayer} disabled={!selectedLayer} title="Note: adjustments apply to the live canvas but persistence to layers requires v1.1's per-layer raster buffers"
                     style={{...S.btn(true),width:'100%',marginTop:4,fontSize:9,opacity:selectedLayer?1:0.4}}>Apply Noise Red</button>
                 </div>
               </div>
@@ -1438,7 +1478,7 @@ export default function SPXCanvasPage() {
         </div>
       )}
 
-      {/* ── Canvas Resize Dialog ── */}}
+      {/* ── Canvas Resize Dialog ── */}
       {showResizeDialog&&(
         <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.8)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:8,padding:24,width:320,display:'flex',flexDirection:'column',gap:12}}>
@@ -1471,7 +1511,8 @@ export default function SPXCanvasPage() {
         </div>
       )}
 
-      <button title="AI Fill" onClick={()=>setAiFillOpen(true)} style={{position:'fixed',bottom:24,right:24,zIndex:1000,width:48,height:48,borderRadius:'50%',background:'#FF6600',border:'none',color:'#fff',fontSize:20,cursor:'pointer',boxShadow:'0 4px 16px rgba(255,102,0,0.5)'}}>✦</button>
+      {/* AI Fill DEFERRED for v1.1 — handlers live in SPXMenuDropdown which is unrendered. To re-enable: hoist runAiFill/acceptAiFill/clearMask/drawMask/onMaskMD/onMaskMM/onMaskMU into the page body. */}
+      <button title="AI Fill (coming in v1.1)" disabled style={{position:'fixed',bottom:24,right:24,zIndex:1000,width:48,height:48,borderRadius:'50%',background:'#444',border:'none',color:'#888',fontSize:20,cursor:'not-allowed',boxShadow:'0 4px 16px rgba(0,0,0,0.4)',opacity:0.6}}>✦</button>
       {aiFillOpen&&(
         <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.85)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div style={{background:'#0d1117',border:'1px solid #21262d',borderRadius:8,padding:20,width:540,maxHeight:'90vh',overflowY:'auto',display:'flex',flexDirection:'column',gap:12}}>
@@ -1481,7 +1522,7 @@ export default function SPXCanvasPage() {
             </div>
             <div style={{fontSize:11,color:'#666'}}>Paint mask over area to fill. White=replace, black=keep.</div>
             <div style={{position:'relative',width:'100%',background:'#111',borderRadius:4,overflow:'hidden',border:'1px solid #333',aspectRatio:`${project.width}/${project.height}`}}>
-              <canvas ref={canvasRef} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',pointerEvents:'none'}}/>
+              <canvas ref={aiFillPreviewRef} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',pointerEvents:'none'}}/>
               <canvas ref={maskCanvasRef} width={project.width} height={project.height}
                 style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',cursor:'crosshair',opacity:0.55}}
                 onMouseDown={onMaskMD} onMouseMove={onMaskMM} onMouseUp={onMaskMU} onMouseLeave={onMaskMU}/>
