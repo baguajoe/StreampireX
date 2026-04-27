@@ -3709,6 +3709,7 @@ class Comment(db.Model):
     content_id = db.Column(db.Integer, nullable=False)
     content_type = db.Column(db.String(50), nullable=False)
     text = db.Column(db.Text, nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('comment.id'), nullable=True)  # SP-2a: self-ref for reply threads
     timestamp = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -4451,6 +4452,7 @@ class ClipComment(db.Model):
     content = db.Column(db.Text, nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey('clip_comments.id'), nullable=True)  # For replies
     likes_count = db.Column(db.Integer, default=0)
+    is_pinned = db.Column(db.Boolean, default=False)  # SP-2a: clip-owner pin
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -7391,7 +7393,8 @@ class CollabApplication(db.Model):
         return {
             "id": self.id,
             "request_id": self.request_id,
-            "user_id": self.user_id,
+            "applicant_id": self.applicant_id,
+            "user_id": self.applicant_id,  # SP-2a: alias for backward-compat with existing FE consumers
             "artist_name": (u.artist_name or u.username) if u else None,
             "profile_photo": u.profile_picture if u else None,
             "message": self.message,

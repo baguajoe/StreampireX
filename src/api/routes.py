@@ -9923,7 +9923,7 @@ def suggested_users():
         limit = request.args.get('limit', 10, type=int)
         
         # Get users current user is already following
-        following_ids = [f[0] for f in db.session.query(Follow.followed_id)\
+        following_ids = [f[0] for f in db.session.query(Follow.following_id)\
             .filter_by(follower_id=user_id).all()]
         
         # Exclude self and already followed users
@@ -12713,7 +12713,7 @@ def get_creator_overview_stats():
         start_date = datetime.utcnow() - timedelta(days=days)
         
         # Total Followers
-        total_followers = Follow.query.filter_by(followed_id=user_id).count()
+        total_followers = Follow.query.filter_by(following_id=user_id).count()
         
         # Total Content Count
         total_podcasts = Podcast.query.filter_by(host_id=user_id).count()
@@ -12755,7 +12755,7 @@ def get_creator_overview_stats():
         ).count()
         
         previous_followers = Follow.query.filter(
-            Follow.followed_id == user_id,
+            Follow.following_id == user_id,
             Follow.created_at >= prev_start_date,
             Follow.created_at < start_date
         ).count()
@@ -16354,7 +16354,7 @@ def get_creator_recent_activity():
             recent_follows = db.session.query(Follow, User).join(
                 User, Follow.follower_id == User.id
             ).filter(
-                Follow.followed_id == user_id,
+                Follow.following_id == user_id,
                 Follow.created_at >= thirty_days_ago
             ).order_by(desc(Follow.created_at)).limit(5).all()
             
@@ -16424,7 +16424,7 @@ def get_monthly_growth():
             # New followers this month
             try:
                 followers = Follow.query.filter(
-                    Follow.followed_id == user_id,
+                    Follow.following_id == user_id,
                     Follow.created_at >= month_start,
                     Follow.created_at < month_end
                 ).count()
@@ -16619,7 +16619,7 @@ def get_artist_activity():
         # Get recent followers
         try:
             recent_followers = Follow.query.filter(
-                Follow.followed_id == user_id,
+                Follow.following_id == user_id,
                 Follow.created_at >= thirty_days_ago
             ).count()
             

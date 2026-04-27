@@ -221,8 +221,8 @@ const GoLivePage = () => {
         try {
             const token = localStorage.getItem('token');
             
-            // Create stream on backend - using /api/live/start
-            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/live/start`, {
+            // SP-2a: backend route is /api/artist/live/start (matches LiveStudio.js)
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/live/start`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
