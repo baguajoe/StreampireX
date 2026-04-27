@@ -112,7 +112,7 @@ function SPXCutExportModal({ state, actions, selectors }) {
         const resp = await fetch('/api/video/upload_r2', {
           method: 'POST',
           body: formData,
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          headers: localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {},
         });
         if (!resp.ok) throw new Error(`R2 upload failed: ${resp.statusText}`);
         const data = await resp.json();
@@ -128,8 +128,11 @@ function SPXCutExportModal({ state, actions, selectors }) {
         const a = document.createElement('a');
         a.href = url;
         a.download = `${filename}.${format}`;
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        // Delay revoke so download has time to complete
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
         appendLog(`[Export] Download started: ${filename}.${format}`);
         setProgress(100);
         setStatus('done');
@@ -159,6 +162,14 @@ function SPXCutExportModal({ state, actions, selectors }) {
         </div>
 
         <div className="spxcut-modal-body">
+
+          {/* Beta warning */}
+          <div className="spxcut-export-section" style={{ background: 'rgba(255,102,0,0.08)', border: '1px solid var(--orange)', padding: 8, borderRadius: 4 }}>
+            <div style={{ fontSize: 11, color: 'var(--orange)', fontWeight: 600 }}>⚠ Export is in beta</div>
+            <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 4 }}>
+              Output is currently a placeholder file. Server-side rendering coming soon.
+            </div>
+          </div>
 
           {/* Preset buttons */}
           <div className="spxcut-export-section">

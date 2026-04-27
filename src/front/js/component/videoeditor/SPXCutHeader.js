@@ -142,12 +142,24 @@ function SPXCutHeader({ state, actions, selectors, playback }) {
         break;
 
       case 'save': {
-        const data = { ...state, undoStack: [], redoStack: [] };
+        // Strip blob: URLs and File refs (not serializable / not valid across sessions)
+        const stripTracks = state.tracks.map(t => ({
+          ...t,
+          clips: t.clips.map(c => ({
+            ...c,
+            src: (c.src && c.src.startsWith('blob:')) ? '' : c.src,
+            file: undefined,
+            waveformData: null,
+            thumbnails: null,
+          })),
+        }));
+        const data = { ...state, tracks: stripTracks, undoStack: [], redoStack: [] };
         try {
           localStorage.setItem('spxcut_project', JSON.stringify(data));
           actions.markClean();
         } catch (e) {
           console.error('Save failed', e);
+          window.alert('Save failed: ' + (e.message || 'unknown error'));
         }
         break;
       }
@@ -155,29 +167,65 @@ function SPXCutHeader({ state, actions, selectors, playback }) {
       case 'saveAs': {
         const name = window.prompt('Project name:', state.projectName);
         if (name) {
-          actions.setProjectName(name);
-          const data = { ...state, projectName: name, undoStack: [], redoStack: [] };
+          // Sanitize name for localStorage key
+          const safeName = name.replace(/[^a-zA-Z0-9_\- ]/g, '_').trim();
+          if (!safeName) { window.alert('Invalid project name.'); break; }
+          actions.setProjectName(safeName);
+          // Strip blob URLs + files (same as save)
+          const stripTracks = state.tracks.map(t => ({
+            ...t,
+            clips: t.clips.map(c => ({
+              ...c,
+              src: (c.src && c.src.startsWith('blob:')) ? '' : c.src,
+              file: undefined,
+              waveformData: null,
+              thumbnails: null,
+            })),
+          }));
+          const data = { ...state, projectName: safeName, tracks: stripTracks, undoStack: [], redoStack: [] };
           try {
-            localStorage.setItem(`spxcut_project_${name}`, JSON.stringify(data));
+            localStorage.setItem(`spxcut_project_${safeName}`, JSON.stringify(data));
             actions.markClean();
           } catch (e) {
             console.error('Save As failed', e);
+            window.alert('Save As failed: ' + (e.message || 'unknown error'));
           }
         }
         break;
       }
 
       case 'open': {
-        const saved = localStorage.getItem('spxcut_project');
-        if (saved) {
-          try {
-            const data = JSON.parse(saved);
-            actions.loadProject(data);
-          } catch (e) {
-            console.error('Load failed', e);
+        // Find all saved projects (default + named via Save As)
+        const projects = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key === 'spxcut_project' || (key && key.startsWith('spxcut_project_'))) {
+            projects.push(key);
           }
-        } else {
-          window.alert('No saved project found.');
+        }
+        if (projects.length === 0) {
+          window.alert('No saved projects found.');
+          break;
+        }
+        // Build picker prompt
+        const labels = projects.map((k, i) => {
+          const name = k === 'spxcut_project' ? '(default)' : k.replace('spxcut_project_', '');
+          return `${i + 1}. ${name}`;
+        }).join('\n');
+        const choice = window.prompt(`Open project:\n${labels}\n\nEnter number:`, '1');
+        const idx = parseInt(choice, 10) - 1;
+        if (isNaN(idx) || idx < 0 || idx >= projects.length) break;
+        try {
+          const data = JSON.parse(localStorage.getItem(projects[idx]));
+          actions.loadProject(data);
+          // Warn if any clip has empty src (blob was stripped)
+          const missingMedia = (data.tracks || []).some(t => (t.clips || []).some(c => !c.src));
+          if (missingMedia) {
+            window.alert('Project loaded. Some clips need media re-imported (blob URLs do not persist across sessions).');
+          }
+        } catch (e) {
+          console.error('Load failed', e);
+          window.alert('Load failed: ' + (e.message || 'unknown error'));
         }
         break;
       }
@@ -212,11 +260,9 @@ function SPXCutHeader({ state, actions, selectors, playback }) {
         if (state.selectedClipIds.length) actions.duplicateClips(state.selectedClipIds);
         break;
 
-      case 'selectAll': {
-        const allIds = state.tracks.flatMap(t => t.clips.map(c => c.id));
-        allIds.forEach((id, i) => actions.selectClip(id, i > 0));
+      case 'selectAll':
+        actions.selectAllClips();
         break;
-      }
 
       case 'deselect':
         actions.clearSelection();
@@ -282,14 +328,7 @@ function SPXCutHeader({ state, actions, selectors, playback }) {
       case 'unlink':
         if (state.activeClipId) {
           const clip = selectors.getClipById(state.activeClipId);
-          if (clip) {
-            // Clear link group
-            state.tracks.forEach(t => t.clips.forEach(c => {
-              if (c.linkGroup && c.linkGroup === clip.linkGroup) {
-                // We'd need an action to clear linkGroup — approximated here
-              }
-            }));
-          }
+          if (clip?.linkGroup) actions.unlinkGroup(clip.linkGroup);
         }
         break;
 

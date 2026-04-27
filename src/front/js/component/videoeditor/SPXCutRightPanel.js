@@ -263,12 +263,12 @@ function TransformTab({ clip, actions }) {
 
 // ── Presets Tab ───────────────────────────────────────────────
 function PresetsTab({ clip, actions }) {
-  const [appliedPresets, setAppliedPresets] = useState(new Set());
+  // Derive applied presets from clip.effects (preset chips reflect actual state)
+  const appliedPresets = new Set((clip?.effects || []).map(e => e.name));
 
   const apply = useCallback((preset) => {
     if (!clip) return;
     actions.addEffect(clip.id, { name: preset, type: 'preset', icon: '🎞️', defaultParams: {} });
-    setAppliedPresets(prev => new Set([...prev, preset]));
   }, [clip, actions]);
 
   // Quick access presets (most popular from both banks)

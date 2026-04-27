@@ -224,6 +224,11 @@ function editorReducer(state, action) {
     case 'CLEAR_SELECTION':
       return { ...state, selectedClipIds: [], activeClipId: null };
 
+    case 'SELECT_ALL_CLIPS': {
+      const allIds = state.tracks.flatMap(t => t.clips.map(c => c.id));
+      return { ...state, selectedClipIds: allIds, activeClipId: allIds[allIds.length - 1] || null };
+    }
+
     /* ─── UI ────────────────────────────────────────────────── */
     case 'SET_EXPORT_MODAL':
       return { ...state, showExportModal: action.payload };
@@ -683,6 +688,7 @@ export function useEditorStore() {
     selectClip:       useCallback((id, multi = false) => dispatch({ type: 'SELECT_CLIP', payload: { clipId: id, multi } }), []),
     selectTrack:      useCallback(id => dispatch({ type: 'SELECT_TRACK', payload: id }), []),
     clearSelection:   useCallback(() => dispatch({ type: 'CLEAR_SELECTION' }), []),
+    selectAllClips:   useCallback(() => dispatch({ type: 'SELECT_ALL_CLIPS' }), []),
 
     // UI
     setExportModal:   useCallback(v => dispatch({ type: 'SET_EXPORT_MODAL', payload: v }), []),
