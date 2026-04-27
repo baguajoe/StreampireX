@@ -1,13 +1,12 @@
 // src/front/js/pages/SPXVectorPage.js
 // SPX Vector — Illustrator-rival vector editor with full bezier pen tool
 
-import { saveToCloud, listCloudProjects, loadFromCloud, deleteCloudProject } from "../utils/cloudSave";
 import * as THREE from 'three';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { anchorsToBezierPath, createAnchor, moveAnchor, updateInHandle, updateOutHandle } from "../utils/spxvector/bezierMath";
 import { booleanUnion, booleanSubtract, booleanIntersect, booleanExclude } from "../utils/spxvector/booleanOps";
 import { exportFullSVG } from "../utils/spxvector/svgExport";
-import { EFFECT_DEFS, buildSVGFilter, defaultEffect } from "../utils/spxvector/liveEffects";
+import { EFFECT_DEFS, defaultEffect } from "../utils/spxvector/liveEffects";
 import { blendLayers } from "../utils/spxvector/blendTool";
 import "../../styles/SPXVector.css";
 
@@ -314,6 +313,7 @@ export default function SPXVectorPage() {
   },[selectedLayer,snapshot]);
 
   const moveLayerZ = useCallback((id,dir)=>{
+    snapshot();
     setProject(p=>{
       const arr=[...p.layers],idx=arr.findIndex(l=>l.id===id);
       const swap=dir==='up'?idx+1:idx-1;
@@ -321,7 +321,7 @@ export default function SPXVectorPage() {
       [arr[idx],arr[swap]]=[arr[swap],arr[idx]];
       return{...p,layers:arr};
     });
-  },[]);
+  },[snapshot]);
 
   const groupSelected = ()=>{
     if(selectedIds.length<2)return;
@@ -463,9 +463,10 @@ export default function SPXVectorPage() {
 
   const applyPattern = useCallback((patternId) => {
     if (!selectedId) return;
+    snapshot();
     updateLayer(selectedId, { fill: { type: 'pattern', patternId, color: fillColor } });
     setStatus(`Applied pattern: ${patternId}`);
-  }, [selectedId, fillColor, updateLayer]);
+  }, [selectedId, fillColor, updateLayer, snapshot]);
 
   // ─── Symbols ─────────────────────────────────────────────────────────────
   const defineSymbol = useCallback(() => {
@@ -491,6 +492,16 @@ export default function SPXVectorPage() {
     setActiveArtboard(ab.id);
     setStatus(`Added ${ab.name}`);
   }, [artboards, project.width, project.height]);
+
+  const getSVGPoint = useCallback((e)=>{
+    const svg=svgRef.current; if(!svg)return{x:0,y:0};
+    const pt=svg.createSVGPoint();
+    pt.x=e.clientX; pt.y=e.clientY;
+    const m=svg.getScreenCTM()?.inverse();
+    if(!m)return{x:0,y:0};
+    const transformed=pt.matrixTransform(m);
+    return{x:transformed.x/zoom,y:transformed.y/zoom};
+  },[zoom]);
 
   // ─── Align & Distribute ──────────────────────────────────────────────────
   // ── Live Paint Bucket — flood fill enclosed SVG regions ─────────────────
@@ -768,15 +779,7 @@ export default function SPXVectorPage() {
   },[selectedIds,project.layers,snapshot,updateLayer]);
 
   // ─── SVG Point Helpers ────────────────────────────────────────────────────
-  const getSVGPoint = useCallback((e)=>{
-    const svg=svgRef.current; if(!svg)return{x:0,y:0};
-    const pt=svg.createSVGPoint();
-    pt.x=e.clientX; pt.y=e.clientY;
-    const m=svg.getScreenCTM()?.inverse();
-    if(!m)return{x:0,y:0};
-    const transformed=pt.matrixTransform(m);
-    return{x:transformed.x/zoom,y:transformed.y/zoom};
-  },[zoom]);
+
 
   // ─── Mouse Handlers ───────────────────────────────────────────────────────
   const onSVGMouseDown = useCallback((e)=>{
@@ -862,7 +865,22 @@ export default function SPXVectorPage() {
       }
       updateLayer(selectedId,{anchors});
     }
-  },[dragState,getSVGPoint,selectedLayer,selectedId,updateLayer]);
+
+    if(dragState.kind==='marquee') {
+      const x = Math.min(dragState.startX, pt.x);
+      const y = Math.min(dragState.startY, pt.y);
+      const w = Math.abs(pt.x - dragState.startX);
+      const h = Math.abs(pt.y - dragState.startY);
+      // Hit-test layers whose bounding box overlaps the marquee rect
+      const hits = project.layers.filter(l => {
+        const lx = l.x || 0, ly = l.y || 0;
+        const lw = l.width || 0, lh = l.height || 0;
+        return lx < x + w && lx + lw > x && ly < y + h && ly + lh > y;
+      }).map(l => l.id);
+      setSelectedIds(hits);
+      setDragState({...dragState, currentX: pt.x, currentY: pt.y});
+    }
+  },[dragState,getSVGPoint,selectedLayer,selectedId,updateLayer,project.layers]);
 
   const onSVGMouseUp = useCallback(()=>{
     setDragState(null);
@@ -990,22 +1008,22 @@ export default function SPXVectorPage() {
       const pathLayers = project.layers.filter(pl=>pl.type==='path'&&pl.id!==layer.id);
       const onPath = layer.textOnPath && layer.textOnPathId;
       el = onPath ? (
-        <text key={layer.id} fontSize={layer.fontSize||24} fontWeight={layer.fontWeight||400}
+        <text key={layer.id} {...common} fontSize={layer.fontSize||24} fontWeight={layer.fontWeight||400}
           fontFamily={layer.fontFamily||'Inter'} fontStyle={layer.fontStyle||'normal'}
-          fill={fill} opacity={opacity} transform={transform}
+          transform={transform}
           letterSpacing={layer.letterSpacing||0}
           textDecoration={layer.textDecoration||'none'}
-          style={{textTransform:layer.textTransformV||'none',fontFeatureSettings:otStr,fontVariationSettings:layer.variSettings||'normal'}}>
+          style={{textTransform:layer.textTransformV||'none',fontFeatureSettings:otStr,fontVariationSettings:layer.variSettings||'normal',cursor:activeTool==='select'?'move':'default'}}>
           <textPath href={`#${layer.textOnPathId}`} startOffset={`${layer.pathOffset||0}%`}>
             {layer.text||''}
           </textPath>
         </text>
       ) : (
-        <text key={layer.id} x={layer.x} y={(layer.y||0)+(layer.fontSize||24)} fontSize={layer.fontSize||24}
+        <text key={layer.id} {...common} x={layer.x} y={(layer.y||0)+(layer.fontSize||24)} fontSize={layer.fontSize||24}
           fontWeight={layer.fontWeight||400} fontFamily={layer.fontFamily||'Inter'}
-          fontStyle={layer.fontStyle||'normal'} fill={fill} opacity={opacity} transform={transform}
+          fontStyle={layer.fontStyle||'normal'} transform={transform}
           letterSpacing={layer.letterSpacing||0} textDecoration={layer.textDecoration||'none'}
-          style={{textTransform:layer.textTransformV||'none',fontFeatureSettings:otStr}}>
+          style={{textTransform:layer.textTransformV||'none',fontFeatureSettings:otStr,cursor:activeTool==='select'?'move':'default'}}>
           {layer.richText && layer.richText.length
             ? renderRichSpans(layer)
             : lines.map((l,i)=><tspan key={i} x={layer.x} dy={i===0?0:(layer.fontSize||24)*(layer.lineHeight||1.4)}>{l}</tspan>)
@@ -1644,9 +1662,12 @@ export default function SPXVectorPage() {
         <div style={{width:1,height:20,background:'#444',margin:'0 4px'}}/>
         {/* Boolean ops */}
         <span style={{color:'#888',fontSize:10}}>Boolean:</span>
+        {/* Boolean ops DEFERRED for v1.1 — _makeBooleanLayer in booleanOps.js is a stub
+            that returns a layer with no anchors; renderSVGLayer can't draw it. To re-enable:
+            integrate polygon-clipping (polybooljs/paper.js) and emit a path layer with anchors. */}
         {['union','subtract','intersect','exclude'].map(op=>(
-          <button key={op} style={S.btn()} onClick={()=>applyBoolean(op)} title={op}
-            disabled={selectedIds.length<2}>{op==='union'?'⊕':op==='subtract'?'⊖':op==='intersect'?'⊗':'⊙'}</button>
+          <button key={op} style={{...S.btn(),opacity:0.5,cursor:'not-allowed'}}
+            disabled title={`${op} (coming in v1.1)`}>{op==='union'?'⊕':op==='subtract'?'⊖':op==='intersect'?'⊗':'⊙'}</button>
         ))}
         <div style={{width:1,height:20,background:'#444',margin:'0 4px'}}/>
         {/* Align */}
@@ -1774,10 +1795,12 @@ export default function SPXVectorPage() {
                 <input type="number" title="Height" value={ab.height}
                   onChange={e=>setArtboards(prev=>prev.map(a=>a.id===ab.id?{...a,height:Number(e.target.value)}:a))}
                   style={{width:44,background:'#1a1a1a',border:'1px solid #333',color:'#dde6ef',borderRadius:3,padding:'1px 3px',fontSize:9}}/>
-                <button title="Export artboard as SVG" onClick={()=>exportArtboard(ab.id,'svg')}
-                  style={{...S.btn(false),padding:'1px 4px',fontSize:9}}>SVG</button>
-                <button title="Export artboard as PNG" onClick={()=>exportArtboard(ab.id,'png')}
-                  style={{...S.btn(false),padding:'1px 4px',fontSize:9}}>PNG</button>
+                {/* Per-artboard export DEFERRED for v1.1 — exportArtboard fn not implemented.
+                    Use the top-bar Export buttons to export the whole project. */}
+                <button title="Export artboard as SVG (coming in v1.1)" disabled
+                  style={{...S.btn(false),padding:'1px 4px',fontSize:9,opacity:0.5,cursor:'not-allowed'}}>SVG</button>
+                <button title="Export artboard as PNG (coming in v1.1)" disabled
+                  style={{...S.btn(false),padding:'1px 4px',fontSize:9,opacity:0.5,cursor:'not-allowed'}}>PNG</button>
                 <button title="Delete artboard" onClick={()=>{
                   if(artboards.length===1){setStatus('Cannot delete last artboard');return;}
                   setArtboards(prev=>prev.filter(a=>a.id!==ab.id));
@@ -2565,6 +2588,8 @@ export default function SPXVectorPage() {
           <button
             key={id}
             onClick={()=>setVectorTab(id)}
+            disabled={id !== 'design' && id !== '3d'}
+            title={id === 'design' || id === '3d' ? '' : `${label} workspace coming in v1.1`}
             style={{
               border:'1px solid ' + (vectorTab===id ? '#FF6600' : '#2a3441'),
               background: vectorTab===id ? 'rgba(255,102,0,0.14)' : '#151b23',
@@ -2573,7 +2598,8 @@ export default function SPXVectorPage() {
               padding:'7px 12px',
               fontSize:12,
               fontWeight:700,
-              cursor:'pointer',
+              cursor: (id === 'design' || id === '3d') ? 'pointer' : 'not-allowed',
+              opacity: (id === 'design' || id === '3d') ? 1 : 0.5,
               fontFamily:'JetBrains Mono, monospace',
               letterSpacing:'0.02em'
             }}
