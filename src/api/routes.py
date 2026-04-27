@@ -3596,20 +3596,46 @@ def create_checkout():
     if not product:
         return jsonify({"error": "Product not found"}), 404
 
-    session = stripe.checkout.Session.create(
+    from api.stripe_helpers import (
+        get_creator_destination,
+        calculate_platform_split,
+        build_destination_charge_kwargs,
+    )
+
+    price = float(product.price or 0)
+    creator_id = getattr(product, "creator_id", None) or getattr(product, "seller_id", None)
+    creator_destination = get_creator_destination(creator_id) if creator_id else None
+    platform_cut, creator_earnings = calculate_platform_split(price)
+
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+    metadata = {
+        "purchase_type": "marketplace_product",
+        "product_id": str(product.id),
+        "creator_id": str(creator_id) if creator_id else "",
+        "platform_cut": str(platform_cut),
+        "creator_earnings": str(creator_earnings),
+    }
+
+    checkout_kwargs = dict(
         payment_method_types=['card'],
         line_items=[{
             'price_data': {
                 'currency': 'usd',
                 'product_data': {'name': product.name},
-                'unit_amount': int(product.price * 100),
+                'unit_amount': int(round(price * 100)),
             },
             'quantity': 1,
         }],
         mode='payment',
-        success_url='https://yourdomain.com/success',
-        cancel_url='https://yourdomain.com/cancel',
+        success_url=f"{frontend_url}/marketplace/success?session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{frontend_url}/marketplace/cancel",
+        metadata=metadata,
     )
+    checkout_kwargs.update(
+        build_destination_charge_kwargs(price, creator_destination, metadata)
+    )
+    session = stripe.checkout.Session.create(**checkout_kwargs)
 
     return jsonify({"checkout_url": session.url}), 200
 
@@ -4164,7 +4190,37 @@ def create_licensing_checkout(licensing_id):
         return jsonify({"error": "This license has already been purchased"}), 400
 
     try:
-        session = stripe.checkout.Session.create(
+        from api.stripe_helpers import (
+            get_creator_destination,
+            calculate_platform_split,
+            build_destination_charge_kwargs,
+        )
+
+        price = float(licensing_entry.licensing_price or 0)
+        # Audio (track) owner — try common field names defensively.
+        track = getattr(licensing_entry, "track", None)
+        creator_id = (
+            getattr(track, "user_id", None)
+            or getattr(track, "uploaded_by", None)
+            or getattr(track, "uploader_id", None)
+            or getattr(track, "creator_id", None)
+            or getattr(track, "artist_id", None)
+        ) if track else None
+        creator_destination = get_creator_destination(creator_id) if creator_id else None
+        platform_cut, creator_earnings = calculate_platform_split(price)
+
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+        metadata = {
+            "purchase_type": "music_licensing",
+            "licensing_id": str(licensing_entry.id),
+            "buyer_id": str(user_id),
+            "creator_id": str(creator_id) if creator_id else "",
+            "platform_cut": str(platform_cut),
+            "creator_earnings": str(creator_earnings),
+        }
+
+        checkout_kwargs = dict(
             payment_method_types=['card'],
             line_items=[{
                 'price_data': {
@@ -4172,15 +4228,19 @@ def create_licensing_checkout(licensing_id):
                     'product_data': {
                         'name': f"{licensing_entry.license_type} License - {licensing_entry.track.title}"
                     },
-                    'unit_amount': int(licensing_entry.licensing_price * 100),  # Convert to cents
+                    'unit_amount': int(round(price * 100)),
                 },
                 'quantity': 1,
             }],
             mode='payment',
-            success_url=f"https://yourapp.com/licensing/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url="https://yourapp.com/licensing/cancel",
-            metadata={"licensing_id": licensing_entry.id, "buyer_id": user_id}
+            success_url=f"{frontend_url}/licensing/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{frontend_url}/licensing/cancel",
+            metadata=metadata,
         )
+        checkout_kwargs.update(
+            build_destination_charge_kwargs(price, creator_destination, metadata)
+        )
+        session = stripe.checkout.Session.create(**checkout_kwargs)
 
         return jsonify({"checkout_url": session.url}), 200
     except Exception as e:
@@ -4909,8 +4969,28 @@ def purchase_podcast():
         try:
             import stripe
             stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
-            
-            checkout_session = stripe.checkout.Session.create(
+
+            from api.stripe_helpers import (
+                get_creator_destination,
+                calculate_platform_split,
+                build_destination_charge_kwargs,
+            )
+            creator_id = getattr(podcast, "creator_id", None)
+            creator_destination = get_creator_destination(creator_id) if creator_id else None
+            platform_cut, creator_earnings = calculate_platform_split(price)
+
+            metadata = {
+                'type': 'podcast_purchase',
+                'podcast_id': str(podcast_id),
+                'episode_id': str(episode_id) if episode_id else '',
+                'user_id': str(user_id),
+                'creator_id': str(creator_id) if creator_id else '',
+                'price': str(price),
+                'platform_cut': str(platform_cut),
+                'creator_earnings': str(creator_earnings),
+            }
+
+            checkout_kwargs = dict(
                 payment_method_types=['card'],
                 line_items=[{
                     'price_data': {
@@ -4919,21 +4999,19 @@ def purchase_podcast():
                             'name': item_name,
                             'description': podcast.description[:100] if podcast.description else '',
                         },
-                        'unit_amount': int(price * 100),
+                        'unit_amount': int(round(price * 100)),
                     },
                     'quantity': 1,
                 }],
                 mode='payment',
                 success_url=f"{os.getenv('FRONTEND_URL')}/podcast/purchase-success?session_id={{CHECKOUT_SESSION_ID}}",
                 cancel_url=f"{os.getenv('FRONTEND_URL')}/podcast/{podcast_id}",
-                metadata={
-                    'type': 'podcast_purchase',
-                    'podcast_id': str(podcast_id),
-                    'episode_id': str(episode_id) if episode_id else '',
-                    'user_id': str(user_id),
-                    'price': str(price)
-                }
+                metadata=metadata,
             )
+            checkout_kwargs.update(
+                build_destination_charge_kwargs(price, creator_destination, metadata)
+            )
+            checkout_session = stripe.checkout.Session.create(**checkout_kwargs)
             
             return jsonify({
                 "checkout_url": checkout_session.url,
@@ -5722,21 +5800,45 @@ def buy_ticket(stream_id):
     if not stream or not stream.is_ticketed:
         return jsonify({"error": "Invalid or non-ticketed stream"}), 400
 
-    # Create a Stripe Checkout session
-    checkout_session = stripe.checkout.Session.create(
+    from api.stripe_helpers import (
+        get_creator_destination,
+        calculate_platform_split,
+        build_destination_charge_kwargs,
+    )
+
+    price = float(stream.ticket_price or 0)
+    creator_id = getattr(stream, "user_id", None)
+    creator_destination = get_creator_destination(creator_id) if creator_id else None
+    platform_cut, creator_earnings = calculate_platform_split(price)
+
+    metadata = {
+        "purchase_type": "live_ticket",
+        "stream_id": str(stream.id),
+        "buyer_id": str(user_id),
+        "creator_id": str(creator_id) if creator_id else "",
+        "platform_cut": str(platform_cut),
+        "creator_earnings": str(creator_earnings),
+    }
+
+    checkout_kwargs = dict(
         payment_method_types=['card'],
         line_items=[{
             'price_data': {
                 'currency': 'usd',
                 'product_data': {'name': stream.title},
-                'unit_amount': int(stream.ticket_price * 100),
+                'unit_amount': int(round(price * 100)),
             },
             'quantity': 1,
         }],
         mode='payment',
         success_url=f"{os.getenv('FRONTEND_URL')}/success?session_id={{CHECKOUT_SESSION_ID}}",
-        cancel_url=f"{os.getenv('FRONTEND_URL')}/cancel"
+        cancel_url=f"{os.getenv('FRONTEND_URL')}/cancel",
+        metadata=metadata,
     )
+    checkout_kwargs.update(
+        build_destination_charge_kwargs(price, creator_destination, metadata)
+    )
+    checkout_session = stripe.checkout.Session.create(**checkout_kwargs)
 
     return jsonify({"checkout_url": checkout_session.url}), 200
 
@@ -7040,7 +7142,24 @@ def purchase_episode(podcast_id):
 
     # ✅ Stripe Checkout Setup
     try:
-        checkout_session = stripe.checkout.Session.create(
+        from api.stripe_helpers import (
+            get_creator_destination,
+            build_destination_charge_kwargs,
+        )
+        creator_id = getattr(podcast, "creator_id", None)
+        creator_destination = get_creator_destination(creator_id) if creator_id else None
+
+        metadata = {
+            "purchase_type": "podcast_episode",
+            "podcast_id": str(podcast.id),
+            "episode_id": str(episode.id),
+            "buyer_id": str(user_id),
+            "creator_id": str(creator_id) if creator_id else "",
+            "platform_cut": str(split["platform_cut"]),
+            "creator_earnings": str(split["creator_earnings"]),
+        }
+
+        checkout_kwargs = dict(
             payment_method_types=['card'],
             line_items=[{
                 'price_data': {
@@ -7048,14 +7167,19 @@ def purchase_episode(podcast_id):
                     'product_data': {
                         'name': f"{episode.title} - Podcast Episode"
                     },
-                    'unit_amount': int(price * 100),  # Stripe expects cents
+                    'unit_amount': int(round(price * 100)),
                 },
                 'quantity': 1,
             }],
             mode='payment',
             success_url=f"{os.getenv('FRONTEND_URL')}/podcast/thank-you?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{os.getenv('FRONTEND_URL')}/podcast/cancel",
+            metadata=metadata,
         )
+        checkout_kwargs.update(
+            build_destination_charge_kwargs(price, creator_destination, metadata)
+        )
+        checkout_session = stripe.checkout.Session.create(**checkout_kwargs)
 
         return jsonify({
             "checkout_url": checkout_session.url,

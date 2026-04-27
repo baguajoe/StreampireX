@@ -320,7 +320,20 @@ def purchase_beat(beat_id):
     producer_earnings = round(price - platform_cut, 2)
 
     try:
-        checkout_session = stripe.checkout.Session.create(
+        from api.stripe_helpers import (
+            get_creator_destination,
+            build_destination_charge_kwargs,
+        )
+        creator_destination = get_creator_destination(beat.producer_id) if beat.producer_id else None
+
+        metadata = {
+            'type': 'beat_purchase', 'beat_id': str(beat_id),
+            'license_id': str(license_id), 'buyer_id': str(user_id),
+            'producer_id': str(beat.producer_id),
+            'platform_cut': str(platform_cut), 'producer_earnings': str(producer_earnings),
+        }
+
+        checkout_kwargs = dict(
             payment_method_types=['card'],
             line_items=[{
                 'price_data': {
@@ -330,20 +343,19 @@ def purchase_beat(beat_id):
                         'description': f"Producer: {beat.producer.username} | {license_obj.file_format.upper()}",
                         'images': [beat.artwork_url] if beat.artwork_url and beat.artwork_url.startswith('http') else []
                     },
-                    'unit_amount': int(price * 100),
+                    'unit_amount': int(round(price * 100)),
                 },
                 'quantity': 1,
             }],
             mode='payment',
             success_url=f"{os.getenv('FRONTEND_URL')}/beats/purchase-success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{os.getenv('FRONTEND_URL')}/beats/{beat_id}",
-            metadata={
-                'type': 'beat_purchase', 'beat_id': str(beat_id),
-                'license_id': str(license_id), 'buyer_id': str(user_id),
-                'producer_id': str(beat.producer_id),
-                'platform_cut': str(platform_cut), 'producer_earnings': str(producer_earnings),
-            }
+            metadata=metadata,
         )
+        checkout_kwargs.update(
+            build_destination_charge_kwargs(price, creator_destination, metadata)
+        )
+        checkout_session = stripe.checkout.Session.create(**checkout_kwargs)
 
         purchase = BeatPurchase(
             beat_id=beat_id, buyer_id=user_id, license_id=license_id,

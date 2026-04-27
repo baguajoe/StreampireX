@@ -691,7 +691,25 @@ def purchase_film(film_id):
     frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
     try:
-        session = stripe.checkout.Session.create(
+        from api.stripe_helpers import (
+            get_creator_destination,
+            calculate_platform_split,
+            build_destination_charge_kwargs,
+        )
+        creator_id = getattr(film, "creator_id", None)
+        creator_destination = get_creator_destination(creator_id) if creator_id else None
+        platform_cut, creator_earnings = calculate_platform_split(price)
+
+        metadata = {
+            'purchase_type': f'film_{purchase_type}',
+            'film_id': str(film_id),
+            'user_id': str(user_id),
+            'creator_id': str(creator_id) if creator_id else '',
+            'platform_cut': str(platform_cut),
+            'creator_earnings': str(creator_earnings),
+        }
+
+        checkout_kwargs = dict(
             payment_method_types=['card'],
             line_items=[{
                 'price_data': {
@@ -700,19 +718,19 @@ def purchase_film(film_id):
                         'name': f"{'Rent' if purchase_type == 'rent' else 'Buy'}: {film.title}",
                         'images': [film.poster_url] if film.poster_url else [],
                     },
-                    'unit_amount': int(price * 100),
+                    'unit_amount': int(round(price * 100)),
                 },
                 'quantity': 1,
             }],
             mode='payment',
             success_url=f"{frontend_url}/film/{film_id}?purchase=success&type={purchase_type}",
             cancel_url=f"{frontend_url}/film/{film_id}",
-            metadata={
-                'film_id': film_id,
-                'user_id': user_id,
-                'purchase_type': purchase_type,
-            }
+            metadata=metadata,
         )
+        checkout_kwargs.update(
+            build_destination_charge_kwargs(price, creator_destination, metadata)
+        )
+        session = stripe.checkout.Session.create(**checkout_kwargs)
         return jsonify({'checkout_url': session.url}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -869,7 +887,26 @@ def buy_ticket(screening_id):
     frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
     film = Film.query.get(screening.film_id)
     try:
-        session = stripe.checkout.Session.create(
+        from api.stripe_helpers import (
+            get_creator_destination,
+            calculate_platform_split,
+            build_destination_charge_kwargs,
+        )
+        price = float(screening.ticket_price or 0)
+        creator_id = getattr(film, "creator_id", None) if film else None
+        creator_destination = get_creator_destination(creator_id) if creator_id else None
+        platform_cut, creator_earnings = calculate_platform_split(price)
+
+        metadata = {
+            'purchase_type': 'screening_ticket',
+            'screening_id': str(screening_id),
+            'user_id': str(user_id),
+            'creator_id': str(creator_id) if creator_id else '',
+            'platform_cut': str(platform_cut),
+            'creator_earnings': str(creator_earnings),
+        }
+
+        checkout_kwargs = dict(
             payment_method_types=['card'],
             line_items=[{
                 'price_data': {
@@ -877,18 +914,19 @@ def buy_ticket(screening_id):
                     'product_data': {
                         'name': f"Ticket: {screening.title or film.title if film else 'Screening'}",
                     },
-                    'unit_amount': int(screening.ticket_price * 100),
+                    'unit_amount': int(round(price * 100)),
                 },
                 'quantity': 1,
             }],
             mode='payment',
             success_url=f"{frontend_url}/screening/{screening_id}?ticket=success",
             cancel_url=f"{frontend_url}/screening/{screening_id}",
-            metadata={
-                'screening_id': screening_id,
-                'user_id': user_id,
-            }
+            metadata=metadata,
         )
+        checkout_kwargs.update(
+            build_destination_charge_kwargs(price, creator_destination, metadata)
+        )
+        session = stripe.checkout.Session.create(**checkout_kwargs)
         return jsonify({'checkout_url': session.url}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
