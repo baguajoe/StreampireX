@@ -2975,37 +2975,27 @@ def add_comment():
     db.session.add(new_comment)
     db.session.commit()
 
-    # Create a notification for the content owner
-    content_owner_id = User.query.filter_by(id=data["content_owner_id"]).first()
-    if content_owner_id:
-        new_notification = Notification(
-            user_id=content_owner_id.id,
-            action_user_id=user_id,
-            content_id=data["content_id"],
-            content_type=data["content_type"],
-            message="Someone commented on your content!",
+    # SP-8: fixed broken constructor (was writing 4 nonexistent columns)
+    content_owner = User.query.filter_by(id=data["content_owner_id"]).first()
+    if content_owner:
+        from api.notifications import notify
+        notify(
+            user_id=content_owner.id,
+            type="comment",
+            content="Someone commented on your content!",
+            from_user_id=user_id,
+            extra_data={
+                "content_id": data["content_id"],
+                "content_type": data["content_type"],
+            },
         )
-        db.session.add(new_notification)
         db.session.commit()
 
     return jsonify({"message": "Comment added"}), 201
 
 
-@api.route("/notifications", methods=["GET"])
-@jwt_required()
-def get_notifications():
-    user_id = get_jwt_identity()
-    notifications = Notification.query.filter_by(user_id=user_id).all()
-    return jsonify([notif.serialize() for notif in notifications]), 200
-
-
-@api.route("/notifications/read", methods=["POST"])
-@jwt_required()
-def mark_notifications_as_read():
-    user_id = get_jwt_identity()
-    Notification.query.filter_by(user_id=user_id, is_read=False).update({"is_read": True})
-    db.session.commit()
-    return jsonify({"message": "Notifications marked as read"}), 200
+# SP-8: removed dead /notifications routes - collided with notifications_bp
+# in src/api/notifications.py which has a fuller feature set.
 
 UPLOAD_FOLDER = "uploads"
 PROFILE_PIC_FOLDER = os.path.join(UPLOAD_FOLDER, "profile_pictures")

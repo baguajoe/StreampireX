@@ -184,3 +184,35 @@ def get_unread_count():
     except Exception as e:
         print(f"Error getting unread count: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+# =============================================================================
+# SP-8: notify() helper - canonical way to create a notification.
+# =============================================================================
+def notify(user_id, type, content=None, from_user_id=None, extra_data=None):
+    """Create a Notification. Fail-soft - never breaks the calling action."""
+    from api.models import db, Notification
+    if not user_id or not type:
+        return None
+    if from_user_id and int(from_user_id) == int(user_id):
+        return None
+    try:
+        n = Notification(
+            user_id=user_id,
+            from_user_id=from_user_id,
+            type=type[:50],
+            content=(content or "")[:500] or None,
+            extra_data=extra_data or None,
+            is_read=False,
+        )
+        db.session.add(n)
+        db.session.flush()
+        return n
+    except Exception as e:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        print(f"[notify] failed for user_id={user_id} type={type}: {e}")
+        return None
+
