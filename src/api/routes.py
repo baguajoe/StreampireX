@@ -8414,12 +8414,28 @@ def get_stream_key():
 @api.route('/create-avatar', methods=['POST'])
 @jwt_required()
 def create_avatar():
+    """HIGH-A (PROF-4): the prior version saved the uploaded image
+    using raw file.filename, which allowed path traversal payloads
+    (e.g. filename='../../etc/passwd') to write arbitrary files. Now
+    uses secure_filename + a uuid prefix and rejects non-image
+    extensions before saving.
+    """
     # Check if an image was uploaded
     if 'image' not in request.files:
         return jsonify({"error": "No image uploaded"}), 400
-    
+
     file = request.files['image']
-    file_path = os.path.join('uploads', file.filename)
+    if not file or not file.filename:
+        return jsonify({"error": "No file"}), 400
+
+    # PROF-4 (HIGH-A): sanitize filename + enforce image extension
+    raw_name = secure_filename(file.filename or "")
+    ext = os.path.splitext(raw_name)[1].lower()
+    if ext not in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
+        return jsonify({"error": "Image must be jpg, png, gif, or webp"}), 400
+    safe_name = f"{uuid.uuid4().hex}{ext}"
+    os.makedirs("uploads", exist_ok=True)
+    file_path = os.path.join("uploads", safe_name)
 
     # Save the uploaded image
     file.save(file_path)
@@ -10601,8 +10617,11 @@ def update_artist_profile():
         user.artist_location = data.get("artist_location", user.artist_location)
         user.artist_website = data.get("artist_website", user.artist_website)
         user.artist_social_links = data.get("artist_social_links", user.artist_social_links)
-        user.monthly_listeners = data.get("monthly_listeners", user.monthly_listeners)
-        user.total_plays = data.get("total_plays", user.total_plays)
+        # PROF-5 (HIGH-A): NEVER accept monthly_listeners or total_plays
+        # from the client. The prior version let any artist self-set
+        # those fields to arbitrary values for vanity/credibility fraud.
+        # These are now derived server-side from play logs only. See
+        # /api/marketplace/...artist-stats for the read-only endpoint.
         
         db.session.commit()
         return jsonify({"message": "Artist profile updated", "user": user.serialize()}), 200
