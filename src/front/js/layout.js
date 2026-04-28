@@ -131,6 +131,8 @@ import CheckoutPage from "./pages/CheckoutPage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
 import MarketplaceHub from "./pages/MarketplaceHub";  // MC-3
 import MerchHub from "./pages/MerchHub";  // MC-3
+import StorefrontCheckoutPage from "./pages/StorefrontCheckoutPage";  // MC-4
+import StorefrontOrderSuccessPage from "./pages/StorefrontOrderSuccessPage";  // MC-4
 import SalesDashboard from "./pages/SalesDashboard";
 import Marketplace from "./pages/Marketplace";
 import StorefrontPage from "./pages/StorefrontPage";
@@ -529,6 +531,9 @@ const AppShell = ({ user }) => {
                                 <Route path="/marketplace" element={<MarketplaceHub />} />
                                 <Route path="/merch" element={<MerchHub />} />
                                 <Route path="/collabs" element={<CollabMarketplace />} />
+                                {/* MC-4: Storefront buyer flow */}
+                                <Route path="/storefront/checkout/:productId" element={<StorefrontCheckoutPage />} />
+                                <Route path="/storefront/orders/:orderId" element={<StorefrontOrderSuccessPage />} />
                                 {/* Old routes kept as redirects for bookmarks */}
                                 <Route path="/merch-store" element={<Navigate to="/merch?tab=buy" replace />} />
                                 <Route path="/merch-designer" element={<Navigate to="/merch?tab=design" replace />} />

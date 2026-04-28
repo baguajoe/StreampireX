@@ -50,6 +50,154 @@ const STATUS_COLORS = {
   cancelled: '#ff4444',
 };
 
+// =============================================================================
+// MC-4: StorefrontOrdersTab - inline component for SellerDashboard
+// Lists creator's incoming StorefrontOrder rows + ship/refund actions.
+// Note: backend /api/storefront/orders/by-creator endpoint pending (MC-5);
+// currently fetches /orders/me as placeholder.
+// =============================================================================
+const StorefrontOrdersTab = ({ token }) => {
+  const [orders, setOrders] = useState([]);
+  const [oLoading, setOLoading] = useState(true);
+  const [err, setErr] = useState("");
+  const [shipModal, setShipModal] = useState(null);
+  const [shipTracking, setShipTracking] = useState("");
+  const [shipCarrier, setShipCarrier] = useState("");
+  const [refundModal, setRefundModal] = useState(null);
+  const [refundReason, setRefundReason] = useState("");
+  const [actioning, setActioning] = useState(false);
+
+  const fetchOrders = async () => {
+    setOLoading(true);
+    setErr("");
+    try {
+      const res = await fetch(`${BACKEND}/api/storefront/orders/me?per_page=100`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(`Failed to load orders (${res.status})`);
+      const data = await res.json();
+      setOrders(data.orders || []);
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setOLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchOrders(); }, []);
+
+  const handleShip = async () => {
+    if (!shipTracking.trim() || !shipCarrier.trim()) {
+      setErr("Tracking number and carrier are required");
+      return;
+    }
+    setActioning(true);
+    try {
+      const res = await fetch(`${BACKEND}/api/storefront/orders/${shipModal.orderId}/ship`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ tracking_number: shipTracking, carrier: shipCarrier }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Ship failed");
+      setShipModal(null); setShipTracking(""); setShipCarrier("");
+      fetchOrders();
+    } catch (e) { setErr(e.message); } finally { setActioning(false); }
+  };
+
+  const handleRefund = async () => {
+    if (!refundReason.trim()) { setErr("Refund reason required"); return; }
+    setActioning(true);
+    try {
+      const res = await fetch(`${BACKEND}/api/storefront/orders/${refundModal.orderId}/refund`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ cancellation_reason: refundReason }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Refund failed");
+      setRefundModal(null); setRefundReason("");
+      fetchOrders();
+    } catch (e) { setErr(e.message); } finally { setActioning(false); }
+  };
+
+  const inputStyle = { width:"100%", padding:"8px 10px", background:"#080810",
+    border:"1px solid #1a1a2e", borderRadius:4, color:"#e0e0e0",
+    fontFamily:"inherit", fontSize:12, boxSizing:"border-box", marginBottom:8 };
+
+  if (oLoading) return <div style={S.section}>Loading orders...</div>;
+
+  return (
+    <div style={S.section}>
+      <div style={S.sTitle}>📦 Storefront Orders (MC-4)</div>
+      {err && <div style={{ background:"rgba(255,80,80,0.1)", border:"1px solid #ff5050", borderRadius:4, padding:"8px 12px", color:"#ff8080", fontSize:11, marginBottom:12 }}>{err}</div>}
+      {orders.length === 0 ? (
+        <div style={{ color:"#888", fontSize:12, padding:16, textAlign:"center" }}>
+          No storefront orders yet. (Backend /orders/by-creator endpoint pending — MC-5.)
+        </div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {orders.map((o) => (
+            <div key={o.id} style={{ background:"#080810", border:"1px solid #1a1a2e", borderRadius:6, padding:14 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                <div>
+                  <div style={{ fontSize:12, fontWeight:600, color:"#e0e0e0" }}>Order #{o.id}</div>
+                  <div style={{ fontSize:10, color:"#888", marginTop:2 }}>
+                    {o.fulfillment_type} · qty {o.quantity} · ${parseFloat(o.subtotal).toFixed(2)}
+                  </div>
+                </div>
+                <div style={{ padding:"3px 10px", border:"1px solid #00ffc8", borderRadius:4, color:"#00ffc8", fontSize:10, fontWeight:700 }}>
+                  {o.status}
+                </div>
+              </div>
+              <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
+                {o.status === "paid" && o.fulfillment_type === "creator_ship" && (
+                  <button style={S.btn("#4a9eff")} onClick={() => setShipModal({ orderId: o.id })}>
+                    🚚 Mark Shipped
+                  </button>
+                )}
+                {(o.status === "paid" || o.status === "shipped" || o.status === "delivered") && (
+                  <button style={S.btn("#FF6600")} onClick={() => setRefundModal({ orderId: o.id })}>
+                    💸 Refund
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {shipModal && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000 }}>
+          <div style={{ background:"#0d0d1a", border:"1px solid #1a1a2e", borderRadius:10, padding:24, width:400 }}>
+            <div style={S.sTitle}>🚚 Mark Order #{shipModal.orderId} Shipped</div>
+            <input style={inputStyle} placeholder="Carrier (e.g. USPS, UPS, FedEx)" value={shipCarrier} onChange={(e) => setShipCarrier(e.target.value)} />
+            <input style={inputStyle} placeholder="Tracking number" value={shipTracking} onChange={(e) => setShipTracking(e.target.value)} />
+            <div style={{ display:"flex", gap:8, justifyContent:"flex-end", marginTop:12 }}>
+              <button style={S.btn("#555")} onClick={() => { setShipModal(null); setShipTracking(""); setShipCarrier(""); }} disabled={actioning}>Cancel</button>
+              <button style={S.btn("#4a9eff")} onClick={handleShip} disabled={actioning}>{actioning ? "Sending..." : "Confirm Ship"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {refundModal && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000 }}>
+          <div style={{ background:"#0d0d1a", border:"1px solid #1a1a2e", borderRadius:10, padding:24, width:400 }}>
+            <div style={S.sTitle}>💸 Refund Order #{refundModal.orderId}</div>
+            <textarea style={{ ...inputStyle, minHeight:80, resize:"vertical" }} placeholder="Reason for refund (required)" value={refundReason} onChange={(e) => setRefundReason(e.target.value)} />
+            <div style={{ display:"flex", gap:8, justifyContent:"flex-end", marginTop:12 }}>
+              <button style={S.btn("#555")} onClick={() => { setRefundModal(null); setRefundReason(""); }} disabled={actioning}>Cancel</button>
+              <button style={S.btn("#FF6600")} onClick={handleRefund} disabled={actioning}>{actioning ? "Processing..." : "Confirm Refund"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 export default function SellerDashboard() {
   const navigate   = useNavigate();
   const [data,     setData]    = useState(null);
@@ -184,7 +332,7 @@ export default function SellerDashboard() {
 
       {/* Tabs */}
       <div style={{ display:'flex', gap:4, marginBottom:16 }}>
-        {['overview','orders','stores','profile'].map(t => (
+        {['overview','orders','stores','storefront', 'profile'].map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding:'6px 16px', borderRadius:6, border:'1px solid',
             borderColor: tab===t ? '#00ffc8' : '#333',
@@ -288,6 +436,11 @@ export default function SellerDashboard() {
       )}
 
       {/* ── Profile tab ── */}
+            {/* MC-4: Storefront orders tab (StorefrontOrder shipping/refund management) */}
+      {tab === 'storefront' && (
+        <StorefrontOrdersTab token={localStorage.getItem('token')} />
+      )}
+
       {tab === 'profile' && (
         <div style={S.section}>
           <div style={S.sTitle}>👤 Seller Profile</div>

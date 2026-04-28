@@ -222,8 +222,28 @@ const ProductDetailPage = () => {
                                     onClick={handlePurchase}
                                     disabled={!product.is_digital && product.stock < quantity}
                                 >
-                                    {product.is_digital ? "🔄 Buy & Download Now" : "🛒 Buy Now"}
+                                    {product.is_digital ? "🔄 Buy & Download Now" : "🛒 Buy Now (Cart)"}
                                     <span className="ms-2">${(product.price * quantity).toFixed(2)}</span>
+                                </button>
+
+                                {/* MC-4: Buy from Creator (uses StorefrontOrder + shipping) */}
+                                <button
+                                    onClick={() => navigate(`/storefront/checkout/${product.id}`)}
+                                    disabled={!product.is_digital && product.stock < quantity}
+                                    style={{
+                                        marginLeft: 8,
+                                        padding: '12px 24px',
+                                        background: 'linear-gradient(135deg, #FF6600 0%, #ff8533 100%)',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: 8,
+                                        fontSize: 14,
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        opacity: (!product.is_digital && product.stock < quantity) ? 0.5 : 1,
+                                    }}
+                                >
+                                    🎨 Buy from Creator
                                 </button>
 
                                 <button
