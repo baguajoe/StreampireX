@@ -7887,3 +7887,296 @@ class ProcessedStripeEvent(db.Model):
     def __repr__(self):
         return f"<ProcessedStripeEvent {self.event_id} {self.event_type}>"
 
+
+# =============================================================================
+# SP-5: Tournaments + Leaderboards
+# =============================================================================
+# Added 2026-04-27. Migration: db_migrations_manual/2026_04_27_sp5_tournaments.sql
+# Routes: src/api/tournament_routes.py (SP-5b)
+# UI:     src/front/js/pages/TournamentPage.js, LeaderboardPage.js
+# =============================================================================
+
+class Tournament(db.Model):
+    """A tournament organized by a user. Supports single-elim, double-elim,
+    round-robin, and Swiss formats. Entry fees flow through Stripe destination
+    charges (10% platform fee at entry time, 90% to organizer's connected
+    account). Prize pool held in organizer's Stripe balance until completion.
+    """
+    __tablename__ = "tournament"
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    creator_id = db.Column(db.Integer, nullable=False)
+
+    name = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    game = db.Column(db.String(80), nullable=False)
+    game_id = db.Column(db.Integer, nullable=True)
+
+    format = db.Column(db.String(40), nullable=False, default="Single Elimination")
+    size = db.Column(db.Integer, nullable=False, default=8)
+
+    status = db.Column(db.String(20), nullable=False, default="open", index=True)
+
+    is_public = db.Column(db.Boolean, default=True, nullable=False)
+    starts_at = db.Column(db.DateTime, nullable=True, index=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+
+    prize = db.Column(db.String(255), nullable=True)
+    prize_pool_cents = db.Column(db.Integer, default=0, nullable=False)
+    prize_split_json = db.Column(JSON, nullable=True)
+
+    entry_fee_cents = db.Column(db.Integer, default=0, nullable=False)
+    platform_fee_collected_cents = db.Column(db.Integer, default=0, nullable=False)
+
+    bracket_json = db.Column(JSON, nullable=True)
+    winner_user_id = db.Column(db.Integer, nullable=True)
+    runner_up_user_id = db.Column(db.Integer, nullable=True)
+    third_place_user_id = db.Column(db.Integer, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def participant_count(self):
+        return TournamentEntry.query.filter_by(tournament_id=self.id, status="active").count()
+
+    def is_full(self):
+        return self.participant_count() >= self.size
+
+    def serialize(self, viewer_id=None):
+        creator = User.query.get(self.creator_id) if self.creator_id else None
+        joined = False
+        if viewer_id:
+            joined = TournamentEntry.query.filter_by(
+                tournament_id=self.id, user_id=viewer_id, status="active"
+            ).first() is not None
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "game": self.game,
+            "game_id": self.game_id,
+            "format": self.format,
+            "size": self.size,
+            "participants": self.participant_count(),
+            "status": self.status,
+            "is_public": self.is_public,
+            "starts_at": self.starts_at.isoformat() if self.starts_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "prize": self.prize,
+            "prize_pool_cents": self.prize_pool_cents,
+            "prize_split": self.prize_split_json,
+            "entry_fee_cents": self.entry_fee_cents,
+            "entry_fee": (self.entry_fee_cents or 0) / 100.0,
+            "creator_id": self.creator_id,
+            "creator_name": creator.username if creator else None,
+            "joined": joined,
+            "winner_user_id": self.winner_user_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class TournamentEntry(db.Model):
+    """A user's enrollment in a tournament. Tracks payment, seeding, and
+    final placement. status='active' means in the running; 'eliminated'
+    means knocked out; 'withdrew' means voluntary leave; 'refunded' means
+    the tournament was cancelled and entry fee returned.
+    """
+    __tablename__ = "tournament_entry"
+    __table_args__ = (
+        db.UniqueConstraint('tournament_id', 'user_id', name='uq_tournament_entry_user'),
+        {'extend_existing': True},
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    tournament_id = db.Column(db.Integer, nullable=False, index=True)
+    user_id = db.Column(db.Integer, nullable=False, index=True)
+
+    seed = db.Column(db.Integer, nullable=True)
+    status = db.Column(db.String(20), default="active", nullable=False)
+    placement = db.Column(db.Integer, nullable=True)
+
+    stripe_payment_intent_id = db.Column(db.String(255), nullable=True, index=True)
+    amount_paid_cents = db.Column(db.Integer, default=0, nullable=False)
+    platform_fee_cents = db.Column(db.Integer, default=0, nullable=False)
+    payment_status = db.Column(db.String(20), default="none", nullable=False)
+
+    joined_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    eliminated_at = db.Column(db.DateTime, nullable=True)
+
+    def serialize(self):
+        u = User.query.get(self.user_id)
+        return {
+            "id": self.id,
+            "tournament_id": self.tournament_id,
+            "user_id": self.user_id,
+            "username": u.username if u else None,
+            "avatar": u.profile_picture if (u and hasattr(u, "profile_picture")) else None,
+            "seed": self.seed,
+            "status": self.status,
+            "placement": self.placement,
+            "amount_paid": (self.amount_paid_cents or 0) / 100.0,
+            "payment_status": self.payment_status,
+            "joined_at": self.joined_at.isoformat() if self.joined_at else None,
+        }
+
+
+class TournamentMatch(db.Model):
+    """A single match within a tournament bracket. Round numbers start at 1.
+    For double-elim, bracket_side is 'winners'|'losers'|'grand_final'.
+    For round-robin/Swiss, bracket_side is None and round_number indicates
+    the round. score_p1/score_p2 are optional (for games with scores).
+    """
+    __tablename__ = "tournament_match"
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    tournament_id = db.Column(db.Integer, nullable=False, index=True)
+
+    round_number = db.Column(db.Integer, nullable=False)
+    match_index = db.Column(db.Integer, nullable=False)
+    bracket_side = db.Column(db.String(20), nullable=True)
+
+    player1_user_id = db.Column(db.Integer, nullable=True)
+    player2_user_id = db.Column(db.Integer, nullable=True)
+
+    score_p1 = db.Column(db.Integer, nullable=True)
+    score_p2 = db.Column(db.Integer, nullable=True)
+
+    winner_user_id = db.Column(db.Integer, nullable=True)
+    loser_user_id = db.Column(db.Integer, nullable=True)
+
+    status = db.Column(db.String(20), default="pending", nullable=False)
+
+    reported_by_user_id = db.Column(db.Integer, nullable=True)
+    reported_at = db.Column(db.DateTime, nullable=True)
+    confirmed_at = db.Column(db.DateTime, nullable=True)
+
+    advances_to_match_id = db.Column(db.Integer, nullable=True)
+    loser_advances_to_match_id = db.Column(db.Integer, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def serialize(self):
+        p1 = User.query.get(self.player1_user_id) if self.player1_user_id else None
+        p2 = User.query.get(self.player2_user_id) if self.player2_user_id else None
+        return {
+            "id": self.id,
+            "tournament_id": self.tournament_id,
+            "round_number": self.round_number,
+            "match_index": self.match_index,
+            "bracket_side": self.bracket_side,
+            "player1_user_id": self.player1_user_id,
+            "player1_name": p1.username if p1 else "TBD",
+            "player2_user_id": self.player2_user_id,
+            "player2_name": p2.username if p2 else "TBD",
+            "score_p1": self.score_p1,
+            "score_p2": self.score_p2,
+            "winner_user_id": self.winner_user_id,
+            "status": self.status,
+            "reported_at": self.reported_at.isoformat() if self.reported_at else None,
+            "confirmed_at": self.confirmed_at.isoformat() if self.confirmed_at else None,
+        }
+
+
+class MatchDispute(db.Model):
+    """Loser of a reported match can dispute within 48 hours. Organizer rules.
+    If unresolved after 48h, match auto-confirms in favor of the reporter.
+    """
+    __tablename__ = "match_dispute"
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    match_id = db.Column(db.Integer, nullable=False, index=True)
+    tournament_id = db.Column(db.Integer, nullable=False, index=True)
+
+    raised_by_user_id = db.Column(db.Integer, nullable=False)
+    reason = db.Column(db.Text, nullable=False)
+    evidence_url = db.Column(db.String(500), nullable=True)
+
+    status = db.Column(db.String(40), default="pending", nullable=False)
+    organizer_ruling = db.Column(db.Text, nullable=True)
+    resolved_by_user_id = db.Column(db.Integer, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    resolved_at = db.Column(db.DateTime, nullable=True)
+    auto_confirm_at = db.Column(db.DateTime, nullable=True)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "match_id": self.match_id,
+            "tournament_id": self.tournament_id,
+            "raised_by_user_id": self.raised_by_user_id,
+            "reason": self.reason,
+            "evidence_url": self.evidence_url,
+            "status": self.status,
+            "organizer_ruling": self.organizer_ruling,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "resolved_at": self.resolved_at.isoformat() if self.resolved_at else None,
+        }
+
+
+class Season(db.Model):
+    """Time-windowed leaderboard period. Examples:
+       - kind='all_time', starts_at=NULL, ends_at=NULL
+       - kind='monthly', starts_at=2026-04-01, ends_at=2026-05-01
+       - kind='weekly',  starts_at=2026-04-21, ends_at=2026-04-28
+    """
+    __tablename__ = "season"
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    kind = db.Column(db.String(20), nullable=False, index=True)
+    label = db.Column(db.String(60), nullable=False)
+    starts_at = db.Column(db.DateTime, nullable=True)
+    ends_at = db.Column(db.DateTime, nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class LeaderboardEntry(db.Model):
+    """Cached aggregate score per (user, game, season). Updated by leaderboard
+    recalc job after each match/tournament completion. game_name='__all__'
+    means cross-game rollup. season_id=NULL means all-time.
+    """
+    __tablename__ = "leaderboard_entry"
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'game_name', 'season_id',
+                            name='uq_leaderboard_user_game_season'),
+        db.Index('ix_leaderboard_game_season_score', 'game_name', 'season_id', 'score'),
+        {'extend_existing': True},
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False, index=True)
+    game_name = db.Column(db.String(80), nullable=False, default="__all__", index=True)
+    season_id = db.Column(db.Integer, nullable=True, index=True)
+
+    score = db.Column(db.Integer, default=0, nullable=False)
+    wins = db.Column(db.Integer, default=0, nullable=False)
+    losses = db.Column(db.Integer, default=0, nullable=False)
+    tournaments_played = db.Column(db.Integer, default=0, nullable=False)
+    tournaments_won = db.Column(db.Integer, default=0, nullable=False)
+    placements_top3 = db.Column(db.Integer, default=0, nullable=False)
+
+    last_match_at = db.Column(db.DateTime, nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def serialize(self, rank=None):
+        u = User.query.get(self.user_id)
+        return {
+            "id": self.id,
+            "rank": rank,
+            "user_id": self.user_id,
+            "username": u.username if u else None,
+            "avatar": u.profile_picture if (u and hasattr(u, "profile_picture")) else None,
+            "game": self.game_name if self.game_name != "__all__" else "All Games",
+            "score": self.score,
+            "wins": self.wins,
+            "losses": self.losses,
+            "tournaments": self.tournaments_played,
+            "tournaments_won": self.tournaments_won,
+            "top3": self.placements_top3,
+        }
+
