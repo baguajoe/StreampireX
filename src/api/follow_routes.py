@@ -64,6 +64,15 @@ def follow_user(user_id):
         current_user.following_count = (current_user.following_count or 0) + 1
         target_user.follower_count = (target_user.follower_count or 0) + 1
         
+        # SP-8.1: notify the followed user
+        from api.notifications import notify
+        notify(
+            user_id=user_id,
+            type='follow',
+            content=f'@{current_user.username if current_user else "someone"} started following you',
+            from_user_id=current_user_id,
+        )
+        
         db.session.commit()
         
         return jsonify({
