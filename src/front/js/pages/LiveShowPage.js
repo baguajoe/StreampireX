@@ -70,8 +70,8 @@ const LiveShowPage = () => {
     }
   };
 
-  // Fetch user profile
-  const fetchUserProfile_FIXED = async () => {
+  // Fetch user profile (SP-2b: renamed from fetchUserProfile_FIXED)
+  const fetchUserProfile = async () => {
     try {
       const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
         headers: {

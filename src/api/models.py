@@ -1350,6 +1350,10 @@ class LiveStudio(db.Model):
     # ✅ Merch Sales (Coming Soon)
     merch_sales = db.Column(db.Float, default=0.0)  # Revenue from merch sales
 
+    # ✅ SP-2b: engagement counters (cached, updated by ws/stream broadcaster)
+    viewer_count = db.Column(db.Integer, default=0, nullable=False)
+    like_count = db.Column(db.Integer, default=0, nullable=False)
+
     user = db.relationship("User")
     def serialize(self):
         """Convert model instance to JSON format."""
@@ -1373,7 +1377,9 @@ class LiveStudio(db.Model):
             "ad_revenue": self.ad_revenue,
             "total_earnings": self.total_earnings,
             "has_live_chat": self.has_live_chat,
-            "merch_sales": self.merch_sales
+            "merch_sales": self.merch_sales,
+            "viewer_count": self.viewer_count or 0,
+            "like_count": self.like_count or 0,
         }
 
 

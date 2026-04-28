@@ -5842,7 +5842,7 @@ def buy_ticket(stream_id):
 
     return jsonify({"checkout_url": checkout_session.url}), 200
 
-@api.route('/artist/live-streams', methods=['GET'])
+@api.route('/artist/my-live-studios', methods=['GET'])
 @jwt_required()
 def get_my_live_streams():
     user_id = get_jwt_identity()
@@ -5860,11 +5860,37 @@ def get_live_history():
 
     return jsonify([stream.serialize() for stream in history]), 200
 
-@api.route('/artist/live-streams', methods=['GET'])
+# SP-2b: removed dupe get_all_live_streams (was 3rd handler colliding on
+# /artist/live-streams GET - same logic as get_live_streams above)
+
+
+
+# SP-2b: live-studio detail + back-compat alias
+@api.route('/api/live-studios/<int:studio_id>', methods=['GET'])
 @jwt_required(optional=True)
-def get_all_live_streams():
-    streams = LiveStudio.query.filter_by(is_live=True).all()
-    return jsonify([s.serialize() for s in streams]), 200
+def get_live_studio_detail(studio_id):
+    """Fetch a single live studio (concert/monetized event) by id."""
+    studio = LiveStudio.query.get(studio_id)
+    if not studio:
+        return jsonify({"error": "Live studio not found"}), 404
+    return jsonify(studio.serialize()), 200
+
+
+@api.route('/api/live-streams/<int:stream_id>', methods=['GET'])
+@jwt_required(optional=True)
+def get_live_stream_detail(stream_id):
+    """Back-compat alias for the existing UI route /api/live-streams/:id.
+
+    LiveShowPage.js calls this path. Tries LiveStudio first (the high-value
+    monetized resource), falls back to LiveStream (radio DJ broadcasts).
+    """
+    studio = LiveStudio.query.get(stream_id)
+    if studio:
+        return jsonify(studio.serialize()), 200
+    stream = LiveStream.query.get(stream_id)
+    if stream:
+        return jsonify(stream.serialize()), 200
+    return jsonify({"error": "Live stream not found"}), 404
 
 
 @api.route('/artist/live/earnings', methods=['GET'])
@@ -13003,9 +13029,11 @@ def get_creator_content_breakdown():
             "total_earnings": float(p.total_earnings) if p.total_earnings else 0
         } for p in products]
         
-        # Live Streams history
-        live_streams = LiveStream.query.filter_by(host_id=user_id)\
-            .order_by(LiveStream.created_at.desc())\
+        # SP-2b: switched LiveStream -> LiveStudio (LiveStream has no
+        # host_id, no created_at - those columns only exist on LiveStudio,
+        # which is what the dashboard actually wants to show anyway).
+        live_streams = LiveStudio.query.filter_by(user_id=user_id)\
+            .order_by(LiveStudio.started_at.desc())\
             .limit(10)\
             .all()
         
@@ -13013,8 +13041,8 @@ def get_creator_content_breakdown():
             "id": s.id,
             "title": s.title,
             "description": s.description,
-            "created_at": s.created_at.isoformat() if s.created_at else None,
-            "viewer_count": s.viewer_count or 0,
+            "created_at": s.started_at.isoformat() if s.started_at else None,
+            "viewer_count": getattr(s, 'viewer_count', 0) or 0,
             "is_live": s.is_live
         } for s in live_streams]
         
