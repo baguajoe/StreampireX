@@ -283,26 +283,37 @@ def enroll(course_id):
         db.session.commit()
         return jsonify({"message": "Enrolled (free)", "enrollment": enrollment.serialize()}), 201
 
-    # Paid course — return Stripe checkout intent
+    # Paid course — return Stripe payment intent with destination charge
     try:
         import stripe
+        from api.stripe_helpers import (
+            get_creator_destination,
+            calculate_platform_split,
+            build_payment_intent_destination_kwargs,
+        )
         stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
-        creator = User.query.get(course.creator_id)
-        creator_share = round(course.price * (1 - PLATFORM_CUT), 2)
+        creator_destination = get_creator_destination(course.creator_id)
+        platform_cut, creator_earnings = calculate_platform_split(course.price)
 
-        # Create a payment intent
-        intent = stripe.PaymentIntent.create(
+        metadata = {
+            "course_id": str(course_id),
+            "buyer_id":  str(user.id),
+            "creator_id": str(course.creator_id),
+            "platform_cut": str(platform_cut),
+            "creator_earnings": str(creator_earnings),
+            "type": "academy_course",
+        }
+
+        intent_kwargs = dict(
             amount   = int(course.price * 100),  # cents
             currency = "usd",
-            metadata = {
-                "course_id": course_id,
-                "buyer_id":  user.id,
-                "creator_id": course.creator_id,
-                "creator_share": creator_share,
-                "type": "academy_course",
-            },
+            metadata = metadata,
             description = f"StreamPireX Academy: {course.title}",
         )
+        intent_kwargs.update(
+            build_payment_intent_destination_kwargs(course.price, creator_destination, metadata)
+        )
+        intent = stripe.PaymentIntent.create(**intent_kwargs)
         return jsonify({"client_secret": intent.client_secret, "amount": course.price})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
