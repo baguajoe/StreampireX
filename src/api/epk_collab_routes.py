@@ -569,7 +569,7 @@ def upload_epk_media():
         return jsonify({"error": "Empty filename"}), 400
 
     ALLOWED = {
-        'image': ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'],
+        'image': ['jpg', 'jpeg', 'png', 'gif', 'webp'],  # EPK-1 (HIGH-C1): SVG removed (XSS vector)
         'audio': ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg', 'wma'],
         'video': ['mp4', 'mov', 'webm', 'mkv', 'avi', 'wmv'],
         'document': ['pdf', 'doc', 'docx', 'txt'],

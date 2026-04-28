@@ -4,6 +4,7 @@ import eventlet
 eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app, session
+import secrets
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
 from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow, BandwidthLog, TranscodeJob, VideoQuality, Concert, PodcastPlayHistory, PlayHistory, PostLike, PostComment, Photo, ClipSave, ClipComment, ClipCommentLike, UserWallet, WalletTransaction, CreatorPaymentSettings, StoryComment, Story, StoryView, StoryHighlight, ArchivedShow
 # ADD these imports
@@ -2922,11 +2923,25 @@ def get_public_podcasts():
 @api.route("/like", methods=["POST"])
 @jwt_required()
 def like_content():
-    data = request.json
+    # SOC-3 (HIGH-C1): validate content_type, content_id presence, and existence
+    data = request.json or {}
     user_id = get_jwt_identity()
 
+    content_type = data.get("content_type")
+    content_id = data.get("content_id")
+    if not content_type or content_id is None:
+        return jsonify({"error": "content_type and content_id are required"}), 400
+
+    VALID_LIKE_TYPES = {'song', 'podcast', 'video', 'radio', 'livestream', 'post', 'episode', 'track'}
+    if content_type not in VALID_LIKE_TYPES:
+        return jsonify({"error": f"Invalid content_type. Must be one of: {sorted(VALID_LIKE_TYPES)}"}), 400
+    try:
+        content_id = int(content_id)
+    except (TypeError, ValueError):
+        return jsonify({"error": "content_id must be an integer"}), 400
+
     existing_like = Like.query.filter_by(
-        user_id=user_id, content_id=data["content_id"], content_type=data["content_type"]
+        user_id=user_id, content_id=content_id, content_type=content_type
     ).first()
 
     if existing_like:
@@ -10516,7 +10531,7 @@ def create_squad():
         name=data["name"],
         description=data.get("description"),
         platform_tags=data.get("platform_tags", []),
-        invite_code=str(uuid4())[:8],
+        invite_code=secrets.token_urlsafe(12),  # GAME-2 (HIGH-C1): 96-bit entropy (was 32-bit uuid truncation)
         creator_id=user.id
     )
     db.session.add(squad)
@@ -10528,11 +10543,22 @@ def create_squad():
 @api.route("/squads/join", methods=["POST"])
 @jwt_required()
 def join_squad():
+    # GAME-3 (HIGH-C1): enforce squad max_members + validate invite_code input
     user = User.query.get(get_jwt_identity())
-    code = request.json.get("invite_code")
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    code = (request.json or {}).get("invite_code")
+    if not code or not isinstance(code, str):
+        return jsonify({"error": "invite_code is required"}), 400
     squad = Squad.query.filter_by(invite_code=code).first()
     if not squad:
         return jsonify({"error": "Invalid invite code"}), 404
+    if user.squad_id == squad.id:
+        return jsonify({"message": "Already in squad", "squad_id": squad.id}), 200
+    current_count = User.query.filter_by(squad_id=squad.id).count()
+    max_members = squad.max_members or 5
+    if current_count >= max_members:
+        return jsonify({"error": "Squad is full"}), 403
     user.squad = squad
     db.session.commit()
     return jsonify({"message": "Joined squad", "squad_id": squad.id})

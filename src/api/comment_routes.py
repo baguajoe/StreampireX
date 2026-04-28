@@ -41,10 +41,22 @@ def post_comment():
     timestamp = data.get('timestamp', 0.0)   # waveform position in seconds
     parent_id = data.get('parent_id', None)  # for replies
 
+    # SOC-1 (HIGH-C1): validate content_type, content_id, and text length
+    VALID_CONTENT_TYPES = {'song', 'podcast', 'video', 'radio', 'livestream', 'post', 'episode', 'track'}
+    MAX_COMMENT_LENGTH = 5000
+
     if not content_type or not content_id:
         return jsonify({'error': 'content_type and content_id are required'}), 400
+    if content_type not in VALID_CONTENT_TYPES:
+        return jsonify({'error': f'Invalid content_type. Must be one of: {sorted(VALID_CONTENT_TYPES)}'}), 400
+    try:
+        content_id = int(content_id)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'content_id must be an integer'}), 400
     if not text:
         return jsonify({'error': 'Comment text is required'}), 400
+    if len(text) > MAX_COMMENT_LENGTH:
+        return jsonify({'error': f'Comment exceeds max length of {MAX_COMMENT_LENGTH} characters'}), 400
 
     comment = Comment(
         user_id=user_id,

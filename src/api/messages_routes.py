@@ -347,8 +347,8 @@ def search_users():
         users = User.query.filter(
             User.id != user_id,  # Exclude current user
             or_(
+                # MSG-1 (HIGH-C1): User.email removed from search to prevent email enumeration
                 User.username.ilike(search_term),
-                User.email.ilike(search_term),
                 # Try display_name if it exists
                 User.display_name.ilike(search_term) if hasattr(User, 'display_name') else False,
                 # Try artist_name if it exists  
