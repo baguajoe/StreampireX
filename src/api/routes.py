@@ -19462,27 +19462,22 @@ def get_channel_analytics():
 def get_user_storefront():
     """Get current user's products for storefront"""
     user_id = get_jwt_identity()
-    
-    try:
-        products = Product.query.filter_by(user_id=user_id).all()
-        
-        # Add sales data to each product
-        result = []
-        for product in products:
-            product_data = product.serialize()
-            
-            # Get sales count and revenue for this product
-            sales = Order.query.filter_by(product_id=product.id, status='delivered').all()
-            product_data['sales_count'] = len(sales)
-            product_data['sales_revenue'] = sum(s.total_amount or s.amount or 0 for s in sales)
-            
-            result.append(product_data)
-        
-        return jsonify(result), 200
-        
-    except Exception as e:
-        print(f"Storefront error: {e}")
-        return jsonify([]), 200  # Return empty array on error
+
+    products = Product.query.filter_by(creator_id=user_id).all()
+
+    # Add sales data to each product
+    result = []
+    for product in products:
+        product_data = product.serialize()
+
+        # Get sales count and revenue for this product
+        sales = Order.query.filter_by(product_id=product.id, status='delivered').all()
+        product_data['sales_count'] = len(sales)
+        product_data['sales_revenue'] = sum(s.total_amount or s.amount or 0 for s in sales)
+
+        result.append(product_data)
+
+    return jsonify(result), 200
 
 
 # ============ FIX SELLER ORDERS (500 ERROR) ============
