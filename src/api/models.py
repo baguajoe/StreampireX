@@ -1617,6 +1617,123 @@ class Podcast(db.Model):
 
 # Assuming you have a model for tracking podcast plays (or similar)
 
+class PodcastComment(db.Model):
+    """HIGH-B2 (POD-5): listener comments on podcast episodes.
+
+    Replaces the prior stub endpoints in podcast_pro_routes.py that
+    pretended to save comments but discarded them. Supports threading
+    via parent_id for replies, host moderation via is_pinned, and
+    cascade delete when an episode is removed.
+    """
+    __tablename__ = 'podcast_comment'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    episode_id = db.Column(db.Integer,
+                           db.ForeignKey('podcast_episode.id', ondelete='CASCADE'),
+                           nullable=False, index=True)
+    user_id = db.Column(db.Integer,
+                        db.ForeignKey('user.id', ondelete='CASCADE'),
+                        nullable=False, index=True)
+    parent_id = db.Column(db.Integer,
+                          db.ForeignKey('podcast_comment.id', ondelete='CASCADE'),
+                          nullable=True, index=True)
+    text = db.Column(db.Text, nullable=False)
+    timestamp_sec = db.Column(db.Integer, nullable=True)  # optional play position
+    is_pinned = db.Column(db.Boolean, default=False, nullable=False)
+    likes_count = db.Column(db.Integer, default=0, nullable=False)
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow,
+                           onupdate=datetime.utcnow, nullable=False)
+
+    user = db.relationship('User', backref=db.backref('podcast_comments', lazy='dynamic'))
+    replies = db.relationship('PodcastComment',
+                              backref=db.backref('parent', remote_side=[id]),
+                              lazy='dynamic')
+
+    def serialize(self, viewer_user_id=None):
+        return {
+            "id": self.id,
+            "episode_id": self.episode_id,
+            "user_id": self.user_id,
+            "username": self.user.username if self.user else "Listener",
+            "avatar_url": getattr(self.user, "avatar_url", None) if self.user else None,
+            "parent_id": self.parent_id,
+            "text": self.text if not self.is_deleted else "[deleted]",
+            "timestamp_sec": self.timestamp_sec,
+            "is_pinned": self.is_pinned,
+            "likes_count": self.likes_count or 0,
+            "is_deleted": self.is_deleted,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "is_owner": viewer_user_id == self.user_id if viewer_user_id else False,
+        }
+
+
+class PodcastCommentLike(db.Model):
+    """HIGH-B2 (POD-5): per-user uniqueness on comment likes.
+
+    Without the unique (comment_id, user_id) constraint, the prior stub
+    let any user drive a comment to a million likes by spamming the
+    endpoint. Now toggle-only: insert = like, delete = unlike.
+    """
+    __tablename__ = 'podcast_comment_like'
+    __table_args__ = (
+        db.UniqueConstraint('comment_id', 'user_id', name='uq_pc_like_comment_user'),
+        {'extend_existing': True},
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    comment_id = db.Column(db.Integer,
+                           db.ForeignKey('podcast_comment.id', ondelete='CASCADE'),
+                           nullable=False, index=True)
+    user_id = db.Column(db.Integer,
+                        db.ForeignKey('user.id', ondelete='CASCADE'),
+                        nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class PodcastReview(db.Model):
+    """HIGH-B2 (POD-8): listener reviews of a podcast (1-5 stars + text).
+
+    One review per (podcast, user) - users can edit but not stack.
+    Hosts cannot delete reviews (trust integrity). Reviewer can delete
+    their own review.
+    """
+    __tablename__ = 'podcast_review'
+    __table_args__ = (
+        db.UniqueConstraint('podcast_id', 'user_id', name='uq_pc_review_podcast_user'),
+        db.CheckConstraint('rating >= 1 AND rating <= 5', name='ck_pc_review_rating'),
+        {'extend_existing': True},
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    podcast_id = db.Column(db.Integer,
+                           db.ForeignKey('podcast.id', ondelete='CASCADE'),
+                           nullable=False, index=True)
+    user_id = db.Column(db.Integer,
+                        db.ForeignKey('user.id', ondelete='CASCADE'),
+                        nullable=False, index=True)
+    rating = db.Column(db.Integer, nullable=False)
+    text = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow,
+                           onupdate=datetime.utcnow, nullable=False)
+
+    user = db.relationship('User', backref=db.backref('podcast_reviews', lazy='dynamic'))
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "podcast_id": self.podcast_id,
+            "user_id": self.user_id,
+            "username": self.user.username if self.user else "Listener",
+            "rating": self.rating,
+            "text": self.text or "",
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 class PodcastEpisodeInteraction(db.Model):
     __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)

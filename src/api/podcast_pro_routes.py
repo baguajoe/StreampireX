@@ -10,7 +10,7 @@ import os, uuid
 from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
-from api.models import db, Podcast, PodcastEpisode, User
+from api.models import db, Podcast, PodcastEpisode, User, PodcastComment, PodcastCommentLike, PodcastReview
 import jwt as pyjwt
 
 podcast_pro_bp = Blueprint("podcast_pro", __name__)
@@ -206,83 +206,207 @@ def get_analytics(podcast_id):
 # ── Episode Comments ───────────────────────────────────────────────────────────
 @podcast_pro_bp.route("/api/podcast/episode/<int:episode_id>/comments", methods=["GET"])
 def get_comments(episode_id):
+    """HIGH-B2 (POD-5): real comment listing with pagination + sort.
+
+    Returns top-level comments (parent_id IS NULL). Replies are nested
+    via the .replies relationship on each comment.
+    """
     sort = request.args.get("sort", "newest")
-    # Use JSON stored in episode or separate table
-    # For now use a simple in-memory-style approach via episode metadata
-    episode = PodcastEpisode.query.get_or_404(episode_id)
-    # Comments stored in episode's play history metadata — in production use separate table
-    comments = []
-    return jsonify({"comments": comments, "total": 0})
+    try:
+        page = max(1, int(request.args.get("page", 1) or 1))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = int(request.args.get("per_page", 25))
+    except (TypeError, ValueError):
+        per_page = 25
+    per_page = max(1, min(per_page, 100))
+
+    PodcastEpisode.query.get_or_404(episode_id)
+
+    q = PodcastComment.query.filter_by(episode_id=episode_id, parent_id=None)
+    if sort == "top":
+        q = q.order_by(PodcastComment.is_pinned.desc(),
+                       PodcastComment.likes_count.desc(),
+                       PodcastComment.created_at.desc())
+    elif sort == "oldest":
+        q = q.order_by(PodcastComment.is_pinned.desc(),
+                       PodcastComment.created_at.asc())
+    else:  # newest
+        q = q.order_by(PodcastComment.is_pinned.desc(),
+                       PodcastComment.created_at.desc())
+
+    pagination = q.paginate(page=page, per_page=per_page, error_out=False)
+
+    # Attempt to read viewer for is_owner flag (optional - this endpoint
+    # is public so unauthenticated callers just see is_owner=False)
+    viewer_id = None
+    try:
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        verify_jwt_in_request(optional=True)
+        viewer_id = get_jwt_identity()
+    except Exception:
+        pass
+
+    items = []
+    for c in pagination.items:
+        d = c.serialize(viewer_user_id=viewer_id)
+        # Include reply count, NOT full replies, to keep payload small
+        d["reply_count"] = c.replies.count()
+        items.append(d)
+
+    return jsonify({
+        "comments": items,
+        "total": pagination.total,
+        "page": pagination.page,
+        "pages": pagination.pages,
+    })
 
 @podcast_pro_bp.route("/api/podcast/episode/<int:episode_id>/comments", methods=["POST"])
 @jwt_required()
 def post_comment(episode_id):
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-    episode = PodcastEpisode.query.get_or_404(episode_id)
-    data = request.get_json() or {}
-    text = data.get("text", "").strip()
-    timestamp_sec = data.get("timestamp_sec")
+    """HIGH-B2 (POD-5): persist a top-level comment to PodcastComment.
 
+    The prior version returned success without saving. Now creates a
+    real row with text capped at 2000 chars. parent_id is null here;
+    use the /reply endpoint for threaded replies.
+    """
+    user_id = get_jwt_identity()
+    PodcastEpisode.query.get_or_404(episode_id)
+
+    data = request.get_json() or {}
+    text = (data.get("text") or "").strip()
     if not text:
         return jsonify({"error": "Comment text required"}), 400
+    if len(text) > 2000:
+        return jsonify({"error": "Comment too long (max 2000 chars)"}), 400
 
-    podcast = Podcast.query.get(episode.podcast_id)
-    is_host = podcast and podcast.creator_id == user_id
+    timestamp_sec = data.get("timestamp_sec")
+    try:
+        timestamp_sec = int(timestamp_sec) if timestamp_sec is not None else None
+    except (TypeError, ValueError):
+        timestamp_sec = None
 
-    comment = {
-        "id": str(uuid.uuid4()),
-        "episode_id": episode_id,
-        "user_id": user_id,
-        "username": user.username if user else "Listener",
-        "text": text,
-        "timestamp_sec": timestamp_sec,
-        "is_host": is_host,
-        "is_pinned": False,
-        "likes": 0,
-        "replies": [],
-        "created_at": datetime.utcnow().isoformat(),
-    }
+    comment = PodcastComment(
+        episode_id=episode_id,
+        user_id=user_id,
+        text=text,
+        timestamp_sec=timestamp_sec,
+    )
+    db.session.add(comment)
+    db.session.commit()
 
-    # In production: save to PodcastComment model
-    # For now return success
-    return jsonify({"success": True, "comment": comment}), 201
+    return jsonify({"success": True, "comment": comment.serialize(viewer_user_id=user_id)}), 201
 
-@podcast_pro_bp.route("/api/podcast/episode/<int:episode_id>/comments/<comment_id>/pin", methods=["POST"])
+@podcast_pro_bp.route("/api/podcast/episode/<int:episode_id>/comments/<int:comment_id>/pin", methods=["POST"])
 @jwt_required()
 def pin_comment(episode_id, comment_id):
+    """HIGH-B2 (POD-5): toggle pin state on a comment. Host-only."""
     user_id = get_jwt_identity()
     episode = PodcastEpisode.query.get_or_404(episode_id)
     podcast = Podcast.query.get(episode.podcast_id)
     if not podcast or podcast.creator_id != user_id:
         return jsonify({"error": "Not authorized"}), 403
-    return jsonify({"success": True})
 
-@podcast_pro_bp.route("/api/podcast/episode/<int:episode_id>/comments/<comment_id>/like", methods=["POST"])
+    comment = PodcastComment.query.filter_by(id=comment_id, episode_id=episode_id).first()
+    if not comment:
+        return jsonify({"error": "Comment not found"}), 404
+
+    comment.is_pinned = not bool(comment.is_pinned)
+    db.session.commit()
+    return jsonify({"success": True, "is_pinned": comment.is_pinned})
+
+@podcast_pro_bp.route("/api/podcast/episode/<int:episode_id>/comments/<int:comment_id>/like", methods=["POST"])
 @jwt_required()
 def like_comment(episode_id, comment_id):
-    return jsonify({"success": True})
+    """HIGH-B2 (POD-5): toggle like on a comment.
 
-@podcast_pro_bp.route("/api/podcast/episode/<int:episode_id>/comments/<comment_id>", methods=["DELETE"])
+    Per-user uniqueness via PodcastCommentLike(comment_id, user_id)
+    constraint. The prior stub let any user spam likes_count to
+    arbitrary values.
+    """
+    user_id = get_jwt_identity()
+    comment = PodcastComment.query.filter_by(id=comment_id, episode_id=episode_id).first()
+    if not comment:
+        return jsonify({"error": "Comment not found"}), 404
+
+    existing = PodcastCommentLike.query.filter_by(
+        comment_id=comment_id, user_id=user_id
+    ).first()
+
+    if existing:
+        # Unlike: remove row + decrement counter (atomic via SQL update)
+        db.session.delete(existing)
+        comment.likes_count = max(0, (comment.likes_count or 0) - 1)
+        db.session.commit()
+        return jsonify({"success": True, "liked": False, "likes_count": comment.likes_count})
+
+    # Like
+    db.session.add(PodcastCommentLike(comment_id=comment_id, user_id=user_id))
+    comment.likes_count = (comment.likes_count or 0) + 1
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        # Race condition: someone else just liked. Treat as success.
+        return jsonify({"success": True, "liked": True})
+    return jsonify({"success": True, "liked": True, "likes_count": comment.likes_count})
+
+@podcast_pro_bp.route("/api/podcast/episode/<int:episode_id>/comments/<int:comment_id>", methods=["DELETE"])
 @jwt_required()
 def delete_comment(episode_id, comment_id):
+    """HIGH-B2 (POD-5): soft-delete a comment.
+
+    Permission: comment author OR podcast host (Option A from product
+    decision: hosts need moderation tools). Soft-delete preserves
+    thread structure for replies; the text is replaced with [deleted]
+    via the model serializer.
+    """
+    user_id = get_jwt_identity()
+    comment = PodcastComment.query.filter_by(id=comment_id, episode_id=episode_id).first()
+    if not comment:
+        return jsonify({"error": "Comment not found"}), 404
+
+    is_author = comment.user_id == user_id
+    episode = PodcastEpisode.query.get(episode_id)
+    podcast = Podcast.query.get(episode.podcast_id) if episode else None
+    is_host = podcast and podcast.creator_id == user_id
+
+    if not (is_author or is_host):
+        return jsonify({"error": "Not authorized"}), 403
+
+    comment.is_deleted = True
+    db.session.commit()
     return jsonify({"success": True})
 
-@podcast_pro_bp.route("/api/podcast/episode/<int:episode_id>/comments/<comment_id>/reply", methods=["POST"])
+@podcast_pro_bp.route("/api/podcast/episode/<int:episode_id>/comments/<int:comment_id>/reply", methods=["POST"])
 @jwt_required()
 def reply_comment(episode_id, comment_id):
+    """HIGH-B2 (POD-5): persist a reply with parent_id pointing at the
+    target comment. Reply text capped at 2000 chars same as top-level.
+    """
     user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+
+    parent = PodcastComment.query.filter_by(id=comment_id, episode_id=episode_id).first()
+    if not parent:
+        return jsonify({"error": "Parent comment not found"}), 404
+
     data = request.get_json() or {}
-    reply = {
-        "id": str(uuid.uuid4()),
-        "user_id": user_id,
-        "username": user.username if user else "Listener",
-        "text": data.get("text","").strip(),
-        "created_at": datetime.utcnow().isoformat(),
-        "likes": 0,
-    }
-    return jsonify({"success": True, "reply": reply}), 201
+    text = (data.get("text") or "").strip()
+    if not text:
+        return jsonify({"error": "Reply text required"}), 400
+    if len(text) > 2000:
+        return jsonify({"error": "Reply too long (max 2000 chars)"}), 400
+
+    reply = PodcastComment(
+        episode_id=episode_id,
+        user_id=user_id,
+        parent_id=parent.id,
+        text=text,
+    )
+    db.session.add(reply)
+    db.session.commit()
+    return jsonify({"success": True, "reply": reply.serialize(viewer_user_id=user_id)}), 201
 
 # ── Transcript ────────────────────────────────────────────────────────────────
 @podcast_pro_bp.route("/api/podcast/episode/<int:episode_id>/transcript", methods=["GET"])
@@ -346,31 +470,100 @@ def get_voicemails(podcast_id):
 # ── Ratings & Reviews ────────────────────────────────────────────────────────
 @podcast_pro_bp.route("/api/podcast/<int:podcast_id>/reviews", methods=["GET"])
 def get_reviews(podcast_id):
+    """HIGH-B2 (POD-8): real review listing with paginated results +
+    server-computed average rating.
+    """
+    try:
+        page = max(1, int(request.args.get("page", 1) or 1))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = int(request.args.get("per_page", 25))
+    except (TypeError, ValueError):
+        per_page = 25
+    per_page = max(1, min(per_page, 100))
+
     Podcast.query.get_or_404(podcast_id)
-    # In production: query PodcastReview model
-    return jsonify({"reviews": [], "avg_rating": 0, "total": 0})
+
+    q = (PodcastReview.query
+         .filter_by(podcast_id=podcast_id)
+         .order_by(PodcastReview.created_at.desc()))
+    pagination = q.paginate(page=page, per_page=per_page, error_out=False)
+
+    total = pagination.total
+    avg = 0.0
+    if total > 0:
+        from sqlalchemy import func as _func
+        avg_q = (db.session.query(_func.avg(PodcastReview.rating))
+                 .filter(PodcastReview.podcast_id == podcast_id).scalar())
+        avg = float(avg_q) if avg_q is not None else 0.0
+
+    return jsonify({
+        "reviews": [r.serialize() for r in pagination.items],
+        "avg_rating": round(avg, 2),
+        "total": total,
+        "page": pagination.page,
+        "pages": pagination.pages,
+    })
 
 @podcast_pro_bp.route("/api/podcast/<int:podcast_id>/reviews", methods=["POST"])
 @jwt_required()
 def post_review(podcast_id):
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-    data = request.get_json() or {}
-    rating = data.get("rating", 5)
-    text = data.get("text", "").strip()
+    """HIGH-B2 (POD-8): create or update the user's review for this podcast.
 
+    Unique constraint on (podcast_id, user_id) prevents stacking; a
+    second POST from the same user updates their existing review.
+    Hosts cannot review their own podcast (vanity-rating fraud).
+    """
+    user_id = get_jwt_identity()
+    podcast = Podcast.query.get_or_404(podcast_id)
+
+    if getattr(podcast, "creator_id", None) == user_id:
+        return jsonify({"error": "You cannot review your own podcast"}), 403
+
+    data = request.get_json() or {}
+    try:
+        rating = int(data.get("rating", 5))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Rating must be an integer 1-5"}), 400
     if not 1 <= rating <= 5:
         return jsonify({"error": "Rating must be 1-5"}), 400
 
-    review = {
-        "id": str(uuid.uuid4()),
-        "user_id": user_id,
-        "username": user.username if user else "Listener",
-        "rating": rating,
-        "text": text,
-        "created_at": datetime.utcnow().isoformat(),
-    }
-    return jsonify({"success": True, "review": review}), 201
+    text = (data.get("text") or "").strip()
+    if len(text) > 5000:
+        return jsonify({"error": "Review too long (max 5000 chars)"}), 400
+
+    existing = PodcastReview.query.filter_by(
+        podcast_id=podcast_id, user_id=user_id
+    ).first()
+    if existing:
+        existing.rating = rating
+        existing.text = text
+        db.session.commit()
+        return jsonify({"success": True, "review": existing.serialize(), "updated": True})
+
+    review = PodcastReview(
+        podcast_id=podcast_id,
+        user_id=user_id,
+        rating=rating,
+        text=text,
+    )
+    db.session.add(review)
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        # Race: another request created the row first. Treat as update.
+        existing = PodcastReview.query.filter_by(
+            podcast_id=podcast_id, user_id=user_id
+        ).first()
+        if existing:
+            existing.rating = rating
+            existing.text = text
+            db.session.commit()
+            return jsonify({"success": True, "review": existing.serialize(), "updated": True})
+        return jsonify({"error": "Failed to save review"}), 500
+    return jsonify({"success": True, "review": review.serialize()}), 201
 
 # ── Episode play logging (for analytics) ────────────────────────────────────
 @podcast_pro_bp.route("/api/podcast/episode/<int:episode_id>/play-event", methods=["POST"])
