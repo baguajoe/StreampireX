@@ -58,11 +58,29 @@ def follow_user(user_id):
             created_at=datetime.utcnow()
         )
         db.session.add(new_follow)
-        
-        # Update follower/following counts
+
+        # SOC-5 (MED-B): SQL-level atomic increment to avoid lost-update
+        # race when two concurrent follows hit the same target. Was:
+        #   user.follower_count = (user.follower_count or 0) + 1
+        # which is read-modify-write at the application layer.
+        from sqlalchemy import case
+        User.query.filter_by(id=current_user_id).update(
+            {User.following_count: case(
+                (User.following_count.is_(None), 1),
+                else_=User.following_count + 1
+            )},
+            synchronize_session=False,
+        )
+        User.query.filter_by(id=user_id).update(
+            {User.follower_count: case(
+                (User.follower_count.is_(None), 1),
+                else_=User.follower_count + 1
+            )},
+            synchronize_session=False,
+        )
+        # Refresh for response payload + downstream notify call
         current_user = User.query.get(current_user_id)
-        current_user.following_count = (current_user.following_count or 0) + 1
-        target_user.follower_count = (target_user.follower_count or 0) + 1
+        target_user = User.query.get(user_id)
         
         # SP-8.1: notify the followed user
         from api.notifications import notify
@@ -115,11 +133,25 @@ def unfollow_user(user_id):
         
         # Remove follow relationship
         db.session.delete(existing_follow)
-        
-        # Update follower/following counts
-        current_user = User.query.get(current_user_id)
-        current_user.following_count = max((current_user.following_count or 1) - 1, 0)
-        target_user.follower_count = max((target_user.follower_count or 1) - 1, 0)
+
+        # SOC-5 (MED-B): SQL-level atomic decrement with floor-at-zero.
+        from sqlalchemy import case
+        User.query.filter_by(id=current_user_id).update(
+            {User.following_count: case(
+                (User.following_count > 0, User.following_count - 1),
+                else_=0
+            )},
+            synchronize_session=False,
+        )
+        User.query.filter_by(id=user_id).update(
+            {User.follower_count: case(
+                (User.follower_count > 0, User.follower_count - 1),
+                else_=0
+            )},
+            synchronize_session=False,
+        )
+        # Refresh for response payload
+        target_user = User.query.get(user_id)
         
         db.session.commit()
         

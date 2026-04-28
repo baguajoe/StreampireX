@@ -10,7 +10,7 @@ from datetime import datetime
 from sqlalchemy import or_, and_, desc, func
 
 # Import your models - adjust path if needed
-from api.models import db, User, Message, Conversation, ConversationHidden
+from api.models import db, User, Message, Conversation, ConversationHidden, Block
 
 messages_bp = Blueprint('messages', __name__)
 
@@ -263,14 +263,35 @@ def send_message():
         recipient_id = data.get('recipient_id')
         message_text = data.get('message') or data.get('text')
         media_url = data.get('media_url')
-        
+
         if not recipient_id:
             return jsonify({'error': 'Recipient ID is required'}), 400
         if not message_text and not media_url:
             return jsonify({'error': 'Message or media is required'}), 400
-        
+
+        # MSG-3 (MED-B): cap length, block self-DM, enforce blocklist.
+        MAX_MESSAGE_LENGTH = 5000
+        try:
+            recipient_id_int = int(recipient_id)
+        except (TypeError, ValueError):
+            return jsonify({'error': 'recipient_id must be an integer'}), 400
+        if int(user_id) == recipient_id_int:
+            return jsonify({'error': 'Cannot send a message to yourself'}), 400
+        if message_text and len(message_text) > MAX_MESSAGE_LENGTH:
+            return jsonify({'error': f'Message exceeds max length of {MAX_MESSAGE_LENGTH} characters'}), 400
+
+        # Block check (both directions): sender can't DM blocker, blocker can't DM blocked.
+        blocked = Block.query.filter(
+            or_(
+                and_(Block.blocker_id == user_id, Block.blocked_id == recipient_id_int),
+                and_(Block.blocker_id == recipient_id_int, Block.blocked_id == user_id),
+            )
+        ).first()
+        if blocked:
+            return jsonify({'error': 'Cannot send message to this user'}), 403
+
         # Verify recipient exists
-        recipient = User.query.get(recipient_id)
+        recipient = User.query.get(recipient_id_int)
         if not recipient:
             return jsonify({'error': 'Recipient not found'}), 404
         

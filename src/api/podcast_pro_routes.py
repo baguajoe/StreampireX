@@ -57,16 +57,55 @@ def get_membership(podcast_id):
 @podcast_pro_bp.route("/api/podcast/<int:podcast_id>/membership/tiers", methods=["PUT"])
 @jwt_required()
 def update_tiers(podcast_id):
+    # POD-7 (MED-B): validate tier schema before storing.
+    # Pairs with CRIT-1 POD-1 fix: subscribe_membership now reads price
+    # from this stored JSON, so garbage here would later 500 the checkout.
     user_id = get_jwt_identity()
     podcast = Podcast.query.filter_by(id=podcast_id, creator_id=user_id).first_or_404()
-    tiers = request.get_json().get("tiers", [])
+    raw_tiers = request.get_json().get("tiers", [])
+
+    if not isinstance(raw_tiers, list):
+        return jsonify({"error": "tiers must be a list"}), 400
+    if len(raw_tiers) > 20:
+        return jsonify({"error": "Too many tiers (max 20)"}), 400
+
+    validated = []
+    for idx, t in enumerate(raw_tiers):
+        if not isinstance(t, dict):
+            return jsonify({"error": f"tier[{idx}] must be an object"}), 400
+        tier_id = t.get("id")
+        name = t.get("name")
+        price = t.get("price")
+        perks = t.get("perks", [])
+
+        if tier_id is None or not isinstance(tier_id, (str, int)):
+            return jsonify({"error": f"tier[{idx}].id required (string or int)"}), 400
+        if not isinstance(name, str) or not name.strip() or len(name) > 100:
+            return jsonify({"error": f"tier[{idx}].name must be 1-100 chars"}), 400
+        try:
+            price_f = float(price)
+        except (TypeError, ValueError):
+            return jsonify({"error": f"tier[{idx}].price must be numeric"}), 400
+        if price_f < 0 or price_f > 9999:
+            return jsonify({"error": f"tier[{idx}].price out of range (0-9999)"}), 400
+        if not isinstance(perks, list) or not all(isinstance(p, str) for p in perks):
+            return jsonify({"error": f"tier[{idx}].perks must be list of strings"}), 400
+        if len(perks) > 20:
+            return jsonify({"error": f"tier[{idx}].perks max 20 items"}), 400
+
+        validated.append({
+            "id": tier_id,
+            "name": name.strip(),
+            "price": price_f,
+            "perks": [p.strip() for p in perks if p.strip()],
+        })
 
     # Store in stripe_transaction_ids JSON field (repurposed as metadata store)
     meta = podcast.stripe_transaction_ids if isinstance(podcast.stripe_transaction_ids, dict) else {}
-    meta["membership_tiers"] = tiers
+    meta["membership_tiers"] = validated
     podcast.stripe_transaction_ids = meta
     db.session.commit()
-    return jsonify({"success": True, "tiers": tiers})
+    return jsonify({"success": True, "tiers": validated})
 
 @podcast_pro_bp.route("/api/podcast/<int:podcast_id>/membership/subscribe", methods=["POST"])
 @jwt_required()

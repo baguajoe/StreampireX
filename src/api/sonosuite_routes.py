@@ -27,9 +27,32 @@ def _build_sns_jwt(user, return_to=None):
 
 @sonosuite_bp.route("/api/sonosuite/sso-login", methods=["GET"])
 def sso_login():
-    """SonoSuite calls this when user is unauthenticated."""
+    """SonoSuite calls this when user is unauthenticated.
+
+    SNS-1 (MED-B): the StreampireX session token used to be passed in
+    the ?token= query string. JWTs in URLs leak through web-server
+    access logs, browser history, the Referer header, and any analytics
+    script on the redirected page. We now prefer the Authorization
+    header (sent by the frontend's authenticated fetch). Query-string
+    fallback is retained for backward compatibility but logs a warning
+    so we can monitor and remove it after the frontend migration.
+
+    Note: the OUTBOUND ?jwt= to SonoSuite is a separate concern — that
+    one is required by SonoSuite's SSO spec and cannot be changed.
+    """
     return_to = request.args.get("return_to", "")
-    spx_token = request.args.get("token", "")
+
+    # Prefer Authorization: Bearer <token> header
+    auth_header = request.headers.get("Authorization", "")
+    spx_token = ""
+    if auth_header.startswith("Bearer "):
+        spx_token = auth_header[7:].strip()
+
+    # Fallback: legacy ?token= query string (deprecated; logs warning)
+    if not spx_token:
+        spx_token = request.args.get("token", "")
+        if spx_token:
+            print("[SNS-1] WARN: legacy ?token= query-string auth used at /api/sonosuite/sso-login. Migrate frontend to Authorization header.")
 
     if not spx_token:
         next_url = f"{FRONTEND_URL}/login?next=/sonosuite-redirect"

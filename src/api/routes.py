@@ -1286,6 +1286,11 @@ def start_stream():
     description = data.get("description", "")
     station_id = data.get("station_id")  # Optional for radio stations
 
+    # LIVE-2 (MED-B): cryptographic stream key. Was f"user_{user_id}_stream"
+    # which is fully predictable from public info, letting any attacker push
+    # RTMP into the relay for any user. Now 256 bits of entropy.
+    secure_stream_key = secrets.token_urlsafe(32)
+
     # If station_id is provided, handle it as a radio stream
     if station_id:
         station = RadioStation.query.filter_by(id=station_id, user_id=user_id).first()
@@ -1295,14 +1300,14 @@ def start_stream():
         # Create a live stream for the radio station
         new_stream = LiveStream(
             station_id=station_id,
-            stream_key=f"user_{user_id}_stream",
+            stream_key=secure_stream_key,
             is_live=True
         )
     else:
         # Create a live stream for the user
         new_stream = LiveStream(
             user_id=user_id,
-            stream_key=f"user_{user_id}_stream",
+            stream_key=secure_stream_key,
             title=title,
             description=description,
             is_live=True,
@@ -5694,9 +5699,12 @@ def start_live_stream():
     user_id = get_jwt_identity()
     data = request.get_json()
 
+    # LIVE-2 (MED-B) site 2: cryptographic stream key (was f"user_{user_id}_stream",
+    # 100% predictable from user_id). Same fix as routes.py:1286 (LiveStream).
+    secure_stream_key = secrets.token_urlsafe(32)
     new_stream = LiveStudio(
         user_id=user_id,
-        stream_key=f"user_{user_id}_stream",
+        stream_key=secure_stream_key,
         title=data.get("title"),
         description=data.get("description"),
         is_live=True,
