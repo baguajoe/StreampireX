@@ -3883,7 +3883,34 @@ class Comment(db.Model):
         }
 
 
-    
+class CommentLike(db.Model):
+    """SOC-2 (HIGH-C2): per-user uniqueness for general Comment likes.
+
+    Before this, Comment.likes was just an integer counter that any
+    user could increment unbounded by spamming the like endpoint.
+    With UNIQUE(comment_id, user_id), each user gets exactly one like
+    per comment. Toggle semantics: insert = like, delete = unlike.
+
+    Distinct from PodcastCommentLike (HIGH-B2) which covers the
+    separate PodcastComment table. This covers the general Comment
+    model used for songs/videos/posts/etc.
+    """
+    __tablename__ = 'comment_like'
+    __table_args__ = (
+        db.UniqueConstraint('comment_id', 'user_id', name='uq_comment_like_comment_user'),
+        {'extend_existing': True},
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    comment_id = db.Column(db.Integer,
+                           db.ForeignKey('comment.id', ondelete='CASCADE'),
+                           nullable=False, index=True)
+    user_id = db.Column(db.Integer,
+                        db.ForeignKey('user.id', ondelete='CASCADE'),
+                        nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
 class PodcastChapter(db.Model):
     __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)

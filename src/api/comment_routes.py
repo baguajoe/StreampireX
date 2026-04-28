@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from datetime import datetime
-from .models import db, User, Comment
+from .models import db, User, Comment, CommentLike
 
 comment_bp = Blueprint('comments', __name__)
 
@@ -96,10 +96,36 @@ def delete_comment(comment_id):
 @comment_bp.route('/api/comments/<int:comment_id>/like', methods=['POST'])
 @jwt_required()
 def like_comment(comment_id):
+    """SOC-2 (HIGH-C2): per-user toggle backed by CommentLike uniqueness.
+
+    Previously this just incremented Comment.likes unbounded. Now each
+    user can like a comment exactly once; second POST removes the like.
+    Comment.likes is kept as a denormalized counter for read-side
+    performance.
+    """
+    user_id = get_jwt_identity()
     comment = Comment.query.get_or_404(comment_id)
+
+    existing = CommentLike.query.filter_by(
+        comment_id=comment_id, user_id=user_id
+    ).first()
+
+    if existing:
+        db.session.delete(existing)
+        comment.likes = max(0, (comment.likes or 0) - 1)
+        db.session.commit()
+        return jsonify({'liked': False, 'likes': comment.likes}), 200
+
+    db.session.add(CommentLike(comment_id=comment_id, user_id=user_id))
     comment.likes = (comment.likes or 0) + 1
-    db.session.commit()
-    return jsonify({'likes': comment.likes})
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        # Race: another request inserted the like between query and commit.
+        # Treat as already-liked, no-op.
+        return jsonify({'liked': True, 'likes': comment.likes}), 200
+    return jsonify({'liked': True, 'likes': comment.likes}), 201
 
 
 # ── Helper ────────────────────────────────────────────────────────────────
