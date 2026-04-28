@@ -8,7 +8,14 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 
-const stripePromise = loadStripe("pk_test_51S56461wmbXT13hC7rZon6rQF6jYWxdXZ1mlwUut3vVYPn651N8skwxCb94fA8qsbyIt13O03HdHf4ZzDmACgPK00R0UznpnG");
+// SP-7: env-var-ified. Set REACT_APP_STRIPE_PUBLISHABLE_KEY in .env (local)
+// AND in Vercel project env vars (deployed). Swap pk_test_ for pk_live_ when
+// taking real payments.
+const _stripeKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
+if (!_stripeKey) {
+  console.error("[Stripe] REACT_APP_STRIPE_PUBLISHABLE_KEY is not set — payments will fail");
+}
+const stripePromise = loadStripe(_stripeKey);
 
 const CheckoutForm = () => {
   const stripe = useStripe();

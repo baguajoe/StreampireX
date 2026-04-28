@@ -3,7 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { loadStripe } from '@stripe/stripe-js';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY); // or process.env...
+// SP-7: was loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY) — Vite
+// syntax in a webpack project always resolves to undefined. Use the same
+// canonical env var as PaymentProcessing.js.
+const _stripeKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
+if (!_stripeKey) {
+  console.error("[Stripe] REACT_APP_STRIPE_PUBLISHABLE_KEY is not set — payments will fail");
+}
+const stripePromise = loadStripe(_stripeKey);
 
 const PodcastEpisode = () => {
   const { episodeId } = useParams();
