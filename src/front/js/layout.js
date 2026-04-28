@@ -129,6 +129,8 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import ShoppingCart from "./pages/ShoppingCart";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
+import MarketplaceHub from "./pages/MarketplaceHub";  // MC-3
+import MerchHub from "./pages/MerchHub";  // MC-3
 import SalesDashboard from "./pages/SalesDashboard";
 import Marketplace from "./pages/Marketplace";
 import StorefrontPage from "./pages/StorefrontPage";
@@ -469,7 +471,6 @@ const AppShell = ({ user }) => {
                                 {/* ---------------- Core App ---------------- */}
                                 <Route path="/dashboard/*" element={<Dashboard />} />
                                 <Route path="/creator-dashboard" element={<Navigate to="/dashboard" replace />} />
-                                <Route path="/seller-dashboard" element={<Navigate to="/dashboard" replace />} />
                                 <Route path="/artist-dashboard" element={<Navigate to="/dashboard" replace />} />
                                 <Route path="/podcast-dashboard" element={<PodcastDashboard />} />
                                 <Route path="/my-podcasts" element={<PodcastDashboard />} />
@@ -510,8 +511,8 @@ const AppShell = ({ user }) => {
                                 <Route path="/collab-browse" element={<CollabBrowsePage />} />
                                 <Route path="/collab-inbox" element={<CollabInbox />} />
 
-                                {/* ---------------- Beat / Producer ---------------- */}
-                                <Route path="/beat-store" element={<BeatStorePage />} />
+                                {/* ---------------- Beat / Producer (MC-3: /beat-store redirects) ---------------- */}
+                                <Route path="/beat-store" element={<Navigate to="/marketplace?tab=music" replace />} />
                                 <Route path="/beat/:id" element={<BeatDetailPage />} />
                                 <Route path="/producer/:id" element={<ProducerProfilePage />} />
                                 <Route path="/browse-producers" element={<BrowseProducersPage />} />
@@ -521,15 +522,18 @@ const AppShell = ({ user }) => {
                                 <Route path="/creator-sample-marketplace" element={<CreatorSampleMarketplace />} />
                                 <Route path="/jam-track-library" element={<JamTrackLibrary />} />
 
-                                {/* ---------------- Music Store ---------------- */}
-                                <Route path="/music-store" element={<MusicStore />} />
+                                {/* ---------------- Music Store (MC-3 redirects) ---------------- */}
+                                <Route path="/music-store" element={<Navigate to="/marketplace?tab=music" replace />} />
 
-                                {/* ---------------- Marketplace / Merch ---------------- */}
-                                <Route path="/marketplace" element={<Marketplace />} />
-                                <Route path="/storefront" element={<StorefrontPage />} />
-                                <Route path="/merch-designer" element={<MerchDesigner />} />
-                                <Route path="/merch-store" element={<MerchStore />} />
+                                {/* ---------------- Marketplace / Merch (MC-3) ---------------- */}
+                                <Route path="/marketplace" element={<MarketplaceHub />} />
+                                <Route path="/merch" element={<MerchHub />} />
+                                <Route path="/collabs" element={<CollabMarketplace />} />
+                                {/* Old routes kept as redirects for bookmarks */}
+                                <Route path="/merch-store" element={<Navigate to="/merch?tab=buy" replace />} />
+                                <Route path="/merch-designer" element={<Navigate to="/merch?tab=design" replace />} />
                                 <Route path="/store/:username" element={<MerchStore />} />
+                                <Route path="/storefront" element={<StorefrontPage />} />
                                 <Route path="/product/:id" element={<ProductDetailPage />} />
                                 <Route path="/cart" element={<ShoppingCart />} />
                                 <Route path="/checkout" element={<CheckoutPage />} />

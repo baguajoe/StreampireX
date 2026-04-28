@@ -323,9 +323,6 @@ const Sidebar = ({ user }) => {
         <MenuItem to="/epk-collab-hub" className={isActive("/epk-collab-hub") ? "active" : ""}>
           📋 <span className="sidebar-label">EPK & Collabs</span><MenuHint className="sidebar-hint">FREE</MenuHint>
         </MenuItem>
-        <MenuItem to="/music-store" className={isActive("/music-store") ? "active" : ""}>
-          🎹 <span className="sidebar-label">Music Store</span><MenuHint className="sidebar-hint">beats + stems</MenuHint>
-        </MenuItem>
         <MenuItem to="/creator/membership" className={isActive("/creator/membership") ? "active" : ""}>
           ⭐ <span className="sidebar-label">Fan Membership</span><MenuHint className="sidebar-hint">NEW</MenuHint>
         </MenuItem>
@@ -448,29 +445,14 @@ const Sidebar = ({ user }) => {
         <span className="sidebar-arrow" style={{ fontSize:'0.6rem', marginLeft:'auto' }}>{showStore ? '▼' : '▶'}</span>
       </SectionHeader>
       {showStore && (<>
-        {/* ── Browse ── */}
-        <MenuItem to="/marketplace" className={isActive("/marketplace") ? "active" : ""}>🛒 <span className="sidebar-label">Marketplace</span></MenuItem>
-        <MenuItem to="/music-store" className={isActive("/music-store") ? "active" : ""}>🎹 <span className="sidebar-label">Music Store</span><MenuHint className="sidebar-hint">tracks + albums</MenuHint></MenuItem>
-        <MenuItem to="/beat-store" className={isActive("/beat-store") ? "active" : ""}>🥁 <span className="sidebar-label">Beat Store</span></MenuItem>
-        <MenuItem to="/browse-stems" className={isActive("/browse-stems") ? "active" : ""}>🎵 <span className="sidebar-label">Stem Store</span></MenuItem>
-        <MenuItem to="/plugin-store" className={isActive("/plugin-store") ? "active" : ""}>🔌 <span className="sidebar-label">Plugin Store</span><MenuHint className="sidebar-hint">VST · WAM · VFX · 3D</MenuHint></MenuItem>
-        <MenuItem to="/3d-asset-store" className={isActive("/3d-asset-store") ? "active" : ""}>🧊 <span className="sidebar-label">3D Asset Store</span><MenuHint className="sidebar-hint">GLB · OBJ · rigs</MenuHint></MenuItem>
-        <MenuItem to="/vfx-store" className={isActive("/vfx-store") ? "active" : ""}>🎬 <span className="sidebar-label">VFX Store</span><MenuHint className="sidebar-hint">templates · LUTs</MenuHint></MenuItem>
-        <MenuItem to="/digital-products" className={isActive("/digital-products") ? "active" : ""}>💾 <span className="sidebar-label">Digital Products</span></MenuItem>
-        <MenuItem to="/creator-sample-marketplace" className={isActive("/creator-sample-marketplace") ? "active" : ""}>🎛️ <span className="sidebar-label">Sample Marketplace</span></MenuItem>
-        <MenuItem to="/collab-marketplace" className={isActive("/collab-marketplace") ? "active" : ""}>🤝 <span className="sidebar-label">Collab Board</span><MenuHint className="sidebar-hint">find artists</MenuHint></MenuItem>
-        {/* ── Sell ── */}
-        <MenuItem to="/storefront" className={isActive("/storefront") ? "active" : ""}>🏪 <span className="sidebar-label">My Storefront</span><MenuHint className="sidebar-hint">ship yourself</MenuHint></MenuItem>
-        <MenuItem to="/merch-store" className={isActive("/merch-store") ? "active" : ""}>👕 <span className="sidebar-label">Merch Store</span><MenuHint className="sidebar-hint">print-on-demand</MenuHint></MenuItem>
-        <MenuItem to="/merch-designer" className={isActive("/merch-designer") ? "active" : ""}>🎨 <span className="sidebar-label">Merch Designer</span></MenuItem>
-        <MenuItem to="/sell-beats" className={isActive("/sell-beats") ? "active" : ""}>💰 <span className="sidebar-label">Sell Beats</span></MenuItem>
-        <MenuItem to="/sell-stems" className={isActive("/sell-stems") ? "active" : ""}>💰 <span className="sidebar-label">Sell Stems</span></MenuItem>
-        <MenuItem to="/browse-producers" className={isActive("/browse-producers") ? "active" : ""}>🎤 <span className="sidebar-label">Browse Producers</span></MenuItem>
-        {/* ── Manage ── */}
-        <MenuItem to="/seller-dashboard" className={isActive("/seller-dashboard") ? "active" : ""}>📊 <span className="sidebar-label">Seller Dashboard</span></MenuItem>
-        <MenuItem to="/sales-dashboard" className={isActive("/sales-dashboard") ? "active" : ""}>📈 <span className="sidebar-label">Sales Analytics</span></MenuItem>
-        <MenuItem to="/orders" className={isActive("/orders") ? "active" : ""}>📦 <span className="sidebar-label">Orders</span></MenuItem>
-        <MenuItem to="/become-a-seller" className={isActive("/become-a-seller") ? "active" : ""}>✨ <span className="sidebar-label">Become a Seller</span><MenuHint className="sidebar-hint">start selling</MenuHint></MenuItem>
+        {/* MC-3: 19 entries consolidated to 5. Sales Analytics, Become-a-Seller, */}
+        {/* Sell-Beats, Sell-Stems, Browse-Producers, etc reachable from inside */}
+        {/* SellerDashboard or hub tabs but no longer in sidebar. */}
+        <MenuItem to="/marketplace" className={isActive("/marketplace") ? "active" : ""}>🛒 <span className="sidebar-label">Marketplace</span><MenuHint className="sidebar-hint">music · samples · plugins</MenuHint></MenuItem>
+        <MenuItem to="/merch" className={isActive("/merch") ? "active" : ""}>👕 <span className="sidebar-label">Merch</span><MenuHint className="sidebar-hint">buy · design</MenuHint></MenuItem>
+        <MenuItem to="/collabs" className={isActive("/collabs") ? "active" : ""}>🤝 <span className="sidebar-label">Collabs</span><MenuHint className="sidebar-hint">find artists</MenuHint></MenuItem>
+        <MenuItem to="/seller-dashboard" className={isActive("/seller-dashboard") ? "active" : ""}>🏪 <span className="sidebar-label">My Storefront</span><MenuHint className="sidebar-hint">your sales</MenuHint></MenuItem>
+        <MenuItem to="/orders" className={isActive("/orders") ? "active" : ""}>🧾 <span className="sidebar-label">My Orders</span><MenuHint className="sidebar-hint">your purchases</MenuHint></MenuItem>
       </>)}
 
       {/* #11 ACCOUNT */}
