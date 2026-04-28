@@ -35,7 +35,7 @@ if not os.getenv("JWT_SECRET_KEY"):
 
 # ✅ NOW import from src - path is set up
 from api.email_service import init_mail
-from flask import Flask, request, send_from_directory
+from flask import Flask, request, send_from_directory, jsonify, Response  # SP-4: jsonify+Response used at L515/520/564
 from flask_migrate import Migrate
 from flask_mail import Mail, Message as MailMessage
 from flask_jwt_extended import JWTManager, decode_token, exceptions as jwt_exceptions
@@ -412,14 +412,8 @@ def on_connect(auth):
     emit('welcome', {'msg': f'Hello, {user_identity}'})
     emit('listener_count', {'count': listener_count}, broadcast=True)
     
-@socketio.on('disconnect')
-def handle_disconnect(auth):
-    global listener_count
-    user_id = connected_users.pop(request.sid, None)
-    listener_count = max(listener_count - 1, 0)
-    print(f"❌ {user_id} disconnected (sid={request.sid})")
-    emit('listener_count', {'count': listener_count}, broadcast=True)
-
+# SP-4: duplicate @socketio.on('disconnect') removed. Canonical handler
+# lives in api/socketio.py and now also handles listener_count cleanup.
 @socketio.on('send_message')
 def handle_message(data):
     sid = request.sid
@@ -605,63 +599,35 @@ app.register_blueprint(music_upload_bp)
 # app.register_blueprint(printful_bp)  # duplicate removed
 app.register_blueprint(score_bp)
 
-if __name__ == '__main__':
-    PORT = int(os.environ.get('PORT', 3001))
-    
-    print(f"🚀 Starting SpectraSphere on port {PORT}")
-    print(f"🌍 Environment: {ENV}")
-    print(f"🔗 Backend URL: {os.getenv('BACKEND_URL')}")
-    print(f"🔗 Frontend URL: {os.getenv('FRONTEND_URL')}")
-    print(f"🗄️  Database: {'PostgreSQL' if 'postgresql' in app.config['SQLALCHEMY_DATABASE_URI'] else 'SQLite'}")
-    
-    try:
-        # Create tables
-        with app.app_context():
-            db.create_all()
-            print("✅ Database tables created/verified")
-    except Exception as e:
-        print(f"⚠️  Database setup warning: {e}")
-    
-    # Run with SocketIO
-    socketio.run(
-        app, 
-        host='0.0.0.0', 
-        port=PORT, 
-        debug=ENV == "development",
-        use_reloader=False  # Disable reloader to prevent issues
-    )
+# SP-4: All blueprint registrations moved BEFORE the if __name__ guard so
+# that dev-mode (`python src/app.py`) doesn't skip them. socketio.run() is
+# a blocking call — anything after the if __name__ block never executes
+# in dev mode. Production (gunicorn) was fine; dev mode was missing 10
+# blueprints, which is where most debugging happens before beta.
+#
+# Also converted the previously-silent try/except registrations to hard
+# imports — a blueprint that fails to import should break the build, not
+# silently leave the corresponding routes 404'ing.
+
 # app.register_blueprint(render_api, url_prefix="/api")  # disabled
 app.register_blueprint(plugin_marketplace_bp)
 app.register_blueprint(payout_bp)
 
-# ── Previously unregistered blueprints ──────────────────
-try:
-    from api.ai_auto_edit_routes import ai_auto_edit_bp
-    app.register_blueprint(ai_auto_edit_bp)
-    print('✅ ai_auto_edit_bp registered')
-except Exception as e:
-    print(f'⚠️  ai_auto_edit_bp: {e}')
+from api.ai_auto_edit_routes import ai_auto_edit_bp
+app.register_blueprint(ai_auto_edit_bp)
+print('✅ ai_auto_edit_bp registered')
 
-try:
-    from api.ai_video_credits_routes import ai_video_credits_bp
-    app.register_blueprint(ai_video_credits_bp)
-    print('✅ ai_video_credits_bp registered')
-except Exception as e:
-    print(f'⚠️  ai_video_credits_bp: {e}')
+from api.ai_video_credits_routes import ai_video_credits_bp
+app.register_blueprint(ai_video_credits_bp)
+print('✅ ai_video_credits_bp registered')
 
-try:
-    from api.beat_sync_routes import beat_sync_bp
-    app.register_blueprint(beat_sync_bp)
-    print('✅ beat_sync_bp registered')
-except Exception as e:
-    print(f'⚠️  beat_sync_bp: {e}')
+from api.beat_sync_routes import beat_sync_bp
+app.register_blueprint(beat_sync_bp)
+print('✅ beat_sync_bp registered')
 
-try:
-    from api.epk_collab_routes import epk_collab_bp as epk_collab_routes_bp
-    app.register_blueprint(epk_collab_routes_bp)
-    print('✅ epk_collab_routes_bp registered')
-except Exception as e:
-    print(f'⚠️  epk_collab_routes_bp: {e}')
+from api.epk_collab_routes import epk_collab_bp as epk_collab_routes_bp
+app.register_blueprint(epk_collab_routes_bp)
+print('✅ epk_collab_routes_bp registered')
 
 from api.video_export_routes import video_export_bp
 app.register_blueprint(video_export_bp)
@@ -670,11 +636,40 @@ print('✅ video_export_bp registered')
 from api.projects_routes import projects_bp
 app.register_blueprint(projects_bp)
 print('✅ projects_bp registered')
+
 from api.ai_fill_routes import ai_fill_bp
 app.register_blueprint(ai_fill_bp)
 print('✅ ai_fill_bp registered')
+
 from api.routes.script_routes import script_bp
 from api.routes.script_collab_ws import register_collab_ws
 app.register_blueprint(script_bp)
 register_collab_ws(sock)
 print('✅ script_bp registered')
+
+# ---------------------------------------------------------------------------
+# Server entry point — must be last
+# ---------------------------------------------------------------------------
+if __name__ == '__main__':
+    PORT = int(os.environ.get('PORT', 3001))
+
+    print(f"🚀 Starting SpectraSphere on port {PORT}")
+    print(f"🌍 Environment: {ENV}")
+    print(f"🔗 Backend URL: {os.getenv('BACKEND_URL')}")
+    print(f"🔗 Frontend URL: {os.getenv('FRONTEND_URL')}")
+    print(f"🗄️  Database: {'PostgreSQL' if 'postgresql' in app.config['SQLALCHEMY_DATABASE_URI'] else 'SQLite'}")
+
+    try:
+        with app.app_context():
+            db.create_all()
+            print("✅ Database tables created/verified")
+    except Exception as e:
+        print(f"⚠️  Database setup warning: {e}")
+
+    socketio.run(
+        app,
+        host='0.0.0.0',
+        port=PORT,
+        debug=ENV == "development",
+        use_reloader=False
+    )

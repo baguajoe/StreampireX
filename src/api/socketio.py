@@ -141,7 +141,12 @@ def handle_connect():
 
 @socketio.on("disconnect")
 def handle_disconnect():
-    """Unified disconnect cleanup for ALL room types."""
+    """Unified disconnect cleanup for ALL room types.
+
+    SP-4: also handles listener_count tracking that previously lived in a
+    duplicate @socketio.on('disconnect') in app.py. Imports are local to
+    avoid circular-import issues at module load time.
+    """
     sid = request.sid
     print(f"❌ Client disconnected: {sid}")
 
@@ -149,6 +154,19 @@ def handle_disconnect():
     _remove_sid_from_chat_rooms(sid)
     _remove_sid_from_team_rooms(sid)
     _remove_sid_from_podcast_rooms(sid)
+
+    # Listener-count tracking (merged from app.py).
+    try:
+        from app import connected_users, emit
+        # listener_count is module-global in app.py — mutate via the module.
+        import app as _app_mod
+        user_id = connected_users.pop(sid, None)
+        _app_mod.listener_count = max(_app_mod.listener_count - 1, 0)
+        print(f"❌ {user_id} listener disconnected (sid={sid})")
+        emit('listener_count', {'count': _app_mod.listener_count}, broadcast=True)
+    except Exception as e:
+        # Don't let listener_count failures break the rest of disconnect cleanup.
+        print(f"⚠️  listener_count cleanup skipped: {e}")
 
 
 # -----------------------------------------------------------------------------
