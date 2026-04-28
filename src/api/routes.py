@@ -6067,32 +6067,47 @@ def recommend_content(user_id):
         "recommended_podcasts": [p.serialize() for p in similar_podcasts]
     })
 @api.route('/search', methods=['GET'])
+@jwt_required()  # SP-9: was unauth - public scrapers could hammer this
 def search_content():
-    query = request.args.get('q', '').strip()
-    content_type = request.args.get('type', '').lower()  # "podcast" or "radio"
-    sort = request.args.get('sort', '').lower()          # "latest", "popular"
+    # SP-9: rate limit (30/min per IP+endpoint)
+    from api.search_helpers import check_rate_limit
+    rl = check_rate_limit('search', max_per_min=30)
+    if rl is not None:
+        return rl
 
-    if not query:
-        return jsonify({"error": "No search query provided"}), 400
+    query = request.args.get('q', '').strip()
+    content_type = request.args.get('type', '').lower()
+    sort = request.args.get('sort', '').lower()
+
+    # SP-9: hardened input validation
+    if not query or len(query) < 2:
+        return jsonify({"error": "Query must be at least 2 characters"}), 400
+    if len(query) > 100:
+        return jsonify({"error": "Query too long"}), 400
+
+    # SP-9: paginated, capped at 50
+    try:
+        limit = min(int(request.args.get('limit', 25)), 50)
+        offset = max(int(request.args.get('offset', 0)), 0)
+    except (TypeError, ValueError):
+        limit, offset = 25, 0
 
     if content_type == "podcast":
         results = Podcast.query.filter(Podcast.title.ilike(f"%{query}%"))
-        
         if sort == "latest":
             results = results.order_by(Podcast.created_at.desc())
         elif sort == "popular":
             results = results.order_by(Podcast.subscriber_count.desc())
-
+        results = results.offset(offset).limit(limit)
         return jsonify({"podcasts": [p.serialize() for p in results.all()]}), 200
 
     elif content_type == "radio":
         results = RadioStation.query.filter(RadioStation.name.ilike(f"%{query}%"))
-        
         if sort == "latest":
             results = results.order_by(RadioStation.created_at.desc())
         elif sort == "popular":
             results = results.order_by(RadioStation.followers_count.desc())
-
+        results = results.offset(offset).limit(limit)
         return jsonify({"radio_stations": [r.serialize() for r in results.all()]}), 200
 
     return jsonify({"error": "Invalid content type. Use 'podcast' or 'radio'."}), 400
@@ -10370,8 +10385,14 @@ def update_online_status():
         return jsonify({"error": str(e)}), 500
     
 @api.route('/gamers/search', methods=['GET'])
+@jwt_required()  # SP-9: was unauth
 def search_gamers():
     """Search for gamers based on criteria"""
+    # SP-9: rate limit
+    from api.search_helpers import check_rate_limit
+    rl = check_rate_limit('gamers_search', max_per_min=30)
+    if rl is not None:
+        return rl
     try:
         # Get query parameters
         game = request.args.get('game')
@@ -12524,21 +12545,30 @@ def remove_from_inner_circle(friend_user_id):
 @jwt_required()
 def search_users_for_circle():
     """Search users to add to inner circle"""
+    # SP-9: rate limit + block-list filtering
+    from api.search_helpers import check_rate_limit, blocked_user_ids
+    rl = check_rate_limit('inner_circle_search', max_per_min=30)
+    if rl is not None:
+        return rl
     try:
         user_id = get_jwt_identity()
         query = request.args.get('q', '').strip()
         
         if not query or len(query) < 2:
             return jsonify({"users": []}), 200
+        if len(query) > 100:
+            return jsonify({"error": "Query too long"}), 400
         
-        # Get users already in circle
         existing_circle_ids = db.session.query(InnerCircle.member_user_id)\
             .filter_by(user_id=user_id).subquery()
         
-        # Search users not in circle and not self
+        # SP-9: exclude users in mutual block relationship
+        blocked_ids = blocked_user_ids(user_id)
+        
         users = User.query.filter(
-            User.id != user_id,  # Not self
-            ~User.id.in_(existing_circle_ids),  # Not already in circle
+            User.id != user_id,
+            ~User.id.in_(existing_circle_ids),
+            ~User.id.in_(blocked_ids) if blocked_ids else True,
             or_(
                 User.username.ilike(f'%{query}%'),
                 User.display_name.ilike(f'%{query}%'),
