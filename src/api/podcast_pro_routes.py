@@ -71,18 +71,37 @@ def update_tiers(podcast_id):
 @podcast_pro_bp.route("/api/podcast/<int:podcast_id>/membership/subscribe", methods=["POST"])
 @jwt_required()
 def subscribe_membership(podcast_id):
+    """CRIT-1 (POD-1): the prior version trusted client-supplied price,
+    which let a buyer pay $0.01 for any tier. Server now looks up the
+    real price from podcast.stripe_transaction_ids['membership_tiers'].
+    """
     user_id = get_jwt_identity()
     data = request.get_json() or {}
     tier_id = data.get("tier_id")
-    price = data.get("price", 0)
 
-    if price == 0:
-        return jsonify({"success": True, "tier": tier_id})
+    if not tier_id:
+        return jsonify({"error": "tier_id required"}), 400
 
     # Create Stripe checkout session
     import stripe
     stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
     podcast = Podcast.query.get_or_404(podcast_id)
+
+    # CRIT-1 (POD-1): server-side tier price lookup. Never trust client.
+    tiers = (podcast.stripe_transaction_ids or {}).get("membership_tiers") or []
+    tier = next((t for t in tiers if str(t.get("id")) == str(tier_id)), None)
+    if not tier:
+        return jsonify({"error": "Unknown tier"}), 400
+    try:
+        price = float(tier.get("price") or 0)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Tier has invalid price configured"}), 500
+    if price < 0:
+        return jsonify({"error": "Tier has invalid price configured"}), 500
+
+    if price == 0:
+        # Free tier - no Stripe session needed.
+        return jsonify({"success": True, "tier": tier_id, "free": True})
 
     from api.stripe_helpers import (
         get_creator_destination,

@@ -21,8 +21,33 @@ _viewers = {}
 def register_radio_socketio(socketio: SocketIO):
 
     @socketio.on("connect", namespace="/ws/radio")
-    def on_connect():
-        pass  # No auth required at connect; validated per event
+    def on_connect(auth=None):
+        """CRIT-1 (RAD-1): the prior version had no auth at all, allowing
+        any socket to call broadcaster_join and hijack live streams.
+        Now requires a JWT in the connect handshake and stores the
+        authenticated user_id in the socket session.
+        """
+        from flask import session as flask_session
+        from flask_jwt_extended import decode_token
+
+        # Token can come from auth dict (preferred) or query string fallback.
+        token = None
+        if isinstance(auth, dict):
+            token = auth.get("token")
+        if not token:
+            token = request.args.get("token")
+        if not token:
+            return False  # Reject connection
+
+        try:
+            decoded = decode_token(token)
+            uid = decoded.get("sub") or decoded.get("identity")
+            if not uid:
+                return False
+            # Store on the socketio session for later events
+            flask_session["radio_user_id"] = int(uid)
+        except Exception:
+            return False
 
     @socketio.on("disconnect", namespace="/ws/radio")
     def on_disconnect():
@@ -46,12 +71,35 @@ def register_radio_socketio(socketio: SocketIO):
 
     @socketio.on("broadcaster_join", namespace="/ws/radio")
     def on_broadcaster_join(data):
-        """Broadcaster announces themselves as live."""
+        """Broadcaster announces themselves as live.
+
+        CRIT-1 (RAD-1): now verifies the connected user OWNS the station
+        before accepting the broadcaster_join. Without this check, anyone
+        could hijack any live radio stream.
+        """
+        from flask import session as flask_session
+        from api.models import RadioStation
+
         station_id = str(data.get("station_id"))
         mode = data.get("mode", "audio")  # audio | video
         sid = request.sid
 
-        _broadcasters[station_id] = {"sid": sid, "mode": mode}
+        # CRIT-1 (RAD-1): authorize broadcaster
+        user_id = flask_session.get("radio_user_id")
+        if not user_id:
+            emit("error", {"message": "Not authenticated"})
+            return
+        try:
+            station = RadioStation.query.filter_by(
+                id=int(station_id), user_id=int(user_id)
+            ).first()
+        except (TypeError, ValueError):
+            station = None
+        if not station:
+            emit("error", {"message": "Not authorized to broadcast on this station"})
+            return
+
+        _broadcasters[station_id] = {"sid": sid, "mode": mode, "user_id": user_id}
         join_room(f"station_{station_id}_broadcast")
 
         # If viewers already waiting, notify them

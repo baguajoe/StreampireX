@@ -2877,10 +2877,25 @@ def get_share_stats():
     })
 
 @api.route('/profiles', methods=['GET'])
+@jwt_required()
 def get_all_profiles():
-    users = User.query.all()
-    # Ensure that user.serialize() is correct for your User model
-    return jsonify([user.serialize() for user in users]), 200
+    """CRIT-1 (PROF-1): was unauthenticated and dumped emails for every user.
+    Now requires JWT, paginated (max 50/page), uses serialize_public.
+    """
+    page = max(1, int(request.args.get('page', 1) or 1))
+    try:
+        per_page = int(request.args.get('per_page', 20))
+    except (TypeError, ValueError):
+        per_page = 20
+    per_page = max(1, min(per_page, 50))
+    pagination = User.query.paginate(page=page, per_page=per_page, error_out=False)
+    return jsonify({
+        "users": [u.serialize_public() for u in pagination.items],
+        "page": pagination.page,
+        "per_page": pagination.per_page,
+        "total": pagination.total,
+        "pages": pagination.pages,
+    }), 200
 
 # Route to get the logged-in user's profile
 
@@ -8517,19 +8532,24 @@ def get_user_profile():
         }), 500
 
 @api.route("/user/<int:user_id>", methods=["GET"])
+@jwt_required()
 def get_user_by_id(user_id):
-    """Get a specific user's public profile data"""
+    """Get a specific user's public profile data.
+
+    CRIT-1 (PROF-2): was unauthenticated and exposed emails. Now requires
+    JWT and returns only public-safe fields.
+    """
     try:
         user = User.query.get(user_id)
-        
+
         if not user:
             return jsonify({"error": "User not found"}), 404
-        
-        return jsonify(user.serialize()), 200
-        
+
+        return jsonify(user.serialize_public()), 200
+
     except Exception as e:
         return jsonify({
-            "error": f"Failed to retrieve user: {str(e)}"
+            "error": "Failed to retrieve user"
         }), 500
 
 # 🔍 Discover Users - Browse/Search Users
@@ -10664,11 +10684,15 @@ def submit_music_to_station():
 
 # Get comprehensive gamer profile
 @api.route('/profile/gamer/<int:user_id>', methods=['GET'])
+@jwt_required()
 def get_comprehensive_gamer_profile(user_id):
+    """CRIT-1 (PROF-3): was unauthenticated and exposed emails. Now requires
+    JWT and uses the existing gamer-specific serializer (no email).
+    """
     user = User.query.get(user_id)
     if not user or not user.is_gamer:
         return jsonify({"error": "Gamer profile not found"}), 404
-    return jsonify(user.serialize()), 200
+    return jsonify(user.serialize_gamer()), 200
 
 # Update comprehensive gamer profile
 @api.route('/profile/gamer/update', methods=['PUT'])

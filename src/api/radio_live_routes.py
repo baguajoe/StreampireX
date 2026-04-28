@@ -6,6 +6,7 @@
 
 import os, uuid, json
 from datetime import datetime
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import Blueprint, request, jsonify, current_app
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from api.models import db, RadioStation, User
@@ -15,19 +16,28 @@ import jwt as pyjwt
 radio_live_bp = Blueprint("radio_live", __name__)
 
 # ── Helper: get user from JWT ─────────────────────────────────────────────────
+# CRIT-1 (RAD-2): the prior version used a bespoke pyjwt.decode with a
+# hardcoded "secret" fallback that made every endpoint forgable when
+# FLASK_APP_KEY was unset. Now uses flask_jwt_extended (same as the rest
+# of the app) and requires callers to wrap their route in @jwt_required.
 def get_user_from_token():
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        return None
-    token = auth.split(" ")[1]
+    """Return the current authenticated user, or None.
+
+    Callers should wrap their route in @jwt_required(optional=True) so
+    that an explicit 401 is returned for missing/invalid tokens. This
+    function only looks up the User row.
+    """
     try:
-        data = pyjwt.decode(token, os.environ.get("FLASK_APP_KEY", "secret"), algorithms=["HS256"])
-        return User.query.get(data.get("sub") or data.get("id"))
-    except:
+        uid = get_jwt_identity()
+    except Exception:
         return None
+    if not uid:
+        return None
+    return User.query.get(uid)
 
 # ── Stream Key ────────────────────────────────────────────────────────────────
 @radio_live_bp.route("/api/radio/<int:station_id>/stream-key", methods=["GET"])
+@jwt_required()
 def get_stream_key(station_id):
     user = get_user_from_token()
     if not user:
@@ -51,6 +61,7 @@ def get_stream_key(station_id):
     })
 
 @radio_live_bp.route("/api/radio/<int:station_id>/stream-key/regenerate", methods=["POST"])
+@jwt_required()
 def regenerate_stream_key(station_id):
     user = get_user_from_token()
     if not user:
@@ -69,6 +80,7 @@ def regenerate_stream_key(station_id):
 
 # ── Toggle Live (enhanced) ────────────────────────────────────────────────────
 @radio_live_bp.route("/api/radio/<int:station_id>/toggle-live", methods=["POST"])
+@jwt_required()
 def toggle_live(station_id):
     user = get_user_from_token()
     if not user:
@@ -104,6 +116,7 @@ def toggle_live(station_id):
 
 # ── Upload Recording to R2 ────────────────────────────────────────────────────
 @radio_live_bp.route("/api/radio/<int:station_id>/upload-recording", methods=["POST"])
+@jwt_required()
 def upload_recording(station_id):
     user = get_user_from_token()
     if not user:
@@ -127,6 +140,7 @@ def upload_recording(station_id):
 
 # ── PlayMix Submission ────────────────────────────────────────────────────────
 @radio_live_bp.route("/api/radio/<int:station_id>/playmix/submit", methods=["POST"])
+@jwt_required()
 def submit_to_playmix(station_id):
     """
     Submit a track to station's PlayMix rotation with full PRO/BMI/ASCAP data.
@@ -246,6 +260,7 @@ def submit_to_playmix(station_id):
 
 # ── PlayMix: Get tracks ───────────────────────────────────────────────────────
 @radio_live_bp.route("/api/radio/<int:station_id>/playmix/tracks", methods=["GET"])
+@jwt_required()
 def get_playmix_tracks(station_id):
     user = get_user_from_token()
     if not user:
@@ -265,6 +280,7 @@ def get_playmix_tracks(station_id):
 
 # ── PlayMix: Approve / Reject track (station owner only) ────────────────────
 @radio_live_bp.route("/api/radio/<int:station_id>/playmix/tracks/<track_id>/status", methods=["PATCH"])
+@jwt_required()
 def update_track_status(station_id, track_id):
     user = get_user_from_token()
     if not user:
@@ -342,6 +358,7 @@ def log_play(station_id):
 
 # ── PRO Report Export ────────────────────────────────────────────────────────
 @radio_live_bp.route("/api/radio/<int:station_id>/playmix/pro-report", methods=["GET"])
+@jwt_required()
 def export_pro_report(station_id):
     """
     Export play data in format suitable for BMI/ASCAP/SESAC reporting.

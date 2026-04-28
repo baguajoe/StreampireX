@@ -294,6 +294,29 @@ class User(db.Model):
             "follower_count": self.follower_count or 0,
         }
 
+    def serialize_public(self):
+        """CRIT-1 (PROF-1/2/3): Public-safe serializer that EXCLUDES email,
+        business_name, social_links, and other PII. Use this for any
+        endpoint that returns user data to non-owners or unauthenticated
+        callers.
+        """
+        return {
+            "id": self.id,
+            "username": self.username,
+            "display_name": getattr(self, "display_name", None),
+            "artist_name": getattr(self, "artist_name", None),
+            "bio": getattr(self, "bio", None),
+            "avatar_url": self.avatar_url,
+            "cover_photo": getattr(self, "cover_photo", None),
+            "is_verified": getattr(self, "is_verified", False),
+            "is_artist": getattr(self, "is_artist", False),
+            "is_gamer": getattr(self, "is_gamer", False),
+            "follower_count": self.follower_count or 0,
+            "following_count": getattr(self, "following_count", 0) or 0,
+            "profile_type": getattr(self, "profile_type", None),
+            "created_at": self.created_at.strftime("%Y-%m-%d") if getattr(self, "created_at", None) else None,
+        }
+
     def serialize_gamer(self):
         """Serialize gamer profile specific data"""
         return {
