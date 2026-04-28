@@ -751,26 +751,50 @@ def purchase_webhook():
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         meta = session.get('metadata', {})
-        film_id = int(meta.get('film_id', 0))
-        user_id = int(meta.get('user_id', 0))
         purchase_type = meta.get('purchase_type', 'buy')
+        user_id = int(meta.get('user_id', 0))
 
-        film = Film.query.get(film_id)
-        if film and user_id:
-            expires_at = None
-            if purchase_type == 'rent':
-                expires_at = datetime.utcnow() + timedelta(hours=film.rent_duration_hours)
+        if purchase_type in ('rent', 'buy'):
+            film_id = int(meta.get('film_id', 0))
+            film = Film.query.get(film_id)
+            if film and user_id:
+                expires_at = None
+                if purchase_type == 'rent':
+                    expires_at = datetime.utcnow() + timedelta(hours=film.rent_duration_hours)
 
-            purchase = FilmPurchase(
-                film_id=film_id,
-                user_id=user_id,
-                purchase_type=purchase_type,
-                amount_paid=session.get('amount_total', 0) / 100,
-                stripe_session_id=session.get('id'),
-                expires_at=expires_at,
-            )
-            db.session.add(purchase)
-            db.session.commit()
+                purchase = FilmPurchase(
+                    film_id=film_id,
+                    user_id=user_id,
+                    purchase_type=purchase_type,
+                    amount_paid=session.get('amount_total', 0) / 100,
+                    stripe_session_id=session.get('id'),
+                    expires_at=expires_at,
+                )
+                db.session.add(purchase)
+                db.session.commit()
+        elif purchase_type == 'screening_ticket':
+            screening_id = int(meta.get('screening_id', 0))
+            if screening_id and user_id:
+                screening = Screening.query.get(screening_id)
+                if screening:
+                    existing = ScreeningTicket.query.filter_by(
+                        screening_id=screening_id, user_id=user_id
+                    ).first()
+                    if not existing:
+                        ticket = ScreeningTicket(
+                            screening_id=screening_id,
+                            user_id=user_id,
+                            amount_paid=session.get('amount_total', 0) / 100,
+                            stripe_session_id=session.get('id'),
+                        )
+                        db.session.add(ticket)
+                        # Atomic bump so concurrent webhook deliveries can't
+                        # lose a sold_count update via read-modify-write.
+                        Screening.query.filter(Screening.id == screening_id).update(
+                            {Screening.sold_count: Screening.sold_count + 1},
+                            synchronize_session=False,
+                        )
+                        db.session.commit()
 
     return jsonify({'received': True}), 200
 
