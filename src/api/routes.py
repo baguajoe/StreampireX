@@ -21491,7 +21491,7 @@ def get_clips_feed():
     try:
         sort = request.args.get('sort', 'trending')
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 10, type=int)
+        per_page = min(max(1, request.args.get('per_page', 10, type=int) or 10), 50)  # MED-A2
         
         query = VideoClip.query.filter_by(is_public=True)
         
@@ -21555,7 +21555,7 @@ def get_following_clips():
     try:
         user_id = get_jwt_identity()
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 10, type=int)
+        per_page = min(max(1, request.args.get('per_page', 10, type=int) or 10), 50)  # MED-A2
         
         # Get followed user IDs
         following_ids = [f.following_id for f in Follow.query.filter_by(follower_id=user_id).all()]
@@ -21631,7 +21631,7 @@ def get_user_clips(user_id):
     """Get public clips for a specific user (profile page)."""
     try:
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 12, type=int)
+        per_page = min(max(1, request.args.get('per_page', 12, type=int) or 12), 50)  # MED-A2
         
         user = User.query.get(user_id)
         if not user:
@@ -21691,7 +21691,7 @@ def get_my_clips():
     try:
         user_id = get_jwt_identity()
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 12, type=int)
+        per_page = min(max(1, request.args.get('per_page', 12, type=int) or 12), 50)  # MED-A2
         include_private = request.args.get('include_private', 'true').lower() == 'true'
         
         query = VideoClip.query.filter_by(user_id=user_id)
@@ -23863,7 +23863,7 @@ def get_reels_feed():
         user_id = get_jwt_identity()
         feed_type = request.args.get('type', 'foryou')
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 10, type=int)
+        per_page = min(max(1, request.args.get('per_page', 10, type=int) or 10), 50)  # MED-A2
 
         # Base query: all public reels + clips (both show in feed)
         base_query = VideoClip.query.filter(

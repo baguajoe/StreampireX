@@ -52,7 +52,7 @@ PLATFORM_CUT = 0.10  # 10% platform fee
 def list_courses():
     """Public course marketplace — no auth required."""
     page     = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 20, type=int)
+    per_page = min(max(1, request.args.get("per_page", 20, type=int) or 20), 50)  # MED-A2
     category = request.args.get("category")
     query    = request.args.get("q", "")
     sort     = request.args.get("sort", "newest")  # newest | popular | price_asc | price_desc | free

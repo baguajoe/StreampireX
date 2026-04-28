@@ -261,7 +261,7 @@ def delete_preset(preset_id):
 def get_community_presets():
     """Browse public presets shared by other users"""
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 20, type=int)
+    per_page = min(max(1, request.args.get('per_page', 20, type=int) or 20), 50)  # MED-A2
     search = request.args.get('search', '', type=str)
     base_profile = request.args.get('base_profile', '', type=str)
 
@@ -368,7 +368,7 @@ def get_recordings():
     """List user's mic simulator recordings"""
     user_id = get_jwt_identity()
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 20, type=int)
+    per_page = min(max(1, request.args.get('per_page', 20, type=int) or 20), 50)  # MED-A2
     mic_profile = request.args.get('mic_profile', '', type=str)
 
     query = MicSimRecording.query.filter_by(user_id=user_id)

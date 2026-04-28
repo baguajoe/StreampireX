@@ -353,7 +353,7 @@ def get_credit_history():
     try:
         user_id = get_jwt_identity()
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 20, type=int)
+        per_page = min(max(1, request.args.get('per_page', 20, type=int) or 20), 50)  # MED-A2
         
         # Get purchases
         purchases = CreditPackPurchase.query.filter_by(
