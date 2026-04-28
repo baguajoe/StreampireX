@@ -10,7 +10,7 @@ from datetime import datetime
 from sqlalchemy import or_, and_, desc, func
 
 # Import your models - adjust path if needed
-from api.models import db, User, Message, Conversation
+from api.models import db, User, Message, Conversation, ConversationHidden
 
 messages_bp = Blueprint('messages', __name__)
 
@@ -25,10 +25,19 @@ def get_conversations():
     """
     Get all conversations for the current user.
     Returns list of conversations with other user info and last message.
+
+    MSG-2 (HIGH-C3): filters out peers the user has hidden via
+    ConversationHidden. Hide is per-user, doesn't affect other user.
     """
     try:
         user_id = get_jwt_identity()
-        
+
+        # MSG-2 (HIGH-C3): set of peers the current user has hidden
+        hidden_peer_ids = {
+            row.other_user_id
+            for row in ConversationHidden.query.filter_by(user_id=user_id).all()
+        }
+
         # Try to get conversations from Conversation model first
         try:
             conversations = Conversation.query.filter(
@@ -42,6 +51,9 @@ def get_conversations():
             for conv in conversations:
                 # Determine the other user
                 other_user_id = conv.user2_id if conv.user1_id == user_id else conv.user1_id
+                # MSG-2 (HIGH-C3): skip hidden peers
+                if other_user_id in hidden_peer_ids:
+                    continue
                 other_user = User.query.get(other_user_id)
                 
                 if other_user:
@@ -89,6 +101,8 @@ def get_conversations():
             
             # Combine unique user IDs
             other_user_ids = set([r[0] for r in sent_to] + [r[0] for r in received_from])
+            # MSG-2 (HIGH-C3): drop peers the user has hidden
+            other_user_ids -= hidden_peer_ids
             
             result = []
             for other_id in other_user_ids:
@@ -297,7 +311,23 @@ def send_message():
                 db.session.add(conversation)
         except Exception as conv_error:
             print(f"Conversation update skipped: {conv_error}")
-        
+
+        # MSG-2 (HIGH-C3): auto-unhide — if recipient had hidden this
+        # thread, clear the hide row so the new message resurrects the
+        # conversation in their inbox. Sender's own hide row also
+        # cleared (they re-engaged by sending).
+        try:
+            ConversationHidden.query.filter(
+                or_(
+                    and_(ConversationHidden.user_id == recipient_id,
+                         ConversationHidden.other_user_id == user_id),
+                    and_(ConversationHidden.user_id == user_id,
+                         ConversationHidden.other_user_id == recipient_id),
+                )
+            ).delete(synchronize_session=False)
+        except Exception as unhide_error:
+            print(f"Auto-unhide skipped: {unhide_error}")
+
         db.session.commit()
         
         return jsonify({
@@ -511,32 +541,40 @@ def get_unread_count():
 @messages_bp.route('/api/messages/conversation/<int:other_user_id>', methods=['DELETE'])
 @jwt_required()
 def delete_conversation(other_user_id):
-    """Delete all messages in a conversation"""
+    """MSG-2 (HIGH-C3): soft-delete (hide) a conversation for the
+    current user only. Does NOT touch messages or the other user's view.
+    Idempotent — second DELETE on an already-hidden thread is a no-op.
+    """
     try:
         user_id = get_jwt_identity()
-        
-        # Delete messages
-        deleted = Message.query.filter(
-            or_(
-                and_(Message.sender_id == user_id, Message.recipient_id == other_user_id),
-                and_(Message.sender_id == other_user_id, Message.recipient_id == user_id)
-            )
-        ).delete()
-        
-        # Try to delete conversation record
+
+        if user_id == other_user_id:
+            return jsonify({'error': 'Cannot hide self-conversation'}), 400
+
+        # Verify other user exists (so we don't quietly hide phantom threads)
+        if not User.query.get(other_user_id):
+            return jsonify({'error': 'User not found'}), 404
+
+        existing = ConversationHidden.query.filter_by(
+            user_id=user_id, other_user_id=other_user_id
+        ).first()
+        if existing:
+            return jsonify({'hidden': True, 'message': 'Already hidden'}), 200
+
+        hidden = ConversationHidden(
+            user_id=user_id,
+            other_user_id=other_user_id,
+        )
+        db.session.add(hidden)
         try:
-            Conversation.query.filter(
-                or_(
-                    and_(Conversation.user1_id == user_id, Conversation.user2_id == other_user_id),
-                    and_(Conversation.user1_id == other_user_id, Conversation.user2_id == user_id)
-                )
-            ).delete()
-        except:
-            pass
-        
-        db.session.commit()
-        return jsonify({'deleted': deleted}), 200
-        
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            # Race: another request inserted the hide row between query
+            # and commit. Treat as success.
+            return jsonify({'hidden': True, 'message': 'Already hidden'}), 200
+        return jsonify({'hidden': True, 'message': 'Conversation hidden'}), 200
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500

@@ -4903,6 +4903,45 @@ class Conversation(db.Model):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
 
+
+class ConversationHidden(db.Model):
+    """MSG-2 (HIGH-C3): per-user hidden DM threads (soft-delete).
+
+    Before this model existed, DELETE /api/messages/conversation/<id>
+    hard-deleted every message in the thread, destroying the OTHER
+    user's copy of the conversation too. That was unauthorized data
+    destruction and a privacy violation.
+
+    Now "deleting" a conversation just inserts a row here, hiding
+    the thread for that user only. The other user is unaffected.
+    The conversation is not actually deleted; it's filtered out of
+    the user's inbox in get_conversations.
+
+    Auto-unhide: when a new message arrives from the hidden peer,
+    send_message clears the hidden row so the thread resurrects
+    (industry standard — iMessage, Messenger, Slack all do this).
+
+    Keyed on (user_id, other_user_id) instead of conversation_id
+    because the messages_routes fallback branch builds threads from
+    raw Message rows when no Conversation row exists, and we still
+    need hide-functionality there.
+    """
+    __tablename__ = 'conversation_hidden'
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'other_user_id', name='uq_conv_hidden_user_pair'),
+        db.CheckConstraint('user_id != other_user_id', name='ck_conv_hidden_distinct_users'),
+        {'extend_existing': True},
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer,
+                        db.ForeignKey('user.id', ondelete='CASCADE'),
+                        nullable=False, index=True)
+    other_user_id = db.Column(db.Integer,
+                              db.ForeignKey('user.id', ondelete='CASCADE'),
+                              nullable=False, index=True)
+    hidden_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
 # 👥 Group Chat Model
 class Group(db.Model):
     __table_args__ = {'extend_existing': True}
