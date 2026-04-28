@@ -1036,6 +1036,10 @@ def vote_for_film(submission_id):
     user_id = get_jwt_identity()
     submission = FestivalSubmission.query.get_or_404(submission_id)
 
+    # FA-3 (FE-1): block self-voting. Creators can't pad their own submission.
+    if submission.creator_id == user_id:
+        return jsonify({'error': 'You cannot vote for your own submission'}), 403
+
     existing = FestivalVote.query.filter_by(
         submission_id=submission_id, user_id=user_id
     ).first()
@@ -1123,6 +1127,12 @@ def get_watchlist():
 @jwt_required()
 def add_to_watchlist(film_id):
     user_id = get_jwt_identity()
+    # FA-5 (FE-1): verify film exists before creating watchlist row.
+    # Without this, client could create orphan watchlist entries.
+    film = Film.query.get(film_id)
+    if not film:
+        return jsonify({'error': 'Film not found'}), 404
+
     existing = WatchlistItem.query.filter_by(film_id=film_id, user_id=user_id).first()
     if existing:
         db.session.delete(existing)

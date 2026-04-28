@@ -138,6 +138,10 @@ def delete_course(course_id):
     db.session.commit()
     return jsonify({"message": "Course deleted"})
 
+# AA-3 (FE-1): course thumbnail upload size cap to prevent storage DoS.
+# Thumbnails are display-only images; 5MB is generous for any reasonable JPEG/PNG.
+MAX_THUMBNAIL_SIZE = 5 * 1024 * 1024  # 5MB
+
 @academy_bp.route("/courses/<int:course_id>/thumbnail", methods=["POST"])
 @jwt_required()
 def upload_thumbnail(course_id):
@@ -148,6 +152,20 @@ def upload_thumbnail(course_id):
     file = request.files.get("thumbnail")
     if not file:
         return jsonify({"error": "No file"}), 400
+    # AA-3 (FE-1): size cap. file.content_length may be None for some clients;
+    # fall back to seeking the stream.
+    size = file.content_length
+    if size is None:
+        try:
+            file.stream.seek(0, 2)  # SEEK_END
+            size = file.stream.tell()
+            file.stream.seek(0)
+        except Exception:
+            size = None
+    if size is not None and size > MAX_THUMBNAIL_SIZE:
+        return jsonify({
+            "error": f"Thumbnail too large. Max {MAX_THUMBNAIL_SIZE // (1024*1024)}MB."
+        }), 413
     url = upload_to_r2(file, folder="academy/thumbnails")
     if url:
         course.thumbnail_url = url
@@ -244,11 +262,28 @@ def reorder_lessons(lesson_id):
     lesson = Lesson.query.get_or_404(lesson_id)
     if lesson.course.creator_id != user.id:
         return jsonify({"error": "Forbidden"}), 403
-    data = request.get_json()
-    # Accepts {"order": [lesson_id1, lesson_id2, ...]}
-    for i, lid in enumerate(data.get("order", [])):
-        l = Lesson.query.get(lid)
-        if l and l.course_id == lesson.course_id:
+    data = request.get_json(silent=True) or {}
+    order = data.get("order", [])
+
+    # AA-4 (FE-1): validate input. Without this, client could send
+    # arbitrary lesson IDs from other courses or duplicate IDs.
+    if not isinstance(order, list):
+        return jsonify({"error": "order must be a list"}), 400
+    if len(order) > 500:
+        return jsonify({"error": "order list too large (max 500)"}), 400
+
+    try:
+        order_ids = [int(x) for x in order]
+    except (TypeError, ValueError):
+        return jsonify({"error": "order entries must be integers"}), 400
+    if len(order_ids) != len(set(order_ids)):
+        return jsonify({"error": "order list contains duplicate lesson_ids"}), 400
+
+    course_lessons = {l.id: l for l in
+                      Lesson.query.filter_by(course_id=lesson.course_id).all()}
+    for i, lid in enumerate(order_ids):
+        l = course_lessons.get(lid)
+        if l:
             l.order = i + 1
     db.session.commit()
     return jsonify({"message": "Reordered"})
@@ -449,9 +484,34 @@ def add_review(course_id):
 @academy_bp.route("/my-courses", methods=["GET"])
 @jwt_required()
 def my_courses():
+    """List the current creator's courses, paginated.
+
+    AA-5 (FE-1): query params:
+      page     (default 1)
+      per_page (default 25, max 100)
+    """
     user = current_user()
-    courses = Course.query.filter_by(creator_id=user.id).order_by(Course.created_at.desc()).all()
-    return jsonify([c.serialize_with_stats() for c in courses])
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = int(request.args.get("per_page", 25))
+    except (TypeError, ValueError):
+        per_page = 25
+    per_page = max(1, min(per_page, 100))
+
+    q = (Course.query
+         .filter_by(creator_id=user.id)
+         .order_by(Course.created_at.desc()))
+    pagination = q.paginate(page=page, per_page=per_page, error_out=False)
+    return jsonify({
+        "courses": [c.serialize_with_stats() for c in pagination.items],
+        "page": pagination.page,
+        "per_page": pagination.per_page,
+        "total": pagination.total,
+        "pages": pagination.pages,
+    })
 
 @academy_bp.route("/earnings", methods=["GET"])
 @jwt_required()
