@@ -336,6 +336,17 @@ def confirm_payment(course_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+    # Reject client-supplied PaymentIntents that don't match this course/buyer/price.
+    # Without these checks an attacker could pay $1 for a $99 course, or replay
+    # someone else's intent_id to enroll for free.
+    intent_meta = getattr(intent, "metadata", {}) or {}
+    if str(intent_meta.get("course_id")) != str(course_id):
+        return jsonify({"error": "Payment intent does not match this course"}), 400
+    if str(intent_meta.get("buyer_id")) != str(user.id):
+        return jsonify({"error": "Payment intent does not belong to this buyer"}), 400
+    if int(getattr(intent, "amount", 0)) != int(course.price * 100):
+        return jsonify({"error": "Payment amount does not match course price"}), 400
+
     existing = Enrollment.query.filter_by(course_id=course_id, user_id=user.id).first()
     if not existing:
         enrollment = Enrollment(
