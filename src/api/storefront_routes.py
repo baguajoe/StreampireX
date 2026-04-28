@@ -1,20 +1,37 @@
-"""MC-1 (Marketplace Consolidation, Path B): Storefront checkout + orders.
+"""MC-1 + MC-2 (Marketplace Consolidation, Path B): Storefront checkout, orders,
+and creator-facing status transitions.
 
 Endpoints (all under /api/storefront):
-  POST /checkout                 - Create Stripe checkout session for a Product
-  GET  /orders/<id>              - Buyer / creator / admin can read
-  GET  /orders/me                - Paginated list of buyer's own orders
+  POST  /checkout                     - Create Stripe checkout session for a Product
+  GET   /orders/<id>                  - Buyer / creator / admin can read
+  GET   /orders/me                    - Paginated list of buyer's own orders
+  PATCH /orders/<id>/ship             - Creator marks shipped (requires tracking)
+  PATCH /orders/<id>/deliver          - Creator marks delivered
+  PATCH /orders/<id>/cancel           - Creator OR buyer cancels (refunds if paid)
+  POST  /orders/<id>/refund           - Creator OR admin refunds via Stripe
 
 Stripe flow:
   - On /checkout: create StorefrontOrder(status='pending'), then a
-    stripe.checkout.Session via build_destination_charge_kwargs (90/10
-    split routes 90% to creator's Connect account, 10% to platform).
-  - On webhook checkout.session.completed (dispatched from routes.py
-    /api/webhooks/stripe via metadata.kind == 'storefront_order'):
-    handle_storefront_checkout_completed() flips status to 'paid' and
-    captures stripe_payment_intent. Idempotent.
+    stripe.checkout.Session via build_destination_charge_kwargs (90/10 split).
+  - Webhook checkout.session.completed flips status 'pending' -> 'paid';
+    digital_download orders auto-advance to 'delivered' and notify the buyer.
+  - Refunds use reverse_transfer=True + refund_application_fee=True so the
+    creator's 90% is clawed back from their Connect account and the platform's
+    10% is also refunded. Without these, refunds leak money.
 
-Mirrors SP-8 tournament webhook pattern.
+Status machine (server-gated; client never trusted):
+  pending -> paid (via webhook)
+  pending -> cancelled (no Stripe call needed)
+  paid    -> shipped (creator_ship only)
+  paid    -> delivered (pickup only; digital auto-delivers in webhook)
+  paid    -> cancelled (with full refund)
+  paid    -> refunded
+  shipped -> delivered (creator_ship)
+  shipped -> refunded
+  delivered -> refunded
+
+Polymorphic over Product.product_type - does NOT touch Printful drop-ship
+merch (that stays on MerchOrder + creator_products).
 """
 import os
 from decimal import Decimal
@@ -38,6 +55,66 @@ storefront_bp = Blueprint("storefront", __name__)
 VALID_FULFILLMENT_TYPES = {"creator_ship", "digital_download", "pickup"}
 WEBHOOK_METADATA_KIND = "storefront_order"
 
+
+# =============================================================================
+# Internal helpers
+# =============================================================================
+
+def _is_admin(user_id):
+    """Mirror admin check pattern used elsewhere in the codebase."""
+    user = User.query.get(user_id)
+    return bool(user and getattr(user, "is_admin", False))
+
+
+def _lock_order(order_id):
+    """Load order with row-level lock to prevent race conditions on
+    concurrent status transitions (e.g. creator double-clicks 'Mark Shipped').
+    Returns None if not found."""
+    return StorefrontOrder.query.with_for_update().get(order_id)
+
+
+def _issue_stripe_refund(order, reason, amount=None):
+    """Issue a Stripe refund for the order's payment_intent.
+
+    CRITICAL: Uses reverse_transfer=True and refund_application_fee=True so
+    the creator's 90% (in their Connect account) is clawed back AND the
+    platform's 10% application_fee is refunded. Without these, refunds
+    leak money - the buyer gets refunded but the creator keeps the cash.
+
+    Returns (ok: bool, error_str: str | None, refund_id: str | None).
+    Caller is responsible for status update + commit/rollback on failure.
+    """
+    if not order.stripe_payment_intent:
+        return False, "Order has no payment_intent (was it ever paid?)", None
+
+    try:
+        kwargs = dict(
+            payment_intent=order.stripe_payment_intent,
+            reason="requested_by_customer",
+            reverse_transfer=True,
+            refund_application_fee=True,
+        )
+        if amount is not None:
+            # amount is Decimal of dollars; Stripe wants int cents
+            kwargs["amount"] = int(round(float(amount) * 100))
+
+        refund = stripe.Refund.create(**kwargs)
+        order.refund_id = refund.id
+        order.refunded_at = datetime.utcnow()
+        if reason:
+            order.cancellation_reason = reason[:255]
+        return True, None, refund.id
+    except stripe.error.StripeError as e:
+        current_app.logger.error(f"Stripe refund failed for order {order.id}: {e}")
+        return False, str(e), None
+    except Exception as e:
+        current_app.logger.error(f"Refund unexpected error for order {order.id}: {e}")
+        return False, str(e), None
+
+
+# =============================================================================
+# POST /api/storefront/checkout  (MC-1)
+# =============================================================================
 
 @storefront_bp.route("/api/storefront/checkout", methods=["POST"])
 @jwt_required()
@@ -171,6 +248,10 @@ def storefront_checkout():
         return jsonify({"error": str(e)}), 500
 
 
+# =============================================================================
+# GET /api/storefront/orders/<id>  (MC-1)
+# =============================================================================
+
 @storefront_bp.route("/api/storefront/orders/<int:order_id>", methods=["GET"])
 @jwt_required()
 def get_storefront_order(order_id):
@@ -180,13 +261,15 @@ def get_storefront_order(order_id):
     if not order:
         return jsonify({"error": "Order not found"}), 404
 
-    user = User.query.get(user_id)
-    is_admin = bool(user and getattr(user, "is_admin", False))
-    if not (order.buyer_id == user_id or order.creator_id == user_id or is_admin):
+    if not (order.buyer_id == user_id or order.creator_id == user_id or _is_admin(user_id)):
         return jsonify({"error": "Forbidden"}), 403
 
     return jsonify(order.serialize()), 200
 
+
+# =============================================================================
+# GET /api/storefront/orders/me  (MC-1)
+# =============================================================================
 
 @storefront_bp.route("/api/storefront/orders/me", methods=["GET"])
 @jwt_required()
@@ -218,6 +301,262 @@ def list_my_storefront_orders():
     }), 200
 
 
+# =============================================================================
+# PATCH /api/storefront/orders/<id>/ship  (MC-2)
+# =============================================================================
+
+@storefront_bp.route("/api/storefront/orders/<int:order_id>/ship", methods=["PATCH"])
+@jwt_required()
+def ship_storefront_order(order_id):
+    """Creator marks order shipped. Requires tracking_number + carrier.
+
+    Allowed: status='paid' AND fulfillment_type='creator_ship'
+    Rejects: digital_download (no shipping), pickup (no shipping)
+    """
+    user_id = get_jwt_identity()
+    data = request.get_json(silent=True) or {}
+
+    tracking_number = (data.get("tracking_number") or "").strip()
+    carrier = (data.get("carrier") or "").strip()
+    if not tracking_number or not carrier:
+        return jsonify({"error": "tracking_number and carrier are required"}), 400
+
+    order = _lock_order(order_id)
+    if not order:
+        return jsonify({"error": "Order not found"}), 404
+
+    if order.creator_id != user_id:
+        return jsonify({"error": "Forbidden"}), 403
+
+    if order.fulfillment_type != "creator_ship":
+        return jsonify({
+            "error": f"Cannot ship orders of type '{order.fulfillment_type}' "
+                     f"(only creator_ship has a shipping leg)"
+        }), 400
+
+    if order.status != "paid":
+        return jsonify({
+            "error": f"Cannot ship from status '{order.status}' (must be 'paid')"
+        }), 409
+
+    order.status = "shipped"
+    order.tracking_number = tracking_number[:100]
+    order.carrier = carrier[:50]
+    order.shipped_at = datetime.utcnow()
+    if data.get("notes_to_buyer"):
+        order.notes_to_buyer = data["notes_to_buyer"]
+
+    db.session.commit()
+
+    # Notify buyer (fail-soft)
+    from api.notifications import notify
+    notify(
+        user_id=order.buyer_id,
+        type="storefront_order_shipped",
+        content=f"Your order #{order.id} has shipped via {carrier}. Tracking: {tracking_number}",
+        from_user_id=order.creator_id,
+        extra_data={"order_id": order.id, "tracking_number": tracking_number, "carrier": carrier},
+    )
+
+    return jsonify(order.serialize()), 200
+
+
+# =============================================================================
+# PATCH /api/storefront/orders/<id>/deliver  (MC-2)
+# =============================================================================
+
+@storefront_bp.route("/api/storefront/orders/<int:order_id>/deliver", methods=["PATCH"])
+@jwt_required()
+def deliver_storefront_order(order_id):
+    """Creator marks order delivered.
+
+    Allowed:
+      - creator_ship: status='shipped' -> 'delivered'
+      - pickup:       status='paid'    -> 'delivered' (in-person handoff)
+    Rejects: digital_download (auto-delivers in webhook)
+    """
+    user_id = get_jwt_identity()
+
+    order = _lock_order(order_id)
+    if not order:
+        return jsonify({"error": "Order not found"}), 404
+
+    if order.creator_id != user_id:
+        return jsonify({"error": "Forbidden"}), 403
+
+    if order.fulfillment_type == "digital_download":
+        return jsonify({
+            "error": "digital_download orders auto-deliver on payment; cannot manually deliver"
+        }), 400
+
+    valid_from_status = {
+        "creator_ship": "shipped",
+        "pickup": "paid",
+    }
+    expected = valid_from_status.get(order.fulfillment_type)
+    if order.status != expected:
+        return jsonify({
+            "error": f"Cannot deliver {order.fulfillment_type} order from status "
+                     f"'{order.status}' (must be '{expected}')"
+        }), 409
+
+    order.status = "delivered"
+    order.delivered_at = datetime.utcnow()
+    db.session.commit()
+
+    from api.notifications import notify
+    notify(
+        user_id=order.buyer_id,
+        type="storefront_order_delivered",
+        content=f"Your order #{order.id} was marked delivered.",
+        from_user_id=order.creator_id,
+        extra_data={"order_id": order.id},
+    )
+
+    return jsonify(order.serialize()), 200
+
+
+# =============================================================================
+# PATCH /api/storefront/orders/<id>/cancel  (MC-2)
+# =============================================================================
+
+@storefront_bp.route("/api/storefront/orders/<int:order_id>/cancel", methods=["PATCH"])
+@jwt_required()
+def cancel_storefront_order(order_id):
+    """Cancel an order. Creator OR buyer can cancel.
+
+    Allowed: status IN ('pending', 'paid')
+    If status='paid', also issues full Stripe refund (with reverse_transfer).
+    Notifies the OTHER party.
+    """
+    user_id = get_jwt_identity()
+    data = request.get_json(silent=True) or {}
+
+    reason = (data.get("cancellation_reason") or "").strip()
+    if not reason:
+        return jsonify({"error": "cancellation_reason is required"}), 400
+    if len(reason) > 255:
+        return jsonify({"error": "cancellation_reason max 255 chars"}), 400
+
+    order = _lock_order(order_id)
+    if not order:
+        return jsonify({"error": "Order not found"}), 404
+
+    if order.creator_id != user_id and order.buyer_id != user_id:
+        return jsonify({"error": "Forbidden"}), 403
+
+    if order.status not in ("pending", "paid"):
+        return jsonify({
+            "error": f"Cannot cancel from status '{order.status}' (must be 'pending' or 'paid')"
+        }), 409
+
+    # If paid, issue refund FIRST. Only flip status on Stripe success.
+    if order.status == "paid":
+        ok, err, refund_id = _issue_stripe_refund(order, reason)
+        if not ok:
+            db.session.rollback()
+            return jsonify({"error": f"Refund failed: {err}"}), 502
+        # _issue_stripe_refund already set refund_id, refunded_at, cancellation_reason
+
+    order.status = "cancelled"
+    order.cancellation_reason = reason  # ensure set even for pending cancels
+    db.session.commit()
+
+    # Notify the OTHER party
+    canceller_is_buyer = (order.buyer_id == user_id)
+    notify_target = order.creator_id if canceller_is_buyer else order.buyer_id
+
+    from api.notifications import notify
+    notify(
+        user_id=notify_target,
+        type="storefront_order_cancelled",
+        content=f"Order #{order.id} was cancelled. Reason: {reason}",
+        from_user_id=user_id,
+        extra_data={"order_id": order.id, "reason": reason},
+    )
+
+    return jsonify(order.serialize()), 200
+
+
+# =============================================================================
+# POST /api/storefront/orders/<id>/refund  (MC-2)
+# =============================================================================
+
+@storefront_bp.route("/api/storefront/orders/<int:order_id>/refund", methods=["POST"])
+@jwt_required()
+def refund_storefront_order(order_id):
+    """Refund an order. Creator OR admin only.
+
+    Allowed: status IN ('paid', 'shipped', 'delivered')
+    Body: cancellation_reason (required), amount (optional - partial refund)
+    Partial refund: amount must be > 0 and <= order.subtotal.
+    """
+    user_id = get_jwt_identity()
+    data = request.get_json(silent=True) or {}
+
+    reason = (data.get("cancellation_reason") or "").strip()
+    if not reason:
+        return jsonify({"error": "cancellation_reason is required"}), 400
+    if len(reason) > 255:
+        return jsonify({"error": "cancellation_reason max 255 chars"}), 400
+
+    order = _lock_order(order_id)
+    if not order:
+        return jsonify({"error": "Order not found"}), 404
+
+    if not (order.creator_id == user_id or _is_admin(user_id)):
+        return jsonify({"error": "Forbidden"}), 403
+
+    if order.status not in ("paid", "shipped", "delivered"):
+        return jsonify({
+            "error": f"Cannot refund from status '{order.status}' "
+                     f"(must be paid/shipped/delivered)"
+        }), 409
+
+    # Validate optional partial-refund amount
+    amount = None
+    if "amount" in data and data["amount"] is not None:
+        try:
+            amount = Decimal(str(data["amount"]))
+        except Exception:
+            return jsonify({"error": "amount must be numeric"}), 400
+        if amount <= 0:
+            return jsonify({"error": "amount must be > 0"}), 400
+        if amount > order.subtotal:
+            return jsonify({
+                "error": f"amount {amount} exceeds order subtotal {order.subtotal}"
+            }), 400
+
+    ok, err, refund_id = _issue_stripe_refund(order, reason, amount=amount)
+    if not ok:
+        db.session.rollback()
+        return jsonify({"error": f"Refund failed: {err}"}), 502
+
+    order.status = "refunded"
+    db.session.commit()
+
+    from api.notifications import notify
+    refund_amount = float(amount) if amount else float(order.subtotal)
+    notify(
+        user_id=order.buyer_id,
+        type="storefront_order_refunded",
+        content=f"Order #{order.id} was refunded (${refund_amount:.2f}).",
+        from_user_id=user_id,
+        extra_data={
+            "order_id": order.id,
+            "refund_id": refund_id,
+            "amount": refund_amount,
+            "reason": reason,
+        },
+    )
+
+    return jsonify(order.serialize()), 200
+
+
+# =============================================================================
+# Stripe webhook hook (called from main webhook handler in routes.py)  (MC-1)
+# =============================================================================
+
 def handle_storefront_checkout_completed(session) -> bool:
     """Called from /api/webhooks/stripe when checkout.session.completed
     arrives with metadata.kind == 'storefront_order'. Idempotent."""
@@ -247,8 +586,25 @@ def handle_storefront_checkout_completed(session) -> bool:
     if payment_intent and not order.stripe_payment_intent:
         order.stripe_payment_intent = payment_intent
 
+    is_digital_autodeliver = False
     if order.fulfillment_type == "digital_download":
         order.status = "delivered"
         order.delivered_at = datetime.utcnow()
+        is_digital_autodeliver = True
+
+    # MC-2: notify buyer when digital_download auto-delivers
+    if is_digital_autodeliver:
+        try:
+            from api.notifications import notify
+            notify(
+                user_id=order.buyer_id,
+                type="storefront_order_delivered",
+                content=f"Your order #{order.id} is ready.",
+                from_user_id=order.creator_id,
+                extra_data={"order_id": order.id, "auto_delivered": True},
+            )
+        except Exception:
+            # notify() is fail-soft, but belt-and-suspenders
+            pass
 
     return True
