@@ -6,7 +6,7 @@ const EngagementGraph = ({ contentId }) => {
     const [engagementData, setEngagementData] = useState(null);
 
     useEffect(() => {
-        fetch(`/api/engagement/${contentId}`)
+        fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/engagement/${contentId}`)
             .then(res => res.json())
             .then(data => setEngagementData(data))
             .catch(err => console.error("Error fetching engagement data:", err));

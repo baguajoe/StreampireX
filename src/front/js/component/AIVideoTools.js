@@ -49,7 +49,7 @@ const AIVideoTools = ({ videoUrl, onVideoUpdate, onCaptionsGenerated }) => {
     setLoading(true); setError(''); setStatus('Analyzing audio for silence...');
 
     try {
-      const res = await fetch('/api/video-tools/detect-silence', {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/video-tools/detect-silence`, {
         method: 'POST', headers: getHeaders(),
         body: JSON.stringify({ media_url: videoUrl, threshold, min_duration: minDuration }),
       });

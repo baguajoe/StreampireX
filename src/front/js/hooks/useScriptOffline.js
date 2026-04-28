@@ -161,7 +161,7 @@ export function useScriptOffline(scriptId, script, setScript, comic, setComic) {
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
-      await fetch(`/api/script/save-draft`, {
+      await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/script/save-draft`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

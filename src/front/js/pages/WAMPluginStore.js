@@ -204,7 +204,7 @@ const CustomPluginModal = ({ onClose, onInstall }) => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/wam/plugins/custom/validate', {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/wam/plugins/custom/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('token')}` },
         body: JSON.stringify({ url }),
@@ -312,7 +312,7 @@ const WAMPluginStore = () => {
   useEffect(() => {
     const fetchPlugins = async () => {
       try {
-        const res = await fetch('/api/wam/plugins');
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/wam/plugins`);
         const data = await res.json();
         setPlugins(data.plugins || []);
       } catch {
@@ -339,7 +339,7 @@ const WAMPluginStore = () => {
     setInstalled(getInstalledWAMPlugins());
     // Track install on backend
     try {
-      await fetch(`/api/wam/plugins/${plugin.id}/install`, {
+      await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/wam/plugins/${plugin.id}/install`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${sessionStorage.getItem('token')}` },
       });

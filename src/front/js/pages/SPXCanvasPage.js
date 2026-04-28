@@ -89,7 +89,7 @@ function SPXMenuDropdown({ label, items }) {
     setAiFillLoading(true); setAiFillResult(null);
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
-      const res = await fetch('/api/ai-fill/inpaint', {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/ai-fill/inpaint`, {
         method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`},
         body: JSON.stringify({ image: canvasToBase64(), mask: maskToBase64(), prompt: aiFillPrompt }),
       });

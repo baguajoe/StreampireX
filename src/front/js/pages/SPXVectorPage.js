@@ -1115,7 +1115,7 @@ export default function SPXVectorPage() {
     try {
       const imageB64 = await svgToBase64();
       const token = localStorage.getItem('token')||sessionStorage.getItem('token')||'';
-      const res = await fetch('/api/ai-fill/inpaint', {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/ai-fill/inpaint`, {
         method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
         body: JSON.stringify({image:imageB64, mask:maskToBase64Vec(), prompt:aiFillPrompt}),
       });
@@ -1422,7 +1422,7 @@ export default function SPXVectorPage() {
       const b64 = await rasterizeSVGtoBase64();
       if (!b64) throw new Error('Could not rasterize SVG');
       const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
-      const res = await fetch('/api/ai-fill/depth', {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/ai-fill/depth`, {
         method: 'POST',
         headers: {'Content-Type':'application/json', Authorization:`Bearer ${token}`},
         body: JSON.stringify({image: b64}),

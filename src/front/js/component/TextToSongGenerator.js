@@ -177,7 +177,7 @@ export default function TextToSongGenerator({
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/ai/text-to-song', {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/ai/text-to-song`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
