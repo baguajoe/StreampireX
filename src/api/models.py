@@ -7739,6 +7739,90 @@ class MerchOrder(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+# MC-1 (Marketplace Consolidation, Path B): Storefront orders for non-Printful
+# goods. Polymorphic over Product. NOTE: digital_download orders skip
+# shipping_* fields and transition directly from paid -> delivered.
+class StorefrontOrder(db.Model):
+    __tablename__ = "storefront_orders"
+
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey("product.id"), nullable=False, index=True)
+    creator_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    buyer_id   = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+
+    unit_price       = db.Column(db.Numeric(10, 2), nullable=False)
+    subtotal         = db.Column(db.Numeric(10, 2), nullable=False)
+    platform_fee     = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+    creator_earnings = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+
+    fulfillment_type = db.Column(db.String(32), nullable=False)
+    status           = db.Column(db.String(32), nullable=False, default="pending", index=True)
+
+    shipping_name    = db.Column(db.String(200))
+    shipping_address = db.Column(db.String(300))
+    shipping_city    = db.Column(db.String(100))
+    shipping_state   = db.Column(db.String(50))
+    shipping_country = db.Column(db.String(10))
+    shipping_zip     = db.Column(db.String(20))
+    tracking_number  = db.Column(db.String(100))
+    carrier          = db.Column(db.String(50))
+    shipped_at       = db.Column(db.DateTime)
+    delivered_at     = db.Column(db.DateTime)
+
+    pickup_notes        = db.Column(db.Text)
+    notes_to_buyer      = db.Column(db.Text)
+    cancellation_reason = db.Column(db.String(255))
+
+    stripe_session_id     = db.Column(db.String(200))
+    stripe_payment_intent = db.Column(db.String(200))
+    refund_id             = db.Column(db.String(200))
+    refunded_at           = db.Column(db.DateTime)
+
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    product = db.relationship("Product", foreign_keys=[product_id])
+    creator = db.relationship("User", foreign_keys=[creator_id])
+    buyer   = db.relationship("User", foreign_keys=[buyer_id])
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "product_id": self.product_id,
+            "creator_id": self.creator_id,
+            "buyer_id": self.buyer_id,
+            "quantity": self.quantity,
+            "unit_price": float(self.unit_price) if self.unit_price is not None else None,
+            "subtotal": float(self.subtotal) if self.subtotal is not None else None,
+            "platform_fee": float(self.platform_fee) if self.platform_fee is not None else None,
+            "creator_earnings": float(self.creator_earnings) if self.creator_earnings is not None else None,
+            "fulfillment_type": self.fulfillment_type,
+            "status": self.status,
+            "shipping": {
+                "name": self.shipping_name,
+                "address": self.shipping_address,
+                "city": self.shipping_city,
+                "state": self.shipping_state,
+                "country": self.shipping_country,
+                "zip": self.shipping_zip,
+            } if self.fulfillment_type == "creator_ship" else None,
+            "tracking_number": self.tracking_number,
+            "carrier": self.carrier,
+            "shipped_at": self.shipped_at.isoformat() if self.shipped_at else None,
+            "delivered_at": self.delivered_at.isoformat() if self.delivered_at else None,
+            "pickup_notes": self.pickup_notes,
+            "notes_to_buyer": self.notes_to_buyer,
+            "cancellation_reason": self.cancellation_reason,
+            "stripe_session_id": self.stripe_session_id,
+            "stripe_payment_intent": self.stripe_payment_intent,
+            "refund_id": self.refund_id,
+            "refunded_at": self.refunded_at.isoformat() if self.refunded_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
 CREDIT_PACKS = {
     "starter_pack": {"credits": 50, "price": 10},
     "pro_pack": {"credits": 200, "price": 30},

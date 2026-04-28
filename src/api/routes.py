@@ -7504,6 +7504,13 @@ def stripe_webhook():
 def handle_checkout_completed(session):
     """Handle successful checkout completion with enhanced error handling"""
     try:
+        # MC-1: Storefront order checkout - dispatched first via metadata.kind
+        if (session.get('metadata') or {}).get('kind') == 'storefront_order':
+            from api.storefront_routes import handle_storefront_checkout_completed
+            if handle_storefront_checkout_completed(session):
+                db.session.commit()
+            return
+
         # SUBSCRIPTION HANDLING (your existing logic enhanced)
         if 'user_id' in session['metadata'] and 'plan_id' in session['metadata']:
             user_id = session['metadata']['user_id']
