@@ -5716,11 +5716,13 @@ def start_live_stream():
     socketio.emit("live_stream_update", {"stream_id": new_stream.id, "is_live": True})
 
     # ✅ Notify External WebSocket Server
+    # CL-1: BACKEND_URL — was hardcoded http://localhost:5000
+    _backend_url = os.environ.get('BACKEND_URL', 'http://localhost:5000').rstrip('/')
     try:
-        requests.post("http://localhost:5000/live-status", json={
+        requests.post(f"{_backend_url}/live-status", json={
             "stationId": user_id,
             "isLive": True
-        })
+        }, timeout=5)
     except requests.exceptions.RequestException as e:
         print(f"Error notifying WebSocket server: {e}")
 
@@ -5807,7 +5809,7 @@ def end_live_stream():
 
     # Notify external status server
     try:
-        requests.post("http://localhost:5000/live-status", json={
+        requests.post(f"{os.environ.get('BACKEND_URL', 'http://localhost:5000').rstrip('/')}/live-status", json={  # CL-1: BACKEND_URL
             "stationId": user_id,
             "isLive": False
         })
@@ -6058,10 +6060,15 @@ def follow_station(station_id):
     db.session.commit()
 
     # 🔵 Notify WebSocket
-    requests.post("http://localhost:5000/new-follower", json={
-        "stationId": station_id,
-        "userId": user_id
-    })
+    # CL-1: BACKEND_URL — was hardcoded http://localhost:5000
+    _backend_url = os.environ.get('BACKEND_URL', 'http://localhost:5000').rstrip('/')
+    try:
+        requests.post(f"{_backend_url}/new-follower", json={
+            "stationId": station_id,
+            "userId": user_id
+        }, timeout=5)
+    except requests.exceptions.RequestException as e:
+        print(f"Error notifying WebSocket server: {e}")
 
     return jsonify({"message": "Followed station!", "followers": station.followers_count}), 200
 
@@ -6080,10 +6087,15 @@ def update_now_playing(station_id):
     track_title = data.get("track_title")
 
     # 🔄 Notify WebSocket
-    requests.post("http://localhost:5000/track-update", json={
-        "stationId": station_id,
-        "track": {"title": track_title}
-    })
+    # CL-1: BACKEND_URL — was hardcoded http://localhost:5000
+    _backend_url = os.environ.get('BACKEND_URL', 'http://localhost:5000').rstrip('/')
+    try:
+        requests.post(f"{_backend_url}/track-update", json={
+            "stationId": station_id,
+            "track": {"title": track_title}
+        }, timeout=5)
+    except requests.exceptions.RequestException as e:
+        print(f"Error notifying WebSocket server: {e}")
 
     return jsonify({"message": "Now Playing updated!"}), 200
 
