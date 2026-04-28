@@ -97,6 +97,7 @@ from api.support_routes import support_bp
 from api.ai_credits_routes import ai_credits_bp
 from api.sampler_storage_routes import sampler_storage_bp
 from api.epk_collab import epk_collab_bp
+from api.tournament_routes import tournament_bp  # SP-5
 from api.contact_routes import contact_bp
 from api.sonosuite_routes import sonosuite_bp
 from api.analytics_routes import analytics_bp
@@ -352,6 +353,7 @@ app.register_blueprint(freesound_bp)  # 🔊 Freesound.org Sample Browser
 app.register_blueprint(sound_kit_bp)  # 🎛️ Sound Kit Management
 app.register_blueprint(playlist_bp)
 app.register_blueprint(beat_store_bp)
+app.register_blueprint(tournament_bp)  # SP-5: tournaments + leaderboards
 app.register_blueprint(voice_clone_services_bp)
 app.register_blueprint(ai_chord_generator_bp)
 app.register_blueprint(ai_video_tools_bp)
