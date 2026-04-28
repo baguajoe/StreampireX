@@ -8,7 +8,7 @@ const EarningsDashboard = () => {
   useEffect(() => {
     const fetchEarnings = async () => {
       try {
-        const res = await fetch('/api/earnings');
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/earnings`);
         const data = await res.json();
         setEarnings(data);
       } catch (error) {

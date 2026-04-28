@@ -109,7 +109,7 @@ function SPXCutExportModal({ state, actions, selectors }) {
         const formData = new FormData();
         formData.append('filename', `${filename}.${format}`);
         formData.append('project_id', state.projectId || 'unknown');
-        const resp = await fetch('/api/video/upload_r2', {
+        const resp = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/video/upload_r2`, {
           method: 'POST',
           body: formData,
           headers: localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {},

@@ -74,7 +74,7 @@ const AIVideoTools = ({ videoUrl, onVideoUpdate, onCaptionsGenerated }) => {
     setLoading(true); setError(''); setStatus('Removing silent segments...');
 
     try {
-      const res = await fetch('/api/video-tools/remove-silence', {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/video-tools/remove-silence`, {
         method: 'POST', headers: getHeaders(),
         body: JSON.stringify({ media_url: videoUrl, segments: silenceSegments, padding: removePadding }),
       });
@@ -101,7 +101,7 @@ const AIVideoTools = ({ videoUrl, onVideoUpdate, onCaptionsGenerated }) => {
     setLoading(true); setError(''); setStatus('Extracting best frames...');
 
     try {
-      const res = await fetch('/api/video-tools/generate-thumbnails', {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/video-tools/generate-thumbnails`, {
         method: 'POST', headers: getHeaders(),
         body: JSON.stringify({ video_url: videoUrl, count: thumbCount }),
       });
@@ -124,7 +124,7 @@ const AIVideoTools = ({ videoUrl, onVideoUpdate, onCaptionsGenerated }) => {
     setLoading(true); setError(''); setStatus('Transcribing audio...');
 
     try {
-      const res = await fetch('/api/video-tools/generate-captions', {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/video-tools/generate-captions`, {
         method: 'POST', headers: getHeaders(),
         body: JSON.stringify({ media_url: videoUrl, format: captionFormat, language: captionLang }),
       });

@@ -4,7 +4,7 @@ const EarningsReport = ({ artistId }) => {
   const [earnings, setEarnings] = useState(null);
 
   useEffect(() => {
-    fetch(`/api/earnings/artist/${artistId}`)
+    fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/earnings/artist/${artistId}`)
       .then(res => res.json())
       .then(data => setEarnings(data))
       .catch(err => console.error("Error fetching earnings:", err));

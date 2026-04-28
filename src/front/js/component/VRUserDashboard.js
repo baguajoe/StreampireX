@@ -12,7 +12,7 @@ const VRUserDashboard = () => {
 
   useEffect(() => {
     // Fetch VR events from API
-    fetch('/api/vr-events')
+    fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/vr-events`)
       .then((response) => response.json())
       .then((data) => setEvents(data));
   }, []);

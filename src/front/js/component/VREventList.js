@@ -6,7 +6,7 @@ const VREventList = () => {
   const [events, setEvents] = useState([]);
 
   useEffect(() => {
-    fetch('/api/vr-events')  // API endpoint to fetch VR events
+    fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/vr-events`)  // API endpoint to fetch VR events
       .then((response) => response.json())
       .then((data) => setEvents(data));
   }, []);

@@ -16,7 +16,7 @@ const DirectChat = ({ currentUser, partnerUser }) => {
       username: currentUser.display_name || currentUser.username,
     });
 
-    fetch(`/api/messages/room/${roomId}`, {
+    fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/messages/room/${roomId}`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },

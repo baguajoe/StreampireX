@@ -99,7 +99,7 @@ const LoopermanBrowser = ({
         ...(key !== 'All' ? { key } : {}),
       });
 
-      const res = await fetch(`/api/looperman/search?${params}`);
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/looperman/search?${params}`);
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const data = await res.json();
 

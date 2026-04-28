@@ -55,7 +55,7 @@ const UploadVideo = ({ currentUser }) => {
     setProgress(0);
 
     try {
-      const res = await fetch('/api/upload_video', {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/upload_video`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -85,7 +85,7 @@ const UploadVideo = ({ currentUser }) => {
     if (!window.confirm('Delete this video?')) return;
 
     try {
-      const res = await fetch(`/api/delete_video/${videoId}`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/delete_video/${videoId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -105,7 +105,7 @@ const UploadVideo = ({ currentUser }) => {
 
   const handleTitleEdit = async (id, newTitle) => {
     try {
-      const res = await fetch(`/api/update_video_title/${id}`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/update_video_title/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

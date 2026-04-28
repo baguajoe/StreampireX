@@ -29,7 +29,7 @@ const CreateReleaseForm = () => {
       data.append(key, formData[key]);
     }
 
-    const res = await fetch('/api/submit-track', {
+    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/submit-track`, {
       method: 'POST',
       body: data
     });

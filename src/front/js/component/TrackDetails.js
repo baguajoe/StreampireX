@@ -7,7 +7,7 @@ const TrackDetails = ({ trackId }) => {
   useEffect(() => {
     if (!trackId) return;
 
-    fetch(`/api/track/${trackId}`)
+    fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/track/${trackId}`)
       .then(res => res.json())
       .then(data => setTrack(data))
       .catch(err => console.error("Error fetching track details:", err));

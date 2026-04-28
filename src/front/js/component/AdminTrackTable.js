@@ -8,7 +8,7 @@ const AdminTrackTable = () => {
 
   const fetchTracks = async (pg = 1) => {
     try {
-      const res = await fetch(`/api/admin/tracks?page=${pg}`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/admin/tracks?page=${pg}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -28,7 +28,7 @@ const AdminTrackTable = () => {
 
   const handleStatusChange = async (trackId, newStatus) => {
     try {
-      await fetch(`/api/admin/tracks/${trackId}`, {
+      await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/admin/tracks/${trackId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

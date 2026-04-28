@@ -5,7 +5,7 @@ const EarningsPage = () => {
 
     useEffect(() => {
         // Fetch earnings data from backend (example endpoint '/api/creator/earnings')
-        fetch('/api/creator/earnings', {
+        fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/creator/earnings`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }

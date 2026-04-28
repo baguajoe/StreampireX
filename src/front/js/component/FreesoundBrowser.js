@@ -51,7 +51,7 @@ export default function FreesoundBrowser({ onLoadSample }) {
         sort, max_duration: maxDuration,
         fields: 'id,name,username,duration,previews,license,tags,avg_rating,num_downloads',
       });
-      const res = await fetch(`/api/freesound/search?${params}`);
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/freesound/search?${params}`);
       if (!res.ok) throw new Error(`Search failed: ${res.status}`);
       const data = await res.json();
       setResults(data.results ?? []);
@@ -84,7 +84,7 @@ export default function FreesoundBrowser({ onLoadSample }) {
     setLoadingPad(sound.id);
     try {
       const params = new URLSearchParams({ sound_id: sound.id });
-      const res = await fetch(`/api/freesound/download?${params}`);
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/freesound/download?${params}`);
       if (!res.ok) throw new Error('Download failed');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
