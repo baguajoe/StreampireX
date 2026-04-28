@@ -568,6 +568,19 @@ def upload_epk_media():
     if not file.filename:
         return jsonify({"error": "Empty filename"}), 400
 
+    # EPK-2 (MED-A): per-type size caps to prevent storage DoS
+    MAX_SIZES = {
+        'image': 10 * 1024 * 1024,         # 10 MB
+        'audio': 100 * 1024 * 1024,        # 100 MB
+        'video': 500 * 1024 * 1024,        # 500 MB
+        'document': 25 * 1024 * 1024,      # 25 MB
+    }
+    file.seek(0, 2)
+    _file_size = file.tell()
+    file.seek(0)
+    if _file_size == 0:
+        return jsonify({"error": "Empty file"}), 400
+
     ALLOWED = {
         'image': ['jpg', 'jpeg', 'png', 'gif', 'webp'],  # EPK-1 (HIGH-C1): SVG removed (XSS vector)
         'audio': ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg', 'wma'],
@@ -581,6 +594,11 @@ def upload_epk_media():
         if ext in exts:
             file_type = ftype
             break
+
+    # EPK-2 (MED-A): enforce per-type size cap
+    if file_type and _file_size > MAX_SIZES.get(file_type, 10 * 1024 * 1024):
+        cap_mb = MAX_SIZES[file_type] // (1024 * 1024)
+        return jsonify({"error": f"{file_type} file exceeds max size of {cap_mb}MB"}), 413
 
     if not file_type:
         return jsonify({"error": f"File type .{ext} not supported"}), 400
@@ -653,7 +671,8 @@ def get_epks_by_user():
         return jsonify({"error": "user_id required"}), 400
 
     try:
-        epks = EPK.query.filter_by(user_id=user_id, is_public=True).order_by(EPK.updated_at.desc()).all()
+        # EPK-3 (MED-A): cap at 100 EPKs per user to bound response size
+        epks = EPK.query.filter_by(user_id=user_id, is_public=True).order_by(EPK.updated_at.desc()).limit(100).all()
         return jsonify({"epks": [e.to_dict() for e in epks]}), 200
     except Exception as e:
         return jsonify({"epks": [], "error": str(e)}), 200
@@ -689,8 +708,8 @@ def search_epks():
     skill = request.args.get('skill', '')
     location = request.args.get('location', '')
     collab_only = request.args.get('collab_open', 'false') == 'true'
-    page = int(request.args.get('page', 1))
-    per_page = int(request.args.get('per_page', 20))
+    page = max(1, int(request.args.get('page', 1) or 1))  # EPK-3 (MED-A): page sanity
+    per_page = min(max(1, int(request.args.get('per_page', 20) or 20)), 50)  # EPK-3 (MED-A): cap at 50
 
     query = EPK.query.filter_by(is_public=True)
     if genre:
@@ -734,8 +753,8 @@ def get_collab_requests():
 
     genre = request.args.get('genre', '')
     role = request.args.get('role', '')
-    page = int(request.args.get('page', 1))
-    per_page = int(request.args.get('per_page', 20))
+    page = max(1, int(request.args.get('page', 1) or 1))  # EPK-3 (MED-A): page sanity
+    per_page = min(max(1, int(request.args.get('per_page', 20) or 20)), 50)  # EPK-3 (MED-A): cap at 50
 
     query = CollabRequest.query.filter_by(status='open', is_public=True)
     if genre:

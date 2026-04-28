@@ -178,7 +178,7 @@ def get_followers(user_id):
     """Get list of followers for a user"""
     try:
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 20, type=int)
+        per_page = min(max(1, request.args.get('per_page', 20, type=int)), 50)  # SOC-7 (MED-A): cap at 50
         
         followers_query = Follow.query.filter_by(following_id=user_id)\
             .order_by(Follow.created_at.desc())\
@@ -218,7 +218,7 @@ def get_following(user_id):
     """Get list of users that a user is following"""
     try:
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 20, type=int)
+        per_page = min(max(1, request.args.get('per_page', 20, type=int)), 50)  # SOC-7 (MED-A): cap at 50
         
         following_query = Follow.query.filter_by(follower_id=user_id)\
             .order_by(Follow.created_at.desc())\
@@ -398,7 +398,7 @@ def get_blocked_users():
     try:
         current_user_id = get_jwt_identity()
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 20, type=int)
+        per_page = min(max(1, request.args.get('per_page', 20, type=int)), 50)  # SOC-7 (MED-A): cap at 50
         
         blocks_query = Block.query.filter_by(blocker_id=current_user_id)\
             .order_by(Block.created_at.desc())\
@@ -439,7 +439,7 @@ def get_suggested_users():
     """Get suggested users to follow (excludes blocked and already following)"""
     try:
         current_user_id = get_jwt_identity()
-        limit = request.args.get('limit', 10, type=int)
+        limit = min(max(1, request.args.get('limit', 10, type=int)), 50)  # SOC-7 (MED-A): cap at 50
         
         # Get IDs of users you're following
         following_ids = [f.following_id for f in Follow.query.filter_by(follower_id=current_user_id).all()]

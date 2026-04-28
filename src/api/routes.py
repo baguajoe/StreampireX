@@ -8611,8 +8611,9 @@ def get_user_by_id(user_id):
 def discover_users():
     """Browse and search users - handles users with or without profile_type"""
     try:
-        page = int(request.args.get('page', 1))
-        per_page = int(request.args.get('per_page', 20))
+        # PROF-6 (MED-A): cap per_page at 50, sanitize page
+        page = max(1, int(request.args.get('page', 1) or 1))
+        per_page = max(1, min(int(request.args.get('per_page', 20) or 20), 50))
         search = request.args.get('search', '').strip()
         profile_type_filter = request.args.get('profile_type', '').strip()
         

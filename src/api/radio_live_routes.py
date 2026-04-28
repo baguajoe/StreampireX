@@ -130,6 +130,17 @@ def upload_recording(station_id):
         return jsonify({"error": "No file"}), 400
 
     file = request.files["file"]
+
+    # RAD-7 (MED-A): cap recording uploads at 500MB to prevent storage DoS
+    MAX_RECORDING_SIZE = 500 * 1024 * 1024
+    file.seek(0, 2)  # seek to end
+    size = file.tell()
+    file.seek(0)
+    if size > MAX_RECORDING_SIZE:
+        return jsonify({"error": f"File exceeds max size of {MAX_RECORDING_SIZE // (1024*1024)}MB"}), 413
+    if size == 0:
+        return jsonify({"error": "Empty file"}), 400
+
     filename = f"radio/{station_id}/recordings/{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
 
     try:

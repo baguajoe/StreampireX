@@ -187,6 +187,17 @@ def publish_episode():
         if not file:
             return jsonify({"error": "No audio file provided"}), 400
 
+        # POD-6 (MED-A): cap episode audio at 2GB; cap chapters list at 200
+        MAX_EPISODE_SIZE = 2 * 1024 * 1024 * 1024
+        MAX_CHAPTERS = 200
+        file.seek(0, 2)
+        size = file.tell()
+        file.seek(0)
+        if size > MAX_EPISODE_SIZE:
+            return jsonify({"error": f"Audio file exceeds max size of {MAX_EPISODE_SIZE // (1024*1024*1024)}GB"}), 413
+        if size == 0:
+            return jsonify({"error": "Empty audio file"}), 400
+
         title = request.form.get("title", "Untitled Episode")
         description = request.form.get("description", "")
         episode_number = request.form.get("episode_number", 1, type=int)
@@ -196,7 +207,14 @@ def publish_episode():
         session_id = request.form.get("session_id", "")
 
         import json
-        chapters_data = json.loads(chapters_json) if chapters_json else []
+        try:
+            chapters_data = json.loads(chapters_json) if chapters_json else []
+        except json.JSONDecodeError:
+            return jsonify({"error": "Invalid chapters JSON"}), 400
+        if not isinstance(chapters_data, list):
+            return jsonify({"error": "chapters must be a list"}), 400
+        if len(chapters_data) > MAX_CHAPTERS:
+            return jsonify({"error": f"Too many chapters (max {MAX_CHAPTERS})"}), 400
 
         # 1. Upload audio file
         ext = file.filename.rsplit(".", 1)[-1] if "." in file.filename else "webm"

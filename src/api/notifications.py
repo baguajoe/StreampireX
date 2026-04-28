@@ -22,8 +22,9 @@ def get_notifications():
     try:
         current_user_id = get_jwt_identity()
         
-        limit = request.args.get('limit', 20, type=int)
-        offset = request.args.get('offset', 0, type=int)
+        # NOT-1 (MED-A): cap limit at 100, offset at 10000 to prevent enumeration DoS
+        limit = min(max(1, request.args.get('limit', 20, type=int)), 100)
+        offset = min(max(0, request.args.get('offset', 0, type=int)), 10000)
         unread_only = request.args.get('unread_only', 'false').lower() == 'true'
         
         query = Notification.query.filter_by(user_id=current_user_id)

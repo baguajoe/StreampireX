@@ -10,21 +10,33 @@ comment_bp = Blueprint('comments', __name__)
 
 @comment_bp.route('/api/comments/<string:content_type>/<int:content_id>', methods=['GET'])
 def get_comments(content_type, content_id):
-    comments = Comment.query.filter_by(
+    # SOC-4 (MED-A): paginate to prevent app freeze on viral threads
+    page = max(1, int(request.args.get('page', 1) or 1))
+    per_page = max(1, min(int(request.args.get('per_page', 50) or 50), 100))
+
+    base = Comment.query.filter_by(
         content_type=content_type,
         content_id=content_id,
         parent_id=None,  # top-level only
-    ).order_by(Comment.timestamp.asc()).all()
+    ).order_by(Comment.timestamp.asc())
+    pagination = base.paginate(page=page, per_page=per_page, error_out=False)
 
     result = []
-    for c in comments:
+    for c in pagination.items:
         c_data = _serialize_comment(c)
-        # Attach replies
-        replies = Comment.query.filter_by(parent_id=c.id).order_by(Comment.timestamp.asc()).all()
+        # Attach replies (cap per-comment at 50 to prevent runaway expansion)
+        replies = Comment.query.filter_by(parent_id=c.id).order_by(Comment.timestamp.asc()).limit(50).all()
         c_data['replies'] = [_serialize_comment(r) for r in replies]
         result.append(c_data)
 
-    return jsonify({'comments': result, 'count': len(result)})
+    return jsonify({
+        'comments': result,
+        'count': len(result),
+        'page': pagination.page,
+        'per_page': pagination.per_page,
+        'total': pagination.total,
+        'pages': pagination.pages,
+    })
 
 
 # ── POST a new comment ────────────────────────────────────────────────────
