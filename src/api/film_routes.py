@@ -1053,7 +1053,7 @@ def stream_film(film_id):
         ).first()
         if not purchase:
             return jsonify({'error': 'Purchase required', 'pricing_model': film.pricing_model}), 403
-        if purchase.access_type == 'rent' and purchase.expires_at:
+        if purchase.purchase_type == 'rent' and purchase.expires_at:
             if purchase.expires_at < datetime.utcnow():
                 return jsonify({'error': 'Rental expired'}), 403
 
