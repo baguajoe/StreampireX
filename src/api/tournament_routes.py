@@ -224,6 +224,22 @@ def _record_tournament_completion(tournament: Tournament):
         tournament.third_place_user_id: SCORE_TOURNAMENT_3RD,
     }
 
+    # SP-8: notify top 3 of their placement
+    from api.notifications import notify
+    placement_labels = {
+        tournament.winner_user_id: ("tournament_won", f'You won "{tournament.name}"!'),
+        tournament.runner_up_user_id: ("tournament_placed", f'You placed 2nd in "{tournament.name}"'),
+        tournament.third_place_user_id: ("tournament_placed", f'You placed 3rd in "{tournament.name}"'),
+    }
+    for uid, (ntype, msg) in placement_labels.items():
+        if uid:
+            notify(
+                user_id=uid,
+                type=ntype,
+                content=msg,
+                extra_data={"tournament_id": tournament.id},
+            )
+
     # Award placement bonuses
     for uid, pts in placement_points.items():
         if not uid:
@@ -762,6 +778,16 @@ def start_tournament(tid):
     matches = _generate_bracket(t, active_entries)
     t.status = "active"
     t.updated_at = datetime.utcnow()
+
+    # SP-8: notify all entrants the tournament has started
+    from api.notifications import notify
+    for entry in active_entries:
+        notify(
+            user_id=entry.user_id,
+            type="tournament_started",
+            content=f'"{t.name}" has started! Check your bracket.',
+            extra_data={"tournament_id": t.id},
+        )
     db.session.commit()
 
     return jsonify({
@@ -892,6 +918,20 @@ def _confirm_match(match: TournamentMatch, tournament: Tournament):
 
     # Update leaderboards
     _record_match_result(match, tournament)
+
+    # SP-8: notify loser they have 48h to dispute
+    if match.loser_user_id and match.reported_by_user_id != match.loser_user_id:
+        from api.notifications import notify
+        notify(
+            user_id=match.loser_user_id,
+            type="tournament_match_reported",
+            content=f'Your "{tournament.name}" match was reported. You have 48h to dispute.',
+            from_user_id=match.reported_by_user_id,
+            extra_data={
+                "tournament_id": tournament.id,
+                "match_id": match.id,
+            },
+        )
 
     # Check if tournament is complete
     _maybe_complete_tournament(tournament)

@@ -7451,7 +7451,21 @@ def stripe_webhook():
         
         elif event['type'] == 'invoice.payment_failed':
             handle_payment_failed(event['data']['object'])
-        
+
+        # SP-8: tournament entry fee webhooks
+        elif event['type'] == 'payment_intent.succeeded':
+            pi = event['data']['object']
+            if (pi.get('metadata') or {}).get('kind') == 'tournament_entry':
+                from api.tournament_routes import handle_tournament_payment_succeeded
+                if handle_tournament_payment_succeeded(pi.get('id')):
+                    db.session.commit()
+        elif event['type'] == 'payment_intent.payment_failed':
+            pi = event['data']['object']
+            if (pi.get('metadata') or {}).get('kind') == 'tournament_entry':
+                from api.tournament_routes import handle_tournament_payment_failed
+                if handle_tournament_payment_failed(pi.get('id')):
+                    db.session.commit()
+
         else:
             current_app.logger.info(f"Unhandled event type: {event['type']}")
 
