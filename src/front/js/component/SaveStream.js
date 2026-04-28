@@ -4,7 +4,7 @@ import React from "react";
 
 const SaveStream = ({ streamId }) => {
   const handleSave = async () => {
-    const response = await fetch("/api/streams/save", {
+    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/streams/save`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

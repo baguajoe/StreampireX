@@ -10,7 +10,7 @@ const ScheduleStream = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const response = await fetch("/api/streams/schedule", {
+    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/streams/schedule`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

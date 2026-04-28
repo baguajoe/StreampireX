@@ -20,7 +20,7 @@ const FavoritesPage = () => {
   const [videos, setVideos] = useState([]);
   const [images, setImages] = useState([]);
 
-  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev";
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";  // SP-7: no codespace fallback
 
   useEffect(() => {
     const token = localStorage.getItem("token");

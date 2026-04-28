@@ -21,7 +21,7 @@ const CreateEpisodeForm = ({ podcastId }) => {
     if (coverArt) form.append("cover_art", coverArt);
     if (releaseDate) form.append("release_date", releaseDate);
 
-    const response = await fetch("/api/upload_episode", {
+    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/upload_episode`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,

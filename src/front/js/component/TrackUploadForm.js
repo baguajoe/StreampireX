@@ -22,7 +22,7 @@ const TrackUploadForm = () => {
     formData.append("explicit", isExplicit);
 
     try {
-      const res = await fetch("/api/upload-track", {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/upload-track`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,

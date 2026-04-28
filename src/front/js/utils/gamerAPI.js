@@ -30,8 +30,8 @@
 export const getGamerProfile = async (userId) => {
   const token = localStorage.getItem("token");
   
-  // Use the same fallback URL pattern as ProfilePage
-  const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev';
+  // SP-7: env var only — no codespace fallback (fail loud in prod)
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
   const url = `${backendUrl}/api/gamer-profile/${userId}`;
   
   console.log("Making gamer profile request to:", url);
@@ -72,7 +72,7 @@ export const getGamerProfile = async (userId) => {
 };
 
 export const updateGamerProfile = async (profileData, token) => {
-  const res = await fetch(`/api/gamer-profile/update`, {
+  const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/gamer-profile/update`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -84,7 +84,7 @@ export const updateGamerProfile = async (profileData, token) => {
 };
 
 export const createSquad = async (squadData, token) => {
-  const res = await fetch(`/api/squads/create`, {
+  const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/squads/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -96,7 +96,7 @@ export const createSquad = async (squadData, token) => {
 };
 
 export const joinSquad = async (inviteCode, token) => {
-  const res = await fetch(`/api/squads/join`, {
+  const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/squads/join`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -108,7 +108,7 @@ export const joinSquad = async (inviteCode, token) => {
 };
 
 export const addStream = async (streamData, token) => {
-  const res = await fetch(`/api/streams/add`, {
+  const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/streams/add`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -120,7 +120,7 @@ export const addStream = async (streamData, token) => {
 };
 
 export const getLiveSquadStreams = async (token) => {
-  const res = await fetch(`/api/streams/live`, {
+  const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/streams/live`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -129,6 +129,6 @@ export const getLiveSquadStreams = async (token) => {
 };
 
 export const getCrossplayGames = async () => {
-  const res = await fetch(`/api/games/crossplay-list`);
+  const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/games/crossplay-list`);
   return res.json();
 };
