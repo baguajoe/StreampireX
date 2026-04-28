@@ -50,7 +50,7 @@ def get_stream_key(station_id):
     # and persist it so subsequent calls return the same value.
     if not station.stream_key:
         try:
-            station.stream_key = f"spx_{station_id}_{user.id}_{station.name[:8].replace(' ','_').lower()}"
+            station.stream_key = __import__("secrets").token_urlsafe(32)
             db.session.commit()
         except Exception:
             db.session.rollback()
@@ -150,9 +150,16 @@ def submit_to_playmix(station_id):
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
 
+    # HIGH-B1 (RAD-6): the prior version let any logged-in user submit
+    # tracks to ANY station, enabling submission spam + storage cost
+    # abuse. Now requires either station ownership OR explicit submission
+    # opt-in via station.is_public. Public stations still rate-limit
+    # via the 30s cooldown enforced in RAD-3.
     station = RadioStation.query.filter_by(id=station_id).first()
     if not station:
         return jsonify({"error": "Station not found"}), 404
+    if station.user_id != user.id and not station.is_public:
+        return jsonify({"error": "Not authorized to submit to this station"}), 403
 
     # Validate required fields
     title = request.form.get("title", "").strip()
@@ -315,15 +322,45 @@ def log_play(station_id):
     """
     Called by the player every time a track finishes playing.
     Records play data for BMI/ASCAP/SESAC performance royalty reporting.
+
+    HIGH-B1 (RAD-3): the prior version was unauthenticated, letting any
+    caller curl this endpoint in a loop to inflate play counts and
+    fabricate royalty reports. Now requires JWT, enforces a per-
+    (user,track) cooldown, and ignores client-supplied listener_count
+    (it's set server-side from the station's actual listener pool when
+    that telemetry exists).
     """
+    user = get_user_from_token()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
     data = request.get_json() or {}
     track_id = data.get("track_id")
     duration_played = data.get("duration_played", 0)  # seconds actually played
-    listener_count = data.get("listener_count", 1)
+    # RAD-3: ignore client-supplied listener_count to prevent inflation
+    listener_count = 1
 
     station = RadioStation.query.get(station_id)
     if not station:
         return jsonify({"error": "Not found"}), 404
+
+    # RAD-3: per-(user,track,station) cooldown - reject implausibly fast
+    # repeated plays from the same listener
+    schedule = station.playlist_schedule or {"tracks": []}
+    now = datetime.utcnow()
+    for tr in schedule.get("tracks", []):
+        if tr.get("id") == track_id:
+            recent = tr.get("play_log", [])[-50:]
+            for entry in reversed(recent):
+                if entry.get("user_id") != user.id:
+                    continue
+                try:
+                    ts = datetime.fromisoformat(entry.get("timestamp", "").replace("Z", ""))
+                except (TypeError, ValueError):
+                    continue
+                if (now - ts).total_seconds() < 30:
+                    return jsonify({"ok": True, "throttled": True}), 200
+            break
 
     schedule = station.playlist_schedule or {"tracks": []}
     for track in schedule.get("tracks", []):
@@ -336,6 +373,7 @@ def log_play(station_id):
             play_log = track.get("play_log", [])
             play_log.append({
                 "timestamp": datetime.utcnow().isoformat(),
+                "user_id": user.id,  # RAD-3: stamp listener for cooldown enforcement
                 "duration_played": duration_played,
                 "listener_count": listener_count,
                 "station_id": station_id,

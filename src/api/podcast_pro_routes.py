@@ -294,13 +294,34 @@ def get_transcript(episode_id):
 
 # ── Voicemail / Listener Q&A ─────────────────────────────────────────────────
 @podcast_pro_bp.route("/api/podcast/<int:podcast_id>/voicemail", methods=["POST"])
+@jwt_required()
 def submit_voicemail(podcast_id):
-    """Listeners record/upload a voice message or question for the host."""
+    """Listeners record/upload a voice message or question for the host.
+
+    HIGH-B1 (POD-2): the prior version was unauthenticated, so any
+    internet caller could fill r2://podcast/<id>/voicemails/ with
+    arbitrary audio. Now requires JWT, caps file size, and stamps
+    the submitter user_id into the response.
+    """
+    user_id = get_jwt_identity()
     podcast = Podcast.query.get_or_404(podcast_id)
     if "audio" not in request.files:
         return jsonify({"error": "Audio file required"}), 400
 
     audio = request.files["audio"]
+    # POD-2: enforce a 25MB cap on voicemail uploads
+    MAX_VOICEMAIL_SIZE = 25 * 1024 * 1024
+    size = audio.content_length
+    if size is None:
+        try:
+            audio.stream.seek(0, 2)
+            size = audio.stream.tell()
+            audio.stream.seek(0)
+        except Exception:
+            size = None
+    if size is not None and size > MAX_VOICEMAIL_SIZE:
+        return jsonify({"error": "Voicemail too large (max 25MB)"}), 413
+
     name = request.form.get("name", "Anonymous")
     question = request.form.get("question", "")
 
@@ -353,8 +374,15 @@ def post_review(podcast_id):
 
 # ── Episode play logging (for analytics) ────────────────────────────────────
 @podcast_pro_bp.route("/api/podcast/episode/<int:episode_id>/play-event", methods=["POST"])
+@jwt_required()
 def log_play_event(episode_id):
-    """Log play events: started, 25%, 50%, 75%, completed, paused."""
+    """Log play events: started, 25%, 50%, 75%, completed, paused.
+
+    HIGH-B1 (POD-3): the prior version was unauthenticated, so anyone
+    could inflate view counts that feed analytics, leaderboards, and
+    creator-payout calculations. Now requires JWT.
+    """
+    user_id = get_jwt_identity()
     episode = PodcastEpisode.query.get_or_404(episode_id)
     data = request.get_json() or {}
     event_type = data.get("event")  # started|completed|progress

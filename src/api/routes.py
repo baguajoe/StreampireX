@@ -1251,12 +1251,23 @@ def create_playlist():
 @api.route('/playlist/add_video', methods=['POST'])
 @jwt_required()
 def add_video_to_playlist():
-    data = request.json
+    """HIGH-B1 (LIVE-1): the prior version blindly trusted client-
+    supplied playlist_id, letting any logged-in user pollute another
+    user's playlists with arbitrary videos. Now verifies playlist
+    ownership before creating the relation.
+    """
+    user_id = get_jwt_identity()
+    data = request.json or {}
     playlist_id = data.get("playlist_id")
     video_id = data.get("video_id")
 
     if not playlist_id or not video_id:
         return jsonify({"error": "Playlist ID and Video ID required"}), 400
+
+    # LIVE-1: verify the playlist belongs to the calling user
+    playlist = VideoPlaylist.query.filter_by(id=playlist_id, user_id=user_id).first()
+    if not playlist:
+        return jsonify({"error": "Playlist not found"}), 404
 
     new_entry = VideoPlaylistVideo(playlist_id=playlist_id, video_id=video_id)
     db.session.add(new_entry)

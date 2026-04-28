@@ -176,14 +176,31 @@ def register_radio_socketio(socketio: SocketIO):
 
     @socketio.on("chat_message", namespace="/ws/radio")
     def on_chat(data):
-        """Broadcast chat message to all in station room."""
+        """Broadcast chat message to all in station room.
+
+        HIGH-B1 (RAD-4): the prior version accepted a client-supplied
+        'from' label, letting any listener post chat messages tagged
+        as "Host" or another user's name. Username is now resolved
+        server-side from the JWT-authenticated socket session.
+        """
+        from flask import session as flask_session
+        from api.models import User
+
         station_id = str(data.get("station_id"))
         message = data.get("message", "")[:500]  # max 500 chars
-        from_label = data.get("from", "listener")
+
+        # RAD-4: server-side username lookup. Reject if not authenticated.
+        user_id = flask_session.get("radio_user_id")
+        if not user_id:
+            emit("error", {"message": "Not authenticated"})
+            return
+        user = User.query.get(user_id)
+        from_label = user.username if user and user.username else f"user_{user_id}"
 
         # Broadcast to all viewers + broadcaster
         socketio.emit("chat", {
             "from": from_label,
+            "user_id": user_id,
             "message": message,
             "time": __import__("datetime").datetime.utcnow().strftime("%H:%M")
         }, room=f"station_{station_id}_viewers", namespace="/ws/radio")
@@ -192,6 +209,7 @@ def register_radio_socketio(socketio: SocketIO):
         if bc:
             socketio.emit("chat", {
                 "from": from_label,
+                "user_id": user_id,
                 "message": message,
             }, room=bc["sid"], namespace="/ws/radio")
 

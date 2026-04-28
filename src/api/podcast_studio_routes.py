@@ -86,7 +86,7 @@ def upload_file(file_obj, filename, folder="podcast-studio"):
 # UPLOAD TRACK (stem or guest recording)
 # =============================================================================
 @podcast_studio_bp.route("/api/podcast-studio/upload-track", methods=["POST"])
-@jwt_required(optional=True)
+@jwt_required()
 def upload_track():
     """
     Upload an individual recording track (host, guest, or soundboard).
@@ -114,6 +114,12 @@ def upload_track():
         # Get or create session record
         user_id = get_jwt_identity()
         session = PodcastRecordingSession.query.filter_by(session_id=session_id).first()
+
+        # POD-4 (HIGH-B1): if a session already exists, verify the
+        # caller owns it. Without this, any user can inject tracks
+        # into another user's recording session.
+        if session and session.user_id and session.user_id != user_id:
+            return jsonify({"error": "Not authorized for this session"}), 403
 
         if not session and user_id:
             session = PodcastRecordingSession(
