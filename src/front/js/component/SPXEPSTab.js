@@ -6,6 +6,7 @@
 // =============================================================================
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import '../../styles/SPXEPSTab.css';
+import SpecBadge from './sampler/SpecBadge';
 
 const SAMPLE_RATE  = 29400;
 const ROLLOFF_HZ   = 13000;
@@ -528,7 +529,7 @@ export default function SPXEPSTab({ onExport, onSendToArrange, isEmbedded, maste
       {/* ── DSP strip ── */}
       <div className="spxeps-dsp-strip">
         {['13-BIT','29.4kHz','DOC CHIP','LOW-MID BUMP','TPDF DITHER','ASYMMETRIC NOISE','8 ZONES'].map(b => (
-          <span key={b} className="spxeps-dsp-badge">{b}</span>
+          <SpecBadge key={b} label={b} className="spxeps-dsp-badge" />
         ))}
       </div>
     </div>

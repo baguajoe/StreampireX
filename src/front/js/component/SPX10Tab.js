@@ -7,6 +7,7 @@
 // =============================================================================
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import '../../styles/SPX10Tab.css';
+import SpecBadge from './sampler/SpecBadge';
 
 const SAMPLE_RATE  = 44100;
 const ROLLOFF_HZ   = 16000;
@@ -519,7 +520,7 @@ export default function SPX10Tab({ onExport, onSendToArrange, isEmbedded, master
 
       <div className="spx10-dsp-strip">
         {['16-BIT','44.1kHz','OTTO CHIP','4-POLE FILTER','ONBOARD REVERB','CHORUS','8 ZONES'].map(b=>(
-          <span key={b} className="spx10-dsp-badge">{b}</span>
+          <SpecBadge key={b} label={b} className="spx10-dsp-badge" />
         ))}
       </div>
     </div>

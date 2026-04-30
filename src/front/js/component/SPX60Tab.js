@@ -6,6 +6,7 @@
 // =============================================================================
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import '../../styles/SPX60Tab.css';
+import SpecBadge from './sampler/SpecBadge';
 
 const PADS          = 16;
 const SAMPLE_RATE   = 40000;
@@ -475,7 +476,7 @@ export default function SPX60Tab({ onExport, onSendToArrange, isEmbedded, master
 
       <div className="spx60-dsp-strip">
         {['12-BIT','40kHz','LINN SWING','4-VEL LAYERS','SIGMA-DELTA DAC','TPDF DITHER'].map(b => (
-          <span key={b} className="spx60-dsp-badge">{b}</span>
+          <SpecBadge key={b} label={b} className="spx60-dsp-badge" />
         ))}
       </div>
     </div>

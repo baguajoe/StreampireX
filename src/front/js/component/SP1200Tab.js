@@ -1,4 +1,5 @@
 import '../../styles/SP1200Tab.css';
+import SpecBadge from './sampler/SpecBadge';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 
 const SP_PADS = 8;
@@ -594,7 +595,7 @@ export default function SP1200Tab({ onExport, onSendToArrange, isEmbedded }) {
           ['12kHz ROLLOFF', spChain],
           ['LOW CRUNCH', spChain],
         ].map(([lbl, on]) => (
-          <span key={lbl} className={`sp12-dsp-chip${on ? ' on' : ''}`}>{lbl}</span>
+          <SpecBadge key={lbl} label={lbl} className={`sp12-dsp-chip${on ? ' on' : ''}`} active={on} />
         ))}
         {ringMode !== undefined && (
           <button
