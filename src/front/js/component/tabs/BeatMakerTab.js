@@ -14,6 +14,12 @@ const BeatMakerTab = ({ engine, handlePadDown, handlePadUp }) => {
   const [beatView, setBeatView] = useState("split"); // split | pads | seq
   const seqContainerRef = useRef(null);
 
+  // Bug #24: KEYS toggle — pad shortcuts vs piano keyboard. The two compete
+  // for QWERTY keys (Z/X/C etc.), so the user picks which one the keyboard
+  // drives. Mouse + MIDI continue to work for whichever is not selected.
+  const keyboardTarget = engine.keyboardTarget || "pads";
+  const setKeyboardTarget = engine.setKeyboardTarget || (() => {});
+
   const steps = engine.steps;
   const stepVel = engine.stepVel;
 
@@ -147,7 +153,7 @@ const BeatMakerTab = ({ engine, handlePadDown, handlePadUp }) => {
       <div className="sbm-pattern-bar">
         {engine.patterns.map((pat, i) => (
           <button
-            key={pat.id}
+            key={pat.id || `pat-${i}`}
             className={`sbm-pattern-btn ${i === engine.curPatIdx ? "active" : ""}`}
             onClick={() => engine.setCurPatIdx(i)}
             onDoubleClick={() => {
@@ -192,6 +198,23 @@ const BeatMakerTab = ({ engine, handlePadDown, handlePadUp }) => {
           </button>
         </div>
 
+        {/* Bug #24: KEYS [Pads | Piano] toggle */}
+        <div className="sbm-keys-toggle" title="Which device the QWERTY keyboard drives">
+          <span className="sbm-keys-toggle-label">KEYS</span>
+          <button
+            className={`sbm-keys-toggle-btn ${keyboardTarget === "pads" ? "active" : ""}`}
+            onClick={() => setKeyboardTarget("pads")}
+          >
+            🎛 Pads
+          </button>
+          <button
+            className={`sbm-keys-toggle-btn ${keyboardTarget === "piano" ? "active" : ""}`}
+            onClick={() => setKeyboardTarget("piano")}
+          >
+            🎹 Piano
+          </button>
+        </div>
+
         <div className="sbm-beat-actions">
           <button className="sbm-btn-sm" onClick={engine.clearPat}>
             🗑️ Clear
@@ -229,37 +252,30 @@ const BeatMakerTab = ({ engine, handlePadDown, handlePadUp }) => {
         </div>
       </div>
 
-      {/* ── Content ── */}
-      {beatView === "split" && (
-        <div className="sbm-beats-content view-split">
-          {/* TOP: Pads (left) + Piano (right) */}
-          <div className="sbm-beats-toprow">
-            <PadsPanel />
-            <div className="sbm-beats-right">
-              <div className="sbm-beats-right-inner">
-                <VirtualPiano audioContext={engine.audioCtxRef?.current} />
-              </div>
+      {/* ── Content ──
+          Bug #23: PadsPanel is now always rendered. The Split/Pads/Seq
+          toggle controls only the right-side secondary panel so live-record
+          workflows don't lose access to the pads. */}
+      <div className={`sbm-beats-content sbm-beats-layout sbm-beats-layout-${beatView}`}>
+        <PadsPanel />
+        {beatView === "split" && (
+          <div className="sbm-beats-right">
+            <div className="sbm-beats-right-inner">
+              <VirtualPiano
+                audioContext={engine.audioCtxRef?.current}
+                keyboardEnabled={keyboardTarget === "piano"}
+              />
             </div>
           </div>
-
-          {/* BOTTOM: Sequencer full-width */}
-          <div className="sbm-beats-bottomrow">
-            <SequencerPanel />
+        )}
+        {beatView === "seq" && (
+          <div className="sbm-beats-right sbm-beats-right-seq">
+            <div className="sbm-beats-right-inner">
+              <SequencerPanel />
+            </div>
           </div>
-        </div>
-      )}
-
-      {beatView === "pads" && (
-        <div className="sbm-beats-content view-pads">
-          <PadsPanel />
-        </div>
-      )}
-
-      {beatView === "seq" && (
-        <div className="sbm-beats-content view-seq">
-          <SequencerPanel />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

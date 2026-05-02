@@ -197,7 +197,12 @@ const buildKeyboardLayout = (baseOctave) => {
   return keys;
 };
 
-const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) => {
+const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false, keyboardEnabled }) => {
+  // Bug #24: when the parent (BeatMakerTab) explicitly turns off the keyboard
+  // listener — because the user has set "KEYS → Pads" — we skip wiring the
+  // window keydown handlers entirely. If the prop is undefined (RecordingStudio
+  // and standalone usage), we default to enabled to preserve old behavior.
+  const kbEnabled = keyboardEnabled === undefined ? true : !!keyboardEnabled;
   const [instrument, setInstrument] = useState('piano');
   const [baseOctave, setBaseOctave] = useState(4);
   const [volume, setVolume] = useState(0.7);
@@ -438,6 +443,10 @@ const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) =
 
   // ── Keyboard event handlers ──
   useEffect(() => {
+    // Bug #24: parent can disable the QWERTY listener so the keys drive the
+    // host's pad shortcuts instead. Mouse + MIDI continue to work normally.
+    if (!kbEnabled) return undefined;
+
     // Bail out when the user is typing into a form field — otherwise typing
     // "120" into a BPM input would trigger piano notes for 1, 2, 0.
     const isEditableTarget = () => {
@@ -494,7 +503,7 @@ const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) =
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [baseOctave, noteOn, noteOff]);
+  }, [baseOctave, noteOn, noteOff, kbEnabled]);
 
   // ── MIDI Input ──
   useEffect(() => {

@@ -4266,3 +4266,187 @@
   color: #1a1a1a;
   text-shadow: 0 1px 0 rgba(255,255,255,0.5);
 }
+
+/* =============================================================================
+   PART 8 — Beat Lab UX fixes
+   Bug #23 always-visible pads layout, Bug #24 KEYS toggle, Bug #25 MIDI hub tag,
+   Bug #29 dropdown option contrast, Bug #30 step grid cell affordance.
+   These rules live in SamplerBeatMaker.css with elevated specificity so they
+   override the older .sbm-seq-cell rules in BeatMakerTab.css.
+   ============================================================================= */
+
+/* Bug #23: always-visible pads — layout grid for the BEATS content area.
+   Pads is always column 1; column 2 swaps between piano (split) and
+   sequencer (seq), or collapses to nothing (pads-only). */
+.sbm-beats-tab .sbm-beats-content.sbm-beats-layout {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  gap: 0;
+  padding: 0;
+}
+
+.sbm-beats-tab .sbm-beats-layout-split {
+  grid-template-columns: 1fr 1fr;
+}
+
+.sbm-beats-tab .sbm-beats-layout-pads {
+  grid-template-columns: 1fr;
+}
+
+.sbm-beats-tab .sbm-beats-layout-seq {
+  grid-template-columns: minmax(280px, 1fr) 2fr;
+}
+
+/* Reset the older pads sizing — in the new grid, the column controls width. */
+.sbm-beats-tab .sbm-beats-layout .sbm-beats-pads {
+  flex: 1 1 auto;
+  max-width: none;
+  border-right: 1px solid #1a2438;
+  height: 100%;
+  min-height: 0;
+}
+
+.sbm-beats-tab .sbm-beats-layout-pads .sbm-beats-pads {
+  border-right: none;
+}
+
+/* Right column shared (piano or sequencer) */
+.sbm-beats-tab .sbm-beats-layout .sbm-beats-right {
+  flex: 1 1 auto;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sbm-beats-tab .sbm-beats-layout .sbm-beats-right-inner {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.sbm-beats-tab .sbm-beats-right-seq .sbm-beats-right-inner {
+  overflow: hidden;
+}
+
+/* Bug #24: KEYS toggle in the secondary toolbar */
+.sbm-keys-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+  padding: 2px 6px;
+  border-left: 1px solid rgba(0, 255, 200, 0.12);
+}
+
+.sbm-keys-toggle-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #5a7090;
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+
+.sbm-keys-toggle-btn {
+  padding: 4px 10px;
+  border: 1px solid rgba(0, 255, 200, 0.18);
+  border-radius: 4px;
+  background: rgba(0, 255, 200, 0.04);
+  color: #8fa8c0;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+
+.sbm-keys-toggle-btn:hover {
+  background: rgba(0, 255, 200, 0.10);
+  color: #d8e4ee;
+  border-color: rgba(0, 255, 200, 0.32);
+}
+
+.sbm-keys-toggle-btn.active {
+  background: rgba(0, 255, 200, 0.22);
+  border-color: #00ffc8;
+  color: #06060f;
+  font-weight: 700;
+  box-shadow: 0 0 6px rgba(0, 255, 200, 0.25);
+}
+
+/* Bug #25: MIDI hub-interface tag */
+.midi-popover-device-hub-tag {
+  display: block;
+  margin-top: 2px;
+  margin-left: 22px;
+  font-size: 0.62rem;
+  color: #ffb347;
+  font-style: italic;
+}
+
+.midi-popover-msg.subtle {
+  margin-top: 8px;
+  font-size: 0.68rem;
+  color: #6a7a90;
+  background: transparent;
+  padding: 4px 6px;
+  border: 1px dashed rgba(0, 255, 200, 0.18);
+  border-radius: 4px;
+}
+
+/* Bug #29: native <select> options on dark theme. Browsers render the option
+   list with system colors; explicit background/color make them readable
+   against the rest of the dark UI. */
+.sampler-beat-maker select option,
+.sbm-beats-tab select option,
+select.sbm-step-btn option,
+select.mixer-mode option,
+select.bus-assign-select option,
+select.midi-popover-channel option {
+  background: #1a1a2e;
+  color: #00ffc8;
+  padding: 6px 12px;
+}
+
+.sampler-beat-maker select option:hover,
+.sampler-beat-maker select option:checked,
+.sbm-beats-tab select option:hover,
+.sbm-beats-tab select option:checked {
+  background: #00ffc8;
+  color: #06060f;
+}
+
+.sampler-beat-maker select option:disabled,
+.sbm-beats-tab select option:disabled {
+  color: #555;
+}
+
+/* Bug #30: step grid affordance — empty cells now have a faint persistent
+   border + subtle dot pattern so users see they're clickable, with a
+   stronger hover state. Higher specificity than BeatMakerTab.css's
+   .sbm-seq-cell rule so this wins regardless of import order. */
+.sbm-beats-tab .sbm-seq-cell {
+  border: 1px solid rgba(0, 255, 200, 0.08);
+  background-image: radial-gradient(circle at center, rgba(0, 255, 200, 0.10) 1px, transparent 1px);
+  background-size: 8px 8px;
+  background-position: center;
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.sbm-beats-tab .sbm-seq-cell:hover {
+  border-color: rgba(0, 255, 200, 0.45);
+  background-color: rgba(0, 255, 200, 0.06);
+}
+
+/* On lit cells the dot pattern would clash with the pad color, so suppress
+   the dots and let the existing var(--step-color) fill take over. */
+.sbm-beats-tab .sbm-seq-cell.on {
+  background-image: none;
+  background-color: var(--step-color, #00ffc8);
+  border-color: transparent;
+}

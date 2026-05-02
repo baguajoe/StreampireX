@@ -230,6 +230,7 @@ const SOUND_LIBRARY = {
 };
 
 const mkPattern = (n, sc) => ({
+  id: `pat_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
   name: n || 'Pattern 1',
   steps: Array.from({ length: 16 }, () => Array(sc || 16).fill(false)),
   velocities: Array.from({ length: 16 }, () => Array(sc || 16).fill(0.8)),
@@ -397,6 +398,19 @@ const SamplerBeatMaker = ({
     setPadChokeGroups(prev => prev.map((x, idx) => idx === i ? g : x));
     setPads(prev => prev.map((p, idx) => idx === i ? { ...p, chokeGroup: g } : p));
   }, []);
+
+  // Bug #24: KEYS toggle target — which surface (pads or piano) the QWERTY
+  // keyboard drives. Persisted across sessions. Defaults to 'pads'.
+  const [keyboardTarget, setKeyboardTargetRaw] = useState(() => {
+    try { return localStorage.getItem('spx_beat_lab_keyboard_target') || 'pads'; }
+    catch (e) { return 'pads'; }
+  });
+  const setKeyboardTarget = useCallback((v) => {
+    setKeyboardTargetRaw(v);
+    try { localStorage.setItem('spx_beat_lab_keyboard_target', v); } catch (e) {}
+  }, []);
+  const keyboardTargetRef = useRef(keyboardTarget);
+  useEffect(() => { keyboardTargetRef.current = keyboardTarget; }, [keyboardTarget]);
 
   // ==== PATTERNS (Phase 2) ====
   const [patterns, setPatterns] = useState([mkPattern('Pattern 1', 16)]);
@@ -2817,6 +2831,12 @@ const SamplerBeatMaker = ({
       const k = e.key.toLowerCase();
       if (k === ' ') { e.preventDefault(); togglePlay(); return; }
 
+      // Bug #24: when KEYS toggle is set to "piano", pad shortcuts (and the
+      // keygroup chromatic mapping, which uses the same Z–M / Q–U keys) bail
+      // out so VirtualPiano gets the keystroke instead. Mouse + MIDI still
+      // trigger pads.
+      if (keyboardTargetRef.current === 'piano') return;
+
       // Phase 3: If selected pad is keygroup, use chromatic keyboard
       if (selectedPad !== null && padsRef.current[selectedPad]?.programType === 'keygroup' && KG_KEY_MAP.hasOwnProperty(k)) {
         if (kgActiveKeys.current.has(k)) return; // prevent repeat
@@ -2834,6 +2854,10 @@ const SamplerBeatMaker = ({
     };
     const ku = (e) => {
       const k = e.key.toLowerCase();
+
+      // Mirror the keydown gate so we don't release pad voices that were
+      // never started (and so noteOffs intended for the piano flow through).
+      if (keyboardTargetRef.current === 'piano') return;
 
       // Phase 3: Keygroup noteOff on key release
       if (selectedPad !== null && padsRef.current[selectedPad]?.programType === 'keygroup' && KG_KEY_MAP.hasOwnProperty(k)) {
@@ -3572,17 +3596,34 @@ const SamplerBeatMaker = ({
                     <div className="midi-popover-section">
                       <div className="midi-popover-section-label">Devices</div>
                       <div className="midi-popover-devices">
-                        {midi.inputs.map(input => (
-                          <label key={input.id} className={`midi-popover-device ${midi.enabledDeviceIds.has(input.id) ? 'enabled' : ''}`}>
-                            <input
-                              type="checkbox"
-                              checked={midi.enabledDeviceIds.has(input.id)}
-                              onChange={() => midi.toggleDevice(input.id)}
-                            />
-                            <span className="midi-popover-device-name">{input.name || 'MIDI Device'}</span>
-                            {input.manufacturer && <span className="midi-popover-device-mfr">{input.manufacturer}</span>}
-                          </label>
-                        ))}
+                        {midi.inputs.map(input => {
+                          // Bug #25: hub interfaces (MOTU 828, Express, UltraLite,
+                          // Focusrite Clarett, RME, etc.) appear in MIDI lists by
+                          // their interface name — any external 5-pin DIN device
+                          // plugged into them is invisible at the OS level. Tag
+                          // those entries so the user knows what they're seeing.
+                          const name = input.name || 'MIDI Device';
+                          const isHub = /\b(828(?:x|mk[2-9]?)?|Express(?:XT)?|UltraLite|MicroLite|MIDI Express|Clarett|Scarlett|RME|Babyface|Fireface|Komplete Audio|Apollo|Quad-Capture|Studio[- ]?Capture|Octa[- ]?Capture)\b/i.test(name);
+                          return (
+                            <label key={input.id} className={`midi-popover-device ${midi.enabledDeviceIds.has(input.id) ? 'enabled' : ''}`}>
+                              <input
+                                type="checkbox"
+                                checked={midi.enabledDeviceIds.has(input.id)}
+                                onChange={() => midi.toggleDevice(input.id)}
+                              />
+                              <span className="midi-popover-device-name">{name}</span>
+                              {input.manufacturer && <span className="midi-popover-device-mfr">{input.manufacturer}</span>}
+                              {isHub && (
+                                <span className="midi-popover-device-hub-tag">
+                                  (audio interface — external MIDI passthrough)
+                                </span>
+                              )}
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <div className="midi-popover-msg info subtle">
+                        💡 External MIDI controllers (e.g. Akai via 5-pin) appear as the audio interface name. For device-name detection, connect via USB.
                       </div>
                     </div>
                     <div className="midi-popover-section">
@@ -3850,6 +3891,7 @@ const SamplerBeatMaker = ({
               loopStartStep, setLoopStartStep, loopEndStep, setLoopEndStep,
               toggleStep, clearPat, stopAll, addPattern, delPattern, renamePattern,
               audioCtxRef: ctxRef,
+              keyboardTarget, setKeyboardTarget,
               setShowMixer: (v) => setShowMixer(v),
               setSongMode: (v) => setSongMode(v),
               setShowClipLauncher: (v) => setShowClipLauncher(v),
