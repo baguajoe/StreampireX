@@ -9,6 +9,7 @@ import { useStemSeparation } from '../hooks/useStemSeparation';
 
 import LoopermanBrowser from './LoopermanBrowser';
 import FreesoundBrowser from './FreesoundBrowser';
+import useMidiInput from './useMidiInput';
 import { createCharacterChain } from './SPXCharacterEngine';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import '../../styles/SamplerBeatMaker.css';
@@ -419,6 +420,10 @@ const SamplerBeatMaker = ({
   // Bug #19: pattern dropdown menu (rename / switch / new / duplicate / delete)
   const [showPatternMenu, setShowPatternMenu] = useState(false);
   const patternMenuRef = useRef(null);
+  // Bug #9: MIDI: <device> indicator + popover (device list, channel filter, plugins note)
+  const [showMidiPopover, setShowMidiPopover] = useState(false);
+  const midiPopoverRef = useRef(null);
+  const [midiActive, setMidiActive] = useState(false); // Activity LED flash flag
 
   // ==== AUDIO DEVICES ====
   const [devices, setDevices] = useState({ inputs: [], outputs: [] });
@@ -766,6 +771,18 @@ const SamplerBeatMaker = ({
     return () => document.removeEventListener('mousedown', onDoc);
   }, [showPatternMenu]);
 
+  // Bug #9: close MIDI popover when clicking outside.
+  useEffect(() => {
+    if (!showMidiPopover) return;
+    const onDoc = (e) => {
+      if (midiPopoverRef.current && !midiPopoverRef.current.contains(e.target)) {
+        setShowMidiPopover(false);
+      }
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [showMidiPopover]);
+
   // Bug #16: capture mouse-button modifiers globally so pad-click handlers in tab
   // components (which only pass the pad index, not the event) can derive velocity.
   // Click=0.8, Shift+Click=0.4, Ctrl/Cmd+Click=1.0 — matches existing toggleStep convention.
@@ -880,53 +897,85 @@ const SamplerBeatMaker = ({
   // MIDI (Phase 3)
   // =========================================================================
 
-  useEffect(() => {
-    if (!navigator.requestMIDIAccess) return;
-    navigator.requestMIDIAccess({ sysex: false }).then(acc => {
-      const ins = []; acc.inputs.forEach(i => ins.push(i)); setMidiInputs(ins);
-      acc.onstatechange = () => { const n = []; acc.inputs.forEach(i => n.push(i)); setMidiInputs(n); };
-    }).catch(() => { });
+  // Bug #12: route ALL connected MIDI inputs through the new useMidiInput hook.
+  // The handler reads the same routing rules as the old single-device path
+  // (learn → keygroup → drum), but now any auto-detected device fires it.
+  // Defined further below; referenced via ref so the hook subscribes once and
+  // the consumer can re-create the handler without resubscribing.
+  const handleMidiRef = useRef(null);
+  const handleMidi = useCallback((msg) => {
+    const { isNoteOn, isNoteOff, data1: note, data2: vel } = msg;
+    if (!isNoteOn && !isNoteOff && !msg.isCC) return;
+
+    // ── MIDI Learn capture ──
+    if (midiLearn && midiLearnPad !== null && isNoteOn) {
+      setMidiMap(p => ({ ...p, [note]: midiLearnPad }));
+      setMidiLearn(false);
+      setMidiLearnPad(null);
+      return;
+    }
+
+    // ── Keygroup mode: any pad whose key range covers this note plays chromatically ──
+    const kgPads = padsRef.current
+      .map((p, i) => ({ pad: p, idx: i }))
+      .filter(({ pad }) => pad?.programType === 'keygroup' && pad.buffer &&
+        note >= (pad.keyRangeLow || 0) && note <= (pad.keyRangeHigh || 127));
+
+    if (kgPads.length > 0) {
+      if (isNoteOn) {
+        const v = vel / 127;
+        kgPads.forEach(({ idx }) => playPadKeygroup(idx, note, v));
+        // MIDI hits record into pattern when liveRec is on (Part 2 integration).
+        if (liveRef.current) handleLiveHit(kgPads[0].idx, v);
+      } else if (isNoteOff) {
+        kgPads.forEach(({ idx }) => stopPadKeygroup(idx, note));
+      }
+      return;
+    }
+
+    // ── Drum mode ──
+    // Prefer explicit map (from MIDI Learn). Fall back to the GM drum lane (notes 36–51 → pads 0–15).
+    let pi = midiMap[note];
+    if (pi === undefined) {
+      if (note >= 36 && note < 52) pi = note - 36;
+      else return;
+    }
+    if (isNoteOn) {
+      const v = vel / 127;
+      playPad(pi, v);
+      if (liveRef.current) handleLiveHit(pi, v);
+    } else if (isNoteOff && padsRef.current[pi]?.playMode === 'hold') {
+      stopPad(pi);
+    }
+  }, [midiLearn, midiLearnPad, midiMap, playPad, stopPad, playPadKeygroup, stopPadKeygroup, handleLiveHit]);
+  useEffect(() => { handleMidiRef.current = handleMidi; }, [handleMidi]);
+
+  // Single, stable callback the hook subscribes to once — dispatches via ref so
+  // re-creating handleMidi doesn't churn device subscriptions.
+  const onMidiMessage = useCallback((msg) => {
+    handleMidiRef.current?.(msg);
   }, []);
+  const midi = useMidiInput(onMidiMessage);
 
+  // Mirror hook state into the legacy fields so the existing device-panel <select>
+  // and other readers keep working without a UI rewrite.
+  useEffect(() => { setMidiInputs(midi.inputs); }, [midi.inputs]);
   useEffect(() => {
-    if (!selMidi) return;
-    const handle = (msg) => {
-      const [st, note, vel] = msg.data;
-      const noteOn = (st & 0xF0) === 0x90 && vel > 0;
-      const noteOff = (st & 0xF0) === 0x80 || ((st & 0xF0) === 0x90 && vel === 0);
-      if (midiLearn && midiLearnPad !== null && noteOn) {
-        setMidiMap(p => ({ ...p, [note]: midiLearnPad }));
-        setMidiLearn(false); setMidiLearnPad(null); return;
-      }
+    // selMidi tracks the first enabled device for cosmetic display.
+    if (!selMidi || !midi.enabledDeviceIds.has(selMidi.id)) {
+      const first = midi.inputs.find(i => midi.enabledDeviceIds.has(i.id));
+      if (first && first.id !== selMidi?.id) setSelMidi(first);
+      else if (!first && selMidi) setSelMidi(null);
+    }
+  }, [midi.inputs, midi.enabledDeviceIds, selMidi]);
 
-      // Phase 3: Check if any pad is set to keygroup and note is in its range
-      const kgPads = padsRef.current
-        .map((p, i) => ({ pad: p, idx: i }))
-        .filter(({ pad }) => pad.programType === 'keygroup' && pad.buffer &&
-          note >= (pad.keyRangeLow || 0) && note <= (pad.keyRangeHigh || 127));
-
-      if (kgPads.length > 0) {
-        if (noteOn) {
-          const v = vel / 127;
-          kgPads.forEach(({ idx }) => playPadKeygroup(idx, note, v));
-          if (liveRef.current && ctxRef.current)
-            setRecHits(p => [...p, { pad: kgPads[0].idx, time: ctxRef.current.currentTime - recStartT.current, velocity: vel / 127, midiNote: note }]);
-        } else if (noteOff) {
-          kgPads.forEach(({ idx }) => stopPadKeygroup(idx, note));
-        }
-        return; // keygroup handled, don't fall through to drum mode
-      }
-
-      // Drum mode: standard pad mapping
-      const pi = midiMap[note]; if (pi === undefined) return;
-      if (noteOn) {
-        const v = vel / 127; playPad(pi, v);
-        if (liveRef.current && ctxRef.current) setRecHits(p => [...p, { pad: pi, time: ctxRef.current.currentTime - recStartT.current, velocity: v }]);
-      } else if (noteOff && padsRef.current[pi]?.playMode === 'hold') stopPad(pi);
-    };
-    selMidi.onmidimessage = handle;
-    return () => { selMidi.onmidimessage = null; };
-  }, [selMidi, midiMap, midiLearn, midiLearnPad, playPad, stopPad, playPadKeygroup, stopPadKeygroup]);
+  // MIDI activity LED — flash for 200ms on each incoming message.
+  useEffect(() => {
+    if (!midi.lastActivity) return;
+    setMidiActive(true);
+    const t = setTimeout(() => setMidiActive(false), 180);
+    return () => clearTimeout(t);
+  }, [midi.lastActivity]);
 
   // =========================================================================
   // SAMPLE LOADING
@@ -3336,6 +3385,107 @@ const SamplerBeatMaker = ({
         </div>
 
         <div className="sampler-topbar-right">
+          {/* Bug #9 / Bug #12: MIDI status indicator + popover */}
+          <div className="midi-indicator-wrap" ref={midiPopoverRef}>
+            <button
+              className={`midi-indicator state-${midi.permissionState} ${midiActive ? 'active' : ''} ${showMidiPopover ? 'open' : ''}`}
+              onClick={() => setShowMidiPopover(p => !p)}
+              title="MIDI Settings"
+            >
+              <span className={`midi-indicator-led ${midiActive ? 'on' : ''}`} />
+              <span className="midi-indicator-label">
+                {midi.permissionState === 'unsupported' ? 'MIDI N/A'
+                  : midi.permissionState === 'denied' ? 'MIDI: Denied'
+                  : midi.inputs.length === 0 ? 'No MIDI'
+                  : `MIDI: ${(() => {
+                      const enabled = midi.inputs.filter(i => midi.enabledDeviceIds.has(i.id));
+                      if (enabled.length === 0) return 'Off';
+                      if (enabled.length === 1) {
+                        const n = enabled[0].name || 'Device';
+                        return n.length > 16 ? n.slice(0, 16) + '…' : n;
+                      }
+                      return `${enabled.length} devices`;
+                    })()}`}
+              </span>
+              <span className="midi-indicator-caret">▾</span>
+            </button>
+            {showMidiPopover && (
+              <div className="midi-popover">
+                <div className="midi-popover-header">
+                  <span>🎹 MIDI Input</span>
+                  <button className="midi-popover-close" onClick={() => setShowMidiPopover(false)} title="Close">✕</button>
+                </div>
+
+                {midi.permissionState === 'unsupported' && (
+                  <div className="midi-popover-msg warning">
+                    Web MIDI is unsupported in this browser. Use Chrome, Edge, or Safari to connect external controllers.
+                  </div>
+                )}
+
+                {midi.permissionState === 'denied' && (
+                  <div className="midi-popover-msg warning">
+                    MIDI permission was denied. Re-grant access to use external controllers.
+                    <button className="midi-popover-action" onClick={() => midi.requestAccess()}>Retry</button>
+                  </div>
+                )}
+
+                {midi.permissionState === 'granted' && midi.inputs.length === 0 && (
+                  <div className="midi-popover-msg info">
+                    No MIDI devices detected. Connect a controller via USB and it will appear here automatically.
+                  </div>
+                )}
+
+                {midi.permissionState === 'granted' && midi.inputs.length > 0 && (
+                  <>
+                    <div className="midi-popover-section">
+                      <div className="midi-popover-section-label">Devices</div>
+                      <div className="midi-popover-devices">
+                        {midi.inputs.map(input => (
+                          <label key={input.id} className={`midi-popover-device ${midi.enabledDeviceIds.has(input.id) ? 'enabled' : ''}`}>
+                            <input
+                              type="checkbox"
+                              checked={midi.enabledDeviceIds.has(input.id)}
+                              onChange={() => midi.toggleDevice(input.id)}
+                            />
+                            <span className="midi-popover-device-name">{input.name || 'MIDI Device'}</span>
+                            {input.manufacturer && <span className="midi-popover-device-mfr">{input.manufacturer}</span>}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="midi-popover-section">
+                      <div className="midi-popover-section-label">Channel Filter</div>
+                      <select
+                        className="midi-popover-channel"
+                        value={midi.channelFilter}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          midi.setChannelFilter(v === 'all' ? 'all' : parseInt(v, 10));
+                        }}
+                      >
+                        <option value="all">All channels (omni)</option>
+                        {Array.from({ length: 16 }, (_, i) => (
+                          <option key={i} value={i}>Channel {i + 1}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                <div className="midi-popover-section">
+                  <div className="midi-popover-section-label">StudioRack</div>
+                  <div className="midi-popover-msg info subtle">No plugins loaded. StudioRack chain coming soon.</div>
+                </div>
+
+                <div className="midi-popover-footer">
+                  <button
+                    className="midi-popover-action"
+                    onClick={() => { setShowMidiPopover(false); setShowDevices(true); }}
+                  >Open Full MIDI Settings</button>
+                </div>
+              </div>
+            )}
+          </div>
           <button className={`transport-btn ${showDevices ? 'active' : ''}`} onClick={() => setShowDevices(p => !p)} title="Devices">🎛️</button>
           <button className={`transport-btn ${showMixer ? 'active' : ''}`} onClick={() => setShowMixer(p => !p)} title="Mixer">🎚️</button>
           <button className={`transport-btn ${showLib ? 'active' : ''}`} onClick={() => setShowLib(p => !p)} title="Library">📚</button>
