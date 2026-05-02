@@ -263,6 +263,57 @@ const CHROMATIC_KEYS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A
 const CHOP_MODES = ['transient', 'bpmgrid', 'equal', 'manual'];
 
 // =============================================================================
+// BPM INPUT (Bug #1)
+// Uncontrolled input — `key={value}` remounts when BPM changes from outside
+// (tap tempo, transport sync, etc.) so we never fight a controlled-state race.
+// Commits on Enter / blur, reverts on Esc, validates the configured range.
+// =============================================================================
+const BpmInput = React.memo(function BpmInput({ value, onChange, min = 20, max = 300 }) {
+  const inputRef = useRef(null);
+  const [invalid, setInvalid] = useState(false);
+
+  const commit = useCallback(() => {
+    const raw = inputRef.current?.value ?? '';
+    const n = parseInt(raw, 10);
+    if (!Number.isFinite(n) || n < min || n > max) {
+      setInvalid(true);
+      if (inputRef.current) inputRef.current.value = String(value);
+      setTimeout(() => setInvalid(false), 600);
+      return;
+    }
+    if (n !== value) onChange(n);
+    else if (inputRef.current) inputRef.current.value = String(value);
+  }, [value, onChange, min, max]);
+
+  const revert = useCallback(() => {
+    setInvalid(false);
+    if (inputRef.current) {
+      inputRef.current.value = String(value);
+      inputRef.current.blur();
+    }
+  }, [value]);
+
+  return (
+    <input
+      ref={inputRef}
+      key={value}
+      defaultValue={value}
+      type="number"
+      className={`bpm-input ${invalid ? 'invalid' : ''}`}
+      min={min}
+      max={max}
+      step={1}
+      onFocus={(e) => e.target.select()}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') { e.preventDefault(); commit(); inputRef.current?.blur(); }
+        else if (e.key === 'Escape') { e.preventDefault(); revert(); }
+      }}
+    />
+  );
+});
+
+// =============================================================================
 // COMPONENT
 // =============================================================================
 
@@ -424,6 +475,11 @@ const SamplerBeatMaker = ({
   const [showMidiPopover, setShowMidiPopover] = useState(false);
   const midiPopoverRef = useRef(null);
   const [midiActive, setMidiActive] = useState(false); // Activity LED flash flag
+  // Bug #2: notifications bell — separate from metronome.
+  // Notification shape: { id, type: 'info'|'success'|'warn'|'error', title, message, timestamp, dismissed }
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const notifPanelRef = useRef(null);
 
   // ==== AUDIO DEVICES ====
   const [devices, setDevices] = useState({ inputs: [], outputs: [] });
@@ -782,6 +838,38 @@ const SamplerBeatMaker = ({
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, [showMidiPopover]);
+
+  // Bug #2: close notifications panel when clicking outside.
+  useEffect(() => {
+    if (!showNotifPanel) return;
+    const onDoc = (e) => {
+      if (notifPanelRef.current && !notifPanelRef.current.contains(e.target)) {
+        setShowNotifPanel(false);
+      }
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [showNotifPanel]);
+
+  // Bug #2: notification API — exposed for any module that wants to surface a status.
+  // Default state is empty; nothing fakes notifications. The push helper is memoized
+  // so callers can include it in dep arrays without churn.
+  const pushNotification = useCallback(({ type = 'info', title, message }) => {
+    setNotifications(prev => [
+      ...prev,
+      {
+        id: `n_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        type, title, message,
+        timestamp: Date.now(),
+        dismissed: false,
+      },
+    ]);
+  }, []);
+  const dismissNotification = useCallback((id) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, dismissed: true } : n));
+  }, []);
+  const clearNotifications = useCallback(() => setNotifications([]), []);
+  const unreadNotifCount = notifications.filter(n => !n.dismissed).length;
 
   // Bug #16: capture mouse-button modifiers globally so pad-click handlers in tab
   // components (which only pass the pad index, not the event) can derive velocity.
@@ -3368,13 +3456,57 @@ const SamplerBeatMaker = ({
 
           <div className="bpm-control">
             <button className="bpm-nudge" onClick={() => setBpm(p => Math.max(40, p - 1))}>−</button>
-            <input type="number" className="bpm-input" value={bpm} min={40} max={300} onChange={(e) => setBpm(Math.min(300, Math.max(40, parseInt(e.target.value) || 140)))} />
+            <BpmInput value={bpm} onChange={setBpm} min={20} max={300} />
             <span className="bpm-label">BPM</span>
             <button className="bpm-nudge" onClick={() => setBpm(p => Math.min(300, p + 1))}>+</button>
           </div>
 
           <button className="transport-btn tap" onClick={tapTempo}>TAP</button>
-          <button className={`transport-btn met ${metOn ? 'active' : ''}`} onClick={() => setMetOn(p => !p)}>🔔</button>
+          <button className={`transport-btn met ${metOn ? 'active' : ''}`} onClick={() => setMetOn(p => !p)} title="Metronome">🔔</button>
+          {/* Bug #2: notifications bell — distinct from the metronome */}
+          <div className="notif-bell-wrap" ref={notifPanelRef}>
+            <button
+              className={`transport-btn notif-bell ${unreadNotifCount > 0 ? 'has-unread' : ''} ${showNotifPanel ? 'active' : ''}`}
+              onClick={() => setShowNotifPanel(p => !p)}
+              title="Notifications"
+            >
+              🛎️
+              {unreadNotifCount > 0 && <span className="notif-badge">{unreadNotifCount > 9 ? '9+' : unreadNotifCount}</span>}
+            </button>
+            {showNotifPanel && (
+              <div className="notif-panel">
+                <div className="notif-panel-header">
+                  <span>🛎️ Notifications</span>
+                  <div className="notif-panel-header-actions">
+                    {notifications.length > 0 && (
+                      <button className="notif-clear-all" onClick={clearNotifications} title="Clear all">Clear</button>
+                    )}
+                    <button className="notif-panel-close" onClick={() => setShowNotifPanel(false)} title="Close">✕</button>
+                  </div>
+                </div>
+                {notifications.length === 0 ? (
+                  <div className="notif-empty">No notifications</div>
+                ) : (
+                  <div className="notif-list">
+                    {notifications.map(n => (
+                      <div key={n.id} className={`notif-item type-${n.type} ${n.dismissed ? 'dismissed' : ''}`}>
+                        <div className="notif-item-body">
+                          {n.title && <div className="notif-item-title">{n.title}</div>}
+                          {n.message && <div className="notif-item-msg">{n.message}</div>}
+                          <div className="notif-item-time">{new Date(n.timestamp).toLocaleTimeString()}</div>
+                        </div>
+                        <button
+                          className="notif-item-dismiss"
+                          onClick={() => dismissNotification(n.id)}
+                          title="Dismiss"
+                        >×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           <button className={`transport-btn loop ${looping ? 'active' : ''}`} onClick={() => setLooping(p => !p)}>🔁</button>
 
           <div className="swing-control"><label>Swing</label><input type="range" min={0} max={100} value={swing} onChange={(e) => setSwing(+e.target.value)} /><span className="swing-value">{swing}%</span></div>
@@ -3753,6 +3885,8 @@ const SamplerBeatMaker = ({
               onSendToTriple={(padIdx, buffer, name) => {
                 setActiveTab('triple');
               }}
+              /* Bug #10: Chop button → opens shared ChopView via SamplerBeatMaker's onChopRequest */
+              onChopRequest={(buf, upFn, setFn) => onChopRequest(buf, upFn, setFn, null)}
             />
           </div>
         )}
@@ -3767,6 +3901,8 @@ const SamplerBeatMaker = ({
               onSendToTriple={(padIdx, buffer, name) => {
                 setActiveTab('triple');
               }}
+              /* Bug #10: Chop button → opens shared ChopView via SamplerBeatMaker's onChopRequest */
+              onChopRequest={(buf, upFn, setFn) => onChopRequest(buf, upFn, setFn, null)}
             />
           </div>
         )}

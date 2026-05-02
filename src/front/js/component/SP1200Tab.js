@@ -143,7 +143,7 @@ const applySp1200Chain = (ctx, buffer, emphasis = 0.45) => {
   return b;
 };
 
-export default function SP1200Tab({ onExport, onSendToArrange, isEmbedded }) {
+export default function SP1200Tab({ onExport, onSendToArrange, isEmbedded, onChopRequest }) {
   const ctxRef    = useRef(null);
   const masterRef = useRef(null);
   const chopRef   = useRef({});
@@ -544,6 +544,14 @@ export default function SP1200Tab({ onExport, onSendToArrange, isEmbedded }) {
                     onChange={e => updatePad(selectedPad, { muted: e.target.checked })}/>
                   MUTE
                 </label>
+                {/* Bug #10: Chop button — opens shared ChopView via parent's onChopRequest */}
+                {pads[selectedPad].buffer && onChopRequest && (
+                  <button className="sp12-hw-btn"
+                    onClick={() => onChopRequest(pads[selectedPad].buffer, (pi, data) => updatePad(pi, data), setPads)}
+                    title="Open chop editor for this pad">
+                    ✂ CHOP
+                  </button>
+                )}
                 {pads[selectedPad].buffer && (
                   <button className="sp12-hw-btn sp12-btn-danger"
                     onClick={() => { updatePad(selectedPad, mkPad(selectedPad)); setSelectedPad(null); }}>

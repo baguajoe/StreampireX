@@ -460,6 +460,7 @@ const SPX3000Tab = ({
   onExport,
   onSendToArrange,
   isEmbedded = false,
+  onChopRequest,                      // Bug #10: opens shared ChopView with selected pad's buffer
 }) => {
 
   // ── Audio Engine ──────────────────────────────────────────────────────────
@@ -1712,6 +1713,14 @@ const SPX3000Tab = ({
               </div>
               <div style={{display:'flex',gap:4,padding:'6px 8px',borderBottom:'1px solid #3a2800'}}>
                 <button onClick={() => fileSelect(activeBank, selectedPad)} style={{flex:1,padding:'3px 0',fontSize:9,background:'#2a1800',color:'#FF6600',border:'1px solid #FF6600',borderRadius:2,cursor:'pointer'}}>📂 Load</button>
+                {/* Bug #10: Chop button — only visible when pad has a buffer and parent supplied onChopRequest */}
+                {curPads[selectedPad]?.buffer && onChopRequest && (
+                  <button
+                    onClick={() => onChopRequest(curPads[selectedPad].buffer, (pi, data) => updatePad(activeBank, pi, data), (updater) => setBanks(prev => ({ ...prev, [activeBank]: typeof updater === 'function' ? updater(prev[activeBank]) : updater })))}
+                    style={{flex:1,padding:'3px 0',fontSize:9,background:'#2a1800',color:'#FF6600',border:'1px solid #FF6600',borderRadius:2,cursor:'pointer'}}
+                    title="Open chop editor"
+                  >✂ Chop</button>
+                )}
                 <button onClick={() => clearPad(activeBank, selectedPad)} style={{flex:1,padding:'3px 0',fontSize:9,background:'#2a1800',color:'#FF6600',border:'1px solid #FF6600',borderRadius:2,cursor:'pointer'}}>🗑 Clear</button>
               </div>
               <div style={{flex:1,overflowY:'auto',padding:'8px'}}>

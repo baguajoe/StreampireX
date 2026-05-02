@@ -12,7 +12,9 @@ const SAMPLE_RATE  = 29400;
 const ROLLOFF_HZ   = 13000;
 const NOISE_FLOOR  = 0.00085;
 const PPQN         = 96;
-const NUM_ZONES    = 8;
+// Bug #4: doubled to 16 to match the Ensoniq EPS spec (the original hardware
+// supports 16 keyboard zones across split presets — 8 was an arbitrary throttle).
+const NUM_ZONES    = 16;
 const WHITE_KEYS   = 36;
 const NOTES        = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const WHITE_NOTE_PATTERN = [0,2,4,5,7,9,11]; // C D E F G A B semitone offsets
@@ -104,9 +106,11 @@ const mkZone = (idx) => ({
   name: `Zone ${idx + 1}`,
   buffer: null,
   processedBuffer: null,
-  loNote: idx * 9,        // spread zones across keyboard
-  hiNote: idx * 9 + 8,
-  rootNote: idx * 9 + 4,
+  // 16 zones × 6 keys covers a 96-key range starting at MIDI 24 (C0). Each zone
+  // is a half-octave wide; rootNote sits in the middle for chromatic playback.
+  loNote: 24 + idx * 6,
+  hiNote: 24 + idx * 6 + 5,
+  rootNote: 24 + idx * 6 + 2,
   volume: 1.0,
   pan: 0,
   tune: 0,
@@ -122,7 +126,7 @@ const mkZone = (idx) => ({
 const mkSeq = (bars = 2) => ({
   bars,
   steps: Array.from({ length: bars * 16 }, () =>
-    Array.from({ length: 8 }, () => ({ on: false, vel: 100 }))
+    Array.from({ length: NUM_ZONES }, () => ({ on: false, vel: 100 }))
   ),
 });
 
@@ -189,7 +193,15 @@ export default function SPXEPSTab({ onExport, onSendToArrange, isEmbedded, maste
     gain.gain.setTargetAtTime(zone.volume * vel * zone.sustain, ctx.currentTime + zone.attack + zone.decay, 0.1);
     const panner = ctx.createStereoPanner();
     panner.pan.value = zone.pan;
-    src.connect(gain); gain.connect(panner); panner.connect(ctx.destination);
+    // Bug #4: filter is now wired into the chain (was cosmetic — UI sliders
+    // moved values but no node existed). Lowpass with the per-zone cutoff/Q.
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = Math.max(20, zone.cutoff ?? 13000);
+    // Resonance slider is 0..0.9; map to a usable Q range (0.7..18) for character
+    // without going self-oscillation crazy.
+    filter.Q.value = 0.7 + (zone.resonance ?? 0) * 19;
+    src.connect(filter); filter.connect(gain); gain.connect(panner); panner.connect(ctx.destination);
     src.start();
     src.onended = () => { srcMap.current[midiNote] = null; };
     srcMap.current[midiNote] = src;
@@ -528,7 +540,7 @@ export default function SPXEPSTab({ onExport, onSendToArrange, isEmbedded, maste
 
       {/* ── DSP strip ── */}
       <div className="spxeps-dsp-strip">
-        {['13-BIT','29.4kHz','DOC CHIP','LOW-MID BUMP','TPDF DITHER','ASYMMETRIC NOISE','8 ZONES'].map(b => (
+        {['13-BIT','29.4kHz','DOC CHIP','LOW-MID BUMP','TPDF DITHER','ASYMMETRIC NOISE','16 ZONES','LOWPASS FILTER'].map(b => (
           <SpecBadge key={b} label={b} className="spxeps-dsp-badge" />
         ))}
       </div>
