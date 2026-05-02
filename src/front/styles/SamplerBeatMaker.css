@@ -1397,6 +1397,26 @@
   text-align: center;
 }
 
+/* Bug #13: voice-mode dropdown in the mixer strip */
+.mixer-mode {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  color: #ccc;
+  font-size: 0.55rem;
+  font-weight: 700;
+  padding: 1px 2px;
+  margin-top: 3px;
+  text-align: center;
+  outline: none;
+  width: 100%;
+  cursor: pointer;
+}
+.mixer-mode:hover {
+  border-color: rgba(0, 255, 200, 0.4);
+  color: #00ffc8;
+}
+
 .mixer-channel.master {
   border-left: 1px solid rgba(255, 255, 255, 0.1);
   padding-left: 8px;

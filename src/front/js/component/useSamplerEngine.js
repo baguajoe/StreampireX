@@ -29,6 +29,8 @@ export const FORMAT_INFO = {
 
 export const CHOP_MODES = ['transient', 'bpmgrid', 'equal', 'manual'];
 
+export const PAD_MODES = ['retrigger', 'polyphonic', 'choke'];
+
 const uid = () => crypto?.randomUUID?.() ?? `id_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
 const createDefaultPad = (i) => ({
@@ -96,7 +98,13 @@ export default function useSamplerEngine(options = {}) {
   // ── Audio Context ──
   const ctxRef = useRef(null);
   const masterRef = useRef(null);
-  const activeSrc = useRef({});
+  // Per-pad persistent gain → pan → master chain (Bug #14)
+  const padGainRef = useRef([]);   // GainNode[PAD_COUNT]
+  const padPanRef  = useRef([]);   // StereoPannerNode[PAD_COUNT]
+  // Source-tracking Map<key, Set<voice>> (Bug #8/#17)
+  // key: padIndex (number) for pad voices, `kg_${note}` (string) for keygroup voices
+  // voice: { source, gain, chain }
+  const activeSourcesRef = useRef(new Map());
   const mediaRec = useRef(null);
 
   // ── Effect node caches (per-pad, created on demand) ──
@@ -107,9 +115,24 @@ export default function useSamplerEngine(options = {}) {
 
   const initCtx = useCallback(() => {
     if (!ctxRef.current || ctxRef.current.state === 'closed') {
-      ctxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      masterRef.current = ctxRef.current.createGain();
-      masterRef.current.connect(ctxRef.current.destination);
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      ctxRef.current = ctx;
+      masterRef.current = ctx.createGain();
+      masterRef.current.connect(ctx.destination);
+
+      // Build the persistent per-pad chain: gain → pan → master
+      padGainRef.current = [];
+      padPanRef.current = [];
+      for (let i = 0; i < PAD_COUNT; i++) {
+        const g = ctx.createGain();
+        const p = ctx.createStereoPanner();
+        g.gain.value = 0.8;
+        p.pan.value = 0;
+        g.connect(p);
+        p.connect(masterRef.current);
+        padGainRef.current.push(g);
+        padPanRef.current.push(p);
+      }
     }
     if (ctxRef.current.state === 'suspended') ctxRef.current.resume();
     return ctxRef.current;
@@ -134,23 +157,18 @@ export default function useSamplerEngine(options = {}) {
 
   // ── Select buffer for velocity layers ──
   const selectLayerBuffer = useCallback((pad, pi, vel) => {
-    // If pad has velocity layers, pick the right one
     if (pad.layers && pad.layers.length > 0) {
       if (pad.roundRobin) {
-        // Round-robin: cycle through layers regardless of velocity
         const idx = (roundRobinIdx.current[pi] || 0) % pad.layers.length;
         roundRobinIdx.current[pi] = idx + 1;
         return pad.layers[idx].buffer || pad.buffer;
       }
-      // Velocity switching: layers sorted by velocity threshold
-      // Each layer: { buffer, velLow, velHigh, name }
       const sorted = [...pad.layers].sort((a, b) => (a.velLow || 0) - (b.velLow || 0));
       for (const layer of sorted) {
         if (vel >= (layer.velLow || 0) && vel <= (layer.velHigh || 1)) {
           return layer.buffer || pad.buffer;
         }
       }
-      // Fallback: closest layer
       let best = pad.layers[0];
       let bestDist = 999;
       for (const layer of pad.layers) {
@@ -167,6 +185,74 @@ export default function useSamplerEngine(options = {}) {
   const [pads, setPads] = useState(() => Array.from({ length: PAD_COUNT }, (_, i) => createDefaultPad(i)));
   const [selectedPad, setSelectedPad] = useState(null);
   const [activePads, setActivePads] = useState(new Set());
+
+  // ── Mixer state arrays (Bug #14) ──
+  // Source of truth for the per-pad audio chain. Mute/solo are derived (effective gain),
+  // not stored on the GainNode directly.
+  const [padVolumes, setPadVolumes] = useState(() => Array(PAD_COUNT).fill(0.8));
+  const [padPans, setPadPans]       = useState(() => Array(PAD_COUNT).fill(0));
+  const [padMutes, setPadMutes]     = useState(() => Array(PAD_COUNT).fill(false));
+  const [padSolos, setPadSolos]     = useState(() => Array(PAD_COUNT).fill(false));
+  // Voice-mode per pad (Bug #13): retrigger | polyphonic | choke
+  const [padModes, setPadModes]     = useState(() => Array(PAD_COUNT).fill('retrigger'));
+  // Choke group per pad (1-8, or null) — only used when padMode === 'choke'
+  const [padChokeGroups, setPadChokeGroups] = useState(() => Array(PAD_COUNT).fill(null));
+
+  const setPadVolume = useCallback((i, v) => {
+    setPadVolumes(prev => prev.map((x, idx) => idx === i ? v : x));
+  }, []);
+  const setPadPan = useCallback((i, v) => {
+    setPadPans(prev => prev.map((x, idx) => idx === i ? v : x));
+  }, []);
+  const setPadMute = useCallback((i, b) => {
+    setPadMutes(prev => prev.map((x, idx) => idx === i ? !!b : x));
+  }, []);
+  const setPadSolo = useCallback((i, b) => {
+    setPadSolos(prev => prev.map((x, idx) => idx === i ? !!b : x));
+  }, []);
+  const setPadMode = useCallback((i, m) => {
+    setPadModes(prev => prev.map((x, idx) => idx === i ? m : x));
+  }, []);
+  const setPadChokeGroup = useCallback((i, g) => {
+    setPadChokeGroups(prev => prev.map((x, idx) => idx === i ? g : x));
+  }, []);
+
+  // ── Effective gain/pan → write to per-pad nodes (Bug #14) ──
+  useEffect(() => {
+    if (!padGainRef.current.length) return;
+    const anySoloed = padSolos.some(Boolean);
+    for (let i = 0; i < PAD_COUNT; i++) {
+      const muted = padMutes[i];
+      const soloed = padSolos[i];
+      const eff = muted ? 0 : (anySoloed && !soloed) ? 0 : padVolumes[i];
+      if (padGainRef.current[i]) padGainRef.current[i].gain.value = eff;
+      if (padPanRef.current[i])  padPanRef.current[i].pan.value  = padPans[i];
+    }
+  }, [padVolumes, padPans, padMutes, padSolos]);
+
+  // ── AudioContext unlock on first user interaction (Bug #6) ──
+  // The browser starts AudioContext in "suspended" state until a user gesture.
+  // Resume globally on the first mousedown / keydown / touchstart anywhere on the
+  // document, so the very first pad-trigger has zero latency.
+  useEffect(() => {
+    let unlocked = false;
+    const unlock = () => {
+      if (unlocked) return;
+      unlocked = true;
+      try { initCtx(); } catch (e) { /* ignore */ }
+      document.removeEventListener('mousedown', unlock, true);
+      document.removeEventListener('keydown', unlock, true);
+      document.removeEventListener('touchstart', unlock, true);
+    };
+    document.addEventListener('mousedown', unlock, true);
+    document.addEventListener('keydown', unlock, true);
+    document.addEventListener('touchstart', unlock, true);
+    return () => {
+      document.removeEventListener('mousedown', unlock, true);
+      document.removeEventListener('keydown', unlock, true);
+      document.removeEventListener('touchstart', unlock, true);
+    };
+  }, [initCtx]);
 
   // Transport
   const [bpm, setBpm] = useState(projectBpm);
@@ -325,36 +411,82 @@ export default function useSamplerEngine(options = {}) {
 
   // ═══════════════════════════════════════════════════════════
   // PLAYBACK
+  // (stopPad/stopAll are defined first because playPad needs them
+  //  for retrigger / choke logic — Bug #13)
   // ═══════════════════════════════════════════════════════════
+
+  const stopPad = useCallback((pi, immediate = false) => {
+    const set = activeSourcesRef.current.get(pi);
+    if (!set || set.size === 0) return;
+    const ctx = ctxRef.current;
+    const release = immediate ? 0.005 : (pads[pi]?.release || 0.1);
+    set.forEach(v => {
+      try {
+        if (ctx) {
+          const t = ctx.currentTime;
+          if (v.gain) {
+            v.gain.gain.cancelScheduledValues(t);
+            v.gain.gain.setValueAtTime(v.gain.gain.value, t);
+            v.gain.gain.linearRampToValueAtTime(0, t + release);
+          }
+          v.source.stop(t + release + 0.02);
+        } else {
+          v.source.stop();
+        }
+      } catch (e) {}
+    });
+  }, [pads]);
+
+  const stopAll = useCallback(() => {
+    activeSourcesRef.current.forEach((set) => {
+      set.forEach(v => {
+        try { v.source.stop(); } catch (e) {}
+      });
+    });
+    activeSourcesRef.current.clear();
+    setActivePads(new Set());
+    setActiveKgNotes(new Set());
+  }, []);
 
   const playPad = useCallback((pi, vel = 0.8) => {
     const pad = pads[pi];
     if (!pad?.buffer && (!pad?.layers || pad.layers.length === 0)) return;
-    if (pad.muted) return;
+    if (padMutes[pi]) return;
+    const anySoloed = padSolos.some(Boolean);
+    if (anySoloed && !padSolos[pi]) return;
+
     const ctx = initCtx();
 
-    // Stop previous voice for this pad
-    if (activeSrc.current[pi]) {
-      try { activeSrc.current[pi].source.stop(); } catch (e) {}
-      // Disconnect old effect nodes
-      try { activeSrc.current[pi].chain?.forEach(n => n.disconnect()); } catch (e) {}
+    // ── Voice mode (Bug #13) ──
+    const mode = padModes[pi] || 'retrigger';
+    if (mode === 'retrigger') {
+      stopPad(pi, true);
+    } else if (mode === 'choke') {
+      const grp = padChokeGroups[pi];
+      if (grp != null) {
+        for (let i = 0; i < PAD_COUNT; i++) {
+          if (padChokeGroups[i] === grp) stopPad(i, true);
+        }
+      } else {
+        // Choke mode without group → behaves like retrigger
+        stopPad(pi, true);
+      }
     }
+    // 'polyphonic': do nothing — let voices stack
 
-    // ── Select buffer (velocity layers / round-robin) ──
     const buffer = selectLayerBuffer(pad, pi, vel);
     if (!buffer) return;
 
     const src = ctx.createBufferSource();
     src.buffer = buffer;
 
-    // ── Pitch / Time-stretch ──
+    // Pitch / Time-stretch
     if (pad.timeStretch && pad.stretchMode === 'stretch' && pad.originalBpm > 0) {
       const stretchRate = bpm / pad.originalBpm;
       src.playbackRate.value = stretchRate;
       const pitchCompCents = -Math.log2(stretchRate) * 1200;
       src.detune.value = pitchCompCents + (pad.pitch * 100);
     } else {
-      // Standard repitch mode
       src.playbackRate.value = Math.pow(2, pad.pitch / 12);
     }
 
@@ -364,24 +496,20 @@ export default function useSamplerEngine(options = {}) {
       src.loopEnd = pad.trimEnd || buffer.duration;
     }
 
-    // ── Build signal chain: src → [filter] → gain → pan → [delay] → [reverb] → master ──
-    const chain = []; // track nodes for cleanup
+    // ── Per-voice signal chain ──
+    // src → [filter] → adsrGain → padGainRef[pi] → padPanRef[pi] → master → destination
+    // Wet sends (delay/reverb) tap padPanRef[pi] so they ride per-pad volume + pan.
+    const chain = [];
     const now = ctx.currentTime;
-    const peakVol = pad.volume * vel * masterVol;
+    // ADSR peak = velocity only — per-pad GainNode owns the mix volume.
+    const peakVol = vel;
 
-    // ADSR gain
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(peakVol, now + pad.attack);
-    gain.gain.linearRampToValueAtTime(peakVol * pad.sustain, now + pad.attack + pad.decay);
-    chain.push(gain);
+    const adsrGain = ctx.createGain();
+    adsrGain.gain.setValueAtTime(0, now);
+    adsrGain.gain.linearRampToValueAtTime(peakVol, now + pad.attack);
+    adsrGain.gain.linearRampToValueAtTime(peakVol * pad.sustain, now + pad.attack + pad.decay);
+    chain.push(adsrGain);
 
-    // Pan
-    const pan = ctx.createStereoPanner();
-    pan.pan.value = pad.pan || 0;
-    chain.push(pan);
-
-    // Filter (optional)
     let lastNode = src;
     if (pad.filterOn) {
       const f = ctx.createBiquadFilter();
@@ -393,112 +521,72 @@ export default function useSamplerEngine(options = {}) {
       chain.push(f);
     }
 
-    // Connect: source chain → gain → pan
-    lastNode.connect(gain);
-    gain.connect(pan);
+    lastNode.connect(adsrGain);
+    adsrGain.connect(padGainRef.current[pi]);
+    // padGainRef[pi] → padPanRef[pi] → master is wired in initCtx
 
-    // ── Delay send (real feedback delay) ──
-    let dryNode = pan; // will connect to master
+    const padOut = padPanRef.current[pi];
+
+    // Delay send
     if (pad.delayOn && pad.delayMix > 0) {
       const delayNode = ctx.createDelay(2.0);
       delayNode.delayTime.value = pad.delayTime || 0.3;
-
-      const feedbackGain = ctx.createGain();
-      feedbackGain.gain.value = Math.min(0.95, pad.delayFeedback || 0.3);
-
-      const delayWet = ctx.createGain();
-      delayWet.gain.value = pad.delayMix || 0.2;
-
-      const delayDry = ctx.createGain();
-      delayDry.gain.value = 1.0;
-
-      // Feedback loop: delay → feedback → delay
-      delayNode.connect(feedbackGain);
-      feedbackGain.connect(delayNode);
-
-      // Wet path: pan → delay → wetGain → master
-      pan.connect(delayNode);
-      delayNode.connect(delayWet);
-      delayWet.connect(masterRef.current);
-
-      // Dry path: pan → dryGain → (continues to reverb or master)
-      pan.connect(delayDry);
-      dryNode = delayDry;
-
-      chain.push(delayNode, feedbackGain, delayWet, delayDry);
+      const fb = ctx.createGain();
+      fb.gain.value = Math.min(0.95, pad.delayFeedback || 0.3);
+      const wet = ctx.createGain();
+      wet.gain.value = pad.delayMix || 0.2;
+      delayNode.connect(fb);
+      fb.connect(delayNode);
+      padOut.connect(delayNode);
+      delayNode.connect(wet);
+      wet.connect(masterRef.current);
+      chain.push(delayNode, fb, wet);
     }
 
-    // ── Reverb send (real convolver) ──
+    // Reverb send
     if (pad.reverbOn && pad.reverbMix > 0) {
-      const impulse = getReverbImpulse(2, 2.5);
-      const convolver = ctx.createConvolver();
-      convolver.buffer = impulse;
-
-      const reverbWet = ctx.createGain();
-      reverbWet.gain.value = pad.reverbMix || 0.2;
-
-      const reverbDry = ctx.createGain();
-      reverbDry.gain.value = 1 - (pad.reverbMix * 0.5); // keep dry present
-
-      // Wet path: dryNode → convolver → wetGain → master
-      dryNode.connect(convolver);
-      convolver.connect(reverbWet);
-      reverbWet.connect(masterRef.current);
-
-      // Dry path: dryNode → dryGain → master
-      dryNode.connect(reverbDry);
-      reverbDry.connect(masterRef.current);
-
-      chain.push(convolver, reverbWet, reverbDry);
-    } else {
-      // No reverb: connect dry straight to master
-      dryNode.connect(masterRef.current);
+      const conv = ctx.createConvolver();
+      conv.buffer = getReverbImpulse(2, 2.5);
+      const wet = ctx.createGain();
+      wet.gain.value = pad.reverbMix || 0.2;
+      padOut.connect(conv);
+      conv.connect(wet);
+      wet.connect(masterRef.current);
+      chain.push(conv, wet);
     }
 
-    // ── Start playback ──
+    // ── Start playback (Bug #7: explicit currentTime) ──
     const start = pad.trimStart || 0;
     const dur = (pad.trimEnd || buffer.duration) - start;
-    src.start(0, start, pad.playMode === 'loop' ? undefined : dur + pad.release);
+    src.start(ctx.currentTime, start, pad.playMode === 'loop' ? undefined : dur + pad.release);
 
     if (pad.playMode === 'oneshot') {
-      gain.gain.setValueAtTime(peakVol * pad.sustain, now + dur);
-      gain.gain.linearRampToValueAtTime(0, now + dur + pad.release);
+      adsrGain.gain.setValueAtTime(peakVol * pad.sustain, now + dur);
+      adsrGain.gain.linearRampToValueAtTime(0, now + dur + pad.release);
     }
 
-    activeSrc.current[pi] = { source: src, gain, chain };
+    // ── Track voice (Bug #8 / #17) ──
+    const voice = { source: src, gain: adsrGain, chain };
+    if (!activeSourcesRef.current.has(pi)) activeSourcesRef.current.set(pi, new Set());
+    activeSourcesRef.current.get(pi).add(voice);
 
-    // Visual feedback
     setActivePads(p => new Set(p).add(pi));
     src.onended = () => {
-      // Cleanup effect nodes
       try { chain.forEach(n => n.disconnect()); } catch (e) {}
-      delete activeSrc.current[pi];
-      setActivePads(p => { const n = new Set(p); n.delete(pi); return n; });
+      try { src.disconnect(); } catch (e) {}
+      const set = activeSourcesRef.current.get(pi);
+      if (set) {
+        set.delete(voice);
+        if (set.size === 0) {
+          activeSourcesRef.current.delete(pi);
+          setActivePads(p => { const n = new Set(p); n.delete(pi); return n; });
+        }
+      }
     };
-  }, [pads, masterVol, bpm, initCtx, selectLayerBuffer, getReverbImpulse]);
+  }, [pads, padMutes, padSolos, padModes, padChokeGroups, bpm, initCtx, stopPad, selectLayerBuffer, getReverbImpulse]);
 
   // ── Keep playPadRef in sync so tick() always calls latest playPad ──
   useEffect(() => { playPadRef.current = playPad; }, [playPad]);
-
-  const stopPad = useCallback((pi) => {
-    if (activeSrc.current[pi]) {
-      const ctx = ctxRef.current;
-      const { source, gain } = activeSrc.current[pi];
-      if (ctx && gain) {
-        gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + (pads[pi]?.release || 0.1));
-        try { source.stop(ctx.currentTime + (pads[pi]?.release || 0.1) + 0.05); } catch (e) {}
-      }
-    }
-  }, [pads]);
-
-  const stopAll = useCallback(() => {
-    Object.keys(activeSrc.current).forEach(k => {
-      try { activeSrc.current[k].source.stop(); } catch (e) {}
-    });
-    activeSrc.current = {};
-    setActivePads(new Set());
-  }, []);
 
   // ═══════════════════════════════════════════════════════════
   // SEQUENCER — All reads inside tick() use refs, never closures
@@ -528,11 +616,13 @@ export default function useSamplerEngine(options = {}) {
       clearTimeout(seqRef.current);
       seqRef.current = null;
     }
-    // Stop all currently playing samples
-    Object.keys(activeSrc.current).forEach(k => {
-      try { activeSrc.current[k].source.stop(); } catch (e) {}
+    // Stop all currently playing samples (Bug #17)
+    activeSourcesRef.current.forEach((set) => {
+      set.forEach(v => {
+        try { v.source.stop(); } catch (e) {}
+      });
     });
-    activeSrc.current = {};
+    activeSourcesRef.current.clear();
     setActivePads(new Set());
   }, []);
 
@@ -540,13 +630,11 @@ export default function useSamplerEngine(options = {}) {
     const ctx = initCtx();
 
     // ── CRITICAL FIX: Clean up any stale state from previous runs ──
-    // If playingRef got stuck true (hot reload, failed stop, etc.), reset it
     if (seqRef.current) {
       clearTimeout(seqRef.current);
       seqRef.current = null;
     }
     if (playingRef.current) {
-      // Force-stop the old run before starting fresh
       playingRef.current = false;
     }
 
@@ -557,7 +645,6 @@ export default function useSamplerEngine(options = {}) {
     const tick = () => {
       if (!playingRef.current) return;
 
-      // ── ALL reads from refs — never stale ──
       const sc = stepCountRef.current;
       const end = loopEndRef.current ?? sc;
       const start = loopStartRef.current || 0;
@@ -577,7 +664,6 @@ export default function useSamplerEngine(options = {}) {
       stepRef.current = next;
       setCurStep(next);
 
-      // ── Play active steps from current pattern (via refs) ──
       const pat = patternsRef.current?.[curPatIdxRef.current];
       if (pat) {
         for (let pi = 0; pi < PAD_COUNT; pi++) {
@@ -587,7 +673,6 @@ export default function useSamplerEngine(options = {}) {
         }
       }
 
-      // ── Metronome (via ref) ──
       if (metOnRef.current && next % 4 === 0) {
         try {
           const o = ctx.createOscillator();
@@ -600,18 +685,15 @@ export default function useSamplerEngine(options = {}) {
         } catch (e) {}
       }
 
-      // ── Schedule next tick (via refs) ──
       const baseInterval = (60 / bpmRef.current) / 4 * 1000;
       const sw = swingRef.current || 0;
       const swingOffset = next % 2 === 1 ? baseInterval * (sw / 200) : 0;
       seqRef.current = setTimeout(tick, baseInterval + swingOffset);
     };
 
-    // Small delay to ensure AudioContext is fully running
     seqRef.current = setTimeout(tick, 10);
-  }, [initCtx]); // ← Only depends on initCtx — everything else read from refs
+  }, [initCtx]);
 
-  // ── togglePlay: uses playingRef (not isPlaying state) to avoid stale closure ──
   const togglePlay = useCallback(() => {
     if (playingRef.current) {
       stopSeq();
@@ -690,7 +772,6 @@ export default function useSamplerEngine(options = {}) {
     setLiveRec(false);
     liveRef.current = false;
 
-    // Quantize hits into pattern
     if (recHits.length > 0) {
       const stepDur = 60 / bpmRef.current / 4;
       setPatterns(prev => {
@@ -721,7 +802,6 @@ export default function useSamplerEngine(options = {}) {
     setMicPad(padIndex);
     setMicCount(3);
 
-    // Countdown
     for (let c = 3; c > 0; c--) {
       setMicCount(c);
       await new Promise(r => setTimeout(r, 800));
@@ -859,24 +939,31 @@ export default function useSamplerEngine(options = {}) {
       const sr = 44100;
       const offCtx = new OfflineAudioContext(2, Math.ceil(totalDur * sr), sr);
 
+      // Compute effective per-pad mix from mixer state
+      const anySoloed = padSolos.some(Boolean);
       for (let pi = 0; pi < PAD_COUNT; pi++) {
         const pad = pads[pi];
         if (!pad?.buffer) continue;
+        const muted = padMutes[pi];
+        const soloed = padSolos[pi];
+        const eff = muted ? 0 : (anySoloed && !soloed) ? 0 : padVolumes[pi];
+        if (eff === 0) continue;
         for (let si = 0; si < stepCount; si++) {
           if (!pat.steps[pi]?.[si]) continue;
           const src = offCtx.createBufferSource();
           src.buffer = pad.buffer;
           src.playbackRate.value = Math.pow(2, pad.pitch / 12);
           const g = offCtx.createGain();
-          g.gain.value = pad.volume * (pat.velocities[pi]?.[si] ?? 0.8);
-          src.connect(g); g.connect(offCtx.destination);
+          g.gain.value = eff * (pat.velocities[pi]?.[si] ?? 0.8);
+          const p = offCtx.createStereoPanner();
+          p.pan.value = padPans[pi];
+          src.connect(g); g.connect(p); p.connect(offCtx.destination);
           src.start(si * stepDur, pad.trimStart || 0);
         }
       }
 
       const rendered = await offCtx.startRendering();
 
-      // Download
       const length = rendered.length;
       const buffer = new ArrayBuffer(44 + length * 2);
       const view = new DataView(buffer);
@@ -917,7 +1004,7 @@ export default function useSamplerEngine(options = {}) {
     } finally {
       setExporting(false);
     }
-  }, [exporting, patterns, curPatIdx, stepCount, bpm, pads, onExport]);
+  }, [exporting, patterns, curPatIdx, stepCount, bpm, pads, padVolumes, padPans, padMutes, padSolos, onExport]);
 
   const exportMIDI = useCallback(() => {
     setExportStatus('MIDI export placeholder');
@@ -1050,7 +1137,6 @@ export default function useSamplerEngine(options = {}) {
       const playRep = () => {
         if (rep >= reps) { seqIdx++; playNext(); return; }
         rep++;
-        // Set current pattern and let sequencer run one cycle
         if (setCurPatIdx) setCurPatIdx(patIdx);
         const pat = patterns[patIdx];
         if (!pat) { seqIdx++; playNext(); return; }
@@ -1136,31 +1222,44 @@ export default function useSamplerEngine(options = {}) {
   const playPadKeygroup = useCallback((pi, note, vel = 0.8) => {
     const pad = pads[pi];
     if (!pad?.buffer) return;
+    if (padMutes[pi]) return;
     const ctx = initCtx();
     const semitones = note - (pad.rootNote || 60) + pad.pitch;
     const src = ctx.createBufferSource();
     src.buffer = pad.buffer;
     src.playbackRate.value = Math.pow(2, semitones / 12);
     const g = ctx.createGain();
-    g.gain.value = pad.volume * vel * masterVol;
+    g.gain.value = vel; // padGainRef supplies the pad-mix volume
     src.connect(g);
-    g.connect(masterRef.current);
-    src.start(0, pad.trimStart || 0);
+    g.connect(padGainRef.current[pi]);
+    src.start(ctx.currentTime, pad.trimStart || 0);
     setActiveKgNotes(p => new Set(p).add(note));
-    activeSrc.current[`kg_${note}`] = { source: src, gain: g };
+
+    const key = `kg_${note}`;
+    const voice = { source: src, gain: g, chain: [g] };
+    if (!activeSourcesRef.current.has(key)) activeSourcesRef.current.set(key, new Set());
+    activeSourcesRef.current.get(key).add(voice);
+
     src.onended = () => {
-      delete activeSrc.current[`kg_${note}`];
+      try { g.disconnect(); src.disconnect(); } catch (e) {}
+      const set = activeSourcesRef.current.get(key);
+      if (set) {
+        set.delete(voice);
+        if (set.size === 0) activeSourcesRef.current.delete(key);
+      }
       setActiveKgNotes(p => { const n = new Set(p); n.delete(note); return n; });
     };
-  }, [pads, masterVol, initCtx]);
+  }, [pads, padMutes, initCtx]);
 
   const stopPadKeygroup = useCallback((pi, note) => {
     const key = `kg_${note}`;
-    if (activeSrc.current[key]) {
-      try { activeSrc.current[key].source.stop(); } catch (e) {}
-      delete activeSrc.current[key];
-      setActiveKgNotes(p => { const n = new Set(p); n.delete(note); return n; });
-    }
+    const set = activeSourcesRef.current.get(key);
+    if (!set) return;
+    set.forEach(v => {
+      try { v.source.stop(); } catch (e) {}
+    });
+    activeSourcesRef.current.delete(key);
+    setActiveKgNotes(p => { const n = new Set(p); n.delete(note); return n; });
   }, []);
 
   // ═══════════════════════════════════════════════════════════
@@ -1171,7 +1270,6 @@ export default function useSamplerEngine(options = {}) {
     const buf = pads[pi]?.buffer;
     if (!buf) return;
     setAnalyzing(true);
-    // Run in a timeout to avoid blocking UI
     setTimeout(() => {
       try {
         const bpmResult = detectBPM(buf);
@@ -1199,17 +1297,24 @@ export default function useSamplerEngine(options = {}) {
       const sr = 44100;
       const offCtx = new OfflineAudioContext(2, Math.ceil(totalDur * sr), sr);
 
+      const anySoloed = padSolos.some(Boolean);
       for (let pi = 0; pi < PAD_COUNT; pi++) {
         const pad = pads[pi];
         if (!pad?.buffer) continue;
+        const muted = padMutes[pi];
+        const soloed = padSolos[pi];
+        const eff = muted ? 0 : (anySoloed && !soloed) ? 0 : padVolumes[pi];
+        if (eff === 0) continue;
         for (let si = 0; si < stepCount; si++) {
           if (!pat.steps[pi]?.[si]) continue;
           const src = offCtx.createBufferSource();
           src.buffer = pad.buffer;
           src.playbackRate.value = Math.pow(2, pad.pitch / 12);
           const g = offCtx.createGain();
-          g.gain.value = pad.volume * (pat.velocities[pi]?.[si] ?? 0.8);
-          src.connect(g); g.connect(offCtx.destination);
+          g.gain.value = eff * (pat.velocities[pi]?.[si] ?? 0.8);
+          const p = offCtx.createStereoPanner();
+          p.pan.value = padPans[pi];
+          src.connect(g); g.connect(p); p.connect(offCtx.destination);
           src.start(si * stepDur, pad.trimStart || 0);
         }
       }
@@ -1220,7 +1325,7 @@ export default function useSamplerEngine(options = {}) {
     } catch (e) {
       setExportStatus('✗ Bounce failed');
     }
-  }, [patterns, curPatIdx, stepCount, bpm, pads, onSendToArrange]);
+  }, [patterns, curPatIdx, stepCount, bpm, pads, padVolumes, padPans, padMutes, padSolos, onSendToArrange]);
 
   // ═══════════════════════════════════════════════════════════
   // REAL MIDI LEARN — Web MIDI API
@@ -1238,17 +1343,14 @@ export default function useSamplerEngine(options = {}) {
       access.inputs.forEach(input => inputs.push(input));
       setMidiInputs(inputs.map(i => ({ id: i.id, name: i.name || i.manufacturer || 'MIDI Device' })));
 
-      // Listen on all inputs
       access.inputs.forEach(input => {
         input.onmidimessage = (e) => handleMidiMessage(e);
       });
 
-      // React to device changes
       access.onstatechange = () => {
         const updated = [];
         access.inputs.forEach(input => updated.push(input));
         setMidiInputs(updated.map(i => ({ id: i.id, name: i.name || 'MIDI Device' })));
-        // Re-bind listeners
         access.inputs.forEach(input => {
           input.onmidimessage = (e) => handleMidiMessage(e);
         });
@@ -1263,12 +1365,10 @@ export default function useSamplerEngine(options = {}) {
     const msgType = status & 0xF0;
     const channel = status & 0x0F;
 
-    // Note On
     if (msgType === 0x90 && data2 > 0) {
       const vel = data2 / 127;
       const noteKey = `note_${data1}`;
 
-      // MIDI Learn mode: assign this note to the selected pad
       if (midiLearn && midiLearnPad !== null) {
         midiMapRef.current[noteKey] = midiLearnPad;
         setMidiLearn(false);
@@ -1276,16 +1376,14 @@ export default function useSamplerEngine(options = {}) {
         return;
       }
 
-      // Check MIDI map
       const mappedPad = midiMapRef.current[noteKey];
       if (mappedPad !== undefined && mappedPad < PAD_COUNT) {
         const pad = pads[mappedPad];
         if (pad?.buffer) {
-          const ctx = initCtx();
+          initCtx();
           playPad(mappedPad, vel);
         }
       } else {
-        // Default: notes 36-51 (GM drum map) → pads 0-15
         const padIdx = data1 - 36;
         if (padIdx >= 0 && padIdx < PAD_COUNT) {
           playPad(padIdx, vel);
@@ -1293,7 +1391,6 @@ export default function useSamplerEngine(options = {}) {
       }
     }
 
-    // Note Off
     if (msgType === 0x80 || (msgType === 0x90 && data2 === 0)) {
       const noteKey = `note_${data1}`;
       const mappedPad = midiMapRef.current[noteKey];
@@ -1303,7 +1400,6 @@ export default function useSamplerEngine(options = {}) {
       }
     }
 
-    // CC (Control Change) — map to pad parameters
     if (msgType === 0xB0) {
       const ccKey = `cc_${data1}`;
       if (midiLearn && midiLearnPad !== null) {
@@ -1315,7 +1411,6 @@ export default function useSamplerEngine(options = {}) {
     }
   }, [pads, midiLearn, midiLearnPad, initCtx, playPad, stopPad]);
 
-  // Auto-init MIDI on mount
   useEffect(() => {
     initMidi();
     return () => {
@@ -1327,7 +1422,6 @@ export default function useSamplerEngine(options = {}) {
     };
   }, [initMidi]);
 
-  // Start MIDI Learn for a specific pad
   const startMidiLearn = useCallback((padIdx) => {
     setMidiLearn(true);
     setMidiLearnPad(padIdx);
@@ -1398,11 +1492,26 @@ export default function useSamplerEngine(options = {}) {
 
   return {
     // Audio
-    ctxRef, masterRef, initCtx, activeSrc,
+    ctxRef, masterRef, initCtx,
+    // Per-pad audio nodes (Bug #14)
+    padGainRef, padPanRef,
+    // Source tracker (Bug #8 / #17). Backwards-compat alias `activeSrc` for older callers.
+    activeSourcesRef,
+    activeSrc: activeSourcesRef,
 
     // Pads
     pads, setPads, selectedPad, setSelectedPad, activePads, updatePad, clearPad,
     loadSample, playPad, stopPad, stopAll, fileSelect,
+
+    // Mixer state arrays + setters (Bug #14)
+    padVolumes, padPans, padMutes, padSolos,
+    setPadVolumes, setPadPans, setPadMutes, setPadSolos,
+    setPadVolume, setPadPan, setPadMute, setPadSolo,
+
+    // Voice mode + choke groups (Bug #13)
+    padModes, padChokeGroups,
+    setPadModes, setPadChokeGroups,
+    setPadMode, setPadChokeGroup,
 
     // Transport
     bpm, setBpm, bpmRef, isPlaying, togglePlay, startSeq, stopSeq,
@@ -1481,6 +1590,6 @@ export default function useSamplerEngine(options = {}) {
 
     // Constants
     PAD_COUNT, PAD_KEY_LABELS, CHROMATIC_KEYS, PAD_COLORS,
-    STEP_COUNTS, FORMAT_INFO, CHOP_MODES,
+    STEP_COUNTS, FORMAT_INFO, CHOP_MODES, PAD_MODES,
   };
 }

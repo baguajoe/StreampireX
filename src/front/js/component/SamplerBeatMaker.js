@@ -262,7 +262,16 @@ const SamplerBeatMaker = ({
   const ctxRef = useRef(null);
   const masterRef = useRef(null);
   const metGainRef = useRef(null);
+  // Legacy single-slot ref kept for tabs/chopview that still read activeSrc.current[pi]
+  // — populated alongside activeSourcesRef so external consumers see the most recent voice.
   const activeSrc = useRef({});
+  // Bug #8 / #17: voice tracker. Map<key, Set<voice>> where key is padIndex (number)
+  // for pad voices or `kg_${pi}_${note}` (string) for keygroup voices.
+  // voice = { source, gain, ...layerIdx?, midiNote? }
+  const activeSourcesRef = useRef(new Map());
+  // Bug #14: per-pad GainNode → StereoPannerNode chain, persistent across voices.
+  const padGainRef = useRef([]);  // GainNode[16]
+  const padPanRef  = useRef([]);  // StereoPannerNode[16]
   const reverbBuf = useRef(null);
   const mediaStream = useRef(null);
   const mediaRec = useRef(null);
@@ -278,6 +287,46 @@ const SamplerBeatMaker = ({
   const [selectedPad, setSelectedPad] = useState(null);
   const [padBank, setPadBank] = useState('A');
   const [padBanks] = useState({ A: null, B: null, C: null, D: null });
+
+  // ==== MIXER STATE (Bug #14) ====
+  // Source of truth for per-pad volume / pan / mute / solo. Mute & solo are NOT
+  // stored on the GainNode — they're folded into effective gain (see useEffect below).
+  // setPadVolume / setPadMute etc. dual-sync to pads[].volume so existing reads
+  // (export, automation, settings panel) stay correct.
+  const [padVolumes, setPadVolumes] = useState(() => Array(16).fill(0.8));
+  const [padPans, setPadPans]       = useState(() => Array(16).fill(0));
+  const [padMutes, setPadMutes]     = useState(() => Array(16).fill(false));
+  const [padSolos, setPadSolos]     = useState(() => Array(16).fill(false));
+  // Voice mode (Bug #13): retrigger | polyphonic | choke
+  const [padModes, setPadModes]     = useState(() => Array(16).fill('retrigger'));
+  // Choke groups: 1-8 or null. Mirrored to pads[].chokeGroup for legacy reads.
+  const [padChokeGroups, setPadChokeGroups] = useState(() => Array(16).fill(null));
+
+  // Mixer setters — dual-sync to pads[] so legacy reads (export, settings, automation) match.
+  // Defined here, before they're referenced by the playPad effect chain or UI.
+  const setPadVolume = useCallback((i, v) => {
+    setPadVolumes(prev => prev.map((x, idx) => idx === i ? v : x));
+    setPads(prev => prev.map((p, idx) => idx === i ? { ...p, volume: v } : p));
+  }, []);
+  const setPadPan = useCallback((i, v) => {
+    setPadPans(prev => prev.map((x, idx) => idx === i ? v : x));
+    setPads(prev => prev.map((p, idx) => idx === i ? { ...p, pan: v } : p));
+  }, []);
+  const setPadMute = useCallback((i, b) => {
+    setPadMutes(prev => prev.map((x, idx) => idx === i ? !!b : x));
+    setPads(prev => prev.map((p, idx) => idx === i ? { ...p, muted: !!b } : p));
+  }, []);
+  const setPadSolo = useCallback((i, b) => {
+    setPadSolos(prev => prev.map((x, idx) => idx === i ? !!b : x));
+    setPads(prev => prev.map((p, idx) => idx === i ? { ...p, soloed: !!b } : p));
+  }, []);
+  const setPadMode = useCallback((i, m) => {
+    setPadModes(prev => prev.map((x, idx) => idx === i ? m : x));
+  }, []);
+  const setPadChokeGroup = useCallback((i, g) => {
+    setPadChokeGroups(prev => prev.map((x, idx) => idx === i ? g : x));
+    setPads(prev => prev.map((p, idx) => idx === i ? { ...p, chokeGroup: g } : p));
+  }, []);
 
   // ==== PATTERNS (Phase 2) ====
   const [patterns, setPatterns] = useState([mkPattern('Pattern 1', 16)]);
@@ -582,9 +631,25 @@ const SamplerBeatMaker = ({
       g.connect(p); p.connect(mg);
       busNodesRef.current[bus] = { gain: g, pan: p };
     });
+    // Bug #14: per-pad gain → pan chain. Wired once, voices connect into padGainRef.
+    // padPanRef connects to the pad's assigned bus (or master); rewired by useEffect.
+    padGainRef.current = [];
+    padPanRef.current = [];
+    for (let i = 0; i < 16; i++) {
+      const g = c.createGain(); const p = c.createStereoPanner();
+      g.gain.value = 0.8; p.pan.value = 0;
+      g.connect(p);
+      const busAssign = padBusAssign[i] || 'master';
+      const dest = (busAssign !== 'master' && busNodesRef.current[busAssign])
+        ? busNodesRef.current[busAssign].gain
+        : mg;
+      p.connect(dest);
+      padGainRef.current.push(g);
+      padPanRef.current.push(p);
+    }
     ctxRef.current = c;
     return c;
-  }, [masterVol, busSettings]);
+  }, [masterVol, busSettings, padBusAssign]);
 
   // =========================================================================
   // DEVICE DETECTION
@@ -608,6 +673,62 @@ const SamplerBeatMaker = ({
 
   useEffect(() => { const c = ctxRef.current; if (c && selOut !== 'default' && c.setSinkId) c.setSinkId(selOut).catch(() => { }); }, [selOut]);
   useEffect(() => { if (masterRef.current) masterRef.current.gain.value = masterVol; }, [masterVol]);
+
+  // Bug #6: AudioContext unlock on first user interaction. The browser starts the
+  // ctx in "suspended" state until a user gesture; resuming on the first
+  // mousedown/keydown/touchstart anywhere on the page eliminates the 1–2 sec
+  // delay on the first pad trigger.
+  useEffect(() => {
+    let unlocked = false;
+    const unlock = () => {
+      if (unlocked) return;
+      unlocked = true;
+      try { initCtx(); } catch (e) { /* ignore */ }
+      const c = ctxRef.current;
+      if (c && c.state === 'suspended') c.resume().catch(() => {});
+      document.removeEventListener('mousedown', unlock, true);
+      document.removeEventListener('keydown', unlock, true);
+      document.removeEventListener('touchstart', unlock, true);
+    };
+    document.addEventListener('mousedown', unlock, true);
+    document.addEventListener('keydown', unlock, true);
+    document.addEventListener('touchstart', unlock, true);
+    return () => {
+      document.removeEventListener('mousedown', unlock, true);
+      document.removeEventListener('keydown', unlock, true);
+      document.removeEventListener('touchstart', unlock, true);
+    };
+  }, [initCtx]);
+
+  // Bug #14: write effective gain (mute/solo folded in) to per-pad GainNodes,
+  // and write per-pad pan to per-pad PannerNodes. Runs whenever mixer state
+  // changes, including the first time padGainRef is populated by initCtx.
+  useEffect(() => {
+    if (!padGainRef.current?.length) return;
+    const anySoloed = padSolos.some(Boolean);
+    for (let i = 0; i < 16; i++) {
+      const muted = padMutes[i];
+      const soloed = padSolos[i];
+      const eff = muted ? 0 : (anySoloed && !soloed) ? 0 : padVolumes[i];
+      if (padGainRef.current[i]) padGainRef.current[i].gain.value = eff;
+      if (padPanRef.current[i])  padPanRef.current[i].pan.value  = padPans[i];
+    }
+  }, [padVolumes, padPans, padMutes, padSolos]);
+
+  // Re-route padPanRef → assigned bus (or master) when padBusAssign changes.
+  useEffect(() => {
+    if (!padPanRef.current?.length || !masterRef.current) return;
+    for (let i = 0; i < 16; i++) {
+      const p = padPanRef.current[i];
+      if (!p) continue;
+      try { p.disconnect(); } catch (e) {}
+      const busAssign = padBusAssign[i] || 'master';
+      const dest = (busAssign !== 'master' && busNodesRef.current[busAssign])
+        ? busNodesRef.current[busAssign].gain
+        : masterRef.current;
+      try { p.connect(dest); } catch (e) {}
+    }
+  }, [padBusAssign]);
 
   // Rebuild char chain when character settings change
   useEffect(() => {
@@ -1111,22 +1232,35 @@ const SamplerBeatMaker = ({
     const anySolo = padsRef.current.some(p => p.soloed);
     if (anySolo && !pad.soloed) return;
 
-    // Stop prev
-    if (activeSrc.current[pi]) { try { activeSrc.current[pi].source.stop(); } catch (e) { } }
-
-    // Choke groups — stop all other pads in the same choke group
-    if (pad.chokeGroup && pad.chokeGroup > 0) {
-      padsRef.current.forEach((otherPad, otherIdx) => {
-        if (otherIdx !== pi && otherPad?.chokeGroup === pad.chokeGroup && activeSrc.current[otherIdx]) {
-          try {
-            const fadeGain = c.createGain();
-            fadeGain.gain.setValueAtTime(1, c.currentTime);
-            fadeGain.gain.linearRampToValueAtTime(0, c.currentTime + 0.015);
-            activeSrc.current[otherIdx].source.stop(c.currentTime + 0.015);
-          } catch(e) {}
-          delete activeSrc.current[otherIdx];
+    // ── Voice mode (Bug #13): retrigger | polyphonic | choke ──
+    const stopVoicesForPad = (pad_i) => {
+      const set = activeSourcesRef.current.get(pad_i);
+      if (!set) return;
+      set.forEach(v => { try { v.source.stop(); } catch (e) {} });
+    };
+    const mode = padModes[pi] || 'retrigger';
+    if (mode === 'retrigger') {
+      stopVoicesForPad(pi);
+    } else if (mode === 'choke') {
+      const grp = padChokeGroups[pi] ?? pad.chokeGroup;
+      if (grp != null && grp > 0) {
+        for (let i = 0; i < 16; i++) {
+          const otherGrp = padChokeGroups[i] ?? padsRef.current[i]?.chokeGroup;
+          if (otherGrp === grp) stopVoicesForPad(i);
         }
-      });
+      } else {
+        stopVoicesForPad(pi); // choke without group → behave like retrigger
+      }
+    }
+    // 'polyphonic' → don't stop existing voices
+
+    // Legacy choke (pad.chokeGroup) preserved when mode is NOT 'polyphonic' and the
+    // pad still uses the legacy field — kept for backwards-compat with kits that
+    // set chokeGroup but haven't been migrated to padModes='choke'.
+    if (mode !== 'polyphonic' && pad.chokeGroup && pad.chokeGroup > 0 && (padChokeGroups[pi] == null)) {
+      for (let i = 0; i < 16; i++) {
+        if (i !== pi && padsRef.current[i]?.chokeGroup === pad.chokeGroup) stopVoicesForPad(i);
+      }
     }
 
     // Phase 2: Velocity layer selection
@@ -1161,7 +1295,8 @@ const SamplerBeatMaker = ({
 
     const src = c.createBufferSource();
     const gain = c.createGain();
-    const pan = c.createStereoPanner();
+    // Per-voice pan dropped (Bug #14) — pan now lives on padPanRef[pi], shared per-pad.
+    // Automation pan is written to padPanRef[pi].pan at trigger time below.
 
     // Reverse
     if (pad.reverse) {
@@ -1230,8 +1365,10 @@ const SamplerBeatMaker = ({
       src.playbackRate.value *= Math.pow(2, pad.pitchShift / 12);
     }
 
+    // Bug #7: explicit ctx.currentTime when caller doesn't pass a scheduled time.
     const st = time || c.currentTime;
-    const peakVol = pad.volume * vel * layerVol;
+    // Bug #14: ADSR peak no longer multiplies pad.volume — padGainRef[pi] owns mix volume.
+    const peakVol = vel * layerVol;
     // Full ADSR envelope
     if (pad.attack > 0) {
       gain.gain.setValueAtTime(0, st);
@@ -1241,7 +1378,6 @@ const SamplerBeatMaker = ({
       gain.gain.setValueAtTime(peakVol * (pad.decay > 0 ? 1 : (pad.sustain ?? 1)), st);
       if (pad.decay > 0) gain.gain.linearRampToValueAtTime(peakVol * (pad.sustain ?? 1), st + pad.decay);
     }
-    pan.pan.value = pad.pan;
 
     // Effects chain: src → [filter] → [distortion] → gain → pan → [bus|master] + [delay wet] + [reverb wet]
     let last = src;
@@ -1275,31 +1411,49 @@ const SamplerBeatMaker = ({
       for (let i = 0; i < 44100; i++) { const x = (i * 2) / 44100 - 1; curve[i] = ((3 + amt) * x * 20 * (Math.PI / 180)) / (Math.PI + amt * Math.abs(x)); }
       ws.curve = curve; ws.oversample = '2x'; last.connect(ws); last = ws;
     }
-    last.connect(gain); gain.connect(pan);
-    // Phase 7: Apply automation volume override
+    // Connect ADSR gain into the per-pad chain (Bug #14).
+    // Chain: src → [filter] → [distortion] → adsrGain → padGainRef[pi] → padPanRef[pi] → [bus|master]
+    last.connect(gain);
+    const padGainNode = padGainRef.current[pi];
+    const padOut = padPanRef.current[pi];
+    if (padGainNode) {
+      gain.connect(padGainNode);
+    } else {
+      // Fallback if per-pad chain hasn't been built yet (initCtx not called).
+      const busAssign0 = padBusAssign[pi] || 'master';
+      const dest0 = (busAssign0 !== 'master' && busNodesRef.current[busAssign0])
+        ? busNodesRef.current[busAssign0].gain : masterRef.current;
+      if (dest0) gain.connect(dest0);
+    }
+    // Phase 7: automation volume override (still acts on per-voice ADSR peak).
     if (autoVolume != null) gain.gain.value = autoVolume * vel * layerVol;
-    // Phase 7: Apply automation pan override
-    pan.pan.value = autoPan;
-    // Phase 6: Route to assigned bus or master
+    // Phase 7: automation pan override — write to per-pad pan node at trigger time.
+    if (padOut && autoPan !== pad.pan) {
+      try { padOut.pan.setTargetAtTime(autoPan, st, 0.005); } catch (e) { padOut.pan.value = autoPan; }
+    }
+    // Phase 6: bus routing target for wet sends. padPanRef is wired to its bus by useEffect;
+    // wet sends still go to the same bus to keep the routing consistent.
     const busAssign = padBusAssign[pi] || 'master';
     const destNode = (busAssign !== 'master' && busNodesRef.current[busAssign])
       ? busNodesRef.current[busAssign].gain : masterRef.current;
-    pan.connect(destNode);
 
+    // Wet sends tap padOut so they ride the pad's mixer volume (Bug #14).
+    const sendSrc = padOut || gain;
     if (pad.delayOn || autoDelaySend > 0) {
       const dl = c.createDelay(2), dg = c.createGain(), fb = c.createGain();
       dl.delayTime.value = pad.delayTime; dg.gain.value = autoDelaySend > 0 ? autoDelaySend : pad.delayMix; fb.gain.value = pad.delayFeedback;
-      pan.connect(dl); dl.connect(dg); dl.connect(fb); fb.connect(dl); dg.connect(destNode);
+      sendSrc.connect(dl); dl.connect(dg); dl.connect(fb); fb.connect(dl); dg.connect(destNode);
     }
     if (pad.reverbOn || autoReverbSend > 0) {
       const ir = getReverbIR(c, 2.0);
       const conv = c.createConvolver(), rg = c.createGain();
       conv.buffer = ir; rg.gain.value = autoReverbSend > 0 ? autoReverbSend : pad.reverbMix;
-      pan.connect(conv); conv.connect(rg); rg.connect(destNode);
+      sendSrc.connect(conv); conv.connect(rg); rg.connect(destNode);
     }
 
     const off = pad.trimStart || 0;
     const dur = (pad.trimEnd || sampleBuffer.duration) - off;
+    // Bug #7: explicit currentTime when no scheduled time was given.
     if (pad.playMode === 'loop') src.start(st, off);
     else src.start(st, off, dur + (pad.release || 0));
 
@@ -1307,16 +1461,44 @@ const SamplerBeatMaker = ({
       const rs = st + dur; gain.gain.setValueAtTime(peakVol * (pad.sustain ?? 1), rs); gain.gain.linearRampToValueAtTime(0, rs + pad.release);
     }
 
-    activeSrc.current[pi] = { source: src, gain, layerIdx };
+    // Bug #8 / #17: track this voice in the Map so stopPad/stopAll can find it.
+    // Mirror the most-recent voice into legacy activeSrc.current[pi] for backwards
+    // compat with tabs/chopview that read it.
+    const voice = { source: src, gain, layerIdx };
+    if (!activeSourcesRef.current.has(pi)) activeSourcesRef.current.set(pi, new Set());
+    activeSourcesRef.current.get(pi).add(voice);
+    activeSrc.current[pi] = voice;
+
     setActivePads(p => new Set([...p, pi]));
-    src.onended = () => { setActivePads(p => { const n = new Set(p); n.delete(pi); return n; }); delete activeSrc.current[pi]; };
+    src.onended = () => {
+      const set = activeSourcesRef.current.get(pi);
+      if (set) {
+        set.delete(voice);
+        if (set.size === 0) {
+          activeSourcesRef.current.delete(pi);
+          setActivePads(p => { const n = new Set(p); n.delete(pi); return n; });
+        }
+      }
+      // Clear legacy slot only if it points at this exact voice (avoids stomping
+      // a newer voice that was just retriggered).
+      if (activeSrc.current[pi] === voice) delete activeSrc.current[pi];
+    };
 
     setPadLvls(p => { const u = [...p]; u[pi] = vel; return u; });
     setTimeout(() => setPadLvls(p => { const u = [...p]; u[pi] = Math.max(0, u[pi] - 0.3); return u; }), 150);
-  }, [initCtx]);
+  }, [initCtx, padModes, padChokeGroups, padBusAssign, getReverbIR]);
 
+  // Bug #8: stop ALL active voices for this pad — handles polyphonic stacks.
   const stopPad = useCallback((pi) => {
-    if (activeSrc.current[pi]) { try { activeSrc.current[pi].source.stop(); } catch (e) { } delete activeSrc.current[pi]; }
+    const set = activeSourcesRef.current.get(pi);
+    if (set && set.size > 0) {
+      set.forEach(v => { try { v.source.stop(); } catch (e) {} });
+      // onended will clean up the Map entry; clear legacy slot eagerly.
+    }
+    if (activeSrc.current[pi]) {
+      try { activeSrc.current[pi].source.stop(); } catch (e) {}
+      delete activeSrc.current[pi];
+    }
     setActivePads(p => { const n = new Set(p); n.delete(pi); return n; });
   }, []);
 
@@ -1328,8 +1510,11 @@ const SamplerBeatMaker = ({
     if (midiNote < (pad.keyRangeLow || 0) || midiNote > (pad.keyRangeHigh || 127)) return;
 
     const key = `kg_${pi}_${midiNote}`;
-    // Stop previous note on same key (retrigger)
-    if (activeSrc.current[key]) { try { activeSrc.current[key].source.stop(); } catch (e) { } delete activeSrc.current[key]; }
+    // Retrigger same note (same MIDI key): stop existing voices on this key.
+    const existing = activeSourcesRef.current.get(key);
+    if (existing && existing.size > 0) {
+      existing.forEach(v => { try { v.source.stop(); } catch (e) {} });
+    }
 
     // Velocity layer selection (same as drum mode)
     let sampleBuffer = pad.buffer;
@@ -1351,7 +1536,7 @@ const SamplerBeatMaker = ({
 
     const src = c.createBufferSource();
     const gain = c.createGain();
-    const pan = c.createStereoPanner();
+    // Per-voice pan dropped — pan is per-pad (padPanRef[pi]).
 
     // Reverse
     if (pad.reverse) {
@@ -1367,9 +1552,9 @@ const SamplerBeatMaker = ({
     const semitones = midiNote - (pad.rootNote || 60);
     src.playbackRate.value = Math.pow(2, (semitones + (pad.pitch || 0)) / 12);
 
-    // ADSR envelope
+    // ADSR envelope (Bug #14: drop pad.volume — padGainRef owns mix volume)
     const st = c.currentTime;
-    const peakVol = pad.volume * vel * layerVol;
+    const peakVol = vel * layerVol;
     if (pad.attack > 0) {
       gain.gain.setValueAtTime(0, st);
       gain.gain.linearRampToValueAtTime(peakVol, st + pad.attack);
@@ -1378,7 +1563,6 @@ const SamplerBeatMaker = ({
       gain.gain.setValueAtTime(peakVol * (pad.decay > 0 ? 1 : (pad.sustain ?? 1)), st);
       if (pad.decay > 0) gain.gain.linearRampToValueAtTime(peakVol * (pad.sustain ?? 1), st + pad.decay);
     }
-    pan.pan.value = pad.pan;
 
     // Effects chain
     let last = src;
@@ -1392,26 +1576,33 @@ const SamplerBeatMaker = ({
       for (let i = 0; i < 44100; i++) { const x = (i * 2) / 44100 - 1; curve[i] = ((3 + amt) * x * 20 * (Math.PI / 180)) / (Math.PI + amt * Math.abs(x)); }
       ws.curve = curve; ws.oversample = '2x'; last.connect(ws); last = ws;
     }
-    last.connect(gain); gain.connect(pan);
-    // Phase 6: Route keygroup to assigned bus or master
+    last.connect(gain);
+    const kgPadGain = padGainRef.current[pi];
+    const kgPadOut = padPanRef.current[pi];
+    // Phase 6: keygroup bus routing target.
     const kgBusAssign = padBusAssign[pi] || 'master';
     const kgDest = (kgBusAssign !== 'master' && busNodesRef.current[kgBusAssign])
       ? busNodesRef.current[kgBusAssign].gain : masterRef.current;
-    pan.connect(kgDest);
+    if (kgPadGain) {
+      gain.connect(kgPadGain);
+    } else if (kgDest) {
+      gain.connect(kgDest);
+    }
 
+    const sendSrc = kgPadOut || gain;
     if (pad.delayOn) {
       const dl = c.createDelay(2), dg = c.createGain(), fb = c.createGain();
       dl.delayTime.value = pad.delayTime; dg.gain.value = pad.delayMix; fb.gain.value = pad.delayFeedback;
-      pan.connect(dl); dl.connect(dg); dl.connect(fb); fb.connect(dl); dg.connect(kgDest);
+      sendSrc.connect(dl); dl.connect(dg); dl.connect(fb); fb.connect(dl); dg.connect(kgDest);
     }
     if (pad.reverbOn) {
       const ir = getReverbIR(c, 2.0);
       const conv = c.createConvolver(), rg = c.createGain();
       conv.buffer = ir; rg.gain.value = pad.reverbMix;
-      pan.connect(conv); conv.connect(rg); rg.connect(kgDest);
+      sendSrc.connect(conv); conv.connect(rg); rg.connect(kgDest);
     }
 
-    // Playback — loop for sustained keygroup, oneshot otherwise
+    // Playback — loop for sustained keygroup, oneshot otherwise (Bug #7: explicit time)
     const off = pad.trimStart || 0;
     const dur = (pad.trimEnd || sampleBuffer.duration) - off;
     if (pad.playMode === 'loop') {
@@ -1426,33 +1617,49 @@ const SamplerBeatMaker = ({
       }
     }
 
-    activeSrc.current[key] = { source: src, gain, midiNote, padIdx: pi };
+    // Bug #8: track keygroup voice in Map (per-key)
+    const voice = { source: src, gain, midiNote, padIdx: pi };
+    if (!activeSourcesRef.current.has(key)) activeSourcesRef.current.set(key, new Set());
+    activeSourcesRef.current.get(key).add(voice);
+    activeSrc.current[key] = voice; // legacy slot
+
     setActivePads(p => new Set([...p, pi]));
     setActiveKgNotes(p => new Set([...p, midiNote]));
     src.onended = () => {
-      delete activeSrc.current[key];
+      const set = activeSourcesRef.current.get(key);
+      if (set) {
+        set.delete(voice);
+        if (set.size === 0) activeSourcesRef.current.delete(key);
+      }
+      if (activeSrc.current[key] === voice) delete activeSrc.current[key];
       setActiveKgNotes(p => { const n = new Set(p); n.delete(midiNote); return n; });
     };
-  }, [initCtx, getReverbIR]);
+  }, [initCtx, getReverbIR, padBusAssign]);
 
   // Phase 3: Stop keygroup note (for noteOff / key release)
   const stopPadKeygroup = useCallback((pi, midiNote) => {
     const key = `kg_${pi}_${midiNote}`;
-    const entry = activeSrc.current[key];
-    if (!entry) return;
+    const set = activeSourcesRef.current.get(key);
+    if (!set || set.size === 0) {
+      // Clean legacy slot too in case it's stale
+      if (activeSrc.current[key]) delete activeSrc.current[key];
+      return;
+    }
     const pad = padsRef.current[pi];
     const rel = pad?.release || 0.02;
     const c = ctxRef.current;
-    if (c && entry.gain) {
-      // Release envelope on noteOff
-      const now = c.currentTime;
-      entry.gain.gain.cancelScheduledValues(now);
-      entry.gain.gain.setValueAtTime(entry.gain.gain.value, now);
-      entry.gain.gain.linearRampToValueAtTime(0, now + rel);
-      try { entry.source.stop(now + rel + 0.01); } catch (e) { }
-    } else {
-      try { entry.source.stop(); } catch (e) { }
-    }
+    set.forEach(entry => {
+      if (c && entry.gain) {
+        const now = c.currentTime;
+        entry.gain.gain.cancelScheduledValues(now);
+        entry.gain.gain.setValueAtTime(entry.gain.gain.value, now);
+        entry.gain.gain.linearRampToValueAtTime(0, now + rel);
+        try { entry.source.stop(now + rel + 0.01); } catch (e) {}
+      } else {
+        try { entry.source.stop(); } catch (e) {}
+      }
+    });
+    // onended handlers will clean up the Map entry; clear legacy slot eagerly.
     delete activeSrc.current[key];
     setActiveKgNotes(p => { const n = new Set(p); n.delete(midiNote); return n; });
   }, []);
@@ -1596,11 +1803,19 @@ const SamplerBeatMaker = ({
     } catch (e) { console.error('[Analysis] failed:', e); }
   }, [pads]);
 
+  // Bug #17: iterate every tracked voice (Map) — also kills polyphonic stacks
+  // and any voices that escaped the legacy single-slot tracker.
   const stopAll = useCallback(() => {
-    Object.keys(activeSrc.current).forEach(k => { try { activeSrc.current[k].source.stop(); } catch (e) { } });
-    activeSrc.current = {}; setActivePads(new Set());
+    activeSourcesRef.current.forEach((set) => {
+      set.forEach(v => { try { v.source.stop(); } catch (e) {} });
+    });
+    activeSourcesRef.current.clear();
+    Object.keys(activeSrc.current).forEach(k => { try { activeSrc.current[k].source.stop(); } catch (e) {} });
+    activeSrc.current = {};
+    setActivePads(new Set());
+    setActiveKgNotes(new Set());
     // Phase 5: also stop clip launcher sources
-    Object.keys(clipSources.current).forEach(k => { try { clipSources.current[k].source.stop(); } catch (e) { } });
+    Object.keys(clipSources.current).forEach(k => { try { clipSources.current[k].source.stop(); } catch (e) {} });
     clipSources.current = {}; setClipStates({}); setActiveScene(-1);
   }, []);
 
@@ -2796,7 +3011,11 @@ const SamplerBeatMaker = ({
       clipSources.current = {};
       // Clean master filter sweep node
       if (masterFilterRef.current) { try { masterFilterRef.current.disconnect(); } catch (e) {} masterFilterRef.current = null; }
-      // Stop active sources
+      // Stop active sources (Bug #17: include polyphonic voices tracked in Map)
+      activeSourcesRef.current.forEach((set) => {
+        set.forEach(v => { try { v.source.stop(); } catch (e) {} });
+      });
+      activeSourcesRef.current.clear();
       Object.keys(activeSrc.current).forEach(k => { try { activeSrc.current[k].source.stop(); } catch (e) {} });
       activeSrc.current = {};
       // Stop loop recorder
@@ -3364,12 +3583,17 @@ const SamplerBeatMaker = ({
             {pads.map((pad, i) => (
               <div key={i} className={`mixer-channel ${!pad.buffer ? 'empty' : ''}`}>
                 <div className="mixer-meter"><div className="meter-fill" style={{ height: `${(padLvls[i] || 0) * 100}%` }}></div></div>
-                <input type="range" className="mixer-fader" min={0} max={100} value={Math.round(pad.volume * 100)} onChange={(e) => updatePad(i, { volume: +e.target.value / 100 })} />
-                <input type="range" className="mixer-pan" min={-100} max={100} value={Math.round(pad.pan * 100)} onChange={(e) => updatePad(i, { pan: +e.target.value / 100 })} />
+                <input type="range" className="mixer-fader" min={0} max={100} value={Math.round(padVolumes[i] * 100)} onChange={(e) => setPadVolume(i, +e.target.value / 100)} />
+                <input type="range" className="mixer-pan" min={-100} max={100} value={Math.round(padPans[i] * 100)} onChange={(e) => setPadPan(i, +e.target.value / 100)} />
                 <div className="mixer-btns">
-                  <button className={`m-btn ${pad.muted ? 'active' : ''}`} onClick={() => updatePad(i, { muted: !pad.muted })}>M</button>
-                  <button className={`s-btn ${pad.soloed ? 'active' : ''}`} onClick={() => updatePad(i, { soloed: !pad.soloed })}>S</button>
+                  <button className={`m-btn ${padMutes[i] ? 'active' : ''}`} onClick={() => setPadMute(i, !padMutes[i])}>M</button>
+                  <button className={`s-btn ${padSolos[i] ? 'active' : ''}`} onClick={() => setPadSolo(i, !padSolos[i])}>S</button>
                 </div>
+                <select className="mixer-mode" value={padModes[i]} onChange={(e) => setPadMode(i, e.target.value)} title="Voice mode">
+                  <option value="retrigger">RT</option>
+                  <option value="polyphonic">PO</option>
+                  <option value="choke">CH</option>
+                </select>
                 <div className="mixer-label" style={{ color: pad.color }}>{PAD_KEY_LABELS[i]}</div>
               </div>
             ))}
@@ -3784,15 +4008,30 @@ const SamplerBeatMaker = ({
           </div>
 
           {pads[selectedPad].buffer && settingsTab === 'main' && (<>
-            <div className="pad-setting"><label>Volume</label><input type="range" min={0} max={100} value={Math.round(pads[selectedPad].volume * 100)} onChange={(e) => updatePad(selectedPad, { volume: +e.target.value / 100 })} /><span className="setting-value">{Math.round(pads[selectedPad].volume * 100)}%</span></div>
+            <div className="pad-setting"><label>Volume</label><input type="range" min={0} max={100} value={Math.round(padVolumes[selectedPad] * 100)} onChange={(e) => setPadVolume(selectedPad, +e.target.value / 100)} /><span className="setting-value">{Math.round(padVolumes[selectedPad] * 100)}%</span></div>
             <div className="pad-setting"><label>Pitch</label><input type="range" min={-12} max={12} value={pads[selectedPad].pitch} onChange={(e) => updatePad(selectedPad, { pitch: +e.target.value })} /><span className="setting-value">{pads[selectedPad].pitch > 0 ? '+' : ''}{pads[selectedPad].pitch}st</span></div>
-            <div className="pad-setting"><label>Pan</label><input type="range" min={-100} max={100} value={Math.round(pads[selectedPad].pan * 100)} onChange={(e) => updatePad(selectedPad, { pan: +e.target.value / 100 })} /><span className="setting-value">{pads[selectedPad].pan < 0 ? `L${Math.abs(Math.round(pads[selectedPad].pan * 100))}` : pads[selectedPad].pan > 0 ? `R${Math.round(pads[selectedPad].pan * 100)}` : 'C'}</span></div>
+            <div className="pad-setting"><label>Pan</label><input type="range" min={-100} max={100} value={Math.round(padPans[selectedPad] * 100)} onChange={(e) => setPadPan(selectedPad, +e.target.value / 100)} /><span className="setting-value">{padPans[selectedPad] < 0 ? `L${Math.abs(Math.round(padPans[selectedPad] * 100))}` : padPans[selectedPad] > 0 ? `R${Math.round(padPans[selectedPad] * 100)}` : 'C'}</span></div>
+            <div className="pad-setting">
+              <label>Voice Mode</label>
+              <select
+                value={padModes[selectedPad]}
+                onChange={e => setPadMode(selectedPad, e.target.value)}
+                className="pad-mode-select"
+              >
+                <option value="retrigger">Retrigger — stop &amp; restart</option>
+                <option value="polyphonic">Polyphonic — let voices stack</option>
+                <option value="choke">Choke — kill group on trigger</option>
+              </select>
+            </div>
             <div className="pad-setting">
               <label>Choke Group</label>
               <select
-                value={pads[selectedPad].chokeGroup||0}
-                onChange={e => updatePad(selectedPad, { chokeGroup: parseInt(e.target.value) })}
-                style={{background:'#0d1826',border:'1px solid #1a2d45',color:'#fff',fontFamily:'inherit',fontSize:'0.7rem',padding:'3px 8px',borderRadius:'3px',width:'100%'}}
+                value={padChokeGroups[selectedPad] ?? pads[selectedPad].chokeGroup ?? 0}
+                onChange={e => {
+                  const g = parseInt(e.target.value, 10);
+                  setPadChokeGroup(selectedPad, g === 0 ? null : g);
+                }}
+                className="pad-choke-select"
               >
                 <option value={0}>None</option>
                 {[1,2,3,4,5,6,7,8].map(g => <option key={g} value={g}>Group {g} — choke on trigger</option>)}
@@ -3814,8 +4053,8 @@ const SamplerBeatMaker = ({
               <div className="pad-setting"><button className="toggle-btn" onClick={() => setShowKeyboard(p => !p)}>{showKeyboard ? '⌨️ Hide Keyboard' : '🎹 Show Keyboard'}</button></div>
             </>}
             <div className="pad-setting mute-solo">
-              <button className={`mute-btn ${pads[selectedPad].muted ? 'active' : ''}`} onClick={() => updatePad(selectedPad, { muted: !pads[selectedPad].muted })}>{pads[selectedPad].muted ? '🔇 M' : 'M'}</button>
-              <button className={`solo-btn ${pads[selectedPad].soloed ? 'active' : ''}`} onClick={() => updatePad(selectedPad, { soloed: !pads[selectedPad].soloed })}>{pads[selectedPad].soloed ? '🎯 S' : 'S'}</button>
+              <button className={`mute-btn ${padMutes[selectedPad] ? 'active' : ''}`} onClick={() => setPadMute(selectedPad, !padMutes[selectedPad])}>{padMutes[selectedPad] ? '🔇 M' : 'M'}</button>
+              <button className={`solo-btn ${padSolos[selectedPad] ? 'active' : ''}`} onClick={() => setPadSolo(selectedPad, !padSolos[selectedPad])}>{padSolos[selectedPad] ? '🎯 S' : 'S'}</button>
             </div>
             <div className="pad-setting"><label>Bus</label><select value={padBusAssign[selectedPad] || 'master'} onChange={(e) => setPadBusAssign(prev => { const u = [...prev]; u[selectedPad] = e.target.value; return u; })}><option value="master">Master</option><option value="A">Bus A</option><option value="B">Bus B</option><option value="C">Bus C</option><option value="D">Bus D</option></select></div>
           </>)}
