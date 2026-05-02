@@ -398,6 +398,9 @@ const SamplerBeatMaker = ({
   // ==== MIXER (Phase 2) ====
   const [showMixer, setShowMixer] = useState(false);
   const [padLvls, setPadLvls] = useState(Array(16).fill(0));
+  // Bug #19: pattern dropdown menu (rename / switch / new / duplicate / delete)
+  const [showPatternMenu, setShowPatternMenu] = useState(false);
+  const patternMenuRef = useRef(null);
 
   // ==== AUDIO DEVICES ====
   const [devices, setDevices] = useState({ inputs: [], outputs: [] });
@@ -591,6 +594,65 @@ const SamplerBeatMaker = ({
     });
   }, [steps, stepVel, stepCount]);
 
+  // Pattern persistence — localStorage. Persists step grids, names, ids, stepCount,
+  // and curPatIdx. Audio buffers + per-pad state are NOT persisted here (those are
+  // owned by useSamplerStorage / future cloud save).
+  const PATTERN_STORAGE_KEY = 'spx-beat-lab-patterns';
+  const patternHydratedRef = useRef(false);
+  // Load once on mount.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PATTERN_STORAGE_KEY);
+      if (!raw) { patternHydratedRef.current = true; return; }
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.patterns) && parsed.patterns.length > 0) {
+        const cleaned = parsed.patterns
+          .filter(p => p && Array.isArray(p.steps) && Array.isArray(p.velocities))
+          .map(p => ({
+            id: p.id || `pat_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            name: typeof p.name === 'string' ? p.name : 'Pattern',
+            stepCount: typeof p.stepCount === 'number' ? p.stepCount : 16,
+            steps: p.steps,
+            velocities: p.velocities,
+          }));
+        if (cleaned.length > 0) {
+          const idx = Math.max(0, Math.min(parsed.curPatIdx ?? 0, cleaned.length - 1));
+          setPatterns(cleaned);
+          setCurPatIdx(idx);
+          // The sync useEffect above will mirror the chosen pattern into steps/stepVel/stepCount.
+        }
+      }
+    } catch (e) {
+      console.warn('[BeatLab] failed to load patterns from localStorage:', e);
+    } finally {
+      patternHydratedRef.current = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Debounced save on change.
+  useEffect(() => {
+    if (!patternHydratedRef.current) return;
+    const t = setTimeout(() => {
+      try {
+        const data = {
+          version: 1,
+          curPatIdx,
+          patterns: patterns.map(p => ({
+            id: p.id,
+            name: p.name,
+            stepCount: p.stepCount,
+            steps: p.steps,
+            velocities: p.velocities,
+          })),
+        };
+        localStorage.setItem(PATTERN_STORAGE_KEY, JSON.stringify(data));
+      } catch (e) {
+        // Quota exceeded or storage disabled — silent.
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [patterns, curPatIdx]);
+
   // =========================================================================
   // AUDIO INIT
   // =========================================================================
@@ -673,6 +735,44 @@ const SamplerBeatMaker = ({
 
   useEffect(() => { const c = ctxRef.current; if (c && selOut !== 'default' && c.setSinkId) c.setSinkId(selOut).catch(() => { }); }, [selOut]);
   useEffect(() => { if (masterRef.current) masterRef.current.gain.value = masterVol; }, [masterVol]);
+
+  // Bug #19: close pattern dropdown when clicking outside its container.
+  useEffect(() => {
+    if (!showPatternMenu) return;
+    const onDoc = (e) => {
+      if (patternMenuRef.current && !patternMenuRef.current.contains(e.target)) {
+        setShowPatternMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [showPatternMenu]);
+
+  // Bug #16: capture mouse-button modifiers globally so pad-click handlers in tab
+  // components (which only pass the pad index, not the event) can derive velocity.
+  // Click=0.8, Shift+Click=0.4, Ctrl/Cmd+Click=1.0 — matches existing toggleStep convention.
+  const lastModifierRef = useRef({ shiftKey: false, ctrlKey: false, metaKey: false });
+  useEffect(() => {
+    const onDown = (e) => {
+      lastModifierRef.current = {
+        shiftKey: !!e.shiftKey,
+        ctrlKey: !!e.ctrlKey,
+        metaKey: !!e.metaKey,
+      };
+    };
+    document.addEventListener('mousedown', onDown, true);
+    document.addEventListener('keydown', onDown, true);
+    return () => {
+      document.removeEventListener('mousedown', onDown, true);
+      document.removeEventListener('keydown', onDown, true);
+    };
+  }, []);
+  const padHitVelocity = useCallback((modOverride) => {
+    const m = modOverride || lastModifierRef.current;
+    if (m.ctrlKey || m.metaKey) return 1.0;
+    if (m.shiftKey) return 0.4;
+    return 0.8;
+  }, []);
 
   // Bug #6: AudioContext unlock on first user interaction. The browser starts the
   // ctx in "suspended" state until a user gesture; resuming on the first
@@ -2232,6 +2332,9 @@ const SamplerBeatMaker = ({
   const startLiveRec = useCallback(() => {
     if (!overdub) setSteps(Array.from({ length: 16 }, () => Array(stepCount).fill(false)));
     setRecHits([]); setLiveRec(true);
+    // Anchor record time so handleLiveHit's quantize math has a sane origin even if
+    // the sequencer was already running (otherwise schedStep won't refresh recStartT).
+    if (ctxRef.current) recStartT.current = ctxRef.current.currentTime;
     if (!playingRef.current) startSeq();
   }, [overdub, stepCount, startSeq]);
 
@@ -2254,10 +2357,32 @@ const SamplerBeatMaker = ({
     }
   }, [recHits, bpm, quantVal, stepCount]);
 
+  // Bug #16: write the hit into the active pattern's step grid in real time
+  // (in addition to buffering the raw hit for stopLiveRec's final-quantize pass).
+  // Without this, notes only appear in the timeline AFTER the user stops recording.
   const handleLiveHit = useCallback((pi, vel = 0.8) => {
     if (!liveRef.current || !ctxRef.current) return;
-    setRecHits(p => [...p, { pad: pi, time: ctxRef.current.currentTime - recStartT.current, velocity: vel }]);
-  }, []);
+    const t = ctxRef.current.currentTime - recStartT.current;
+    setRecHits(p => [...p, { pad: pi, time: t, velocity: vel }]);
+    // Quantize to current step using current quantVal.
+    const sd = 60.0 / bpmRef.current / 4;
+    const qm = { '1/4': 4, '1/8': 2, '1/16': 1, '1/32': 0.5 };
+    const qs = qm[quantVal] || 1;
+    const sc = scRef.current;
+    const si = ((Math.round(Math.round(t / sd / qs) * qs)) % sc + sc) % sc;
+    if (si >= 0 && si < sc) {
+      setSteps(prev => {
+        const u = prev.map(r => [...r]);
+        u[pi][si] = true;
+        return u;
+      });
+      setStepVel(prev => {
+        const u = prev.map(r => [...r]);
+        u[pi][si] = vel;
+        return u;
+      });
+    }
+  }, [quantVal]);
 
   // =========================================================================
   // WAVEFORM CHOP (Phase 2)
@@ -2550,7 +2675,7 @@ const SamplerBeatMaker = ({
       }
 
       // Standard drum pad keys
-      if (KEY_TO_PAD.hasOwnProperty(k)) { e.preventDefault(); initCtx(); playPad(KEY_TO_PAD[k]); if (liveRef.current) handleLiveHit(KEY_TO_PAD[k]); if (midiLearn) { setMidiLearnPad(KEY_TO_PAD[k]); } }
+      if (KEY_TO_PAD.hasOwnProperty(k)) { e.preventDefault(); initCtx(); const v = padHitVelocity({ shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, metaKey: e.metaKey }); playPad(KEY_TO_PAD[k], v); if (liveRef.current) handleLiveHit(KEY_TO_PAD[k], v); if (midiLearn) { setMidiLearnPad(KEY_TO_PAD[k]); } }
     };
     const ku = (e) => {
       const k = e.key.toLowerCase();
@@ -2569,7 +2694,7 @@ const SamplerBeatMaker = ({
     };
     window.addEventListener('keydown', kd); window.addEventListener('keyup', ku);
     return () => { window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); };
-  }, [playPad, stopPad, togglePlay, handleLiveHit, initCtx, midiLearn, selectedPad, playPadKeygroup, stopPadKeygroup, KG_KEY_MAP]);
+  }, [playPad, stopPad, togglePlay, handleLiveHit, initCtx, midiLearn, selectedPad, playPadKeygroup, stopPadKeygroup, KG_KEY_MAP, padHitVelocity]);
 
   // =========================================================================
   // DRAG & DROP / FILE SELECT
@@ -3044,6 +3169,72 @@ const SamplerBeatMaker = ({
         <div className="sampler-topbar-left">
           <h2 className="sampler-title"><span className="sampler-title-icon">🥁</span>SPX Beat Lab</h2>
           <div className="pattern-selector">
+            {/* Bug #19: Pattern dropdown menu */}
+            <div className="pattern-menu-wrap" ref={patternMenuRef}>
+              <button
+                className={`pattern-menu-btn ${showPatternMenu ? 'open' : ''}`}
+                onClick={() => setShowPatternMenu(p => !p)}
+                title="Patterns"
+              >
+                <span className="pattern-menu-icon">📋</span>
+                <span className="pattern-menu-current">
+                  {patterns[curPatIdx]?.name?.length > 14
+                    ? patterns[curPatIdx].name.slice(0, 14) + '…'
+                    : (patterns[curPatIdx]?.name || 'Pattern')}
+                </span>
+                <span className="pattern-menu-caret">▾</span>
+              </button>
+              {showPatternMenu && (
+                <div className="pattern-menu-dropdown">
+                  <div className="pattern-menu-header">
+                    <span>Patterns</span>
+                    <button
+                      className="pattern-menu-close"
+                      onClick={() => setShowPatternMenu(false)}
+                      title="Close"
+                    >✕</button>
+                  </div>
+                  <div className="pattern-menu-rename">
+                    <label>Name</label>
+                    <input
+                      type="text"
+                      value={patterns[curPatIdx]?.name || ''}
+                      onChange={(e) => renamePattern(curPatIdx, e.target.value)}
+                      maxLength={40}
+                    />
+                  </div>
+                  <div className="pattern-menu-list">
+                    {patterns.map((p, i) => (
+                      <button
+                        key={p.id || i}
+                        className={`pattern-menu-item ${i === curPatIdx ? 'active' : ''}`}
+                        onClick={() => setCurPatIdx(i)}
+                      >
+                        <span className="pattern-menu-num">{i + 1}.</span>
+                        <span className="pattern-menu-name">{p.name}</span>
+                        {i === curPatIdx && <span className="pattern-menu-check">●</span>}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="pattern-menu-actions">
+                    <button onClick={() => { addPattern(); }}>+ New</button>
+                    <button onClick={() => { dupPattern(curPatIdx); }}>⧉ Duplicate</button>
+                    <button
+                      className="pattern-menu-delete"
+                      disabled={patterns.length <= 1}
+                      onClick={() => {
+                        const name = patterns[curPatIdx]?.name || 'pattern';
+                        if (window.confirm(`Delete pattern "${name}"? This cannot be undone.`)) {
+                          delPattern(curPatIdx);
+                          setShowPatternMenu(false);
+                        }
+                      }}
+                    >🗑 Delete</button>
+                  </div>
+                </div>
+              )}
+            </div>
+            {/* Inline pattern tabs (compact) — kept for quick switching at a glance */}
             {patterns.map((p, i) => (
               <button key={i} className={`pattern-btn ${i === curPatIdx ? 'active' : ''}`} onClick={() => setCurPatIdx(i)}
                 onDoubleClick={() => { const n = prompt('Rename:', p.name); if (n) renamePattern(i, n); }}
@@ -3051,8 +3242,19 @@ const SamplerBeatMaker = ({
                 {p.name.length > 8 ? p.name.slice(0, 8) + '…' : p.name}
               </button>
             ))}
-            <button className="pattern-btn add" onClick={addPattern}>+</button>
-            <button className="pattern-btn dup" onClick={() => dupPattern(curPatIdx)} title="Duplicate">⧉</button>
+            <button className="pattern-btn add" onClick={addPattern} title="New pattern">+</button>
+            <button className="pattern-btn dup" onClick={() => dupPattern(curPatIdx)} title="Duplicate current">⧉</button>
+            {/* Bug #18: Clear current pattern (with confirm; pad samples preserved) */}
+            <button
+              className="pattern-btn clear"
+              title="Clear current pattern (pads stay loaded)"
+              onClick={() => {
+                const name = patterns[curPatIdx]?.name || 'this pattern';
+                if (window.confirm(`Clear "${name}"? Pad samples stay loaded; only the step grid is emptied.`)) {
+                  clearPat();
+                }
+              }}
+            >🗑 Clear</button>
           </div>
         </div>
 
@@ -3170,7 +3372,7 @@ const SamplerBeatMaker = ({
               setShowPadSet, ctxRef, masterRef, isPlaying,
               detectedBpm: detectedBpm || 0, detectedKey: detectedKey || null,
             }}
-            handlePadDown={(i) => { initCtx(); playPad(i); }}
+            handlePadDown={(i) => { initCtx(); const v = padHitVelocity(); playPad(i, v); if (liveRef.current) handleLiveHit(i, v); }}
             handlePadUp={(i) => { if (pads[i]?.playMode === 'hold') stopPad(i); }}
             aiProps={{
               runAiSuggest: () => { },
@@ -3192,7 +3394,7 @@ const SamplerBeatMaker = ({
               setShowPadSet, setShowKitBrowser: () => setShowLib(true),
               openChop,
             }}
-            handlePadDown={(i) => { initCtx(); playPad(i); }}
+            handlePadDown={(i) => { initCtx(); const v = padHitVelocity(); playPad(i, v); if (liveRef.current) handleLiveHit(i, v); }}
             handlePadUp={(i) => { if (pads[i]?.playMode === 'hold') stopPad(i); }}
             perfProps={{
               noteRepeatOn, setNoteRepeatOn,
@@ -3320,7 +3522,7 @@ const SamplerBeatMaker = ({
               onDragLeave: () => setDragPad(null),
               onDrop: (e, pi) => { e.preventDefault(); setDragPad(null); const f = e.dataTransfer?.files?.[0]; if (f) loadSample(pi, f); },
             }}
-            handlePadDown={(i) => { initCtx(); playPad(i); }}
+            handlePadDown={(i) => { initCtx(); const v = padHitVelocity(); playPad(i, v); if (liveRef.current) handleLiveHit(i, v); }}
             handlePadUp={(i) => { if (pads[i]?.playMode === 'hold') stopPad(i); }}
           />
         )}

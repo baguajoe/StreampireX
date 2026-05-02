@@ -102,6 +102,200 @@
   color: #00ffc8;
 }
 
+/* Bug #18: Clear current pattern */
+.pattern-btn.clear {
+  color: #ff8888;
+  border-color: rgba(255, 100, 100, 0.18);
+}
+.pattern-btn.clear:hover {
+  color: #ff5555;
+  border-color: rgba(255, 100, 100, 0.4);
+  background: rgba(255, 80, 80, 0.08);
+}
+
+/* Bug #19: Pattern dropdown menu */
+.pattern-menu-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-right: 4px;
+}
+.pattern-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid rgba(0, 255, 200, 0.18);
+  border-radius: 5px;
+  background: rgba(0, 255, 200, 0.06);
+  color: #00ffc8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.pattern-menu-btn:hover {
+  background: rgba(0, 255, 200, 0.12);
+  border-color: rgba(0, 255, 200, 0.4);
+}
+.pattern-menu-btn.open {
+  background: rgba(0, 255, 200, 0.18);
+  border-color: rgba(0, 255, 200, 0.55);
+}
+.pattern-menu-icon { font-size: 0.85rem; }
+.pattern-menu-current { font-weight: 700; }
+.pattern-menu-caret { font-size: 0.6rem; opacity: 0.7; }
+
+.pattern-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 60;
+  min-width: 240px;
+  max-width: 320px;
+  background: linear-gradient(180deg, #0d1e33, #0a1628);
+  border: 1px solid rgba(0, 255, 200, 0.25);
+  border-radius: 6px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pattern-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #00ffc8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.pattern-menu-close {
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.pattern-menu-close:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+
+.pattern-menu-rename {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 6px;
+}
+.pattern-menu-rename label {
+  font-size: 0.6rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.pattern-menu-rename input {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  color: #eee;
+  padding: 5px 8px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  outline: none;
+}
+.pattern-menu-rename input:focus {
+  border-color: rgba(0, 255, 200, 0.5);
+}
+
+.pattern-menu-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+  overflow-y: auto;
+  gap: 1px;
+  padding: 2px 0;
+}
+.pattern-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: #aaa;
+  font-size: 0.72rem;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: all 0.1s;
+}
+.pattern-menu-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ddd;
+}
+.pattern-menu-item.active {
+  background: rgba(0, 255, 200, 0.1);
+  border-color: rgba(0, 255, 200, 0.3);
+  color: #00ffc8;
+}
+.pattern-menu-num {
+  flex: 0 0 22px;
+  color: #666;
+  font-family: 'Courier New', monospace;
+  font-size: 0.65rem;
+}
+.pattern-menu-item.active .pattern-menu-num { color: #00ffc8; }
+.pattern-menu-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pattern-menu-check {
+  flex: 0 0 auto;
+  color: #00ffc8;
+  font-size: 0.6rem;
+}
+
+.pattern-menu-actions {
+  display: flex;
+  gap: 4px;
+  padding: 4px 0 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.pattern-menu-actions button {
+  flex: 1;
+  padding: 5px 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  color: #ccc;
+  font-size: 0.68rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pattern-menu-actions button:hover:not(:disabled) {
+  background: rgba(0, 255, 200, 0.1);
+  border-color: rgba(0, 255, 200, 0.3);
+  color: #00ffc8;
+}
+.pattern-menu-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.pattern-menu-actions .pattern-menu-delete:hover:not(:disabled) {
+  background: rgba(255, 80, 80, 0.1);
+  border-color: rgba(255, 80, 80, 0.4);
+  color: #ff8888;
+}
+
 /* Transport Controls */
 
 .sampler-transport {
