@@ -43,16 +43,28 @@ export default function FreesoundBrowser({ onLoadSample }) {
   const [targetPad,   setTargetPad]   = useState(0);
   const audioRef = useRef(null);
 
-  const search = useCallback(async (q = query, p = 0) => {
+  const search = useCallback(async (qText = query, p = 0) => {
     setLoading(true); setError(null);
     try {
+      // Bug #5: backend reads `q` (not `query`) and Freesound expects 1-indexed pages.
+      // Pass max_duration via the `filter` field that the backend already supports.
       const params = new URLSearchParams({
-        query: q, page: p, page_size: 15,
-        sort, max_duration: maxDuration,
-        fields: 'id,name,username,duration,previews,license,tags,avg_rating,num_downloads',
+        q: qText,
+        page: String(p + 1),
+        page_size: '15',
+        sort,
+        filter: `duration:[0 TO ${maxDuration}]`,
       });
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/freesound/search?${params}`);
-      if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+      if (!res.ok) {
+        // Surface the backend's structured error message when present (e.g. missing API key).
+        let msg = `Search failed: ${res.status}`;
+        try {
+          const errBody = await res.json();
+          if (errBody?.error) msg = errBody.error;
+        } catch {}
+        throw new Error(msg);
+      }
       const data = await res.json();
       setResults(data.results ?? []);
       setTotalPages(Math.ceil((data.count ?? 0) / 15));
@@ -71,7 +83,12 @@ export default function FreesoundBrowser({ onLoadSample }) {
       setPlaying(null);
       return;
     }
-    const url = sound.previews?.['preview-hq-mp3'] || sound.previews?.['preview-lq-mp3'];
+    // Backend response uses snake_case keys (preview_hq_mp3); raw Freesound API uses
+    // hyphenated keys under previews. Accept either shape.
+    const url = sound.preview_hq_mp3
+      || sound.previews?.['preview-hq-mp3']
+      || sound.preview_lq_mp3
+      || sound.previews?.['preview-lq-mp3'];
     if (!url) return;
     if (audioRef.current) { audioRef.current.pause(); }
     audioRef.current = new Audio(url);
@@ -83,15 +100,19 @@ export default function FreesoundBrowser({ onLoadSample }) {
   const loadToPad = useCallback(async (sound) => {
     setLoadingPad(sound.id);
     try {
-      const params = new URLSearchParams({ sound_id: sound.id });
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/freesound/download?${params}`);
+      // Bug #5: download endpoint is path-style /api/freesound/download/<id>, not ?sound_id=
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/freesound/download/${sound.id}?quality=hq`);
       if (!res.ok) throw new Error('Download failed');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       onLoadSample?.(url, sound.name, blob);
     } catch(e) {
-      // Fallback: use preview URL directly
-      const url = sound.previews?.['preview-hq-mp3'];
+      // Fallback: use preview URL directly. Backend returns `preview_hq_mp3` (snake_case),
+      // but raw Freesound fields use `previews['preview-hq-mp3']`. Accept either.
+      const url = sound.preview_hq_mp3
+        || sound.previews?.['preview-hq-mp3']
+        || sound.preview_lq_mp3
+        || sound.previews?.['preview-lq-mp3'];
       if (url) onLoadSample?.(url, sound.name);
       else alert('Could not load sample: ' + e.message);
     } finally { setLoadingPad(null); }
@@ -165,7 +186,7 @@ export default function FreesoundBrowser({ onLoadSample }) {
             <div style={s.info}>
               <div style={s.name} title={sound.name}>{sound.name}</div>
               <div style={s.meta}>
-                by {sound.username} · {sound.duration?.toFixed(1)}s · ⭐{sound.avg_rating?.toFixed(1)} · ↓{sound.num_downloads?.toLocaleString()}
+                by {sound.username} · {sound.duration?.toFixed(1)}s · ⭐{(sound.rating ?? sound.avg_rating ?? 0).toFixed(1)} · ↓{(sound.downloads ?? sound.num_downloads ?? 0).toLocaleString()}
               </div>
               <div style={{...s.meta, color:'#4a5568', marginTop:1}}>
                 {(sound.tags||[]).slice(0,4).join(' · ')}

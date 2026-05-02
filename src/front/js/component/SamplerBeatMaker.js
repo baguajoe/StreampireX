@@ -164,6 +164,24 @@ const SYNTH_MAP = {
 // Format: "Sample Name": "https://your-r2-bucket.r2.dev/path/to/sample.wav"
 const R2_KIT_URLS = {};
 
+// Bug #11: Factory drum kit (procedural Web Audio — no network required, ships with the app).
+// Shape designed for future expansion: each sample can come from synth or URL, allowing R2-hosted
+// expansion later without changing the loader.
+const FACTORY_KIT_MANIFEST = {
+  id: 'factory-default',
+  name: 'SPX Factory Kit',
+  samples: [
+    { padIndex: 0, name: 'Kick',       color: '#ff4444', source: 'synth', synthSpec: 'kick' },
+    { padIndex: 1, name: 'Snare',      color: '#ff6b35', source: 'synth', synthSpec: 'snare' },
+    { padIndex: 2, name: 'Closed Hat', color: '#ffa500', source: 'synth', synthSpec: 'hat' },
+    { padIndex: 3, name: 'Open Hat',   color: '#ffd700', source: 'synth', synthSpec: 'openhat' },
+    { padIndex: 4, name: 'Clap',       color: '#00ffc8', source: 'synth', synthSpec: 'clap' },
+    { padIndex: 5, name: 'Rim',        color: '#00d4ff', source: 'synth', synthSpec: 'perc' },
+    { padIndex: 6, name: 'Tom',        source: 'synth', synthSpec: 'perc' },
+    { padIndex: 7, name: '808 Sub',    source: 'synth', synthSpec: '808' },
+  ],
+};
+
 const SOUND_LIBRARY = {
   // ── 7 cleared generic kits — safe for commercial distribution ──
   'SUB 808 Kit': [
@@ -2744,6 +2762,42 @@ const SamplerBeatMaker = ({
     });
   }, []);
 
+  // Bug #11: load FACTORY_KIT_MANIFEST into pads. Procedural via synthDrum (zero network).
+  // Iterates the manifest so future R2-hosted samples drop in cleanly.
+  const loadFactoryKit = useCallback(() => {
+    const ctx = initCtx();
+    FACTORY_KIT_MANIFEST.samples.forEach(sample => {
+      if (sample.padIndex < 0 || sample.padIndex >= 16) return;
+      const update = { name: sample.name, programType: 'drum' };
+      if (sample.color) update.color = sample.color;
+      if (sample.source === 'synth' && sample.synthSpec) {
+        const buf = synthDrum(sample.synthSpec, ctx);
+        update.buffer = buf;
+        update.trimEnd = buf.duration;
+        updatePad(sample.padIndex, update);
+      } else if (sample.source === 'url' && sample.url) {
+        updatePad(sample.padIndex, update);
+        loadSample(sample.padIndex, sample.url);
+      }
+    });
+  }, [initCtx, updatePad, loadSample]);
+
+  // Auto-load factory kit on first open if no pads have samples. Fires once per
+  // mount; the ref guards against re-running after the user loads or clears anything.
+  const factoryAutoLoadedRef = useRef(false);
+  useEffect(() => {
+    if (factoryAutoLoadedRef.current) return;
+    const anyLoaded = pads.some(p => p?.buffer);
+    if (!anyLoaded) {
+      factoryAutoLoadedRef.current = true;
+      loadFactoryKit();
+    } else {
+      // User already has samples loaded — don't auto-load, but mark as resolved
+      // so we don't keep re-checking on every pads change.
+      factoryAutoLoadedRef.current = true;
+    }
+  }, [pads, loadFactoryKit]);
+
   // =========================================================================
   // EXPORT — WAV / MP3 / OGG / WEBM / Stems / MIDI
   // =========================================================================
@@ -3812,6 +3866,20 @@ const SamplerBeatMaker = ({
       {showLib && (
         <div className="library-panel">
           <div className="library-header"><h3>📚 Sound Library</h3><button onClick={() => setShowLib(false)}>✕</button></div>
+          {/* Bug #11: prominent Factory Kit loader — procedural sounds, ships with the app */}
+          <div className="library-factory">
+            <div className="library-factory-info">
+              <div className="library-factory-title">🏭 SPX Factory Kit</div>
+              <div className="library-factory-desc">8 procedural drum sounds — kick, snare, hats, clap, perc, 808. No download.</div>
+            </div>
+            <button
+              className="library-factory-btn"
+              onClick={() => { loadFactoryKit(); setShowLib(false); }}
+              title="Load factory kit into pads 1–8"
+            >
+              ⚡ Load
+            </button>
+          </div>
           <div className="library-kits">
             {Object.entries(SOUND_LIBRARY).map(([name, sounds]) => (
               <div key={name} className={`library-kit ${selKit === name ? 'selected' : ''}`}>

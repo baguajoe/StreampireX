@@ -68,14 +68,23 @@ def search_sounds():
     if key_error:
         return key_error
 
-    q = request.args.get('q', '')
+    # Accept both `q` (preferred) and `query` (legacy / Freesound-native param name)
+    # so older frontend builds keep working after this fix lands.
+    q = request.args.get('q') or request.args.get('query', '')
     page = request.args.get('page', '1')
     page_size = request.args.get('page_size', '15')
     sort = request.args.get('sort', 'score')
     filter_param = request.args.get('filter', '')
 
     if not filter_param:
-        filter_param = 'duration:[0 TO 30]'
+        # Allow a separate `max_duration` shortcut for clients that don't build the
+        # full Freesound filter string themselves.
+        max_duration = request.args.get('max_duration', '30')
+        try:
+            int(max_duration)  # validate
+            filter_param = f'duration:[0 TO {max_duration}]'
+        except (TypeError, ValueError):
+            filter_param = 'duration:[0 TO 30]'
 
     params = {
         'query': q,
