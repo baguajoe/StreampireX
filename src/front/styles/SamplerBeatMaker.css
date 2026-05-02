@@ -4608,3 +4608,124 @@ select.midi-popover-channel option {
 .sbm-welcome-checkbox input[type="checkbox"] {
   accent-color: #00ffc8;
 }
+
+/* =============================================================================
+   PART 10 — Beat Lab Save menu (Bug #37)
+   ============================================================================= */
+.sbm-save-menu-container {
+  position: relative;
+  display: inline-block;
+}
+
+.sbm-save-btn {
+  padding: 6px 14px;
+  background: rgba(0, 255, 200, 0.12);
+  border: 1px solid rgba(0, 255, 200, 0.4);
+  color: #00ffc8;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.sbm-save-btn:hover:not(:disabled) {
+  background: rgba(0, 255, 200, 0.2);
+  border-color: #00ffc8;
+}
+
+.sbm-save-btn.open {
+  background: rgba(0, 255, 200, 0.22);
+  border-color: #00ffc8;
+  box-shadow: 0 0 8px rgba(0, 255, 200, 0.35);
+}
+
+.sbm-save-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.sbm-save-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: linear-gradient(135deg, #0a0e1f 0%, #1a1f3a 100%);
+  border: 1px solid rgba(0, 255, 200, 0.3);
+  border-radius: 6px;
+  padding: 8px;
+  min-width: 280px;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.sbm-save-section {
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(0, 255, 200, 0.1);
+}
+
+.sbm-save-section:last-child {
+  border-bottom: none;
+}
+
+.sbm-save-section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #5a7090;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 8px;
+}
+
+.sbm-save-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: #d8e4ee;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  transition: background 0.1s, color 0.1s;
+}
+
+.sbm-save-dropdown button:hover {
+  background: rgba(0, 255, 200, 0.1);
+  color: #00ffc8;
+}
+
+.sbm-save-status {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  max-width: 480px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 999;
+  pointer-events: none;
+  animation: sbmSaveStatusFade 0.2s ease-out;
+}
+
+.sbm-save-status.success {
+  background: rgba(0, 255, 200, 0.15);
+  border: 1px solid #00ffc8;
+  color: #00ffc8;
+}
+
+.sbm-save-status.error {
+  background: rgba(255, 80, 80, 0.15);
+  border: 1px solid #ff5050;
+  color: #ff8080;
+}
+
+@keyframes sbmSaveStatusFade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

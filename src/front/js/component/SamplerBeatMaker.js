@@ -399,6 +399,35 @@ const SamplerBeatMaker = ({
     setPads(prev => prev.map((p, idx) => idx === i ? { ...p, chokeGroup: g } : p));
   }, []);
 
+  // Bug #37: Save menu state. The button lives in the transport bar; the
+  // dropdown offers device exports, cloud saves, and publish/share. We keep a
+  // separate `saving` flag from the older `exporting` flag so the two can run
+  // concurrently if needed and have independent UI feedback.
+  const [saveMenuOpen, setSaveMenuOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null);
+  const saveMenuRef = useRef(null);
+
+  // Click-outside dismisser for the save dropdown.
+  useEffect(() => {
+    if (!saveMenuOpen) return undefined;
+    const onDoc = (e) => {
+      if (saveMenuRef.current && !saveMenuRef.current.contains(e.target)) {
+        setSaveMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [saveMenuOpen]);
+
+  // Auto-clear status banner after a few seconds (errors stay visible longer).
+  useEffect(() => {
+    if (!saveStatus) return undefined;
+    const ms = saveStatus.type === 'error' ? 8000 : 5000;
+    const id = setTimeout(() => setSaveStatus(null), ms);
+    return () => clearTimeout(id);
+  }, [saveStatus]);
+
   // Bug #22: Count-in before live record. 0 = off, otherwise N bars of
   // metronome ticks before recording + playback actually start. Persisted.
   const [countInBars, setCountInBars] = useState(() => {
@@ -3442,6 +3471,211 @@ const SamplerBeatMaker = ({
   }, [exportStatus]);
 
   // =========================================================================
+  // SAVE MENU (Bug #37)
+  // =========================================================================
+  // Snapshot the user-editable parts of the session into a plain JSON object.
+  // AudioBuffers can't round-trip through JSON, so for each pad we record
+  // metadata + hasBuffer/sampleName so a future loader knows which slots were
+  // populated. Re-binding the actual audio is the loader's responsibility
+  // (e.g. re-running the factory kit, prompting the user to relink files,
+  // or reading back the matching .wav from R2 if the cloud-save uploaded it).
+  const serializeProject = useCallback(() => ({
+    version: '1.0',
+    tool: 'spx-beat-lab',
+    createdAt: new Date().toISOString(),
+    bpm,
+    swing,
+    stepCount,
+    countInBars,
+    keyboardTarget,
+    patterns: patterns.map(p => ({
+      id: p.id,
+      name: p.name,
+      stepCount: p.stepCount,
+      steps: p.steps,
+      velocities: p.velocities,
+    })),
+    pads: pads.map(p => ({
+      id: p.id,
+      name: p.name,
+      color: p.color,
+      hasBuffer: !!p.buffer,
+      volume: p.volume, pan: p.pan, pitch: p.pitch,
+      trimStart: p.trimStart, trimEnd: p.trimEnd,
+      playMode: p.playMode, reverse: p.reverse,
+      muted: p.muted, soloed: p.soloed,
+      programType: p.programType,
+      filterOn: p.filterOn, filterType: p.filterType, filterFreq: p.filterFreq, filterQ: p.filterQ,
+      reverbOn: p.reverbOn, reverbMix: p.reverbMix,
+      delayOn: p.delayOn, delayTime: p.delayTime, delayFeedback: p.delayFeedback, delayMix: p.delayMix,
+      distortionOn: p.distortionOn, distortionAmt: p.distortionAmt,
+      attack: p.attack, decay: p.decay, sustain: p.sustain, release: p.release,
+      rootNote: p.rootNote, keyRangeLow: p.keyRangeLow, keyRangeHigh: p.keyRangeHigh,
+    })),
+  }), [bpm, swing, stepCount, countInBars, keyboardTarget, patterns, pads]);
+
+  // Inline MIDI bytes builder so the .mid Save destination doesn't have to
+  // call exportMIDI() (which auto-downloads with its own filename). Mirrors
+  // the encoding used in exportMIDI exactly.
+  const buildMidiBytes = useCallback(() => {
+    const useSong = songMode && songSeq.length > 0;
+    const tpb = 480, tps = tpb / 4;
+    const hdr = [0x4D, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, (tpb >> 8) & 0xFF, tpb & 0xFF];
+    const evts = [];
+    const usPerBeat = Math.round(60000000 / bpm);
+    evts.push({ d: 0, data: [0xFF, 0x51, 0x03, (usPerBeat >> 16) & 0xFF, (usPerBeat >> 8) & 0xFF, usPerBeat & 0xFF] });
+    if (useSong) {
+      let tickOff = 0;
+      for (const b of songSeq) {
+        const p = patterns[b.patternIndex];
+        if (!p) continue;
+        for (let si = 0; si < p.stepCount; si++) for (let pi = 0; pi < 16; pi++) {
+          if (!p.steps[pi]?.[si]) continue;
+          const v = Math.round((p.velocities[pi]?.[si] ?? 0.8) * 127), n = 36 + pi, tick = tickOff + si * tps;
+          evts.push({ d: tick, data: [0x90, n, v] }); evts.push({ d: tick + tps - 1, data: [0x80, n, 0] });
+        }
+        tickOff += p.stepCount * tps;
+      }
+    } else {
+      for (let si = 0; si < stepCount; si++) for (let pi = 0; pi < 16; pi++) {
+        if (!steps[pi]?.[si]) continue;
+        const v = Math.round((stepVel[pi]?.[si] ?? 0.8) * 127), n = 36 + pi, tick = si * tps;
+        evts.push({ d: tick, data: [0x90, n, v] }); evts.push({ d: tick + tps - 1, data: [0x80, n, 0] });
+      }
+    }
+    evts.sort((a, b) => a.d - b.d);
+    const tb = []; let lt = 0;
+    evts.forEach(e => {
+      let rd = e.d - lt; lt = e.d;
+      const db = []; db.push(rd & 0x7F); while (rd > 0x7F) { rd >>= 7; db.push((rd & 0x7F) | 0x80); }
+      db.reverse().forEach(b => tb.push(b)); e.data.forEach(b => tb.push(b));
+    });
+    tb.push(0x00, 0xFF, 0x2F, 0x00);
+    const th = [0x4D, 0x54, 0x72, 0x6B, (tb.length >> 24) & 0xFF, (tb.length >> 16) & 0xFF, (tb.length >> 8) & 0xFF, tb.length & 0xFF];
+    return new Uint8Array([...hdr, ...th, ...tb]);
+  }, [songMode, songSeq, steps, stepVel, stepCount, bpm, patterns]);
+
+  // Render the current pattern (or the song if Song Mode is on) to a stereo
+  // 44.1kHz AudioBuffer. Reuses the existing offline-render path so chops/
+  // velocity/swing/trim all behave identically to the regular Export menu.
+  const renderCurrentToBuffer = useCallback(async () => {
+    if (songMode && songSeq.length > 0) {
+      const r = await renderSong();
+      if (!r) throw new Error('No patterns in song sequence');
+      return r;
+    }
+    return await renderPat(steps, stepVel, stepCount);
+  }, [songMode, songSeq, renderSong, renderPat, steps, stepVel, stepCount]);
+
+  const handleSave = useCallback(async (destination) => {
+    setSaveMenuOpen(false);
+    setSaving(true);
+    setSaveStatus(null);
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+    try {
+      switch (destination) {
+        case 'device-project': {
+          const data = serializeProject();
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          downloadBlob(blob, `beat-${stamp}.spxbeat`);
+          setSaveStatus({ type: 'success', message: '✓ Project saved to device' });
+          break;
+        }
+        case 'device-wav': {
+          const buf = await renderCurrentToBuffer();
+          const blob = toWav(buf, 16);
+          downloadBlob(blob, `beat-${bpm}bpm-${stamp}.wav`);
+          setSaveStatus({ type: 'success', message: '✓ WAV saved to device' });
+          break;
+        }
+        case 'device-mp3': {
+          const buf = await renderCurrentToBuffer();
+          const blob = await toMp3(buf, 192);
+          downloadBlob(blob, `beat-${bpm}bpm-${stamp}.mp3`);
+          setSaveStatus({ type: 'success', message: '✓ MP3 saved to device' });
+          break;
+        }
+        case 'device-midi': {
+          const bytes = buildMidiBytes();
+          const blob = new Blob([bytes], { type: 'audio/midi' });
+          downloadBlob(blob, `beat-${bpm}bpm-${stamp}.mid`);
+          setSaveStatus({ type: 'success', message: '✓ MIDI saved to device' });
+          break;
+        }
+        case 'cloud-projects': {
+          const data = serializeProject();
+          const token = localStorage.getItem('token') || localStorage.getItem('jwt-token');
+          const backend = process.env.REACT_APP_BACKEND_URL || '';
+          const res = await fetch(`${backend}/api/projects/save`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ tool: 'beat-lab', name: `Beat ${stamp}`, payload: data }),
+          });
+          if (!res.ok) throw new Error(`Server returned ${res.status}`);
+          const body = await res.json();
+          setSaveStatus({ type: 'success', message: `✓ Saved to My Projects (${body.name || 'cloud'})` });
+          break;
+        }
+        case 'cloud-quicksave': {
+          const data = serializeProject();
+          localStorage.setItem('spx_beat_lab_quicksave', JSON.stringify(data));
+          localStorage.setItem('spx_beat_lab_quicksave_at', new Date().toISOString());
+          setSaveStatus({ type: 'success', message: '✓ Quick saved (browser storage)' });
+          break;
+        }
+        case 'sonic-studio': {
+          const data = serializeProject();
+          const token = localStorage.getItem('token') || localStorage.getItem('jwt-token');
+          const backend = process.env.REACT_APP_BACKEND_URL || '';
+          const res = await fetch(`${backend}/api/projects/save`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ tool: 'beat-lab', name: `Beat ${stamp}`, payload: data }),
+          });
+          if (!res.ok) throw new Error(`Server returned ${res.status}`);
+          const body = await res.json();
+          const projectKey = encodeURIComponent(body.key || '');
+          window.location.href = `/spx-sonic-studio?import=beat-lab&projectKey=${projectKey}`;
+          break;
+        }
+        case 'share-link': {
+          const data = serializeProject();
+          const token = localStorage.getItem('token') || localStorage.getItem('jwt-token');
+          const backend = process.env.REACT_APP_BACKEND_URL || '';
+          const res = await fetch(`${backend}/api/projects/share`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ tool: 'beat-lab', name: `Beat ${stamp}`, payload: data, expiresInDays: 7 }),
+          });
+          if (!res.ok) throw new Error(`Server returned ${res.status}`);
+          const body = await res.json();
+          const url = body.shareUrl || body.url;
+          if (!url) throw new Error('No share URL returned');
+          try { await navigator.clipboard.writeText(url); } catch (e) {}
+          setSaveStatus({ type: 'success', message: `✓ Share link copied: ${url}` });
+          break;
+        }
+        default:
+          throw new Error(`Unknown destination: ${destination}`);
+      }
+    } catch (err) {
+      console.error('Save failed:', err);
+      setSaveStatus({ type: 'error', message: `✗ Save failed: ${err.message || err}` });
+    } finally {
+      setSaving(false);
+    }
+  }, [serializeProject, renderCurrentToBuffer, toWav, toMp3, downloadBlob, buildMidiBytes, bpm]);
+
+  // =========================================================================
   // CLEANUP
   // =========================================================================
   useEffect(() => {
@@ -3790,6 +4024,42 @@ const SamplerBeatMaker = ({
           {/* SPX Flow Integration */}
           {onOpenSampler && <button className="transport-btn" onClick={onOpenSampler} title="Open Sampler — load/chop samples">〰 Sampler</button>}
           {onSendToArrange && <button className="transport-btn" onClick={bounceToArrange} title="Bounce pattern/song to Arrange track">→🎚 Arrange</button>}
+
+          {/* Bug #37: in-context Save menu — device / cloud / share */}
+          <div className="sbm-save-menu-container" ref={saveMenuRef}>
+            <button
+              className={`sbm-save-btn ${saveMenuOpen ? 'open' : ''}`}
+              onClick={() => setSaveMenuOpen(v => !v)}
+              disabled={saving}
+              title="Save project, audio, MIDI, or share"
+            >
+              💾 {saving ? 'Saving...' : 'Save'}
+            </button>
+            {saveMenuOpen && (
+              <div className="sbm-save-dropdown" role="menu">
+                <div className="sbm-save-section">
+                  <div className="sbm-save-section-label">💻 Device</div>
+                  <button onClick={() => handleSave('device-project')}>📦 Project File (.spxbeat)</button>
+                  <button onClick={() => handleSave('device-wav')}>🎵 Audio (.wav)</button>
+                  <button onClick={() => handleSave('device-mp3')}>🎵 Audio (.mp3)</button>
+                  <button onClick={() => handleSave('device-midi')}>🎹 MIDI (.mid)</button>
+                </div>
+                <div className="sbm-save-section">
+                  <div className="sbm-save-section-label">☁️ Cloud</div>
+                  <button onClick={() => handleSave('cloud-projects')}>💾 Save to My Projects</button>
+                  <button onClick={() => handleSave('cloud-quicksave')}>⚡ Quick Save</button>
+                </div>
+                <div className="sbm-save-section">
+                  <div className="sbm-save-section-label">🚀 Publish & Share</div>
+                  <button onClick={() => handleSave('sonic-studio')}>🎚 Send to Sonic Studio</button>
+                  <button onClick={() => handleSave('share-link')}>🔗 Share Link (7-day)</button>
+                </div>
+              </div>
+            )}
+            {saveStatus && (
+              <div className={`sbm-save-status ${saveStatus.type}`} role="status">{saveStatus.message}</div>
+            )}
+          </div>
 
           <div className="export-dropdown">
             <button className="export-btn" onClick={() => setShowExportPanel(!showExportPanel)} disabled={exporting}>{exporting ? '⏳...' : '⬇ Export'}</button>

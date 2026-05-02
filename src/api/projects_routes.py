@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from api.models import db
 import boto3, json, os, uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
 projects_bp = Blueprint("projects_bp", __name__)
 
@@ -84,6 +84,50 @@ def load_project():
         obj = r2.get_object(Bucket=R2_BUCKET, Key=key)
         payload = json.loads(obj["Body"].read())
         return jsonify({"payload": payload}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ── Share project (Bug #37 — Beat Lab Save → Share Link) ──
+# Uploads the payload to a public-readable R2 key under shares/<uuid>.spxp and
+# returns a URL that recipients can fetch directly. The 7-day expiration is
+# advisory metadata for now: the front-end shows it, and a future cleanup job
+# can sweep old keys based on the expiresAt header. Auth is required to
+# prevent anonymous abuse of the bucket.
+@projects_bp.route("/api/projects/share", methods=["POST"])
+@jwt_required()
+def share_project():
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+    tool         = data.get("tool", "unknown")
+    name         = data.get("name", "Untitled")
+    payload      = data.get("payload", {})
+    expires_days = int(data.get("expiresInDays", 7))
+    expires_at   = (datetime.utcnow() + timedelta(days=expires_days)).isoformat() + "Z"
+
+    token = uuid.uuid4().hex
+    key = f"shares/{tool}/{token}.spxp"
+    try:
+        r2 = get_r2()
+        r2.put_object(
+            Bucket=R2_BUCKET,
+            Key=key,
+            Body=json.dumps(payload).encode(),
+            ContentType="application/json",
+            Metadata={
+                "name":      name,
+                "tool":      tool,
+                "owner":     str(user_id),
+                "expiresAt": expires_at,
+            },
+        )
+        share_url = f"{R2_PUBLIC_URL}/{key}"
+        return jsonify({
+            "shareUrl":  share_url,
+            "url":       share_url,
+            "key":       key,
+            "token":     token,
+            "expiresAt": expires_at,
+        }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
