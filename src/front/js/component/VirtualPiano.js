@@ -210,11 +210,12 @@ const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) =
   const [reverbMix, setReverbMix] = useState(0.15);
 
   const audioCtxRef = useRef(null);
+  const ownsCtxRef = useRef(false); // true only when we created the AudioContext ourselves
   const masterGainRef = useRef(null);
   const reverbGainRef = useRef(null);
   const reverbBufRef = useRef(null);
   const convolverRef = useRef(null);
-  const activeVoicesRef = useRef({}); // noteId → { oscs, gain, filter }
+  const activeVoicesRef = useRef(new Map()); // noteId → { oscs, voiceGain, filter, envelope }
   const sustainedNotesRef = useRef(new Set());
   const recorderRef = useRef(null);
   const recDestRef = useRef(null);
@@ -223,34 +224,63 @@ const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) =
 
   const keyboard = buildKeyboardLayout(baseOctave);
 
-  // ── Audio context init ──
-  const getCtx = useCallback(() => {
-    if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-      const ctx = audioContext || new (window.AudioContext || window.webkitAudioContext)();
-      audioCtxRef.current = ctx;
-      masterGainRef.current = ctx.createGain();
-      masterGainRef.current.gain.value = volume;
-      masterGainRef.current.connect(ctx.destination);
+  // ── One-time audio graph init: master gain + pre-built reverb IR ──
+  // Runs on mount (and rebuilds if the parent hands us a new AudioContext).
+  // This avoids the 2-second white-noise IR being generated lazily on the
+  // first key click, which caused audible delay on rapid re-clicks.
+  useEffect(() => {
+    const ctx = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+    audioCtxRef.current = ctx;
+    ownsCtxRef.current = !audioContext;
 
-      // Reverb send
-      const convolver = ctx.createConvolver();
-      const len = ctx.sampleRate * 2;
-      const buf = ctx.createBuffer(2, len, ctx.sampleRate);
-      for (let ch = 0; ch < 2; ch++) {
-        const d = buf.getChannelData(ch);
-        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
-      }
-      convolver.buffer = buf;
-      reverbBufRef.current = buf;
-      convolverRef.current = convolver;
-      reverbGainRef.current = ctx.createGain();
-      reverbGainRef.current.gain.value = reverbMix;
-      convolver.connect(reverbGainRef.current);
-      reverbGainRef.current.connect(masterGainRef.current);
+    const masterGain = ctx.createGain();
+    masterGain.gain.value = volume;
+    masterGain.connect(ctx.destination);
+    masterGainRef.current = masterGain;
+
+    const convolver = ctx.createConvolver();
+    const len = ctx.sampleRate * 2;
+    const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
     }
-    if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
-    return audioCtxRef.current;
-  }, [audioContext, volume, reverbMix]);
+    convolver.buffer = buf;
+    reverbBufRef.current = buf;
+    convolverRef.current = convolver;
+
+    const reverbGain = ctx.createGain();
+    reverbGain.gain.value = reverbMix;
+    convolver.connect(reverbGain);
+    reverbGain.connect(masterGain);
+    reverbGainRef.current = reverbGain;
+
+    return () => {
+      try { masterGain.disconnect(); } catch (e) {}
+      try { reverbGain.disconnect(); } catch (e) {}
+      try { convolver.disconnect(); } catch (e) {}
+      if (ownsCtxRef.current) {
+        try { ctx.close(); } catch (e) {}
+      }
+      audioCtxRef.current = null;
+      masterGainRef.current = null;
+      reverbGainRef.current = null;
+      convolverRef.current = null;
+      reverbBufRef.current = null;
+    };
+    // We intentionally exclude volume/reverbMix here — they're applied via the
+    // separate effects below — so we don't tear down the graph on every change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioContext]);
+
+  // ── Resume on demand (autoplay-policy unlock) ──
+  const ensureRunning = useCallback(() => {
+    const ctx = audioCtxRef.current;
+    if (ctx && ctx.state === 'suspended') {
+      try { ctx.resume(); } catch (e) {}
+    }
+    return ctx;
+  }, []);
 
   // Update volume
   useEffect(() => {
@@ -262,11 +292,35 @@ const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) =
     if (reverbGainRef.current) reverbGainRef.current.gain.value = reverbMix;
   }, [reverbMix]);
 
+  // ── Stop a single voice immediately (no release tail). Used when a key is
+  // re-triggered before the previous voice has finished, so the new voice
+  // starts cleanly without overlapping or stealing the existing envelope.
+  const killVoice = useCallback((noteId) => {
+    const voice = activeVoicesRef.current.get(noteId);
+    if (!voice) return;
+    const ctx = audioCtxRef.current;
+    const now = ctx ? ctx.currentTime : 0;
+    try {
+      voice.voiceGain.gain.cancelScheduledValues(now);
+      voice.voiceGain.gain.setValueAtTime(0, now);
+    } catch (e) {}
+    voice.oscs.forEach(({ osc }) => { try { osc.stop(now); } catch (e) {} });
+    try { voice.voiceGain.disconnect(); } catch (e) {}
+    try { voice.filter.disconnect(); } catch (e) {}
+    activeVoicesRef.current.delete(noteId);
+  }, []);
+
   // ── Note On ──
   const noteOn = useCallback((noteId, freq, velocity = 0.8) => {
-    if (activeVoicesRef.current[noteId]) return; // already playing
+    const ctx = ensureRunning();
+    if (!ctx || !masterGainRef.current) return;
 
-    const ctx = getCtx();
+    // Rapid re-click on the same key: cut the previous voice first so the
+    // new strike is heard immediately rather than being a no-op.
+    if (activeVoicesRef.current.has(noteId)) {
+      killVoice(noteId);
+    }
+
     const preset = INSTRUMENTS[instrument];
     const now = ctx.currentTime;
 
@@ -308,10 +362,10 @@ const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) =
       voiceGain.connect(convolverRef.current);
     }
 
-    activeVoicesRef.current[noteId] = { oscs, voiceGain, filter, envelope: env };
+    activeVoicesRef.current.set(noteId, { oscs, voiceGain, filter, envelope: env });
 
     setActiveNotes(prev => new Set([...prev, noteId]));
-  }, [instrument, getCtx, reverbMix]);
+  }, [instrument, ensureRunning, reverbMix, killVoice]);
 
   // ── Note Off ──
   const noteOff = useCallback((noteId) => {
@@ -320,7 +374,7 @@ const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) =
       return;
     }
 
-    const voice = activeVoicesRef.current[noteId];
+    const voice = activeVoicesRef.current.get(noteId);
     if (!voice) return;
 
     const ctx = audioCtxRef.current;
@@ -344,7 +398,7 @@ const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) =
         voice.voiceGain.disconnect();
         voice.filter.disconnect();
       } catch (e) {}
-      delete activeVoicesRef.current[noteId];
+      activeVoicesRef.current.delete(noteId);
     }, (env.release + 0.1) * 1000);
 
     setActiveNotes(prev => {
@@ -358,7 +412,7 @@ const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) =
   useEffect(() => {
     if (!sustain && sustainedNotesRef.current.size > 0) {
       sustainedNotesRef.current.forEach(noteId => {
-        const voice = activeVoicesRef.current[noteId];
+        const voice = activeVoicesRef.current.get(noteId);
         if (voice) {
           const ctx = audioCtxRef.current;
           if (ctx) {
@@ -372,20 +426,32 @@ const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) =
             });
             setTimeout(() => {
               try { voice.voiceGain.disconnect(); voice.filter.disconnect(); } catch (e) {}
-              delete activeVoicesRef.current[noteId];
+              activeVoicesRef.current.delete(noteId);
             }, (env.release + 0.1) * 1000);
           }
         }
       });
       sustainedNotesRef.current.clear();
-      setActiveNotes(new Set(Object.keys(activeVoicesRef.current)));
+      setActiveNotes(new Set(activeVoicesRef.current.keys()));
     }
   }, [sustain]);
 
   // ── Keyboard event handlers ──
   useEffect(() => {
+    // Bail out when the user is typing into a form field — otherwise typing
+    // "120" into a BPM input would trigger piano notes for 1, 2, 0.
+    const isEditableTarget = () => {
+      const ae = document.activeElement;
+      if (!ae) return false;
+      const tag = ae.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+      if (ae.isContentEditable) return true;
+      return false;
+    };
+
     const handleKeyDown = (e) => {
       if (e.repeat) return;
+      if (isEditableTarget()) return;
       const key = e.key.toLowerCase();
 
       // Sustain pedal
@@ -410,6 +476,7 @@ const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) =
     };
 
     const handleKeyUp = (e) => {
+      if (isEditableTarget()) return;
       const key = e.key.toLowerCase();
       if (key === ' ') { setSustain(false); return; }
 
@@ -473,7 +540,8 @@ const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) =
 
   // ── Recording ──
   const startRecording = () => {
-    const ctx = getCtx();
+    const ctx = ensureRunning();
+    if (!ctx || !masterGainRef.current) return;
     recDestRef.current = ctx.createMediaStreamDestination();
     masterGainRef.current.connect(recDestRef.current);
     const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
@@ -511,11 +579,11 @@ const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) =
   // ── Cleanup on unmount ──
   useEffect(() => {
     return () => {
-      Object.values(activeVoicesRef.current).forEach(voice => {
+      activeVoicesRef.current.forEach(voice => {
         voice.oscs.forEach(({ osc }) => { try { osc.stop(); } catch (e) {} });
         try { voice.voiceGain.disconnect(); } catch (e) {}
       });
-      activeVoicesRef.current = {};
+      activeVoicesRef.current.clear();
     };
   }, []);
 

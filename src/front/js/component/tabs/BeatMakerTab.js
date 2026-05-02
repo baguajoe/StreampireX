@@ -237,7 +237,7 @@ const BeatMakerTab = ({ engine, handlePadDown, handlePadUp }) => {
             <PadsPanel />
             <div className="sbm-beats-right">
               <div className="sbm-beats-right-inner">
-                <VirtualPiano />
+                <VirtualPiano audioContext={engine.audioCtxRef?.current} />
               </div>
             </div>
           </div>

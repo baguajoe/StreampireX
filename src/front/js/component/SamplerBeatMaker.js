@@ -3849,6 +3849,7 @@ const SamplerBeatMaker = ({
               patterns, setPatterns, curPatIdx, setCurPatIdx,
               loopStartStep, setLoopStartStep, loopEndStep, setLoopEndStep,
               toggleStep, clearPat, stopAll, addPattern, delPattern, renamePattern,
+              audioCtxRef: ctxRef,
               setShowMixer: (v) => setShowMixer(v),
               setSongMode: (v) => setSongMode(v),
               setShowClipLauncher: (v) => setShowClipLauncher(v),
