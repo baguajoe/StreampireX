@@ -3872,6 +3872,8 @@ const SamplerBeatMaker = ({
               sp1200Pads={null}
               spx3000Pads={null}
               spx3200Pads={pads}
+              /* Chop button on each loaded pad → opens shared ChopView */
+              onChopRequest={(buf, upFn, setFn) => onChopRequest(buf, upFn, setFn, null)}
             />
           </div>
         )}

@@ -89,7 +89,7 @@ function MiniKnob({ value, min, max, step, label, color, onChange }) {
 }
 
 // ── Pad Grid ──────────────────────────────────────────────────────────────────
-function PadGrid({ pads, activePads, engine, onPadClick, onLoad, onClear, color }) {
+function PadGrid({ pads, activePads, engine, onPadClick, onLoad, onClear, onChop, color }) {
   const autoChop = () => {
     if (!chopBuffer) return;
     const sr = chopBuffer.sampleRate;
@@ -154,6 +154,13 @@ function PadGrid({ pads, activePads, engine, onPadClick, onLoad, onClear, color 
               <div onClick={e => { e.stopPropagation(); onLoad(i); }}
                 style={{ fontSize: 8, color: color + '88', marginTop: 4, cursor: 'pointer' }}>
                 + load
+              </div>
+            )}
+            {hasBuffer && onChop && (
+              <div onClick={e => { e.stopPropagation(); onChop(i); }}
+                style={{ fontSize: 8, color: color + '99', marginTop: 4, cursor: 'pointer' }}
+                title="Chop this sample">
+                ✂ chop
               </div>
             )}
           </div>
@@ -254,7 +261,7 @@ function SeqRow({ engineId, engineLabel, color, pads, seq, setSeq, activePad, se
 }
 
 // ── Main TripleSamplerTab ─────────────────────────────────────────────────────
-export default function TripleSamplerTab({ onExport, onSendToArrange, sp1200Pads, spx3000Pads, spx3200Pads }) {
+export default function TripleSamplerTab({ onExport, onSendToArrange, sp1200Pads, spx3000Pads, spx3200Pads, onChopRequest }) {
   // ── Per-engine pad state ───────────────────────────────────────────────────
   const [padsA, setPadsA] = useState(() => emptyPads()); // SP-1200
   const [padsB, setPadsB] = useState(() => emptyPads()); // SPX3000
@@ -560,6 +567,13 @@ export default function TripleSamplerTab({ onExport, onSendToArrange, sp1200Pads
           onPadClick={(i) => firePad(i, ab.pads, ab.ctx.current, ab.master.current, ab.setActive)}
           onLoad={(i) => loadPad(activeBank, i)}
           onClear={(i) => clearPad(activeBank, i)}
+          onChop={onChopRequest ? (i) => {
+            const pad = ab.pads[i];
+            if (!pad?.buffer) return;
+            // Adapter: ChopView's updatePadFn expects (padIdx, partialUpdate); map to per-engine setPads
+            const updatePadFn = (pi, data) => ab.setPads(prev => prev.map((p, idx) => idx === pi ? { ...p, ...data } : p));
+            onChopRequest(pad.buffer, updatePadFn, ab.setPads);
+          } : undefined}
           color={ab.color}
         />
       </div>
