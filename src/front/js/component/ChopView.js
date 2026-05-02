@@ -584,7 +584,7 @@ const ChopView = ({ engine }) => {
               Max:
               <input type="number" min="2" max="32" value={maxTransientSlices}
                 onChange={(e) => setMaxTransientSlices(Math.max(2, Math.min(32, +e.target.value)))}
-                style={{ ...S.numInput, width: 40 }} />
+                style={{ ...S.numInput, minWidth: 60, width: 60 }} />
               <span style={{ color: '#889', fontSize: 13 }}>slices</span>
             </label>
           </>)}

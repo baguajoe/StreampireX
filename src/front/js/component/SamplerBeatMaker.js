@@ -23,9 +23,9 @@ import ChopView from './ChopView';
 import SynthCreator from './SynthCreator';
 import DrumDesigner from './DrumDesigner';
 import InstrumentBuilder from './InstrumentBuilder';
-import SPX3000Tab from './SPX3000Tab';
+import SPX3000Tab, { dspChain as spx3kDsp } from './SPX3000Tab';
 import SPXMidiMapPanel from './SPXMidiMapPanel';
-import SP1200Tab from './SP1200Tab';
+import SP1200Tab, { dspChain as sp1200Dsp } from './SP1200Tab';
 import SPX60Tab, { dspChain as spx60Dsp }   from './SPX60Tab';
 import SPX10Tab, { dspChain as spx10Dsp }    from './SPX10Tab';
 import SPXEPSTab, { dspChain as spxEpsDsp }  from './SPXEPSTab';
@@ -397,6 +397,26 @@ const SamplerBeatMaker = ({
   const setPadChokeGroup = useCallback((i, g) => {
     setPadChokeGroups(prev => prev.map((x, idx) => idx === i ? g : x));
     setPads(prev => prev.map((p, idx) => idx === i ? { ...p, chokeGroup: g } : p));
+  }, []);
+
+  // Bug #22: Count-in before live record. 0 = off, otherwise N bars of
+  // metronome ticks before recording + playback actually start. Persisted.
+  const [countInBars, setCountInBars] = useState(() => {
+    try { return Number(localStorage.getItem('spx_beat_lab_count_in')) || 0; }
+    catch (e) { return 0; }
+  });
+  const setCountInBarsPersist = useCallback((v) => {
+    setCountInBars(v);
+    try { localStorage.setItem('spx_beat_lab_count_in', String(v)); } catch (e) {}
+  }, []);
+  // Live count-in display — number shown on the overlay, or null when idle.
+  const [countInDisplay, setCountInDisplay] = useState(null);
+  // Pending timers/queues so we can cancel a count-in if the user hits stop.
+  const countInTimersRef = useRef([]);
+  const cancelCountIn = useCallback(() => {
+    countInTimersRef.current.forEach(id => clearTimeout(id));
+    countInTimersRef.current = [];
+    setCountInDisplay(null);
   }, []);
 
   // Bug #24: KEYS toggle target — which surface (pads or piano) the QWERTY
@@ -2498,16 +2518,64 @@ const SamplerBeatMaker = ({
   // LIVE RECORDING + QUANTIZE (Phase 2)
   // =========================================================================
 
-  const startLiveRec = useCallback(() => {
+  // Bug #22: Internal "start now" path used both directly (no count-in) and as
+  // the deferred callback after a count-in completes.
+  const beginLiveRecNow = useCallback(() => {
     if (!overdub) setSteps(Array.from({ length: 16 }, () => Array(stepCount).fill(false)));
     setRecHits([]); setLiveRec(true);
-    // Anchor record time so handleLiveHit's quantize math has a sane origin even if
-    // the sequencer was already running (otherwise schedStep won't refresh recStartT).
     if (ctxRef.current) recStartT.current = ctxRef.current.currentTime;
     if (!playingRef.current) startSeq();
   }, [overdub, stepCount, startSeq]);
 
+  const startLiveRec = useCallback(() => {
+    // Cancel any in-flight count-in (e.g. user re-armed) so we don't stack.
+    cancelCountIn();
+
+    if (!countInBars || countInBars <= 0) {
+      beginLiveRecNow();
+      return;
+    }
+
+    // Count-in path: tick the metronome for N bars, count down on the overlay,
+    // then start recording + sequencer together. We force the metronome on
+    // during count-in regardless of metOn so the user actually hears the beats,
+    // and restore its previous state when we hand off to playback.
+    const c = initCtx();
+    if (c.state === 'suspended') c.resume();
+
+    const beatsPerBar = 4;
+    const totalBeats = countInBars * beatsPerBar;
+    const beatSec = 60.0 / bpmRef.current;
+    const startAt = c.currentTime + 0.08;
+
+    // Schedule audible clicks via the existing metClick (independent of metOn
+    // so it doesn't fight schedStep's metronome routing).
+    for (let b = 0; b < totalBeats; b++) {
+      const t = startAt + b * beatSec;
+      metClick(t, b % beatsPerBar === 0);
+    }
+
+    // Visual countdown — show the beats remaining (totalBeats..1).
+    setCountInDisplay(totalBeats);
+    for (let b = 0; b < totalBeats; b++) {
+      const remaining = totalBeats - b;
+      const delayMs = Math.max(0, (startAt - c.currentTime + b * beatSec) * 1000);
+      const id = setTimeout(() => setCountInDisplay(remaining), delayMs);
+      countInTimersRef.current.push(id);
+    }
+
+    // After the last beat, hide the overlay and start the actual recording.
+    const totalMs = Math.max(0, (startAt - c.currentTime + totalBeats * beatSec) * 1000);
+    const finishId = setTimeout(() => {
+      setCountInDisplay(null);
+      countInTimersRef.current = [];
+      beginLiveRecNow();
+    }, totalMs);
+    countInTimersRef.current.push(finishId);
+  }, [cancelCountIn, countInBars, initCtx, metClick, beginLiveRecNow]);
+
   const stopLiveRec = useCallback(() => {
+    cancelCountIn();
     setLiveRec(false);
     if (recHits.length > 0) {
       const sd = 60.0 / bpm / 4;
@@ -2943,21 +3011,56 @@ const SamplerBeatMaker = ({
     });
   }, [initCtx, updatePad, loadSample]);
 
-  // Auto-load factory kit on first open if no pads have samples. Fires once per
-  // mount; the ref guards against re-running after the user loads or clears anything.
-  const factoryAutoLoadedRef = useRef(false);
+  // Bug #21: First-open welcome flow. The previous behavior auto-loaded the
+  // factory kit which was great for new users but forced everyone else to
+  // clear pads before recording from mic / loading Freesound samples. Now we
+  // present three choices on first open and remember the decision in
+  // localStorage (key: 'spx_beat_lab_first_open_v2').
+  const welcomeResolvedRef = useRef(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [welcomeDontShow, setWelcomeDontShow] = useState(true);
   useEffect(() => {
-    if (factoryAutoLoadedRef.current) return;
+    if (welcomeResolvedRef.current) return;
     const anyLoaded = pads.some(p => p?.buffer);
-    if (!anyLoaded) {
-      factoryAutoLoadedRef.current = true;
-      loadFactoryKit();
-    } else {
-      // User already has samples loaded — don't auto-load, but mark as resolved
-      // so we don't keep re-checking on every pads change.
-      factoryAutoLoadedRef.current = true;
+    if (anyLoaded) {
+      // User already has samples — nothing to ask.
+      welcomeResolvedRef.current = true;
+      return;
     }
-  }, [pads, loadFactoryKit]);
+    let seen = null;
+    try { seen = localStorage.getItem('spx_beat_lab_first_open_v2'); } catch (e) {}
+    if (seen) {
+      // Returning user. Honor the previous choice silently — pads stay empty.
+      welcomeResolvedRef.current = true;
+      return;
+    }
+    // First-time user (or someone who reset the flag).
+    welcomeResolvedRef.current = true;
+    setShowWelcome(true);
+  }, [pads]);
+
+  const persistWelcomeChoice = useCallback(() => {
+    if (welcomeDontShow) {
+      try { localStorage.setItem('spx_beat_lab_first_open_v2', '1'); } catch (e) {}
+    }
+  }, [welcomeDontShow]);
+
+  const handleWelcomeFactory = useCallback(() => {
+    persistWelcomeChoice();
+    setShowWelcome(false);
+    loadFactoryKit();
+  }, [persistWelcomeChoice, loadFactoryKit]);
+
+  const handleWelcomeEmpty = useCallback(() => {
+    persistWelcomeChoice();
+    setShowWelcome(false);
+  }, [persistWelcomeChoice]);
+
+  const handleWelcomeLibrary = useCallback(() => {
+    persistWelcomeChoice();
+    setShowWelcome(false);
+    setShowLib(true);
+  }, [persistWelcomeChoice]);
 
   // =========================================================================
   // EXPORT — WAV / MP3 / OGG / WEBM / Stems / MIDI
@@ -3475,7 +3578,11 @@ const SamplerBeatMaker = ({
 
         <div className="sampler-transport">
           <button className={`transport-btn ${isPlaying ? 'active stop' : 'play'}`} onClick={togglePlay} title="Space">{isPlaying ? '⏹' : '▶'}</button>
-          <button className={`transport-btn rec ${liveRec ? 'recording' : ''}`} onClick={() => liveRec ? stopLiveRec() : startLiveRec()} title="Live Record">⏺</button>
+          <button
+            className={`transport-btn rec ${liveRec ? 'recording' : ''} ${countInDisplay !== null ? 'count-in-pending' : ''}`}
+            onClick={() => (liveRec || countInDisplay !== null) ? stopLiveRec() : startLiveRec()}
+            title={countInDisplay !== null ? 'Cancel count-in' : 'Live Record'}
+          >⏺</button>
           <button className={`transport-btn ${overdub ? 'active' : ''}`} onClick={() => setOverdub(p => !p)} title="Overdub">OVR</button>
 
           <div className="bpm-control">
@@ -3486,6 +3593,18 @@ const SamplerBeatMaker = ({
           </div>
 
           <button className="transport-btn tap" onClick={tapTempo}>TAP</button>
+          {/* Bug #22: count-in selector — OFF / 1 / 2 / 4 bars */}
+          <select
+            className="sbm-count-in-select"
+            value={countInBars}
+            onChange={(e) => setCountInBarsPersist(Number(e.target.value))}
+            title="Count-in before recording"
+          >
+            <option value={0}>⏱ OFF</option>
+            <option value={1}>⏱ 1 bar</option>
+            <option value={2}>⏱ 2 bars</option>
+            <option value={4}>⏱ 4 bars</option>
+          </select>
           <button className={`transport-btn met ${metOn ? 'active' : ''}`} onClick={() => setMetOn(p => !p)} title="Metronome">🔔</button>
           {/* Bug #2: notifications bell — distinct from the metronome */}
           <div className="notif-bell-wrap" ref={notifPanelRef}>
@@ -3915,7 +4034,9 @@ const SamplerBeatMaker = ({
               sp1200Pads={null}
               spx3000Pads={null}
               spx3200Pads={pads}
-              /* Chop button on each loaded pad → opens shared ChopView */
+              /* Chop button on each loaded pad → opens shared ChopView. The triple
+                 view bounces buffers from the active engine, so chops here ride
+                 through whatever engine the user picked. No global DSP applied. */
               onChopRequest={(buf, upFn, setFn) => onChopRequest(buf, upFn, setFn, null)}
             />
           </div>
@@ -3930,8 +4051,9 @@ const SamplerBeatMaker = ({
               onSendToTriple={(padIdx, buffer, name) => {
                 setActiveTab('triple');
               }}
-              /* Bug #10: Chop button → opens shared ChopView via SamplerBeatMaker's onChopRequest */
-              onChopRequest={(buf, upFn, setFn) => onChopRequest(buf, upFn, setFn, null)}
+              /* Bug #35: chops now route through the SPX-3000 / MPC-3000 chain so
+                 they retain the 12-bit DAC + transformer warmth signature. */
+              onChopRequest={(buf, upFn, setFn) => onChopRequest(buf, upFn, setFn, spx3kDsp)}
             />
           </div>
         )}
@@ -3946,8 +4068,9 @@ const SamplerBeatMaker = ({
               onSendToTriple={(padIdx, buffer, name) => {
                 setActiveTab('triple');
               }}
-              /* Bug #10: Chop button → opens shared ChopView via SamplerBeatMaker's onChopRequest */
-              onChopRequest={(buf, upFn, setFn) => onChopRequest(buf, upFn, setFn, null)}
+              /* Bug #35: chops route through the SP-1200 chain (26kHz resample,
+                 12-bit dither, 12kHz rolloff, transformer low-end). */
+              onChopRequest={(buf, upFn, setFn) => onChopRequest(buf, upFn, setFn, sp1200Dsp)}
             />
           </div>
         )}
@@ -4189,6 +4312,43 @@ const SamplerBeatMaker = ({
               <input type="range" className="mixer-fader" min={0} max={100} value={Math.round(masterVol * 100)} onChange={(e) => setMasterVol(+e.target.value / 100)} />
               <div className="mixer-label master-label">MST</div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bug #22: count-in overlay — live countdown shown during the bars
+          before recording actually begins. */}
+      {countInDisplay !== null && (
+        <div className="sbm-count-in-overlay" aria-live="assertive">
+          <div className="sbm-count-in-number">{countInDisplay}</div>
+        </div>
+      )}
+
+      {/* Bug #21: First-time welcome dialog */}
+      {showWelcome && (
+        <div className="sbm-welcome-overlay" role="dialog" aria-modal="true">
+          <div className="sbm-welcome-dialog">
+            <div className="sbm-welcome-title">Welcome to SPX Beat Lab</div>
+            <div className="sbm-welcome-subtitle">How would you like to start?</div>
+            <div className="sbm-welcome-buttons">
+              <button className="sbm-welcome-btn primary" onClick={handleWelcomeFactory}>
+                🥁 Load Factory Kit (Quick Start)
+              </button>
+              <button className="sbm-welcome-btn" onClick={handleWelcomeEmpty}>
+                📁 Start with Empty Pads
+              </button>
+              <button className="sbm-welcome-btn" onClick={handleWelcomeLibrary}>
+                🔍 Browse Library...
+              </button>
+            </div>
+            <label className="sbm-welcome-checkbox">
+              <input
+                type="checkbox"
+                checked={welcomeDontShow}
+                onChange={(e) => setWelcomeDontShow(e.target.checked)}
+              />
+              {' '}Don't show this again
+            </label>
           </div>
         </div>
       )}

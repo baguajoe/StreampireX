@@ -4450,3 +4450,161 @@ select.midi-popover-channel option {
   background-color: var(--step-color, #00ffc8);
   border-color: transparent;
 }
+
+/* =============================================================================
+   PART 9 — Beat Lab UX fixes
+   Bug #21 first-time welcome dialog, Bug #22 count-in overlay + dropdown.
+   ============================================================================= */
+
+/* Bug #22: count-in dropdown in transport bar */
+.sbm-count-in-select {
+  background: #1a1a2e;
+  color: #00ffc8;
+  border: 1px solid rgba(0, 255, 200, 0.3);
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 0 4px;
+  font-family: inherit;
+}
+
+.sbm-count-in-select:hover {
+  border-color: #00ffc8;
+}
+
+.sbm-count-in-select option {
+  background: #1a1a2e;
+  color: #00ffc8;
+  padding: 6px 12px;
+}
+
+/* Pulsing border on the rec button while count-in is running so the user knows
+   recording is armed but not yet capturing. */
+.transport-btn.rec.count-in-pending {
+  animation: sbmCountInPulse 0.5s ease-in-out infinite alternate;
+  border-color: #ffaa00;
+  color: #ffaa00;
+}
+
+@keyframes sbmCountInPulse {
+  from { box-shadow: 0 0 0 rgba(255, 170, 0, 0); }
+  to   { box-shadow: 0 0 12px rgba(255, 170, 0, 0.65); }
+}
+
+/* Bug #22: count-in overlay */
+.sbm-count-in-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 6, 15, 0.85);
+  z-index: 9999;
+  pointer-events: none;
+  animation: sbmCountInFade 0.15s ease-out;
+}
+
+.sbm-count-in-number {
+  font-size: 12rem;
+  font-weight: 900;
+  color: #00ffc8;
+  text-shadow: 0 0 40px rgba(0, 255, 200, 0.8);
+  font-family: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;
+  line-height: 1;
+  user-select: none;
+  animation: sbmCountInBeat 0.18s ease-out;
+}
+
+@keyframes sbmCountInFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes sbmCountInBeat {
+  from { transform: scale(1.25); opacity: 0.4; }
+  to   { transform: scale(1.0);  opacity: 1;   }
+}
+
+/* Bug #21: first-time welcome dialog */
+.sbm-welcome-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 6, 15, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+}
+
+.sbm-welcome-dialog {
+  background: linear-gradient(135deg, #0a0e1f 0%, #1a1f3a 100%);
+  border: 1px solid rgba(0, 255, 200, 0.3);
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 500px;
+  width: calc(100% - 48px);
+  text-align: center;
+  box-shadow: 0 0 40px rgba(0, 255, 200, 0.2);
+}
+
+.sbm-welcome-title {
+  color: #00ffc8;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.sbm-welcome-subtitle {
+  color: #8fa8c0;
+  font-size: 0.9rem;
+  margin-bottom: 24px;
+}
+
+.sbm-welcome-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sbm-welcome-btn {
+  padding: 14px 20px;
+  background: rgba(0, 255, 200, 0.08);
+  border: 1px solid rgba(0, 255, 200, 0.3);
+  color: #00ffc8;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s, transform 0.05s;
+}
+
+.sbm-welcome-btn:hover {
+  background: rgba(0, 255, 200, 0.15);
+  border-color: #00ffc8;
+}
+
+.sbm-welcome-btn:active {
+  transform: scale(0.98);
+}
+
+.sbm-welcome-btn.primary {
+  background: rgba(0, 255, 200, 0.2);
+  border-color: #00ffc8;
+  font-weight: 600;
+}
+
+.sbm-welcome-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  color: #8fa8c0;
+  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sbm-welcome-checkbox input[type="checkbox"] {
+  accent-color: #00ffc8;
+}

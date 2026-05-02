@@ -410,6 +410,22 @@ const applySpLowEnd = (ctx, buffer, emphasis = 0.45) => {
   return out;
 };
 
+// Bug #35: SPX-3000 / MPC-3000-flavoured chain used when chopping a sample on
+// this tab. Applies DAC rolloff → transformer colour → 12-bit DAC quantize →
+// output saturation, mirroring the always-on parts of the realtime path
+// (without the runtime toggles, since those are pad-level — chops should
+// inherit the *engine* character, not a particular pad's effect state).
+const applySpx3000Chain = (ctx, buffer) => {
+  if (!buffer) return buffer;
+  let buf = buffer;
+  buf = applyDacRolloff(ctx, buf);
+  buf = applyTransformerColour(ctx, buf);
+  buf = applyDac12bit(ctx, buf);
+  buf = applyOutputSaturation(ctx, buf);
+  return buf;
+};
+export { applySpx3000Chain as dspChain };
+
 // Full SP-1200 chain: resample → 12bit → rolloff → low-end + saturation
 const applySp1200Chain = (ctx, buffer) => {
   if (!buffer) return buffer;

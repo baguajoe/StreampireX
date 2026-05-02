@@ -143,6 +143,10 @@ const applySp1200Chain = (ctx, buffer, emphasis = 0.45) => {
   return b;
 };
 
+// Bug #35: chops on the SP-1200 tab should carry the SP-1200 character.
+// Re-export the existing chain so SamplerBeatMaker can pass it as the chop DSP.
+export { applySp1200Chain as dspChain };
+
 export default function SP1200Tab({ onExport, onSendToArrange, isEmbedded, onChopRequest }) {
   const ctxRef    = useRef(null);
   const masterRef = useRef(null);
