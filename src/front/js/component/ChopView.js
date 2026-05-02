@@ -44,6 +44,31 @@ import {
   snapToZeroCrossing,
 } from './ChopEngine';
 
+// Bug #36: A/B engine comparison. Each hardware tab already exports its DSP
+// chain as `dspChain`; we import them all here so the user can hear the same
+// slice rendered through every engine's bit-depth + sample-rate + colour.
+import { dspChain as sp1200Chain }  from './SP1200Tab';
+import { dspChain as spx3kChain }   from './SPX3000Tab';
+import { dspChain as spx60Chain }   from './SPX60Tab';
+import { dspChain as spx10Chain }   from './SPX10Tab';
+import { dspChain as spxEpsChain }  from './SPXEPSTab';
+import { dspChain as spx950Chain }  from './SPXS950Tab';
+import { dspChain as spx1000Chain } from './SPXS1000Tab';
+
+// Engine registry — id, display name, signature specs, character blurb,
+// and the actual `(ctx, buffer) => buffer` DSP function. `chain: null` means
+// pass-through (useful as the "raw" reference column).
+const ENGINES = [
+  { id: 'sp1200',   name: 'SP-1200',         bitDepth: 12, sampleRate: 26,   character: 'E-mu DSP, gritty, punchy',     chain: sp1200Chain  },
+  { id: 'spx3000',  name: 'SPX-3000',        bitDepth: 12, sampleRate: 40,   character: 'Cleaner E-mu, more headroom',   chain: spx3kChain   },
+  { id: 'mpc60',    name: 'MPC-60',          bitDepth: 12, sampleRate: 40,   character: 'Roger Linn warmth',             chain: spx60Chain   },
+  { id: 'eps16',    name: 'EPS-16',          bitDepth: 13, sampleRate: 30,   character: 'Ensoniq organic',               chain: spxEpsChain  },
+  { id: 'spx10',    name: 'SPX-10',          bitDepth: 12, sampleRate: 32,   character: 'Compact DSP grit',              chain: spx10Chain   },
+  { id: 's950',     name: 'Akai S950',       bitDepth: 12, sampleRate: 32,   character: 'Hip-hop classic dirt',          chain: spx950Chain  },
+  { id: 's1000',    name: 'Akai S1000',      bitDepth: 16, sampleRate: 44.1, character: 'Clean, warm filter',            chain: spx1000Chain },
+  { id: 'raw',      name: 'Raw',             bitDepth: 32, sampleRate: 48,   character: 'Original, unprocessed',         chain: null         },
+];
+
 // Fallback CHOP_MODES if useSamplerEngine doesn't export it
 let CHOP_MODES = ['transient', 'bpmgrid', 'equal', 'manual'];
 try {
@@ -80,6 +105,42 @@ const S = {
   divider: { width: 1, height: 24, background: '#2a3d50', flexShrink: 0 },
 };
 
+// Bug #36: small waveform-thumbnail rendered inside each engine card so the
+// user can SEE the spectral differences (12-bit dither artefacts, low-pass
+// rolloff, etc.) on top of hearing them.
+const ChopWaveformMini = ({ buffer, color = '#00ffc8' }) => {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    if (!buffer || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    const data = buffer.getChannelData(0);
+    const step = Math.max(1, Math.ceil(data.length / W));
+    ctx.beginPath();
+    for (let i = 0; i < W; i++) {
+      let mn = 1, mx = -1;
+      const base = i * step;
+      const end = Math.min(base + step, data.length);
+      for (let j = base; j < end; j++) {
+        const v = data[j] || 0;
+        if (v < mn) mn = v;
+        if (v > mx) mx = v;
+      }
+      const yMin = (1 - mx) * H / 2;
+      const yMax = (1 - mn) * H / 2;
+      ctx.moveTo(i + 0.5, yMin);
+      ctx.lineTo(i + 0.5, yMax || yMin + 1);
+    }
+    ctx.stroke();
+  }, [buffer, color]);
+  return <canvas ref={canvasRef} width={160} height={40} className="chop-mini-wave" />;
+};
+
 const ChopView = ({ engine }) => {
   const pi = engine.chopIdx;
   const pad = engine.pads[pi];
@@ -100,6 +161,16 @@ const ChopView = ({ engine }) => {
   const [reverseOnAssign, setReverseOnAssign] = useState(false);
   const [normalizeOnAssign, setNormalizeOnAssign] = useState(false);
   const [maxTransientSlices, setMaxTransientSlices] = useState(16);
+
+  // Bug #36: Compare Engines — A/B the same slice across hardware DSPs.
+  // comparisonRenders is keyed by engine id and holds the array of
+  // already-extracted-and-processed slice AudioBuffers, one per chop point.
+  const [compareMode, setCompareMode] = useState(false);
+  const [comparisonRenders, setComparisonRenders] = useState({});
+  const [activeEngine, setActiveEngine] = useState(null);
+  const [renderingComparison, setRenderingComparison] = useState(false);
+  const [compareProgress, setCompareProgress] = useState('');
+  const [selectedSliceIdx, setSelectedSliceIdx] = useState(0);
 
   // ── Undo / Redo helpers ──
   const pushUndo = useCallback((pts) => {
@@ -495,6 +566,98 @@ const ChopView = ({ engine }) => {
     setTimeout(() => engine.setShowChop(false), 1200);
   }, [buffer, engine, pad, processSlice]);
 
+  // =========================================================================
+  // Bug #36 — Engine A/B comparison helpers
+  // =========================================================================
+
+  // Render every chop point through every engine's DSP. Updates the renders
+  // map progressively so the UI lights up engine cards as each one finishes
+  // (some chains are CPU-heavy — the SP-1200 resampler in particular).
+  const renderAllEngines = useCallback(async () => {
+    if (!buffer || engine.chopPts.length === 0) return;
+    setRenderingComparison(true);
+    setCompareProgress('Slicing source...');
+    setComparisonRenders({});
+    const ctx = engine.initCtx();
+
+    // Pre-extract each slice once — every engine processes the same source.
+    const sliceBufs = engine.chopPts.map((_, i) => {
+      const range = getSliceRange(engine.chopPts, i, buffer.duration);
+      if (!range) return null;
+      return extractSlice(ctx, buffer, range.start, range.end);
+    }).filter(Boolean);
+
+    const renders = {};
+    for (const eng of ENGINES) {
+      setCompareProgress(`Rendering ${eng.name}...`);
+      // Yield to the event loop so the progress label paints before the
+      // synchronous DSP work locks the main thread.
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise(r => setTimeout(r, 0));
+      try {
+        renders[eng.id] = sliceBufs.map(buf =>
+          eng.chain ? eng.chain(ctx, buf) : buf
+        );
+      } catch (e) {
+        console.error(`DSP chain for ${eng.id} failed:`, e);
+        // Fall back to the raw slice for this engine so the UI still shows it.
+        renders[eng.id] = sliceBufs.slice();
+      }
+      // Snapshot copy so React notices the new keys.
+      setComparisonRenders({ ...renders });
+    }
+
+    setRenderingComparison(false);
+    setCompareProgress('');
+    if (!activeEngine) setActiveEngine(ENGINES[0].id);
+    setStatus(`✓ Rendered ${engine.chopPts.length} slices through ${ENGINES.length} engines`);
+  }, [buffer, engine, activeEngine]);
+
+  // Audition one slice from a specific engine. Reuses the same preview channel
+  // as previewSlice so any in-flight preview is replaced cleanly.
+  const playEngineSlice = useCallback((engineId, sliceIdx) => {
+    const list = comparisonRenders[engineId];
+    if (!list || !list[sliceIdx]) return;
+    setActiveEngine(engineId);
+    stopPreview();
+    const ctx = engine.initCtx();
+    const src = ctx.createBufferSource();
+    src.buffer = list[sliceIdx];
+    const gain = ctx.createGain();
+    gain.gain.value = (pad.volume || 0.8) * engine.masterVol;
+    src.connect(gain);
+    gain.connect(engine.masterRef.current);
+    src.start();
+    engine.activeSrc.current['chop_preview'] = { source: src, gain };
+    src.onended = () => {
+      delete engine.activeSrc.current['chop_preview'];
+    };
+  }, [comparisonRenders, engine, pad, stopPreview]);
+
+  // Assign the active engine's processed slices to pads. Bypasses extractSlice
+  // (the buffers are already extracted and processed) and skips the chop-time
+  // processing toggles since the engine's DSP is the entire point here.
+  const assignAllFromEngine = useCallback((engineId) => {
+    const list = comparisonRenders[engineId];
+    if (!list || list.length === 0) return;
+    const eng = ENGINES.find(e => e.id === engineId);
+    const max = Math.min(list.length, 16);
+    for (let i = 0; i < max; i++) {
+      const buf = list[i];
+      if (!buf) continue;
+      engine.updatePad(i, {
+        buffer: buf,
+        name: `${pad.name || 'Chop'} ${i + 1} [${eng?.name || engineId}]`,
+        trimStart: 0,
+        trimEnd: buf.duration,
+        playMode: 'oneshot',
+        reverse: false,
+      });
+    }
+    setStatus(`✓ Assigned ${max} ${eng?.name || engineId} slices to Pads 1–${max}`);
+    setTimeout(() => engine.setShowChop(false), 1200);
+  }, [comparisonRenders, engine, pad]);
+
   // ── Cleanup on unmount ──
   useEffect(() => {
     return () => {
@@ -674,6 +837,16 @@ const ChopView = ({ engine }) => {
 
           <div style={S.divider} />
 
+          {/* Bug #36: A/B engine comparison toggle */}
+          <button
+            className={`chop-compare-btn ${compareMode ? 'active' : ''}`}
+            onClick={() => setCompareMode(v => !v)}
+            disabled={!hasSlices || renderingComparison}
+            title="A/B the same slices through every hardware engine"
+          >
+            🎚 Compare Engines
+          </button>
+
           {/* Slice processing toggles */}
           <button onClick={() => setReverseOnAssign(p => !p)}
             style={S.btn(reverseOnAssign, '#ff6600')} title="Reverse slices when assigning to pads">
@@ -721,6 +894,69 @@ const ChopView = ({ engine }) => {
               : 'Click slice to preview · Right-click line to remove · Drag handles to reposition · Space to audition all'}
           </div>
         </div>
+
+        {/* ═══ BUG #36: COMPARE ENGINES PANEL ═══ */}
+        {compareMode && (
+          <div className="chop-compare-panel">
+            <div className="chop-compare-header">
+              <span>Comparing slice #{selectedSliceIdx + 1} across engines:</span>
+              <select
+                value={selectedSliceIdx}
+                onChange={e => setSelectedSliceIdx(Number(e.target.value))}
+                disabled={!hasSlices}
+              >
+                {engine.chopPts.map((_, i) => (
+                  <option key={i} value={i}>Slice {i + 1}</option>
+                ))}
+              </select>
+              <button
+                onClick={renderAllEngines}
+                disabled={renderingComparison || !hasSlices}
+                className="chop-compare-render-btn"
+              >
+                {renderingComparison ? `⏳ ${compareProgress || 'Rendering...'}` : '🔄 Render All Engines'}
+              </button>
+            </div>
+
+            <div className="chop-compare-grid">
+              {ENGINES.map(eng => {
+                const list = comparisonRenders[eng.id];
+                const buf = list ? list[selectedSliceIdx] : null;
+                const isActive = activeEngine === eng.id;
+                return (
+                  <div
+                    key={eng.id}
+                    className={`chop-engine-card ${isActive ? 'active' : ''} ${buf ? 'rendered' : ''}`}
+                    onClick={() => buf && playEngineSlice(eng.id, selectedSliceIdx)}
+                  >
+                    <div className="chop-engine-name">{eng.name}</div>
+                    <div className="chop-engine-specs">
+                      {eng.bitDepth}-bit · {eng.sampleRate}kHz
+                    </div>
+                    <div className="chop-engine-character">{eng.character}</div>
+                    <button
+                      className="chop-engine-play"
+                      disabled={!buf}
+                      onClick={(e) => { e.stopPropagation(); if (buf) playEngineSlice(eng.id, selectedSliceIdx); }}
+                    >
+                      {buf ? '▶ Audition' : '— not rendered —'}
+                    </button>
+                    {buf && <ChopWaveformMini buffer={buf} color={isActive ? '#ffaa00' : '#00ffc8'} />}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="chop-compare-actions">
+              <button
+                onClick={() => activeEngine && assignAllFromEngine(activeEngine)}
+                disabled={!activeEngine || !comparisonRenders[activeEngine]}
+              >
+                ✓ Use {ENGINES.find(e => e.id === activeEngine)?.name || 'Selected'} chops
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ═══ SLICE BUTTONS ═══ */}
         {hasSlices && (
