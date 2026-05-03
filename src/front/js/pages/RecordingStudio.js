@@ -624,6 +624,7 @@ const RecordingStudio = ({ user }) => {
   const [showProjectList, setShowProjectList] = useState(false);
   const [bpm, setBpm] = useState(120);
   const [timeSignature, setTimeSignature] = useState([4, 4]);
+  const [countInBars, setCountInBars] = useState(1); // Bug #6: pre-roll length in bars (0/1/2/4).
   const [masterVolume, setMasterVolume] = useState(1.0);
   const [masterPan, setMasterPan] = useState(0);
   const [tracks, setTracks] = useState(Array.from({ length: 1 }, (_, i) => DEFAULT_TRACK(i)));
@@ -757,6 +758,10 @@ const RecordingStudio = ({ user }) => {
   const playOffsetRef = useRef(0);
   const spxEngineRef = useRef(null);
   const metroRef = useRef(null);
+  // Bug #4b-1: bpm captured by closure went stale once metronome/playCountIn started. Live ref + useEffect keep them in sync without re-creating the closure.
+  const bpmRef = useRef(120);
+  const timeSignatureRef = useRef([4, 4]);
+  const metronomeOnRef = useRef(false);
   const timeRef = useRef(null);
   const canvasRefs = useRef([]);
   const inputAnalyserRef = useRef(null);
@@ -774,6 +779,11 @@ const RecordingStudio = ({ user }) => {
   const hasSolo = tracks.some(t => t.solo);
   const isAudible = (t) => !t.muted && (!hasSolo || t.solo);
   const playheadBeat = useMemo(() => secondsToBeat(currentTime, bpm), [currentTime, bpm]);
+
+  // Bug #4b-1: keep refs in sync so metronome/playCountIn closures read live values per tick.
+  useEffect(() => { bpmRef.current = bpm; }, [bpm]);
+  useEffect(() => { timeSignatureRef.current = timeSignature; }, [timeSignature]);
+  useEffect(() => { metronomeOnRef.current = metronomeOn; }, [metronomeOn]);
 
   // ── Mixer upper height CSS var sync ──
   useEffect(() => {
@@ -1821,35 +1831,64 @@ const RecordingStudio = ({ user }) => {
   }, []);
 
   // ── Metronome ──
+  // Bug #4b-1: previous impl computed `iv = (60 / bpm) * 1000` once via setInterval, so changing
+  // bpm while running did NOT update tick rate. Now we use a self-rescheduling setTimeout that
+  // reads bpmRef.current each tick, and a useEffect below restarts on bpm changes.
+  const metroCtxRef = useRef(null);
+  const metroBeatRef = useRef(0);
   const startMetronome = (ctx) => {
-    if (metroRef.current) { clearInterval(metroRef.current); metroRef.current = null; }
-    const beats = timeSignature && timeSignature[0] ? timeSignature[0] : 4;
-    const iv = (60 / bpm) * 1000; let beat = 0;
+    if (metroRef.current) { clearTimeout(metroRef.current); metroRef.current = null; }
+    metroCtxRef.current = ctx; metroBeatRef.current = 0;
     const click = (isDownbeat) => {
+      const c = metroCtxRef.current;
       try {
-        if (!ctx || ctx.state === "closed") return;
-        const o = ctx.createOscillator(); const g = ctx.createGain();
+        if (!c || c.state === "closed") return;
+        const o = c.createOscillator(); const g = c.createGain();
         o.frequency.value = isDownbeat ? 1000 : 800;
-        g.gain.setValueAtTime(0.35, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
-        o.connect(g); g.connect(ctx.destination); o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.06);
+        g.gain.setValueAtTime(0.35, c.currentTime); g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.06);
+        o.connect(g); g.connect(c.destination); o.start(c.currentTime); o.stop(c.currentTime + 0.06);
       } catch (e) {}
     };
-    click(true);
-    metroRef.current = setInterval(() => { beat = (beat + 1) % beats; click(beat === 0); }, iv);
+    const tick = () => {
+      const beats = (timeSignatureRef.current && timeSignatureRef.current[0]) || 4;
+      click(metroBeatRef.current === 0);
+      metroBeatRef.current = (metroBeatRef.current + 1) % beats;
+      // Re-read bpm every tick so live tempo edits propagate immediately.
+      const iv = (60 / (bpmRef.current || 120)) * 1000;
+      metroRef.current = setTimeout(tick, iv);
+    };
+    tick();
   };
 
-  const stopMetronome = () => { if (metroRef.current) { clearInterval(metroRef.current); metroRef.current = null; } };
+  const stopMetronome = () => { if (metroRef.current) { clearTimeout(metroRef.current); metroRef.current = null; } };
 
+  // Bug #4b-1: rescue running metronome when bpm or timeSignature changes mid-flight.
+  useEffect(() => {
+    if (!metronomeOnRef.current) return;
+    if (metroRef.current) { clearTimeout(metroRef.current); metroRef.current = null; }
+    if (metroCtxRef.current) startMetronome(metroCtxRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bpm, timeSignature]);
+
+  // Bug #6: pre-roll length is now configurable (countInBars). Bug #4b-1: tick rate also reads bpmRef per tick.
   const playCountIn = (ctx) => new Promise(res => {
-    const iv = (60 / bpm) * 1000; let c = 0;
+    const beatsPerBar = (timeSignatureRef.current && timeSignatureRef.current[0]) || 4;
+    const totalBeats = Math.max(1, (countInBars || 1) * beatsPerBar);
+    let c = 0;
     const click = () => {
       const o = ctx.createOscillator(); const g = ctx.createGain();
       o.frequency.value = c === 0 ? 1200 : 1000; g.gain.value = 0.5;
       g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
       o.connect(g); g.connect(ctx.destination); o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.06);
     };
-    click();
-    const id = setInterval(() => { c++; if (c >= (timeSignature && timeSignature[0] ? timeSignature[0] : 4)) { clearInterval(id); res(); } else click(); }, iv);
+    const step = () => {
+      click();
+      c++;
+      if (c >= totalBeats) { res(); return; }
+      const iv = (60 / (bpmRef.current || 120)) * 1000;
+      setTimeout(step, iv);
+    };
+    step();
   });
 
   // ── Playback ──
@@ -1859,8 +1898,12 @@ const RecordingStudio = ({ user }) => {
       if (!cycleEnabled || !isPlaying) { loopCheckRef.current = null; return; }
       const beatNow = playOffsetRef.current + (audioCtxRef.current ? (audioCtxRef.current.currentTime - playStartRef.current) * (bpm / 60) : 0);
       if (beatNow >= cycleEnd) {
-        playOffsetRef.current = cycleStart; playStartRef.current = audioCtxRef.current?.currentTime || 0;
-        setCurrentTime(cycleStart * (60 / bpm));
+        // Bug #4b-2: cycleStart is in BEATS but playOffsetRef is used as SECONDS everywhere
+        // (s.start(0, playOffsetRef.current) at startPlayback, secondsToBeat() at region create).
+        // Convert beats→seconds before storing.
+        const cycleStartSec = beatToSeconds(cycleStart, bpm);
+        playOffsetRef.current = cycleStartSec; playStartRef.current = audioCtxRef.current?.currentTime || 0;
+        setCurrentTime(cycleStartSec);
       }
       loopCheckRef.current = requestAnimationFrame(check);
     };
@@ -1969,7 +2012,7 @@ const RecordingStudio = ({ user }) => {
       // Bug #11-3: route mic to destination so user hears themselves while recording. Held at 0 if direct-monitor is already on, to avoid double-routing/feedback.
       const recMon = ctx.createGain(); recMon.gain.value = monitoringEnabled ? 0 : 0.6; src.connect(recMon); recMon.connect(ctx.destination); recMonitorGainRef.current = recMon;
       const mon = () => { if (!inputAnalyserRef.current) return; const d = new Uint8Array(inputAnalyserRef.current.frequencyBinCount); inputAnalyserRef.current.getByteFrequencyData(d); setInputLevel(d.reduce((a, b) => a + b, 0) / d.length / 255); inputAnimRef.current = requestAnimationFrame(mon); }; mon();
-      if (countIn) { setStatus("Count in..."); await playCountIn(ctx); }
+      if (countIn && countInBars > 0) { setStatus(`Count in (${countInBars} bar${countInBars > 1 ? "s" : ""})...`); await playCountIn(ctx); }
       // supportedMime guard: Safari rejects webm; let the browser pick its default when none of our preferred mimes are available.
       const supportedMime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus"
         : MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm"
@@ -2621,7 +2664,9 @@ const RecordingStudio = ({ user }) => {
   const applyAutomation = useCallback(() => {
     if (!audioCtxRef.current || !isPlaying) { autoRafRef.current = null; return; }
     const now = audioCtxRef.current.currentTime;
-    const projectTime = playOffsetRef.current / bpm * 60 + (now - playStartRef.current);
+    // Bug #4b-3: playOffsetRef is already SECONDS — earlier `/ bpm * 60` re-divided seconds by bpm,
+    // sending automation lookups to a wildly wrong project time at any non-120 tempo.
+    const projectTime = playOffsetRef.current + (now - playStartRef.current);
     tracks.forEach((t, i) => {
       const tId = t.id ?? i; if (!autoRead[tId]) return;
       const tAuto = automation[tId] ?? {}; const paramK = autoParams[tId] ?? "volume";
@@ -3755,6 +3800,13 @@ const RecordingStudio = ({ user }) => {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L8 22h8L12 2z"/><line x1="12" y1="8" x2="18" y2="4"/></svg>
           </button>
           <button className={"daw-transport-btn rs-transport-label"+(countIn?" active":"")} onClick={()=>setCountIn(!countIn)} title="Count-in">1234</button>
+          {/* Bug #6: configurable pre-roll length (was hardcoded to one bar). */}
+          <select value={countInBars} onChange={(e)=>setCountInBars(Number(e.target.value))} className="daw-pre-roll-select" title="Pre-roll length">
+            <option value={0}>Off</option>
+            <option value={1}>1 bar</option>
+            <option value={2}>2 bars</option>
+            <option value={4}>4 bars</option>
+          </select>
           <button className={"daw-transport-btn"+(cycleEnabled?" active":"")} onClick={()=>setCycleEnabled(e=>!e)} title="Cycle">⟳ CYCLE</button>
           <div className="daw-bt-divider"/>
           <span className="daw-bt-snap-label">LUFS</span>
