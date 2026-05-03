@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import "../../styles/ArrangerView.css";
 import AutomationLane, { AUTO_PARAMS, getValueAtTime } from "./AutomationLane";
+import { DEFAULT_TRACK } from "../utils/trackFactory";
 
 // =============================================================================
 // CONSTANTS
@@ -797,15 +798,13 @@ const ArrangerView = ({
   const addTrack = useCallback((type = "audio") => {
     if (maxTracks > 0 && tracks.length >= maxTracks) return;
     const i = tracks.length;
-    setTracks(prev => [...prev, {
-      id: `trk_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+    // Use the shared trackFactory so the new track has `effects: DEFAULT_EFFECTS()`
+    // and won't crash when the user adds inserts. ArrangerView keeps its own
+    // TRACK_COLORS palette for region colors, so we override `color` here.
+    setTracks(prev => [...prev, DEFAULT_TRACK(i, type, {
       name: `${type === "instrument" ? "MIDI" : "Audio"} ${i + 1}`,
-      trackType: type,
-      volume: 1.0, pan: 0,
-      muted: false, solo: false, armed: false,
       color: TRACK_COLORS[i % TRACK_COLORS.length],
-      regions: [],
-    }]);
+    })]);
     setSelectedTrack(i);
   }, [tracks.length, maxTracks, setTracks]);
 
@@ -853,12 +852,11 @@ const ArrangerView = ({
       const beatsPerSecond = bpm / 60;
       const regionBeats = Math.ceil(duration * beatsPerSecond);
       const i = tracks.length;
-      const newTrack = {
-        id: `trk_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      // Use the shared trackFactory so dragged-in tracks have `effects` and
+      // can accept inserts (audit Bugs #1/#2). Audio data and the initial
+      // region are passed via overrides; color is preserved from the AV palette.
+      const newTrack = DEFAULT_TRACK(i, 'audio', {
         name: file.name.replace(/\.[^.]+$/, ''),
-        trackType: 'audio',
-        volume: 1.0, pan: 0,
-        muted: false, solo: false, armed: false,
         color: TRACK_COLORS[i % TRACK_COLORS.length],
         audioBuffer: decodedBuf,
         audio_url: url,
@@ -870,7 +868,7 @@ const ArrangerView = ({
           name: file.name.replace(/\.[^.]+$/, ''),
           color: TRACK_COLORS[i % TRACK_COLORS.length],
         }],
-      };
+      });
       setTracks(prev => [...prev, newTrack]);
       setSelectedTrack(i);
     }

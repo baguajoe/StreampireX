@@ -29,6 +29,7 @@ flask-apscheduler = "*"
 cloudinary = "*"
 python-dotenv = "*"
 pydub = "*"
+flask-sock = "*"
 
 [dev-packages]
 

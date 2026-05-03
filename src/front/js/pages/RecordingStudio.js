@@ -159,6 +159,7 @@ import { useDAWCollaboration, CollabToolbar, CollabOverlay, CollabChatPanel } fr
 import MidiHardwareInput from "../component/MidiHardwareInput";
 import { installWAMPlugin, getInstalledWAMPlugins } from "../component/audio/plugins/WAMPluginHost";
 import AddTrackDialog from "../component/AddTrackDialog";
+import { DEFAULT_EFFECTS, DEFAULT_TRACK } from "../utils/trackFactory";
 
 // =============================================================================
 // CONSTANTS
@@ -238,7 +239,6 @@ const MONITOR_EQ = {
 // =============================================================================
 // HELPERS
 // =============================================================================
-const uid = () => globalThis.crypto?.randomUUID?.() ?? `id_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const secondsToBeat = (s, bpm) => (s / 60) * bpm;
 const beatToSeconds = (b, bpm) => (b / bpm) * 60;
@@ -246,26 +246,11 @@ const DB_MARKS = [0, -6, -12, -18, -24, -30, -40, -50];
 const linearToMeterPos = (lin) => { if (lin <= 0) return 0; const db = 20 * Math.log10(lin); return clamp((db + 60) / 66, 0, 1); };
 const dbToMeterPos = (db) => clamp((db + 60) / 66, 0, 1);
 
-const DEFAULT_EFFECTS = () => ({
-  eq:            { lowGain: 0, midGain: 0, midFreq: 1000, highGain: 0, enabled: false },
-  compressor:    { threshold: -24, ratio: 4, attack: 0.003, release: 0.25, knee: 30, enabled: false },
-  reverb:        { mix: 0.2, decay: 2.0, enabled: false },
-  delay:         { time: 0.3, feedback: 0.3, mix: 0.2, enabled: false },
-  distortion:    { amount: 0, enabled: false },
-  filter:        { type: "lowpass", frequency: 20000, Q: 1, enabled: false },
-  limiter:       { threshold: -1, knee: 0, ratio: 20, attack: 0.001, release: 0.05, enabled: false },
-  gate:          { threshold: -40, attack: 0.001, release: 0.05, enabled: false },
-  deesser:       { frequency: 6000, threshold: -20, ratio: 8, enabled: false },
-  chorus:        { rate: 1.5, depth: 0.002, mix: 0.3, enabled: false },
-  flanger:       { rate: 0.3, depth: 0.003, feedback: 0.5, mix: 0.3, enabled: false },
-  phaser:        { rate: 0.5, depth: 1000, baseFreq: 1000, Q: 5, stages: 4, mix: 0.3, enabled: false },
-  tremolo:       { rate: 4, depth: 0.5, enabled: false },
-  stereoWidener: { width: 0.5, enabled: false },
-  bitcrusher:    { bits: 8, sampleRateReduce: 1, enabled: false },
-  exciter:       { amount: 30, frequency: 3000, mix: 0.2, enabled: false },
-  tapeSaturation:{ drive: 0.3, warmth: 0.5, enabled: false },
-  gainUtility:   { gain: 0, phaseInvert: false, monoSum: false, enabled: false },
-});
+// Set of plugin keys whose UI is provided by SPXPluginHost (component-backed
+// SPX plugins). Used by the FX popup to decide whether to render SPXPluginHost
+// vs ConsoleFXPanel — ConsoleFXPanel only knows about the native effect keys
+// (eq/comp/gate/etc.) defined in DEFAULT_EFFECTS.
+const SPX_PLUGIN_KEYS = new Set(ALL_FX_EXTENDED.filter(f => f.component).map(f => f.key));
 
 
 // ── Cubase-style fader curve ──────────────────────────────────
@@ -305,16 +290,6 @@ const faderToVolume = (s) => {
   if (db <= DB_MIN) return 0;
   return Math.pow(10, db / 20);
 };
-
-const DEFAULT_TRACK = (i, type = "audio") => ({
-  id: uid(),
-  name: `${type === "midi" ? "MIDI" : type === "bus" ? "Bus" : type === "aux" ? "Aux" : "Audio"} ${i + 1}`,
-  trackType: type,
-  instrument: type === "midi" ? { program: 0, name: "Acoustic Grand" } : null,
-  volume: 1.0, pan: 0, muted: false, solo: false, armed: false,
-  audio_url: null, color: TRACK_COLORS[i % TRACK_COLORS.length],
-  audioBuffer: null, effects: DEFAULT_EFFECTS(), regions: [],
-});
 
 // =============================================================================
 // CUBASE METER (canvas stereo VU)
@@ -1993,7 +1968,11 @@ const RecordingStudio = ({ user }) => {
 
   // ── Track CRUD ──
   const updateTrack = useCallback((i, u) => setTracks(p => p.map((t, idx) => idx === i ? { ...t, ...u } : t)), []);
-  const updateEffect = (ti, fx, param, val) => setTracks(p => p.map((t, i) => i !== ti ? t : { ...t, effects: { ...t.effects, [fx]: { ...t.effects[fx], [param]: val } } }));
+  // Defensive against tracks that pre-date the shared trackFactory and may
+  // be missing the `effects` field (legacy projects, externally-created
+  // tracks). Without these guards, adding any insert would throw
+  // "Cannot read properties of undefined (reading '<plugin-key>')".
+  const updateEffect = (ti, fx, param, val) => setTracks(p => p.map((t, i) => i !== ti ? t : { ...t, effects: { ...(t.effects || DEFAULT_EFFECTS()), [fx]: { ...((t.effects || {})[fx] || {}), [param]: val } } }));
 
   const addTrack = () => {
     if (tracks.length >= maxTracks) { setStatus(`⚠ ${userTier} tier limit: ${maxTracks} tracks.`); return; }
@@ -3635,8 +3614,23 @@ const RecordingStudio = ({ user }) => {
             <video src={videoUrl} controls style={{width:320,display:"block"}} ref={el=>{if(el){el.currentTime=currentTime;}}} onTimeUpdate={e=>{}}/>
           </div>
         )}
-        {/* FX POPUP */}
-        {afx && openFxKey && (
+        {/* FX POPUP — SPX plugins render their own PluginWindow via SPXPluginHost;
+            native effects (eq/comp/gate/etc.) render inside ConsoleFXPanel. */}
+        {afx && openFxKey && SPX_PLUGIN_KEYS.has(openFxKey) && (
+          <SPXPluginHost
+            pluginKey={openFxKey}
+            params={afx?.effects?.[openFxKey]}
+            onChange={(p) => setTracks(prev => prev.map((t, i) => i !== activeEffectsTrack ? t : {
+              ...t,
+              effects: {
+                ...(t.effects || DEFAULT_EFFECTS()),
+                [openFxKey]: { ...p, enabled: t.effects?.[openFxKey]?.enabled ?? true },
+              },
+            }))}
+            onClose={() => { setActiveEffectsTrack(null); setOpenFxKey(null); }}
+          />
+        )}
+        {afx && openFxKey && !SPX_PLUGIN_KEYS.has(openFxKey) && (
           <DraggablePanel title={"FX — " + (afx.name || "Track")} onClose={() => { setActiveEffectsTrack(null); setOpenFxKey(null); }} initialX={window.innerWidth-680} initialY={60}>
             <ConsoleFXPanel track={afx} trackIndex={activeEffectsTrack} updateEffect={updateEffect}
               onClose={() => { setActiveEffectsTrack(null); setOpenFxKey(null); }} openFxKey={openFxKey}/>

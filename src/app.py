@@ -61,7 +61,6 @@ from api.recording_studio_routes import recording_studio_bp
 from api.beat_store_routes import beat_store_bp
 from api.ai_chord_generator import ai_chord_generator_bp
 from api.ai_video_tools import ai_video_tools_bp
-from api.epk_collab import epk_collab_bp
 
 # Import your blueprints - use src prefix
 from api.routes import api
@@ -96,7 +95,6 @@ from api.podcast_socket_events import register_podcast_socket_events
 from api.support_routes import support_bp
 from api.ai_credits_routes import ai_credits_bp
 from api.sampler_storage_routes import sampler_storage_bp
-from api.epk_collab import epk_collab_bp
 from api.tournament_routes import tournament_bp
 from api.storefront_routes import storefront_bp  # MC-1: Marketplace consolidation  # SP-5
 from api.contact_routes import contact_bp
@@ -365,7 +363,6 @@ app.register_blueprint(podcast_phase2_bp)
 app.register_blueprint(support_bp)
 app.register_blueprint(ai_credits_bp)
 app.register_blueprint(sampler_storage_bp)
-app.register_blueprint(epk_collab_bp)
 app.register_blueprint(contact_bp)
 app.register_blueprint(sonosuite_bp)
 app.register_blueprint(analytics_bp)
