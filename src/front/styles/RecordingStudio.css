@@ -70,6 +70,10 @@
 .daw-mix-dropdown-item { display:block; width:100%; background:transparent; border:none; color:var(--rs-text2); cursor:pointer; font-family:var(--rs-font); font-size:11px; padding:8px 16px; text-align:left; transition:background .1s; }
 .daw-mix-dropdown-item:hover { background:var(--rs-surface); color:var(--rs-text); }
 .daw-mix-dropdown-item.active { color:var(--rs-orange); }
+/* Bug #10b: action items (e.g. Split at playhead) sit under the view-switch list, separated. */
+.daw-mix-dropdown-action { border-top:1px solid var(--rs-border); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.daw-mix-dropdown-action:hover { color:var(--rs-teal); }
+.daw-mix-dropdown-shortcut { color:var(--rs-text3); font-size:10px; font-weight:700; border:1px solid var(--rs-border); border-radius:3px; padding:1px 5px; }
 .daw-main { flex:1; overflow:hidden; position:relative; background:var(--rs-bg); }
 .rs-relative { position:relative; height:100%; }
 .daw-pianoroll-view,.daw-chords-view,.daw-piano-view,.daw-freesound-view,.daw-aibeat-view,.daw-voicemidi-view { height:100%; overflow:hidden; }

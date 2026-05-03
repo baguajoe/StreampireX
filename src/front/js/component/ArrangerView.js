@@ -324,6 +324,8 @@ const MidiRegionMini = React.memo(({ notes, width, height, color }) => {
 const Region = React.memo(({
   region, trackColor, trackType, zoom, snapValue, timeSignatureTop,
   onMove, onResize, onSelect, isSelected, onContextMenu, trackHeight, bpm = 120,
+  onOpenClipEditor, // Bug #9: dbl-click opens AudioClipEditor for audio regions.
+  trackIndex, regionIndex,
 }) => {
   const [dragging, setDragging] = useState(null);
   const dragStart = useRef({ x: 0, startBeat: 0, duration: 0 });
@@ -380,6 +382,12 @@ const Region = React.memo(({
       }}
       onMouseDown={(e) => handleMouseDown(e, "move")}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, region); }}
+      onDoubleClick={(e) => {
+        // Bug #9: only audio regions get the editor; instrument regions belong in the Piano Roll.
+        if (isInstrument) return;
+        e.stopPropagation();
+        onOpenClipEditor && onOpenClipEditor(region, trackIndex, regionIndex);
+      }}
     >
       <div className="arr-region-handle left" onMouseDown={(e) => handleMouseDown(e, "resize-left")}/>
       <div className="arr-region-content">
@@ -889,6 +897,7 @@ const ArrangerView = ({
   instrumentEngine,
   onBrowseSounds, onOpenPianoRoll, onTimelineDoubleClick,
   MidiRegionPreview, onAddTrack, onBpmDetected,
+  onOpenClipEditor, // Bug #9
 }) => {
   // ── State ──
   const [zoom,          setZoom]          = useState(DEFAULT_ZOOM);
@@ -1411,7 +1420,7 @@ const ArrangerView = ({
                   onClick={() => setSelectedTrack(trackIndex)}
                   onDoubleClick={(e) => handleTimelineDoubleClick(e, trackIndex)}
                 >
-                  {(track.regions || []).map(region => (
+                  {(track.regions || []).map((region, regionIndex) => (
                     <Region
                       key={region.id}
                       region={region}
@@ -1427,6 +1436,9 @@ const ArrangerView = ({
                       onContextMenu={(e, r) => handleRegionContextMenu(e, r, trackIndex)}
                       trackHeight={trackHeight}
                       bpm={bpm}
+                      onOpenClipEditor={onOpenClipEditor}
+                      trackIndex={trackIndex}
+                      regionIndex={regionIndex}
                     />
                   ))}
                 </div>

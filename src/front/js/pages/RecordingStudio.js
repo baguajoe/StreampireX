@@ -37,7 +37,7 @@ function MixDropdown({ viewMode, setViewMode }) {
   );
 }
 
-function ToolsDropdown({ viewMode, setViewMode }) {
+function ToolsDropdown({ viewMode, setViewMode, onSplitAtPlayhead }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef(null);
   const items = [
@@ -63,6 +63,15 @@ function ToolsDropdown({ viewMode, setViewMode }) {
             <button key={m} className={"daw-mix-dropdown-item" + (viewMode === m ? " active" : "")}
               onClick={() => { setViewMode(m); setOpen(false); }}>{l}</button>
           ))}
+          {/* Bug #10b: discoverable Split-at-playhead entry. (Existing scissors button stays for muscle memory.) */}
+          {onSplitAtPlayhead && (
+            <button
+              className="daw-mix-dropdown-item daw-mix-dropdown-action"
+              onClick={() => { onSplitAtPlayhead(); setOpen(false); }}
+            >
+              ✂ Split at playhead <span className="daw-mix-dropdown-shortcut">S</span>
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -73,6 +82,7 @@ function ToolsDropdown({ viewMode, setViewMode }) {
 // MAIN FILE STARTS HERE
 // =============================================================================
 import FlexPitchEditor from '../component/FlexPitchEditor';
+import AudioClipEditor from '../component/AudioClipEditor';
 import React, { useState, useEffect, useRef, useCallback, useMemo, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { Context } from "../store/appContext";
@@ -596,7 +606,7 @@ const RecordingStudio = ({ user }) => {
   useEffect(() => { localStorage.setItem("rs_left_open", showLeftSidebar); }, [showLeftSidebar]);
   useEffect(() => { localStorage.setItem("rs_right_open", showRightSidebar); }, [showRightSidebar]);
 
-  // Keyboard shortcuts for sidebar toggles
+  // Keyboard shortcuts for sidebar toggles + Bug #10c: S = split at playhead.
   useEffect(() => {
     const onKey = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "l" && !e.altKey) {
@@ -605,14 +615,26 @@ const RecordingStudio = ({ user }) => {
         e.preventDefault(); setShowRightSidebar(v => !v);
       } else if ((e.metaKey || e.ctrlKey) && e.key === "0") {
         e.preventDefault(); setShowLeftSidebar(false); setShowRightSidebar(false);
+      } else if (e.key === "s" && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+        // Bug #10c: split at playhead. Don't fire when typing in inputs or while the clip editor owns the keyboard.
+        const t = e.target;
+        const inField = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
+        if (inField) return;
+        if (document.querySelector(".ace-overlay")) return; // AudioClipEditor open → its own shortcuts
+        e.preventDefault();
+        handleCutRegionRef.current && handleCutRegionRef.current();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+  // Bug #10c: handleCutRegion is defined later; use a ref so the effect (mounted once) reads the latest closure.
+  const handleCutRegionRef = useRef(null);
   const [showFlexPitch, setShowFlexPitch] = useState(false);
   const [flexPitchBuffer, setFlexPitchBuffer] = useState(null);
   const [flexPitchTrack, setFlexPitchTrack] = useState(null);
+  // Bug #9: AudioClipEditor modal state. { region, ti, ri } when open, else null.
+  const [editingClip, setEditingClip] = useState(null);
   const [splitScreen, setSplitScreen] = useState(false);
   const [splitTopH, setSplitTopH] = useState(50);
   const [mixerHeightPx, setMixerHeightPx] = useState(450);
@@ -2684,6 +2706,8 @@ const RecordingStudio = ({ user }) => {
     }));
     setStatus('Cut at beat ' + playheadBeat.toFixed(2));
   }, [selectedTrack, playheadBeat, setTracks]);
+  // Bug #10c: keep the keydown effect's ref pointed at the freshest closure.
+  handleCutRegionRef.current = handleCutRegion;
 
   // ── Flex pitch ──
   const openFlexPitch = useCallback((ti) => {
@@ -2914,7 +2938,7 @@ const RecordingStudio = ({ user }) => {
               <button key={m} className={"daw-view-tab" + (viewMode === m ? " active" : "")} onClick={() => setViewMode(m)}>{l}</button>
             ))}
             <MixDropdown viewMode={viewMode} setViewMode={setViewMode}/>
-            <ToolsDropdown viewMode={viewMode} setViewMode={setViewMode}/>
+            <ToolsDropdown viewMode={viewMode} setViewMode={setViewMode} onSplitAtPlayhead={handleCutRegion}/>
           </div>
         </div>
       </div>
@@ -2936,6 +2960,7 @@ const RecordingStudio = ({ user }) => {
               instrumentEngine={instrumentEngine} onBrowseSounds={handleBrowseSounds}
               onOpenPianoRoll={onOpenPianoRoll} onTimelineDoubleClick={handleTimelineDoubleClick}
               MidiRegionPreview={MidiRegionPreview}
+              onOpenClipEditor={(region, ti, ri) => setEditingClip({ region, ti, ri })}
               onAddTrack={() => setShowAddTrackDialog(true)}/>
             <CollabOverlay collab={collab} tracks={tracks} trackHeight={48}/>
           </div>
@@ -2989,6 +3014,27 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
+        {/* AUDIO CLIP EDITOR (Bug #9) */}
+        {editingClip && (
+          <AudioClipEditor
+            region={editingClip.region}
+            audioBuffer={editingClip.region?.audioBuffer || tracks[editingClip.ti]?.audioBuffer}
+            onSave={(editedBuffer, editedAudioUrl, editMeta) => {
+              setTracks(prev => prev.map((t, i) => (
+                i !== editingClip.ti ? t : {
+                  ...t,
+                  regions: (t.regions || []).map((r, j) => (
+                    j !== editingClip.ri ? r : { ...r, audioBuffer: editedBuffer, audioUrl: editedAudioUrl, edits: [...(r.edits || []), ...editMeta] }
+                  )),
+                }
+              )));
+              setEditingClip(null);
+              setStatus(`✓ Clip edits applied (${editMeta.length} ops)`);
+            }}
+            onCancel={() => setEditingClip(null)}
+          />
+        )}
+
         {/* SPLIT SCREEN */}
         {splitScreen && (
           <div ref={splitContainerRef} className="rs-split-screen">
@@ -2997,7 +3043,8 @@ const RecordingStudio = ({ user }) => {
               <ArrangerView onBpmDetected={det => { setBpm(det); setStatus("♩ BPM detected: " + det); }} tracks={tracks} setTracks={setTracks} bpm={bpm} currentTime={currentTime} isPlaying={isPlaying}
                 selectedTrack={selectedTrack} onSelectTrack={setSelectedTrack} zoom={zoom} onZoomChange={setZoom}
                 onBrowseSounds={handleBrowseSounds} onOpenPianoRoll={onOpenPianoRoll}
-                onTimelineDoubleClick={handleTimelineDoubleClick} MidiRegionPreview={MidiRegionPreview}/>
+                onTimelineDoubleClick={handleTimelineDoubleClick} MidiRegionPreview={MidiRegionPreview}
+                onOpenClipEditor={(region, ti, ri) => setEditingClip({ region, ti, ri })}/>
             </div>
             <div className="rs-split-handle" onMouseDown={handleSplitMouseDown} title="Drag to resize"/>
             <div className="rs-split-bottom" style={{ flex: "0 0 auto", height: `${mixerHeightPx}px` }}>
@@ -3805,10 +3852,12 @@ const RecordingStudio = ({ user }) => {
             {[2,4,8,16].map(n=><option key={n} value={n}>{n}</option>)}
           </select>
           <div className="daw-bt-divider"/>
-          <button className="daw-icon-btn" onClick={handleCutRegion} title="Split at playhead">✂</button>
-          <button className={"rs-split-toggle-btn" + (splitScreen?" active":"")} onClick={()=>setSplitScreen(s=>!s)}>
+          {/* Bug #10c: keyboard shortcut S also triggers handleCutRegion (set up via window keydown handler). */}
+          <button className="daw-icon-btn" onClick={handleCutRegion} title="Split clip at playhead (S)">✂</button>
+          {/* Bug #10a: was "SPLIT" — clashed with the audio-split affordance above. Renamed to SPLIT VIEW. */}
+          <button className={"rs-split-toggle-btn" + (splitScreen?" active":"")} onClick={()=>setSplitScreen(s=>!s)} title="Toggle split view layout">
             <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="10" height="4.5" rx="0.5"/><rect x="1" y="6.5" width="10" height="4.5" rx="0.5"/></svg>
-            SPLIT
+            SPLIT VIEW
           </button>
         </div>
         <div className="daw-bt-center">

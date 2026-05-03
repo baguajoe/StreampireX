@@ -1,0 +1,255 @@
+/* =============================================================================
+   AudioClipEditor.css — modal waveform editor (Bug #9)
+   Matches studio aesthetic: dark, monospace, teal accents.
+   ============================================================================= */
+
+.ace-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(2, 4, 8, 0.78);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  color: #e6f4ff;
+}
+
+.ace-modal {
+  width: min(1200px, 96vw);
+  height: min(720px, 88vh);
+  max-height: 88vh;
+  background: linear-gradient(180deg, #0c1220 0%, #06070d 100%);
+  border: 1px solid rgba(0, 255, 200, 0.18);
+  border-radius: 10px;
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.72),
+    0 0 0 1px rgba(0, 255, 200, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ace-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+}
+
+.ace-title {
+  color: #00ffc8;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.ace-region-name {
+  color: rgba(230, 244, 255, 0.65);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  margin-left: 4px;
+}
+
+.ace-status {
+  flex: 1;
+  text-align: center;
+  color: rgba(230, 244, 255, 0.65);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Canvas surface ── */
+.ace-canvas-wrap {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background: #06060f;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.ace-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* ── Readout strip below the canvas ── */
+.ace-readout {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 6px 14px;
+  background: #050810;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 11px;
+  color: rgba(230, 244, 255, 0.7);
+}
+
+.ace-readout strong {
+  color: #00ffc8;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.ace-hint {
+  margin-left: auto;
+  color: rgba(230, 244, 255, 0.4);
+  font-size: 10px;
+  font-style: italic;
+}
+
+/* ── Toolbar ── */
+.ace-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(0, 0, 0, 0.3));
+}
+
+.ace-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 12px;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ace-group:last-child { border-right: none; padding-right: 0; }
+
+.ace-spacer { flex: 1; border-right: none; padding-right: 0; }
+
+/* ── Buttons ── */
+.ace-btn {
+  appearance: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e6f4ff;
+  border-radius: 5px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s, transform 0.08s;
+  user-select: none;
+}
+
+.ace-btn:hover:not(:disabled) {
+  border-color: rgba(0, 255, 200, 0.4);
+  color: #00ffc8;
+  background: linear-gradient(180deg, rgba(0, 255, 200, 0.06), rgba(0, 255, 200, 0.02));
+}
+
+.ace-btn:active:not(:disabled) { transform: translateY(1px); }
+
+.ace-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.ace-btn-primary {
+  border-color: rgba(0, 255, 200, 0.4);
+  color: #00ffc8;
+}
+
+.ace-btn-icon {
+  padding: 4px 8px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.ace-btn-cancel {
+  border-color: rgba(255, 102, 0, 0.45);
+  color: #ff8133;
+}
+
+.ace-btn-cancel:hover:not(:disabled) {
+  border-color: #ff6600;
+  color: #ff6600;
+  background: linear-gradient(180deg, rgba(255, 102, 0, 0.1), rgba(255, 102, 0, 0.03));
+}
+
+.ace-btn-save {
+  border-color: rgba(0, 255, 200, 0.5);
+  color: #06070d;
+  background: linear-gradient(180deg, #00ffc8, #00b894);
+  font-weight: 700;
+}
+
+.ace-btn-save:hover:not(:disabled) {
+  background: linear-gradient(180deg, #00ffc8, #00d4a3);
+  color: #06070d;
+}
+
+/* ── Gain group ── */
+.ace-gain-group {
+  gap: 10px;
+}
+
+.ace-label {
+  color: #00ffc8;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.ace-slider {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 140px;
+  height: 4px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06), rgba(0, 255, 200, 0.4));
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.ace-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #00ffc8;
+  border: 2px solid #06070d;
+  box-shadow: 0 0 8px rgba(0, 255, 200, 0.5);
+  cursor: pointer;
+}
+
+.ace-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #00ffc8;
+  border: 2px solid #06070d;
+  box-shadow: 0 0 8px rgba(0, 255, 200, 0.5);
+  cursor: pointer;
+}
+
+.ace-gain-readout {
+  color: #e6f4ff;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 60px;
+  text-align: right;
+}
+
+.ace-actions {
+  margin-left: auto;
+}
