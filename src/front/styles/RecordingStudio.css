@@ -1801,3 +1801,80 @@
 .rs-restore-toast-btn:hover { border-color: rgba(0,255,200,.4); color: #00ffc8; }
 .rs-restore-toast-btn.primary { border-color: rgba(0,255,200,.5); color: #06070d; background: linear-gradient(180deg, #00ffc8, #00b894); }
 .rs-restore-toast-btn.primary:hover { background: linear-gradient(180deg, #00ffc8, #00d4a3); color: #06070d; }
+
+/* =============================================================================
+   Architectural #13e: extracted inline styles from RecordingStudio.js
+   ============================================================================= */
+
+/* ── DraggablePanel chrome (only `left`/`top` stay dynamic in JSX) ── */
+.rs-drag-panel { position: fixed; z-index: 9998; background: #0d1117; border: 1px solid #243048; border-radius: 8px; box-shadow: 0 16px 48px rgba(0,0,0,.85); min-width: 520px; max-width: 95vw; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
+.rs-drag-panel-header { padding: 8px 14px; background: #161b22; border-bottom: 1px solid #1e2638; display: flex; justify-content: space-between; align-items: center; cursor: grab; user-select: none; border-radius: 8px 8px 0 0; }
+.rs-drag-panel-title { color: #cdd9e5; font-size: 12px; font-weight: 700; }
+.rs-drag-panel-close { background: none; border: none; color: #8ba3bc; cursor: pointer; font-size: 16px; }
+.rs-drag-panel-body { overflow-y: auto; flex: 1; }
+
+/* ── InsertPickerMenu category headers / rows ── */
+.rs-insert-cat-header { padding: 8px 12px 4px; color: #00ffc8; font-size: 9px; letter-spacing: 2px; font-weight: 800; text-transform: uppercase; border-top: 1px solid #1e2638; margin-top: 4px; background: #060a10; }
+.rs-insert-cat-row { cursor: pointer; display: flex; justify-content: space-between; padding: 6px 12px; background: rgba(255,255,255,.04); border-bottom: 1px solid #1e2638; }
+.rs-insert-cat-label { color: #cdd9e5; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; }
+.rs-insert-cat-label.spx   { color: #ff6600; }
+.rs-insert-cat-label.vocal { color: #a78bfa; }
+.rs-insert-cat-count { font-size: 10px; color: #8ba3bc; }
+
+/* ── Video score floating panel ── */
+.rs-video-score { position: fixed; bottom: 20px; right: 20px; z-index: 5000; background: #0d1117; border: 1px solid #243048; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.8); }
+.rs-video-score-header { background: #161b22; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; }
+.rs-video-score-title  { color: #cdd9e5; font-size: 11px; font-weight: 700; }
+.rs-video-score-close  { background: none; border: none; color: #8ba3bc; cursor: pointer; }
+.rs-video-score-video  { width: 320px; display: block; }
+
+/* ── Export-mixdown modal ── */
+.rs-export-overlay  { position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 10000; display: flex; align-items: center; justify-content: center; }
+.rs-export-modal    { background: #0d1117; border: 1px solid #243048; border-radius: 8px; width: 900px; max-width: 96vw; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,.9); }
+.rs-export-header   { background: #161b22; border-bottom: 1px solid #1e2638; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.rs-export-title    { color: #cdd9e5; font-weight: 800; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; }
+.rs-export-header-actions { display: flex; gap: 8px; }
+.rs-export-stems-quick    { padding: 5px 14px; background: #ff660022; border: 1px solid #ff6600; color: #ff6600; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 700; }
+.rs-export-close          { background: none; border: none; color: #8ba3bc; cursor: pointer; font-size: 18px; line-height: 1; }
+.rs-export-body  { display: grid; grid-template-columns: 280px 1fr; flex: 1; overflow: hidden; }
+.rs-export-left  { border-right: 1px solid #1e2638; display: flex; flex-direction: column; overflow: hidden; }
+.rs-export-section-head { padding: 10px 14px; background: #0f1520; border-bottom: 1px solid #1e2638; }
+.rs-export-section-head-label { color: #4e6a82; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+.rs-export-mode-row { display: flex; gap: 6px; margin-top: 8px; }
+.rs-export-mode-btn { flex: 1; padding: 5px 0; background: transparent; border: 1px solid #243048; color: #8ba3bc; border-radius: 3px; cursor: pointer; font-size: 10px; font-weight: 700; }
+.rs-export-mode-btn.active { background: #00ffc822; border-color: #00ffc8; color: #00ffc8; }
+.rs-export-channel-list { overflow-y: auto; flex: 1; padding: 6px 0; }
+.rs-export-channel-group-header { padding: 4px 14px; font-size: 9px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.rs-export-channel-group-header.output { color: #00ffc8; }
+.rs-export-channel-group-header.bus    { color: #a78bfa; }
+.rs-export-channel-group-header.audio  { color: #5ac8fa; }
+.rs-export-stereo-out { padding: 5px 14px 5px 28px; display: flex; align-items: center; gap: 8px; background: rgba(0,255,200,.05); border-left: 2px solid #00ffc8; margin-left: 14px; }
+.rs-export-channel-row { padding: 4px 14px 4px 28px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.rs-export-channel-row.selected { background: rgba(90,200,250,.05); }
+.rs-export-channel-name { font-size: 11px; color: #cdd9e5; }
+.rs-export-channel-name.flex1 { flex: 1; }
+.rs-export-channel-color { width: 3px; height: 14px; border-radius: 2px; }
+.rs-export-channel-has-audio { color: #00ffc8; font-size: 8px; }
+.rs-export-range-section { border-top: 1px solid #1e2638; padding: 10px 14px; flex-shrink: 0; }
+.rs-export-range-label { color: #4e6a82; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+.rs-export-range-row { display: flex; gap: 6px; }
+.rs-export-range-btn { flex: 1; padding: 4px 0; background: transparent; border: 1px solid #243048; color: #8ba3bc; border-radius: 3px; cursor: pointer; font-size: 10px; }
+.rs-export-range-btn.active { background: #00ffc822; border-color: #00ffc8; color: #00ffc8; }
+.rs-export-right { display: flex; flex-direction: column; overflow: auto; padding: 0; }
+.rs-export-block       { padding: 14px 20px; border-bottom: 1px solid #1e2638; }
+.rs-export-block:last-child { border-bottom: none; }
+.rs-export-block-label { color: #4e6a82; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
+.rs-export-grid-2col   { display: grid; grid-template-columns: 80px 1fr; gap: 6px 10px; align-items: center; }
+.rs-export-grid-4col   { display: grid; grid-template-columns: 100px 1fr 100px 1fr; gap: 8px 12px; align-items: center; }
+.rs-export-grid-2col-wide { display: grid; grid-template-columns: 100px 1fr; gap: 8px 12px; align-items: center; }
+.rs-export-field-label { color: #8ba3bc; font-size: 11px; }
+.rs-export-input  { background: #0a0f1a; border: 1px solid #243048; color: #cdd9e5; padding: 5px 8px; border-radius: 4px; font-size: 11px; outline: none; }
+.rs-export-select { background: #0a0f1a; border: 1px solid #243048; color: #cdd9e5; padding: 5px 8px; border-radius: 4px; font-size: 11px; }
+.rs-export-preview { color: #4e6a82; font-size: 11px; }
+.rs-export-options-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.rs-export-option-label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.rs-export-footer { border-top: 1px solid #1e2638; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; background: #0a0f1a; flex-shrink: 0; }
+.rs-export-footer-group { display: flex; gap: 8px; }
+.rs-export-stems-bulk { padding: 7px 16px; background: rgba(255,102,0,.15); border: 1px solid #ff6600; color: #ff6600; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 700; }
+.rs-export-cancel-btn { padding: 7px 18px; background: transparent; border: 1px solid #243048; color: #8ba3bc; border-radius: 4px; cursor: pointer; font-size: 11px; }
+.rs-export-confirm-btn { padding: 7px 24px; background: #00ffc8; border: none; color: #000; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 800; }

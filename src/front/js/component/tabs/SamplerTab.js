@@ -4,7 +4,7 @@
 // =============================================================================
 
 import React, { useRef, useEffect, useCallback, useState } from 'react';
-import { CHROMATIC_KEYS } from '../useSamplerEngine';
+import { CHROMATIC_KEYS } from '../../utils/samplerConstants';
 import WaveformEditor from '../WaveformEditor';
 
 const SamplerTab = ({ engine, handlePadDown, handlePadUp, aiProps }) => {

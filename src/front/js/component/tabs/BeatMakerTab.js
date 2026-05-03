@@ -5,7 +5,7 @@
 // =============================================================================
 
 import React, { useState, useRef } from "react";
-import { PAD_KEY_LABELS, STEP_COUNTS, CHROMATIC_KEYS } from "../useSamplerEngine";
+import { PAD_KEY_LABELS, STEP_COUNTS, CHROMATIC_KEYS } from "../../utils/samplerConstants";
 
 // ✅ Adjust this import path if your VirtualPiano lives elsewhere
 import VirtualPiano from "../VirtualPiano";

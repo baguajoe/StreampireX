@@ -6,6 +6,9 @@
 // =============================================================================
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+// Architectural #13b: route through the singleton bus so we don't fight
+// SamplerBeatMaker / VirtualPiano for input.onmidimessage.
+import { isMidiSupported, subscribeMidi } from '../utils/MidiBus';
 
 const VELOCITY_CURVES = {
   linear: (v) => v,
@@ -19,7 +22,6 @@ const MidiHardwareInput = ({
   onNoteOn, onNoteOff, onCC, onPitchBend, onPadTrigger,
   drumMode = false, channelFilter = -1,
 }) => {
-  const [midiAccess, setMidiAccess] = useState(null);
   const [devices, setDevices] = useState([]);
   const [activeDevice, setActiveDevice] = useState(null);
   const [supported, setSupported] = useState(true);
@@ -94,71 +96,52 @@ const MidiHardwareInput = ({
       onNoteOn, onNoteOff, onCC, onPitchBend, onPadTrigger]);
 
   // ==========================================================================
-  // INIT WEB MIDI
+  // INIT WEB MIDI — Architectural #13b: subscribe via singleton MidiBus.
   // ==========================================================================
 
   useEffect(() => {
-    if (!navigator.requestMIDIAccess) {
+    if (!isMidiSupported()) {
       setSupported(false);
       setError('Web MIDI not supported in this browser. Try Chrome or Edge.');
       return;
     }
-
-    navigator.requestMIDIAccess({ sysex: false })
-      .then(access => {
-        setMidiAccess(access);
-        updateDevices(access);
-
-        access.onstatechange = () => updateDevices(access);
-      })
-      .catch(err => {
-        setError(`MIDI access denied: ${err.message}`);
-      });
-
+    // Pick up the device list and auto-connect the first input.
+    const unsubscribe = subscribeMidi({
+      onDevicesChange: (inputs) => {
+        setDevices(inputs);
+        setActiveDevice(prev => {
+          if (prev && inputs.find(d => d.id === prev.id)) return prev;
+          if (inputs.length > 0) return { id: inputs[0].id, name: inputs[0].name };
+          return null;
+        });
+      },
+    });
     return () => {
+      unsubscribe();
       clearTimeout(activityTimeoutRef.current);
     };
   }, []);
 
-  const updateDevices = useCallback((access) => {
-    const inputs = [];
-    access.inputs.forEach((input, id) => {
-      inputs.push({ id, name: input.name, manufacturer: input.manufacturer, state: input.state });
+  // Subscribe to MIDI messages for the currently active device.
+  useEffect(() => {
+    if (!activeDevice) return undefined;
+    const unsubscribe = subscribeMidi({
+      deviceId: activeDevice.id,
+      onMessage: (event) => handleMidiMessage(event),
     });
-    setDevices(inputs);
+    return unsubscribe;
+  }, [activeDevice?.id, handleMidiMessage]);
 
-    // Auto-connect first device
-    if (inputs.length > 0 && !activeDevice) {
-      connectDevice(access, inputs[0].id);
-    }
-  }, [activeDevice]);
-
-  const connectDevice = useCallback((access, deviceId) => {
-    // Disconnect previous
-    if (access) {
-      access.inputs.forEach(input => { input.onmidimessage = null; });
-    }
-
-    const input = access?.inputs.get(deviceId);
-    if (input) {
-      input.onmidimessage = handleMidiMessage;
-      setActiveDevice({ id: deviceId, name: input.name });
-    }
-  }, [handleMidiMessage]);
+  const connectDevice = useCallback((_, deviceId) => {
+    const found = devices.find(d => d.id === deviceId);
+    setActiveDevice(found ? { id: deviceId, name: found.name } : null);
+  }, [devices]);
 
   const disconnectDevice = useCallback(() => {
-    if (midiAccess) {
-      midiAccess.inputs.forEach(input => { input.onmidimessage = null; });
-    }
     setActiveDevice(null);
-  }, [midiAccess]);
-
-  // Reconnect when handler changes
-  useEffect(() => {
-    if (midiAccess && activeDevice) {
-      connectDevice(midiAccess, activeDevice.id);
-    }
-  }, [handleMidiMessage]);
+  }, []);
+  // Legacy callsites passed (midiAccess, deviceId); keep that signature for the JSX.
+  const midiAccess = null;
 
   // ==========================================================================
   // RENDER

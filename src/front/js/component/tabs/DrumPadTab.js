@@ -6,7 +6,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { SCALES, CHORD_TYPES, NOTE_REPEAT_RATES } from "../PerformanceEngine";
-import { CHROMATIC_KEYS, PAD_KEY_LABELS } from "../useSamplerEngine";
+import { CHROMATIC_KEYS, PAD_KEY_LABELS } from "../../utils/samplerConstants";
 
 const PERF_SECTIONS = ["perform", "scale", "looper", "kits"];
 

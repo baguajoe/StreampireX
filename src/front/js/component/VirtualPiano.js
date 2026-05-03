@@ -17,6 +17,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import '../../styles/VirtualPiano.css';
+// Architectural #13b: shared MIDI access — no more competing onmidimessage writes.
+import { isMidiSupported, subscribeMidi } from '../utils/MidiBus';
 
 // ── Note frequency table (A4 = 440Hz) ──
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
@@ -219,7 +221,6 @@ const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) =
   const recorderRef = useRef(null);
   const recDestRef = useRef(null);
   const recChunksRef = useRef([]);
-  const midiAccessRef = useRef(null);
 
   const keyboard = buildKeyboardLayout(baseOctave);
 
@@ -429,46 +430,36 @@ const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) =
     };
   }, [baseOctave, noteOn, noteOff]);
 
-  // ── MIDI Input ──
+  // ── MIDI Input ── Architectural #13b: subscribe via singleton MidiBus.
   useEffect(() => {
-    if (!navigator.requestMIDIAccess) return;
-    navigator.requestMIDIAccess().then(access => {
-      midiAccessRef.current = access;
-      const inputs = Array.from(access.inputs.values());
-      if (inputs.length > 0) {
-        setMidiConnected(true);
-        setMidiDeviceName(inputs[0].name || 'MIDI Device');
-        inputs.forEach(input => {
-          input.onmidimessage = (e) => {
-            const [status, midiNote, velocity] = e.data;
-            const noteIdx = midiNote % 12;
-            const octave = Math.floor(midiNote / 12) - 1;
-            const noteName = NOTE_NAMES[noteIdx];
-            const noteId = `${noteName}${octave}`;
-            const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
-
-            if ((status & 0xF0) === 0x90 && velocity > 0) {
-              // Note on
-              noteOn(noteId, freq, velocity / 127);
-            } else if ((status & 0xF0) === 0x80 || ((status & 0xF0) === 0x90 && velocity === 0)) {
-              // Note off
-              noteOff(noteId);
-            } else if ((status & 0xF0) === 0xB0 && midiNote === 64) {
-              // Sustain pedal
-              setSustain(velocity >= 64);
-            }
-          };
-        });
-      }
-    }).catch(() => {});
-
-    return () => {
-      if (midiAccessRef.current) {
-        Array.from(midiAccessRef.current.inputs.values()).forEach(input => {
-          input.onmidimessage = null;
-        });
-      }
-    };
+    if (!isMidiSupported()) return undefined;
+    const unsubscribe = subscribeMidi({
+      onDevicesChange: (inputs) => {
+        if (inputs.length > 0) {
+          setMidiConnected(true);
+          setMidiDeviceName(inputs[0].name || 'MIDI Device');
+        } else {
+          setMidiConnected(false);
+          setMidiDeviceName('');
+        }
+      },
+      onMessage: (e) => {
+        const [status, midiNote, velocity] = e.data;
+        const noteIdx = midiNote % 12;
+        const octave = Math.floor(midiNote / 12) - 1;
+        const noteName = NOTE_NAMES[noteIdx];
+        const noteId = `${noteName}${octave}`;
+        const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
+        if ((status & 0xF0) === 0x90 && velocity > 0) {
+          noteOn(noteId, freq, velocity / 127);
+        } else if ((status & 0xF0) === 0x80 || ((status & 0xF0) === 0x90 && velocity === 0)) {
+          noteOff(noteId);
+        } else if ((status & 0xF0) === 0xB0 && midiNote === 64) {
+          setSustain(velocity >= 64);
+        }
+      },
+    });
+    return unsubscribe;
   }, [noteOn, noteOff]);
 
   // ── Recording ──

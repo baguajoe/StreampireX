@@ -44,12 +44,9 @@ import {
   snapToZeroCrossing,
 } from './ChopEngine';
 
-// Fallback CHOP_MODES if useSamplerEngine doesn't export it
-let CHOP_MODES = ['transient', 'bpmgrid', 'equal', 'manual'];
-try {
-  const mod = require('./useSamplerEngine');
-  if (mod.CHOP_MODES) CHOP_MODES = mod.CHOP_MODES;
-} catch (e) { /* use fallback */ }
+// Architectural #13a: was a try/require fallback against the (now deleted)
+// useSamplerEngine — constants now live in utils/samplerConstants.
+import { CHOP_MODES } from '../utils/samplerConstants';
 
 // ── Inline style helpers (LARGE / HIGH CONTRAST) ──
 const S = {
