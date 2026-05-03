@@ -1892,18 +1892,24 @@ const RecordingStudio = ({ user }) => {
   });
 
   // ── Playback ──
+  // Bug #5b: ref-stable handle to the latest source builder so the cycle-wrap
+  // closure inside startLoopCheck doesn't see a stale `tracks` snapshot.
+  const buildSourcesRef = useRef(null);
   const startLoopCheck = useCallback(() => {
     if (loopCheckRef.current) cancelAnimationFrame(loopCheckRef.current);
     const check = () => {
       if (!cycleEnabled || !isPlaying) { loopCheckRef.current = null; return; }
-      const beatNow = playOffsetRef.current + (audioCtxRef.current ? (audioCtxRef.current.currentTime - playStartRef.current) * (bpm / 60) : 0);
+      // Bug #4b-2-extra: playOffsetRef.current is SECONDS — convert to BEATS so both terms (and cycleEnd) share units.
+      const beatNow = secondsToBeat(playOffsetRef.current, bpm) + (audioCtxRef.current ? (audioCtxRef.current.currentTime - playStartRef.current) * (bpm / 60) : 0);
       if (beatNow >= cycleEnd) {
-        // Bug #4b-2: cycleStart is in BEATS but playOffsetRef is used as SECONDS everywhere
-        // (s.start(0, playOffsetRef.current) at startPlayback, secondsToBeat() at region create).
-        // Convert beats→seconds before storing.
+        // Bug #4b-2: cycleStart is in BEATS but playOffsetRef is used as SECONDS everywhere — convert before storing.
         const cycleStartSec = beatToSeconds(cycleStart, bpm);
-        playOffsetRef.current = cycleStartSec; playStartRef.current = audioCtxRef.current?.currentTime || 0;
+        playOffsetRef.current = cycleStartSec;
+        const ctx = audioCtxRef.current;
+        playStartRef.current = ctx?.currentTime || 0;
         setCurrentTime(cycleStartSec);
+        // Bug #5b: BufferSourceNodes don't support post-start seeking — stop them and rebuild at the loop start.
+        if (ctx && buildSourcesRef.current) buildSourcesRef.current(ctx, cycleStartSec);
       }
       loopCheckRef.current = requestAnimationFrame(check);
     };
@@ -1915,8 +1921,10 @@ const RecordingStudio = ({ user }) => {
     else if (loopCheckRef.current) { cancelAnimationFrame(loopCheckRef.current); loopCheckRef.current = null; }
   }, [isPlaying, cycleEnabled, startLoopCheck]);
 
-  const startPlayback = (overdub = false) => {
-    const ctx = getCtx();
+  // Bug #5b: shared source builder so cycle wrap can rebuild buffer sources at the new offset
+  // (BufferSourceNodes are one-shot — looping requires stop+recreate).
+  const buildPlaybackSources = (ctx, fromOffsetSec) => {
+    // Latest reference is published below for use by startLoopCheck.
     trackSourcesRef.current.forEach(s => { try { s.stop(); } catch {} });
     trackSourcesRef.current = []; trackGainsRef.current = []; trackPansRef.current = []; trackAnalysersRef.current = [];
     let maxDur = 0;
@@ -1933,11 +1941,40 @@ const RecordingStudio = ({ user }) => {
       last.connect(g); g.connect(p); p.connect(splitter);
       splitter.connect(analyserL, 0); splitter.connect(analyserR, 1);
       p.connect(masterGainRef.current); if (t.effects) buildSends(ctx, t, p, masterGainRef.current);
-      s.start(0, playOffsetRef.current);
+      // Clamp offset to within buffer length so we don't throw or get silence on wrap.
+      const safeOffset = Math.max(0, Math.min(fromOffsetSec, Math.max(0, t.audioBuffer.duration - 0.001)));
+      s.start(0, safeOffset);
       trackSourcesRef.current[i] = s; trackGainsRef.current[i] = g; trackPansRef.current[i] = p;
       trackAnalysersRef.current[i] = { left: analyserL, right: analyserR };
       if (t.audioBuffer.duration > maxDur) maxDur = t.audioBuffer.duration;
     });
+    return maxDur;
+  };
+  // Publish latest builder so the cycle-wrap closure always sees current `tracks`.
+  buildSourcesRef.current = buildPlaybackSources;
+
+  // Bug #5d: toggling CYCLE on with no valid region defined was a silent no-op (start>=end never triggers wrap).
+  // Snap to the bar at the playhead and span 4 bars by default so the user gets immediate feedback.
+  const toggleCycle = useCallback(() => {
+    setCycleEnabled(prev => {
+      const turningOn = !prev;
+      if (turningOn && cycleEnd <= cycleStart) {
+        const beatsPerBar = (timeSignature && timeSignature[0]) || 4;
+        const playheadBeatNow = secondsToBeat(playOffsetRef.current, bpm);
+        const snappedStart = Math.max(0, Math.floor(playheadBeatNow / beatsPerBar) * beatsPerBar);
+        setCycleStart(snappedStart);
+        setCycleEnd(snappedStart + 4 * beatsPerBar);
+        setStatus(`Cycle ON — ${snappedStart}…${snappedStart + 4 * beatsPerBar} beats`);
+      } else {
+        setStatus(`Cycle ${turningOn ? "ON" : "OFF"}`);
+      }
+      return turningOn;
+    });
+  }, [cycleStart, cycleEnd, bpm, timeSignature]);
+
+  const startPlayback = (overdub = false) => {
+    const ctx = getCtx();
+    const maxDur = buildPlaybackSources(ctx, playOffsetRef.current);
     setDuration(maxDur); playStartRef.current = ctx.currentTime; setIsPlaying(true);
     if (metronomeOn) startMetronome(ctx);
     startMeterAnimation();
@@ -1945,7 +1982,8 @@ const RecordingStudio = ({ user }) => {
       if (!audioCtxRef.current) return;
       const el = audioCtxRef.current.currentTime - playStartRef.current + playOffsetRef.current;
       setCurrentTime(el);
-      if (el >= maxDur && maxDur > 0 && !overdub) stopPlayback();
+      // Bug #5b: when cycling, never auto-stop on maxDur — wrap takes care of bounds.
+      if (el >= maxDur && maxDur > 0 && !overdub && !cycleEnabled) stopPlayback();
     }, 50);
     if (!overdub) setStatus("▶ Playing");
   };
@@ -2756,7 +2794,7 @@ const RecordingStudio = ({ user }) => {
       case "track:color": { const pal = ["#34c759","#ff9500","#007aff","#af52de","#ff3b30","#5ac8fa","#ff2d55","#ffcc00","#ff6b35","#00ffc8"]; const next = pal[(pal.indexOf(tracks[sel]?.color ?? pal[0]) + 1) % pal.length]; updateTrack(sel, { color: next }); break; }
       case "track:rename": { const n = window.prompt("Rename track:", tracks[sel]?.name ?? `Track ${sel + 1}`); if (n?.trim()) updateTrack(sel, { name: n.trim() }); break; }
       case "transport:metronome": metronomeOn ? stopMetronome() : startMetronome(audioCtxRef?.current); setMetronomeOn(m => !m); break;
-      case "transport:cycle": setCycleEnabled(e => !e); setStatus(`Cycle ${cycleEnabled ? "OFF" : "ON"}`); break;
+      case "transport:cycle": toggleCycle(); break;
       case "transport:countIn": setCountIn(c => !c); break;
       case "transport:setBpm": { const b = window.prompt("Set BPM:", String(bpm ?? 120)); if (b && !isNaN(parseInt(b))) setBpm(Math.max(20, Math.min(300, parseInt(b)))); break; }
       case "transport:timeSignature": { const ts = window.prompt("Time signature:", `${timeSignature[0]}/${timeSignature[1]}`); if (ts) { const [top, bot] = ts.split("/").map(Number); if (top > 0 && bot > 0) setTimeSignature([top, bot]); } break; }
@@ -2888,7 +2926,7 @@ const RecordingStudio = ({ user }) => {
         {!splitScreen && viewMode === "arrange" && (
           <div className="rs-relative">
             <ArrangerView onBpmDetected={det => { setBpm(det); setStatus("♩ BPM detected: " + det); }} cycleEnabled={cycleEnabled} cycleStart={cycleStart} cycleEnd={cycleEnd}
-              onCycleChange={(s, e) => { setCycleStart(s); setCycleEnd(e); }} onCycleToggle={() => setCycleEnabled(e => !e)}
+              onCycleChange={(s, e) => { setCycleStart(s); setCycleEnd(e); }} onCycleToggle={toggleCycle}
               tracks={tracks} setTracks={setTracks} bpm={bpm} timeSignatureTop={timeSignature[0]} timeSignatureBottom={timeSignature[1]}
               masterVolume={masterVolume} onMasterVolumeChange={setMasterVolume} projectName={projectName} userTier={userTier}
               playheadBeat={playheadBeat} isPlaying={isPlaying} isRecording={isRecording}
@@ -3807,7 +3845,7 @@ const RecordingStudio = ({ user }) => {
             <option value={2}>2 bars</option>
             <option value={4}>4 bars</option>
           </select>
-          <button className={"daw-transport-btn"+(cycleEnabled?" active":"")} onClick={()=>setCycleEnabled(e=>!e)} title="Cycle">⟳ CYCLE</button>
+          <button className={"daw-transport-btn"+(cycleEnabled?" active":"")} onClick={toggleCycle} title="Cycle">⟳ CYCLE</button>
           <div className="daw-bt-divider"/>
           <span className="daw-bt-snap-label">LUFS</span>
           <span className="daw-bt-lufs" style={{color:lufsValue>-14?"#ff6b6b":lufsValue>-18?"#ffaa00":"#00ffc8",fontFamily:"JetBrains Mono,monospace",fontSize:11,minWidth:36}}>{lufsValue.toFixed(1)}</span>

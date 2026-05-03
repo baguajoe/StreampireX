@@ -309,6 +309,17 @@
   z-index: 1;
 }
 
+/* Bug #5c: Alt+drag overlay during cycle definition. Matches gold cycle palette. */
+.arr-cycle-drag-overlay {
+  position: absolute;
+  top: 0;
+  background: rgba(255, 215, 0, .12);
+  border-left: 1px solid rgba(255, 215, 0, .8);
+  border-right: 1px solid rgba(255, 215, 0, .8);
+  pointer-events: none;
+  z-index: 3;
+}
+
 /* Track lanes */
 .arr-lane {
   border-bottom: 1px solid var(--arr-border2);
@@ -380,8 +391,11 @@
 .arr-region-empty-wave {
   border-top: 1px solid rgba(255,255,255,.12); flex: 1; margin-top: 4px;
 }
-.arranger-waveform-canvas { display: block; width: 100%; }
-.arranger-midi-canvas { display: block; width: 100%; }
+/* Bug #3a: canvas was missing height: 100% — collapsed to its intrinsic 0 and rendered as a flat bar. */
+.arranger-waveform-canvas { display: block; width: 100%; height: 100%; }
+.arranger-midi-canvas { display: block; width: 100%; height: 100%; }
+/* Bug #3e: when audio is decoded but URL is gone, render a tinted placeholder instead of an empty bar. */
+.arr-region-placeholder-wave { flex: 1; margin-top: 4px; border-radius: 3px; opacity: .55; background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 5px); }
 
 /* ══════════════════════════════════
    CONTEXT MENU
