@@ -151,6 +151,7 @@
     "i18next-browser-languagedetector": "^8.0.4",
     "i18next-http-backend": "^3.0.2",
     "jspdf": "^4.2.1",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.525.0",
     "potrace": "^2.1.8",
     "prop-types": "^15.6.1",

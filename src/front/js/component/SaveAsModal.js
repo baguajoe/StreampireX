@@ -25,21 +25,24 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 
-const SaveAsModal = ({ show, defaultName = 'Untitled Project', onSave, onCancel }) => {
+// Bug #8a: extension prop replaces hardcoded ".spx". Default 'spxsonic' avoids the
+// Reallusion iClone .spx collision on Windows ("iClone Spring Files").
+const SaveAsModal = ({ show, defaultName = 'Untitled Project', extension = 'spxsonic', onSave, onCancel }) => {
   const [fileName, setFileName] = useState('');
   const inputRef = useRef(null);
+  const dotExt = `.${extension}`;
 
   // Reset filename when modal opens
   useEffect(() => {
     if (show) {
       const clean = defaultName.replace(/\s+/g, '_');
-      setFileName(clean.endsWith('.spx') ? clean : `${clean}.spx`);
+      setFileName(clean.endsWith(dotExt) ? clean : `${clean}${dotExt}`);
       // Focus input after render
       setTimeout(() => {
         if (inputRef.current) {
           inputRef.current.focus();
-          // Select just the name part (before .spx)
-          const dotIdx = inputRef.current.value.lastIndexOf('.spx');
+          // Select just the name part (before extension)
+          const dotIdx = inputRef.current.value.lastIndexOf(dotExt);
           if (dotIdx > 0) {
             inputRef.current.setSelectionRange(0, dotIdx);
           } else {
@@ -48,7 +51,7 @@ const SaveAsModal = ({ show, defaultName = 'Untitled Project', onSave, onCancel 
         }
       }, 50);
     }
-  }, [show, defaultName]);
+  }, [show, defaultName, dotExt]);
 
   // Handle Enter key
   const handleKeyDown = (e) => {
@@ -63,7 +66,7 @@ const SaveAsModal = ({ show, defaultName = 'Untitled Project', onSave, onCancel 
 
   const handleSave = () => {
     if (!fileName.trim()) return;
-    const final = fileName.trim().endsWith('.spx') ? fileName.trim() : `${fileName.trim()}.spx`;
+    const final = fileName.trim().endsWith(dotExt) ? fileName.trim() : `${fileName.trim()}${dotExt}`;
     onSave?.(final);
   };
 
@@ -107,12 +110,12 @@ const SaveAsModal = ({ show, defaultName = 'Untitled Project', onSave, onCancel 
               value={fileName}
               onChange={(e) => setFileName(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="my_project.spx"
+              placeholder={`my_project${dotExt}`}
               style={styles.input}
               autoComplete="off"
               spellCheck="false"
             />
-            <span style={styles.inputBadge}>.spx</span>
+            <span style={styles.inputBadge}>{dotExt}</span>
           </div>
           <p style={styles.hint}>
             Project will be saved to your device's Downloads folder

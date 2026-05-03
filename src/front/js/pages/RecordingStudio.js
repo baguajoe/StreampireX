@@ -121,6 +121,7 @@ import AmpSimPlugin from "../component/AmpSimPlugin";
 import PanKnob from "../component/PanKnob";
 import { InlineStemSeparation, AudioToMIDIPanel, PitchCorrectionPanel } from "../component/DAWAdvancedFeatures";
 import SaveAsModal from '../component/SaveAsModal';
+import { saveProjectFile, loadProjectFile, audioBufferToWav, FILE_EXTENSION as PROJECT_FILE_EXT } from '../utils/projectFileFormat';
 import MultibandEffects from '../component/MultibandEffects';
 import '../../styles/VoiceToMIDI.css';
 import PianoRoll from "../component/PianoRoll";
@@ -743,7 +744,6 @@ const RecordingStudio = ({ user }) => {
   const [showTakeLanes, setShowTakeLanes] = useState(false);
   const [takeLanesTrackIndex, setTakeLanesTrackIndex] = useState(null);
   const [showSaveAsModal, setShowSaveAsModal] = useState(false);
-  const [saveAsData, setSaveAsData] = useState(null);
   const [editingRegion, setEditingRegion] = useState(null);
   const [cycleEnabled, setCycleEnabled] = useState(false);
   const [cycleStart, setCycleStart] = useState(0);
@@ -2709,6 +2709,171 @@ const RecordingStudio = ({ user }) => {
   // Bug #10c: keep the keydown effect's ref pointed at the freshest closure.
   handleCutRegionRef.current = handleCutRegion;
 
+  // ── Bug #8b: project file save/load helpers (zip-based .spxsonic) ──
+  // Build the JSON-safe project metadata. Audio buffers are NOT inlined here —
+  // they're stored separately in the zip and pointed to by audio_id keys.
+  const buildProjectMetadata = useCallback(() => ({
+    name: projectName, bpm, time_signature: `${timeSignature[0]}/${timeSignature[1]}`,
+    master_volume: masterVolume, master_pan: masterPan,
+    tracks: tracks.map(t => ({
+      id: t.id, name: t.name, volume: t.volume, pan: t.pan, muted: t.muted, solo: t.solo,
+      effects: t.effects, color: t.color, trackType: t.trackType, instrument: t.instrument,
+      // Strip blob: URLs (session-scoped). Persistent http(s) URLs survive.
+      audio_url: typeof t.audio_url === "string" && !t.audio_url.startsWith("blob:") ? t.audio_url : null,
+      // Bug #8b-3: tag track with a stable key into the audio map if it has a buffer.
+      audio_id: t.audioBuffer ? `track_${t.id}` : null,
+      regions: (t.regions || []).map(r => ({
+        ...r, audioUrl: null,
+        // Per-region buffer (set after AudioClipEditor save) gets its own audio_id.
+        audio_id: r.audioBuffer ? `region_${t.id}_${r.id}` : null,
+        edits: r.edits || null,
+        // Don't serialise the AudioBuffer object itself.
+        audioBuffer: undefined,
+      })),
+      sends: t.sends || [], busTarget: t.busTarget || null,
+      vcaMembers: t.vcaMembers || null, groupMembers: t.groupMembers || null,
+      vcaController: t.vcaController || null, groupController: t.groupController || null,
+      linkedGroup: t.linkedGroup || null,
+    })),
+    piano_roll_notes: pianoRollNotes,
+    track_console_char: trackConsoleChar, master_console_char: masterConsoleChar,
+    monitor_speaker: monitorSpeaker, room_sim: roomSim,
+    binaural_on: binauralOn, mono_check: monoCheck,
+    automation, cycle_start: cycleStart, cycle_end: cycleEnd, cycle_enabled: cycleEnabled,
+    created_at: new Date().toISOString(), format: "streampirex-daw", version: "2.0",
+  }), [projectName, bpm, timeSignature, masterVolume, masterPan, tracks, pianoRollNotes, trackConsoleChar, masterConsoleChar, monitorSpeaker, roomSim, binauralOn, monoCheck, automation, cycleStart, cycleEnd, cycleEnabled]);
+
+  // Bug #8b-1/3: collect every AudioBuffer (track-level + per-region edited) into one Map.
+  const collectProjectAudioBuffers = useCallback(() => {
+    const map = new Map();
+    tracks.forEach(t => {
+      if (t.audioBuffer) map.set(`track_${t.id}`, t.audioBuffer);
+      (t.regions || []).forEach(r => {
+        if (r.audioBuffer) map.set(`region_${t.id}_${r.id}`, r.audioBuffer);
+      });
+    });
+    return map;
+  }, [tracks]);
+
+  // Returns total bytes generated, for status display.
+  const downloadProjectAsSpxsonic = useCallback(async (filename) => {
+    const project = buildProjectMetadata();
+    const audioBuffers = collectProjectAudioBuffers();
+    const blob = await saveProjectFile(project, audioBuffers);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return blob.size;
+  }, [buildProjectMetadata, collectProjectAudioBuffers]);
+
+  // Bug #8b-2: rehydrate audioBuffer onto tracks AND regions; reconstruct blob URLs from buffers.
+  const applyLoadedProject = useCallback((project, audioBuffers, opts = {}) => {
+    if (project.format && project.format !== "streampirex-daw") {
+      setStatus("Not a valid StreamPireX project"); return;
+    }
+    stopEverything();
+    setProjectId(null);
+    setProjectName(project.name || "Imported Project");
+    setBpm(project.bpm || 120);
+    setMasterVolume(project.master_volume || 1.0);
+    if (project.time_signature) {
+      const ts = String(project.time_signature).split("/").map(Number);
+      if (ts.length === 2 && !ts.some(isNaN)) setTimeSignature(ts);
+    }
+    if (project.piano_roll_notes) setPianoRollNotes(project.piano_roll_notes);
+    if (project.master_pan != null) setMasterPan(project.master_pan);
+    if (project.track_console_char) setTrackConsoleChar(project.track_console_char);
+    if (project.master_console_char) setMasterConsoleChar(project.master_console_char);
+    if (project.monitor_speaker) setMonitorSpeaker(project.monitor_speaker);
+    if (project.room_sim) setRoomSim(project.room_sim);
+    if (project.binaural_on != null) setBinauralOn(project.binaural_on);
+    if (project.mono_check != null) setMonoCheck(project.mono_check);
+    if (project.automation) setAutomation(project.automation);
+    if (project.cycle_start != null) setCycleStart(project.cycle_start);
+    if (project.cycle_end != null) setCycleEnd(project.cycle_end);
+    if (project.cycle_enabled != null) setCycleEnabled(project.cycle_enabled);
+    const trackCount = Math.min(Math.max(project.tracks?.length || 1, 1), maxTracks);
+    const loaded = Array.from({ length: trackCount }, (_, i) => {
+      const src = project.tracks?.[i] || {};
+      const trackBuffer = audioBuffers.get(src.audio_id || `track_${src.id}`) || null;
+      const trackUrl = trackBuffer ? URL.createObjectURL(audioBufferToWav(trackBuffer)) : (src.audio_url || null);
+      const regions = (src.regions || []).map(r => {
+        const regionBuffer = audioBuffers.get(r.audio_id || "") || null;
+        return {
+          ...r,
+          audioBuffer: regionBuffer,
+          audioUrl: regionBuffer ? URL.createObjectURL(audioBufferToWav(regionBuffer)) : (trackUrl || null),
+        };
+      });
+      return {
+        ...DEFAULT_TRACK(i),
+        ...src,
+        audioBuffer: trackBuffer,
+        audio_url: trackUrl,
+        effects: src.effects || DEFAULT_EFFECTS(),
+        regions,
+      };
+    });
+    setTracks(loaded);
+    setSelectedTrackIndex(0);
+    setStatus(`Opened: ${project.name || "project"}${opts.legacy ? " (legacy format — audio missing)" : ""}`);
+  }, [maxTracks]);
+
+  // ── Architectural #4: localStorage autosave (metadata only — no audio) ──
+  // Debounced 2s. Audio buffers are too big for localStorage (5MB cap), so they
+  // stay in-memory only; reload restores everything except actual sound. Refresh
+  // prompts the user to restore via the offer-state below.
+  const AUTOSAVE_KEY = "spx-sonic-autosave";
+  const AUTOSAVE_MAX_AGE_MS = 24 * 3600 * 1000;
+  const AUTOSAVE_MAX_BYTES = 4 * 1024 * 1024; // stay well under 5MB browser cap
+  const [restoreOffer, setRestoreOffer] = useState(null); // { savedAt, project } or null
+  const autosaveTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(() => {
+      try {
+        const project = buildProjectMetadata();
+        const payload = JSON.stringify({ savedAt: new Date().toISOString(), project });
+        if (payload.length > AUTOSAVE_MAX_BYTES) return; // too large — skip silently
+        localStorage.setItem(AUTOSAVE_KEY, payload);
+      } catch (_) { /* QuotaExceededError or private mode — non-fatal */ }
+    }, 2000);
+    return () => { if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current); };
+  }, [buildProjectMetadata]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(AUTOSAVE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed?.savedAt || !parsed?.project) return;
+      const ageMs = Date.now() - new Date(parsed.savedAt).getTime();
+      if (!isFinite(ageMs) || ageMs > AUTOSAVE_MAX_AGE_MS) {
+        localStorage.removeItem(AUTOSAVE_KEY);
+        return;
+      }
+      setRestoreOffer(parsed);
+    } catch (_) {
+      try { localStorage.removeItem(AUTOSAVE_KEY); } catch (_) {}
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const acceptRestore = useCallback(() => {
+    if (!restoreOffer) return;
+    applyLoadedProject(restoreOffer.project, new Map(), { legacy: false });
+    setRestoreOffer(null);
+    setStatus("Restored unsaved work (audio not embedded — open the .spxsonic file to recover)");
+  }, [restoreOffer, applyLoadedProject]);
+
+  const dismissRestore = useCallback(() => {
+    setRestoreOffer(null);
+    try { localStorage.removeItem(AUTOSAVE_KEY); } catch (_) {}
+  }, []);
+
   // ── Flex pitch ──
   const openFlexPitch = useCallback((ti) => {
     const t = tracks[ti]; if (!t?.audioBuffer) { setStatus(`⚠ Track ${ti + 1} has no audio`); return; }
@@ -2762,21 +2927,32 @@ const RecordingStudio = ({ user }) => {
       case "file:new": newProject(); break;
       case "file:open": loadProjectList(); break;
       case "file:save": saveProject(); break;
-      case "file:openLocal": { const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".spx,.json"; inp.onchange = async (e) => { const f = e.target.files[0]; if (!f) return; try { const text = await f.text(); const data = JSON.parse(text); if (data.format !== "streampirex-daw") { setStatus("Not a valid StreamPireX project"); return; } stopEverything(); setProjectId(null); setProjectName(data.name || "Imported Project"); setBpm(data.bpm || 120); setMasterVolume(data.master_volume || 1.0); if (data.time_signature) { const ts = data.time_signature.split("/").map(Number); if (ts.length === 2) setTimeSignature(ts); } if (data.piano_roll_notes) setPianoRollNotes(data.piano_roll_notes);
-        if (data.master_pan != null) setMasterPan(data.master_pan);
-        if (data.track_console_char) setTrackConsoleChar(data.track_console_char);
-        if (data.master_console_char) setMasterConsoleChar(data.master_console_char);
-        if (data.monitor_speaker) setMonitorSpeaker(data.monitor_speaker);
-        if (data.room_sim) setRoomSim(data.room_sim);
-        if (data.binaural_on != null) setBinauralOn(data.binaural_on);
-        if (data.mono_check != null) setMonoCheck(data.mono_check);
-        if (data.automation) setAutomation(data.automation);
-        if (data.cycle_start != null) setCycleStart(data.cycle_start);
-        if (data.cycle_end != null) setCycleEnd(data.cycle_end);
-        if (data.cycle_enabled != null) setCycleEnabled(data.cycle_enabled);
-        const trackCount = Math.min(Math.max(data.tracks?.length || 1, 1), maxTracks); const loaded = Array.from({ length: trackCount }, (_, i) => ({ ...DEFAULT_TRACK(i), ...(data.tracks[i] || {}), audioBuffer: null, effects: data.tracks[i]?.effects || DEFAULT_EFFECTS(), regions: data.tracks[i]?.regions || [] })); setTracks(loaded); setSelectedTrackIndex(0); setStatus("Opened: " + (data.name || "project")); } catch (err) { setStatus("Failed to open: " + err.message); } }; inp.click(); break; }
-      case "file:saveAs": { const saveData = { name: projectName, bpm, time_signature: timeSignature[0] + "/" + timeSignature[1], master_volume: masterVolume, master_pan: masterPan, tracks: tracks.map(t => ({ id: t.id, name: t.name, volume: t.volume, pan: t.pan, muted: t.muted, solo: t.solo, effects: t.effects, color: t.color, trackType: t.trackType, instrument: t.instrument, regions: (t.regions || []).map(r => ({ ...r, audioUrl: null })), audio_url: typeof t.audio_url === "string" && !t.audio_url.startsWith("blob:") ? t.audio_url : null, sends: t.sends || [], busTarget: t.busTarget || null, vcaMembers: t.vcaMembers || null, groupMembers: t.groupMembers || null, vcaController: t.vcaController || null, groupController: t.groupController || null, linkedGroup: t.linkedGroup || null })), piano_roll_notes: pianoRollNotes, track_console_char: trackConsoleChar, master_console_char: masterConsoleChar, monitor_speaker: monitorSpeaker, room_sim: roomSim, binaural_on: binauralOn, mono_check: monoCheck, automation, cycle_start: cycleStart, cycle_end: cycleEnd, cycle_enabled: cycleEnabled, created_at: new Date().toISOString(), format: "streampirex-daw", version: "1.0" }; setSaveAsData(JSON.stringify(saveData, null, 2)); setShowSaveAsModal(true); break; }
-      case "file:saveDesktop": { const dlData = { name: projectName, bpm, time_signature: `${timeSignature[0]}/${timeSignature[1]}`, master_volume: masterVolume, master_pan: masterPan, tracks: tracks.map(t => ({ id: t.id, name: t.name, volume: t.volume, pan: t.pan, muted: t.muted, solo: t.solo, effects: t.effects, color: t.color, trackType: t.trackType, instrument: t.instrument, regions: (t.regions || []).map(r => ({ ...r, audioUrl: null })), sends: t.sends || [], busTarget: t.busTarget || null, vcaMembers: t.vcaMembers || null, groupMembers: t.groupMembers || null, vcaController: t.vcaController || null, groupController: t.groupController || null, linkedGroup: t.linkedGroup || null })), piano_roll_notes: pianoRollNotes, track_console_char: trackConsoleChar, master_console_char: masterConsoleChar, monitor_speaker: monitorSpeaker, room_sim: roomSim, binaural_on: binauralOn, mono_check: monoCheck, automation, cycle_start: cycleStart, cycle_end: cycleEnd, cycle_enabled: cycleEnabled, created_at: new Date().toISOString(), format: "streampirex-daw", version: "1.0" }; const dlBlob = new Blob([JSON.stringify(dlData, null, 2)], { type: "application/json" }); const dlUrl = URL.createObjectURL(dlBlob); const dlA = document.createElement("a"); dlA.href = dlUrl; dlA.download = `${projectName.replace(/\s+/g, "_")}.spx`; document.body.appendChild(dlA); dlA.click(); document.body.removeChild(dlA); URL.revokeObjectURL(dlUrl); setStatus(`Downloaded: ${projectName}.spx`); break; }
+      case "file:openLocal": {
+        // Bug #8a: accept both new .spxsonic and legacy .spx/.json files.
+        const inp = document.createElement("input");
+        inp.type = "file"; inp.accept = `.${PROJECT_FILE_EXT},.spx,.json`;
+        inp.onchange = async (e) => {
+          const f = e.target.files[0]; if (!f) return;
+          try {
+            const ctx = audioCtxRef.current || getCtx();
+            const { project, audioBuffers, isLegacy } = await loadProjectFile(f, ctx);
+            applyLoadedProject(project, audioBuffers, { legacy: isLegacy });
+          } catch (err) { setStatus("Failed to open: " + err.message); }
+        };
+        inp.click(); break;
+      }
+      case "file:saveAs": {
+        // Bug #8b: SaveAsModal now owns just the filename — actual write goes through
+        // downloadProjectAsSpxsonic so the audio buffers come along for the ride.
+        setShowSaveAsModal(true); break;
+      }
+      case "file:saveDesktop": {
+        // Bug #8a/#8b-1: zip with embedded audio (was a JSON-only payload missing audio_url and buffers).
+        downloadProjectAsSpxsonic(`${projectName.replace(/\s+/g, "_")}.${PROJECT_FILE_EXT}`)
+          .then(size => setStatus(`Downloaded: ${projectName}.${PROJECT_FILE_EXT} (${(size/1024).toFixed(1)} KB)`))
+          .catch(err => setStatus(`Save failed: ${err.message}`));
+        break;
+      }
       case "file:importAudio": setViewMode("arrange"); handleImport(sel); break;
       case "file:importMidi": case "midi:import": setViewMode("pianoroll"); break;
       case "midi:controller": setMidiEnabled(m => !m); break;
@@ -3817,10 +3993,28 @@ const RecordingStudio = ({ user }) => {
           </DraggablePanel>
         )}
 
-        {/* SAVE AS */}
-        <SaveAsModal show={showSaveAsModal} defaultName={projectName}
-          onSave={(fileName) => { if (saveAsData) { const blob = new Blob([saveAsData], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); setStatus("Saved: " + fileName); } setShowSaveAsModal(false); setSaveAsData(null); }}
-          onCancel={() => { setShowSaveAsModal(false); setSaveAsData(null); }}/>
+        {/* Architectural #4: restore-unsaved-work offer (metadata only, no audio). */}
+        {restoreOffer && (
+          <div className="rs-restore-toast">
+            <span className="rs-restore-toast-msg">
+              Restore unsaved work from <strong>{new Date(restoreOffer.savedAt).toLocaleString()}</strong>?
+              <span className="rs-restore-toast-hint">(metadata only — audio buffers stay if you have the .spxsonic)</span>
+            </span>
+            <button className="rs-restore-toast-btn primary" onClick={acceptRestore}>Restore</button>
+            <button className="rs-restore-toast-btn" onClick={dismissRestore}>Dismiss</button>
+          </div>
+        )}
+
+        {/* SAVE AS — Bug #8a/#8b: zip-based .spxsonic with embedded audio. */}
+        <SaveAsModal show={showSaveAsModal} defaultName={projectName} extension={PROJECT_FILE_EXT}
+          onSave={async (fileName) => {
+            try {
+              const size = await downloadProjectAsSpxsonic(fileName);
+              setStatus(`Saved: ${fileName} (${(size/1024).toFixed(1)} KB)`);
+            } catch (err) { setStatus(`Save failed: ${err.message}`); }
+            setShowSaveAsModal(false);
+          }}
+          onCancel={() => setShowSaveAsModal(false)}/>
 
         <CollabChatPanel collab={collab}/>
         {showAddTrackDialog && (
