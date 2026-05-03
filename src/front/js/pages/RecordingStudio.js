@@ -761,6 +761,8 @@ const RecordingStudio = ({ user }) => {
   const canvasRefs = useRef([]);
   const inputAnalyserRef = useRef(null);
   const inputAnimRef = useRef(null);
+  const recMonitorGainRef = useRef(null);
+  const recInputSrcRef = useRef(null);
   const trackNodesRef = useRef(new Map());
   const tapTimesRef = useRef([]);
   const loopCheckRef = useRef(null);
@@ -906,11 +908,23 @@ const RecordingStudio = ({ user }) => {
   });
 
   // ── Init ──
+  // Bug #11-2: pre-permission enumerateDevices returns blank labels and stale
+  // deviceIds. Best-effort enumerate now, then refresh on `devicechange`
+  // (browsers emit it after the first getUserMedia grant) so the picker shows
+  // real labels/IDs.
   useEffect(() => {
-    navigator.mediaDevices.enumerateDevices()
+    const md = navigator.mediaDevices;
+    if (!md) return;
+    const refresh = () => md.enumerateDevices()
       .then(d => setInputDevices(d.filter(x => x.kind === "audioinput")))
       .catch(console.error);
-    return () => { stopEverything(); if (audioCtxRef.current) audioCtxRef.current.close(); };
+    refresh();
+    md.addEventListener?.("devicechange", refresh);
+    return () => {
+      md.removeEventListener?.("devicechange", refresh);
+      stopEverything();
+      if (audioCtxRef.current) audioCtxRef.current.close();
+    };
   }, []);
 
   // ── Console character helper ──
@@ -1936,19 +1950,51 @@ const RecordingStudio = ({ user }) => {
     if (ai === -1) { setStatus("⚠ Arm a track"); return; }
     try {
       const ctx = getCtx();
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: selectedDevice !== "default" ? { exact: selectedDevice } : undefined, echoCancellation: false, noiseSuppression: false, autoGainControl: false, sampleRate: 44100 } });
+      const baseAudio = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, sampleRate: 44100 };
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: selectedDevice !== "default" ? { ...baseAudio, deviceId: { exact: selectedDevice } } : baseAudio });
+      } catch (err) {
+        // Bug #11-2: stale/anonymized deviceId from pre-permission enumerate can throw NotFound/Overconstrained — fall back to default mic.
+        if (selectedDevice !== "default" && (err?.name === "NotFoundError" || err?.name === "OverconstrainedError")) {
+          setStatus("⚠ Selected input unavailable, using default mic");
+          stream = await navigator.mediaDevices.getUserMedia({ audio: baseAudio });
+        } else { throw err; }
+      }
+      // Re-enumerate now that permission is granted so labels/IDs are real (Bug #11-2).
+      navigator.mediaDevices.enumerateDevices().then(d => setInputDevices(d.filter(x => x.kind === "audioinput"))).catch(() => {});
       mediaStreamRef.current = stream; setMicSimStream(stream);
-      const src = ctx.createMediaStreamSource(stream); inputAnalyserRef.current = ctx.createAnalyser(); inputAnalyserRef.current.fftSize = 256; src.connect(inputAnalyserRef.current);
+      const src = ctx.createMediaStreamSource(stream); recInputSrcRef.current = src;
+      inputAnalyserRef.current = ctx.createAnalyser(); inputAnalyserRef.current.fftSize = 256; src.connect(inputAnalyserRef.current);
+      // Bug #11-3: route mic to destination so user hears themselves while recording. Held at 0 if direct-monitor is already on, to avoid double-routing/feedback.
+      const recMon = ctx.createGain(); recMon.gain.value = monitoringEnabled ? 0 : 0.6; src.connect(recMon); recMon.connect(ctx.destination); recMonitorGainRef.current = recMon;
       const mon = () => { if (!inputAnalyserRef.current) return; const d = new Uint8Array(inputAnalyserRef.current.frequencyBinCount); inputAnalyserRef.current.getByteFrequencyData(d); setInputLevel(d.reduce((a, b) => a + b, 0) / d.length / 255); inputAnimRef.current = requestAnimationFrame(mon); }; mon();
       if (countIn) { setStatus("Count in..."); await playCountIn(ctx); }
-      const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm";
-      const rec = new MediaRecorder(stream, { mimeType: mime }); chunksRef.current = [];
+      // supportedMime guard: Safari rejects webm; let the browser pick its default when none of our preferred mimes are available.
+      const supportedMime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm"
+        : MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "";
+      const rec = new MediaRecorder(stream, supportedMime ? { mimeType: supportedMime } : undefined);
+      chunksRef.current = [];
       rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       rec.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: mime }); const ab = await blob.arrayBuffer();
-        const buf = await ctx.decodeAudioData(ab); const audioUrl = URL.createObjectURL(blob);
+        const blob = new Blob(chunksRef.current, supportedMime ? { type: supportedMime } : undefined);
+        if (!blob.size) { setStatus("✗ Recording produced no audio"); return; }
+        const audioUrl = URL.createObjectURL(blob);
+        let buf;
+        try {
+          const ab = await blob.arrayBuffer();
+          buf = await ctx.decodeAudioData(ab);
+        } catch (err) {
+          // Bug #11-1: surface decode failures (Safari/codec mismatch) instead of silently dropping the post-record callback chain.
+          URL.revokeObjectURL(audioUrl);
+          console.error("[SPX] decodeAudioData failed:", err);
+          setStatus(`✗ Recording decode failed: ${err?.message || err}`);
+          return;
+        }
         updateTrack(ai, { audioBuffer: buf, audio_url: audioUrl }); createRegionFromRecording(ai, buf, audioUrl);
-        await uploadTrack(blob, ai); setStatus("✓ Recorded");
+        try { await uploadTrack(blob, ai); } catch (err) { console.error("[SPX] uploadTrack failed:", err); setStatus(`✓ Recorded (upload failed: ${err?.message || err})`); return; }
+        setStatus("✓ Recorded");
       };
       mediaRecorderRef.current = rec; rec.start(100); startPlayback(true); setIsRecording(true); setStatus(`● REC Track ${ai + 1}`);
     } catch (e) { setStatus(`✗ Mic: ${e.message}`); }
@@ -1958,6 +2004,10 @@ const RecordingStudio = ({ user }) => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") mediaRecorderRef.current.stop();
     if (mediaStreamRef.current) { mediaStreamRef.current.getTracks().forEach(t => t.stop()); mediaStreamRef.current = null; }
     if (inputAnimRef.current) cancelAnimationFrame(inputAnimRef.current);
+    // Bug #11-3 cleanup.
+    try { recMonitorGainRef.current?.disconnect(); } catch (_) {}
+    try { recInputSrcRef.current?.disconnect(); } catch (_) {}
+    recMonitorGainRef.current = null; recInputSrcRef.current = null;
     setMicSimStream(null); setInputLevel(0); setIsRecording(false); stopPlayback();
   };
 

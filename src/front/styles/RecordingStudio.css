@@ -104,7 +104,12 @@
 .daw-ch-badge.m-on { background:#6a4400; border-color:#c07800; color:#ffc060; }
 .daw-ch-badge.s-on { background:#003a2a; border-color:#008060; color:var(--rs-teal); }
 .daw-ch-badge.e-on { background:rgba(0,255,200,.1); border-color:rgba(0,255,200,.4); color:var(--rs-teal); }
-.daw-ch-rec-btn { border-radius:50%; border:1px solid #1e2a3e; background:transparent; color:#555; cursor:pointer; font-size:9px; height:20px; width:20px; display:flex; align-items:center; justify-content:center; transition:all .12s; flex-shrink:0; padding:0; }
+/* Bug #7: idle ● glyph at color:#555 was unreadable on the #0d1117 console
+   background, so users missed the record-arm affordance. Use a saturated red
+   (matching the .armed escalation palette below) plus a faint border tint and
+   glow so the button is discoverable in its idle state. */
+.daw-ch-rec-btn { border-radius:50%; border:1px solid rgba(255,89,103,.45); background:transparent; color:#ff5967; cursor:pointer; font-size:11px; height:20px; width:20px; display:flex; align-items:center; justify-content:center; transition:all .12s; flex-shrink:0; padding:0; text-shadow:0 0 4px rgba(255,89,103,.55); }
+.daw-ch-rec-btn:hover { color:#ff8a98; border-color:rgba(255,89,103,.85); text-shadow:0 0 8px rgba(255,89,103,.85); }
 .daw-ch-rec-btn.armed { border-color:var(--rs-red); color:var(--rs-red); background:rgba(255,59,48,.12); animation:rs-pulse 1.4s ease-in-out infinite; }
 @keyframes rs-pulse { 0%,100%{opacity:1}50%{opacity:.45} }
 .daw-ch-btn { background:transparent; border:1px solid #1e2a3e; border-radius:3px; color:var(--rs-text3); cursor:pointer; font-family:var(--rs-font); font-size:10px; font-weight:700; height:20px; min-width:22px; padding:0 3px; transition:all .12s; }
