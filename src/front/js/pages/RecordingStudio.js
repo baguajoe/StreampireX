@@ -168,6 +168,7 @@ import "../../styles/DAWMenuBar.css";
 import "../../styles/VocalTools.css";
 import { useDAWCollaboration, CollabToolbar, CollabOverlay, CollabChatPanel } from "../component/hooks/useDAWCollaboration";
 import MidiHardwareInput from "../component/MidiHardwareInput";
+import { qwertyMidi } from "../utils/qwertyMidi";
 import { installWAMPlugin, getInstalledWAMPlugins } from "../component/audio/plugins/WAMPluginHost";
 import AddTrackDialog from "../component/AddTrackDialog";
 import { DEFAULT_EFFECTS, DEFAULT_TRACK } from "../utils/trackFactory";
@@ -184,6 +185,9 @@ const TRACK_COLORS = [
 
 const TIER_TRACK_LIMITS = { free: 4, starter: 8, creator: 16, pro: 32 };
 const DEFAULT_MAX = 4;
+
+const MIDI_NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const midiNoteName = (n) => `${MIDI_NOTE_NAMES[((n % 12) + 12) % 12]}${Math.floor(n / 12) - 1}`;
 
 const CONSOLE_BOARDS = {
   none:      { name: "Bypass",      color: "#555" },
@@ -655,6 +659,15 @@ const RecordingStudio = ({ user }) => {
   useEffect(() => { localStorage.setItem("rs_left_open", showLeftSidebar); }, [showLeftSidebar]);
   useEffect(() => { localStorage.setItem("rs_right_open", showRightSidebar); }, [showRightSidebar]);
 
+  // Part 12: subscribe to QWERTY-MIDI engine state so the toolbar toggle and HUD
+  // stay in sync with octave/velocity/last-note changes triggered by hotkeys.
+  useEffect(() => qwertyMidi.onChange(s => {
+    setQwertyEnabled(s.enabled);
+    setQwertyOctave(s.octave);
+    setQwertyVelocity(s.velocity);
+    setQwertyLastNote(s.lastNote);
+  }), []);
+
   // Keyboard shortcuts for sidebar toggles + Bug #10c: S = split at playhead.
   useEffect(() => {
     const onKey = (e) => {
@@ -701,6 +714,10 @@ const RecordingStudio = ({ user }) => {
   const [tracks, setTracks] = useState(Array.from({ length: 1 }, (_, i) => DEFAULT_TRACK(i)));
   const [trackMicModels, setTrackMicModels] = useState({});
   const [midiEnabled, setMidiEnabled] = useState(false);
+  const [qwertyEnabled, setQwertyEnabled] = useState(false);
+  const [qwertyOctave, setQwertyOctave] = useState(4);
+  const [qwertyVelocity, setQwertyVelocity] = useState(100);
+  const [qwertyLastNote, setQwertyLastNote] = useState(null);
   const [wamPlugins, setWamPlugins] = useState([]);
   const [analogSubview, setAnalogSubview] = useState("ampsim");
   const [trackConsoleChar, setTrackConsoleChar] = useState({});
@@ -3254,6 +3271,11 @@ const RecordingStudio = ({ user }) => {
           </div>
 
           <CollabToolbar collab={collab}/>
+          <button
+            className={"daw-toolbar-btn" + (qwertyEnabled ? " active" : "")}
+            onClick={() => qwertyMidi.toggle()}
+            title="Computer keyboard as MIDI controller (Cubase-style). A-S-D-F-G-H-J-K-L-; play notes; Z/X octave; ,/. velocity; Space sustain; Esc panic."
+          >🎹 QWERTY</button>
           {midiEnabled && <MidiHardwareInput drumMode={viewMode === "beatmaker" || viewMode === "sampler"} onNoteOn={(note, vel) => setStatus(`MIDI: Note ${note} vel ${vel}`)} onNoteOff={() => {}} onCC={(cc, val) => { if (cc === 7) tracks.forEach((t, i) => { if (selectedTrack === i) updateTrack(i, { volume: val / 127 }); }); if (cc === 10) tracks.forEach((t, i) => { if (selectedTrack === i) updateTrack(i, { pan: (val - 64) / 64 }); }); }} onPadTrigger={pad => setStatus(`Pad ${pad} triggered`)}/>}
           {wamPlugins.length > 0 && <span className="rs-wam-badge"><span className="rs-wam-text">🔌 {wamPlugins.length} WAM</span></span>}
 
@@ -4352,6 +4374,26 @@ const RecordingStudio = ({ user }) => {
             }
           }}
         />
+      )}
+      {qwertyEnabled && (
+        <div className="qwerty-midi-hud">
+          <div className="qwerty-midi-hud-row">
+            <span className="qwerty-midi-label">QWERTY MIDI</span>
+            <span className="qwerty-midi-status">ON</span>
+          </div>
+          <div className="qwerty-midi-hud-row">
+            <span>Octave: C{qwertyOctave}</span>
+            <span>Vel: {qwertyVelocity}</span>
+          </div>
+          {qwertyLastNote != null && (
+            <div className="qwerty-midi-hud-row">
+              <span>Last: {midiNoteName(qwertyLastNote)}</span>
+            </div>
+          )}
+          <div className="qwerty-midi-hud-keys">
+            A-S-D-F-G-H-J-K-L-; · W-E-T-Y-U-O-P · Z/X octave · ,/. vel · Space sustain · Esc panic
+          </div>
+        </div>
       )}
     </div>
   );

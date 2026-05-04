@@ -1945,3 +1945,15 @@
 .rs-export-stems-bulk { padding: 7px 16px; background: rgba(255,102,0,.15); border: 1px solid #ff6600; color: #ff6600; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 700; }
 .rs-export-cancel-btn { padding: 7px 18px; background: transparent; border: 1px solid #243048; color: #8ba3bc; border-radius: 4px; cursor: pointer; font-size: 11px; }
 .rs-export-confirm-btn { padding: 7px 24px; background: #00ffc8; border: none; color: #000; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 800; }
+
+/* Part 12: QWERTY MIDI toolbar button */
+.daw-toolbar-btn { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #cdd9e5; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: var(--rs-font); font-size: 11px; font-weight: 600; transition: all .12s; }
+.daw-toolbar-btn:hover { border-color: rgba(0,255,200,.5); color: #00ffc8; }
+.daw-toolbar-btn.active { background: rgba(0,255,200,.18); border-color: #00ffc8; color: #00ffc8; text-shadow: 0 0 4px rgba(0,255,200,.6); }
+
+/* Part 12: floating QWERTY MIDI HUD (only rendered while engine is enabled) */
+.qwerty-midi-hud { position: fixed; bottom: 60px; right: 20px; z-index: 1000; background: linear-gradient(180deg,#0c1220,#06070d); border: 1px solid rgba(0,255,200,.35); border-radius: 6px; padding: 10px 14px; font-family: var(--rs-font); font-size: 10px; color: #cdd9e5; box-shadow: 0 8px 24px rgba(0,0,0,.6); min-width: 200px; pointer-events: none; }
+.qwerty-midi-hud-row { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.qwerty-midi-label  { color: #4e6a82; font-weight: 700; letter-spacing: 1px; }
+.qwerty-midi-status { color: #00ffc8; font-weight: 800; }
+.qwerty-midi-hud-keys { font-size: 9px; color: #5a6a7a; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(0,255,200,.15); line-height: 1.5; }
