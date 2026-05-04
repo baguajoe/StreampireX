@@ -595,6 +595,40 @@ const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, upd
   );
 };
 
+// Bug #12 (Part 9b): destination picker for +Add Send. Lists every track that
+// is NOT the source track (so you can route to buses, aux, or any sibling
+// audio track). Adds { busId, target, level: 0.5 } so the existing Console
+// renderer (which keys by busId) continues to find/update the send.
+const SendPickerMenu = ({ sendPickerState, setSendPickerState, tracks, updateTrack, setStatus }) => {
+  const ti = sendPickerState?.trackIndex ?? -1;
+  const sourceTrack = tracks[ti];
+  if (!sourceTrack) return null;
+  const targets = tracks.map((t, i) => ({ t, i })).filter(({ t, i }) => i !== ti && t.id);
+  const existingIds = new Set((sourceTrack.sends || []).map(s => s.busId));
+  return (
+    <>
+      {targets.length === 0 && <div className="rs-insert-cat-header" style={{color:"#8ba3bc"}}>No other tracks to send to</div>}
+      {targets.map(({ t: target, i: idx }) => {
+        const already = existingIds.has(target.id);
+        return (
+          <div key={target.id} className={"daw-insert-picker-item" + (already ? " done" : "")}
+            onClick={() => {
+              if (already) return;
+              const newSends = [...(sourceTrack.sends || []), { busId: target.id, target: target.name || `Track ${idx + 1}`, level: 0.5, prePost: "post" }];
+              updateTrack(ti, { sends: newSends });
+              setSendPickerState(null);
+              setStatus(`Send → ${target.name || `Track ${idx + 1}`}`);
+            }}>
+            {already ? "✓ " : "→ "}{target.name || `Track ${idx + 1}`} <span style={{color:"#4e6a82",fontSize:9,marginLeft:6}}>({target.trackType || "audio"})</span>
+          </div>
+        );
+      })}
+      <div className="rs-divider"/>
+      <div className="rs-remove-item" onClick={() => setSendPickerState(null)}>Cancel</div>
+    </>
+  );
+};
+
 const RecordingStudio = ({ user }) => {
   // ── Automation ──
   const [automation, setAutomation] = useState({});
@@ -737,6 +771,10 @@ const RecordingStudio = ({ user }) => {
   const [videoUrl, setVideoUrl] = useState(null);
   const [activeEffectsTrack, setActiveEffectsTrack] = useState(null);
   const [insertPickerState, setInsertPickerState] = useState(null);
+  // Bug #12 (Part 9b): send-destination picker state, mirrors insertPickerState
+  // shape ({ trackIndex, x, y }). Picker shows every other track in the project
+  // and lets the user route a post-fader send to it.
+  const [sendPickerState, setSendPickerState] = useState(null);
   const [mixerUpperH, setMixerUpperH] = useState(180);
   const mixerUpperDragRef = useRef(false);
   const [openFxKey, setOpenFxKey] = useState(null);
@@ -3149,6 +3187,17 @@ const RecordingStudio = ({ user }) => {
           onBpmChange={setBpm}
           projectName={projectName}
           onProjectNameChange={setProjectName}
+          fxRegistry={ALL_FX_EXTENDED}
+          updateEffect={updateEffect}
+          // Bug #11/#12 (Part 9b): the sidebar's + Add Insert / + Add Send
+          // buttons fire onTrackAction(action, trackIndex) — previously this
+          // prop was undefined so both were silent no-ops. Map them to the
+          // same picker state Console uses, so a single source of truth
+          // (track.effects / track.sends) drives every surface.
+          onTrackAction={(action, ti) => {
+            if (action === "addInsert") setInsertPickerState({ trackIndex: ti, x: 320, y: 200 });
+            else if (action === "addSend") setSendPickerState({ trackIndex: ti, x: 320, y: 240 });
+          }}
         />
       )}
       <div className="rs-layout-main">
@@ -3249,7 +3298,9 @@ const RecordingStudio = ({ user }) => {
               onOpenPianoRoll={onOpenPianoRoll} onTimelineDoubleClick={handleTimelineDoubleClick}
               MidiRegionPreview={MidiRegionPreview}
               onOpenClipEditor={(region, ti, ri) => setEditingClip({ region, ti, ri })}
-              onAddTrack={() => setShowAddTrackDialog(true)}/>
+              onAddTrack={() => setShowAddTrackDialog(true)}
+              onAnalysisComplete={(analysis, fileName) => setStatus(`♬ ${fileName}: ${analysis.bpm?.bpm ?? "?"} BPM · ${analysis.key?.key ?? "?"} (${analysis.key?.camelot ?? "?"})`)}
+              />
             <CollabOverlay collab={collab} tracks={tracks} trackHeight={48}/>
           </div>
         )}
@@ -3377,12 +3428,26 @@ const RecordingStudio = ({ user }) => {
                         </div>
                         <div className="daw-ch-sends">
                           <div className="daw-ch-sends-label">SENDS</div>
+                          {/* Bug #13 (Part 9b): empty placeholder send slots were inert. Wire them
+                              to the SendPickerMenu so users can route to any track without first
+                              creating a bus track. */}
                           {tracks.filter(b=>b.trackType==="bus").length === 0 && (
                             <>
-                              <div className="daw-ch-send-slot empty"></div>
-                              <div className="daw-ch-send-slot empty"></div>
+                              <div className="daw-ch-send-slot empty" title="Click to add a send" onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setSendPickerState({ trackIndex: i, x: rect.right + 4, y: rect.top }); }}></div>
+                              <div className="daw-ch-send-slot empty" title="Click to add a send" onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setSendPickerState({ trackIndex: i, x: rect.right + 4, y: rect.top }); }}></div>
                             </>
                           )}
+                          {/* Existing user-added sends (not bus-targeted) — show + allow remove */}
+                          {(t.sends || []).filter(s => !tracks.find(b => b.trackType === "bus" && b.id === s.busId)).map(s => (
+                            <div key={s.busId} className="daw-ch-send-row" title="Right-click to remove send"
+                              onContextMenu={e => { e.preventDefault(); e.stopPropagation(); updateTrack(i, { sends: (t.sends || []).filter(x => x.busId !== s.busId) }); }}>
+                              <span className="daw-ch-send-name" style={{fontSize:9, color:"#00ffc8"}}>→ {s.target || "?"}</span>
+                              <input type="range" className="daw-ch-send-level" min={0} max={1} step={0.01}
+                                defaultValue={s.level || 0.5}
+                                onClick={e => e.stopPropagation()}
+                                onChange={e => { const v = parseFloat(e.target.value); updateTrack(i, { sends: (t.sends || []).map(x => x.busId === s.busId ? { ...x, level: v } : x) }); }}/>
+                            </div>
+                          ))}
                           {tracks.filter(b=>b.trackType==="bus").map(bus=>(
                             <div key={bus.id} className="daw-ch-send-row">
                               <span className="daw-ch-send-name">{bus.name}</span>
@@ -3880,6 +3945,21 @@ const RecordingStudio = ({ user }) => {
               <button className="daw-btn" onClick={() => setShowProjectList(false)}>Close</button>
             </div>
           </div>
+        )}
+
+        {/* SEND PICKER (Bug #12 Part 9b) */}
+        {sendPickerState && (
+          <DraggablePanel title="ADD SEND" onClose={() => setSendPickerState(null)} initialX={Math.min(sendPickerState.x, window.innerWidth - 340)} initialY={120}>
+            <div style={{maxHeight:"60vh", overflowY:"auto"}} onClick={e => e.stopPropagation()}>
+              <SendPickerMenu
+                sendPickerState={sendPickerState}
+                setSendPickerState={setSendPickerState}
+                tracks={tracks}
+                updateTrack={updateTrack}
+                setStatus={setStatus}
+              />
+            </div>
+          </DraggablePanel>
         )}
 
         {/* INSERT PICKER */}

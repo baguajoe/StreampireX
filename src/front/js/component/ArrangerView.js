@@ -7,6 +7,9 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import "../../styles/ArrangerView.css";
 import AutomationLane, { AUTO_PARAMS, getValueAtTime } from "./AutomationLane";
 import { DEFAULT_TRACK } from "../utils/trackFactory";
+// Part 10: BPM + Key + Loudness detection moved to a shared module so other
+// surfaces (SPX DJ Pro, SPX Cast, Beat Lab) can reuse the same analyzer.
+import { analyzeAll, camelotColor } from "../utils/audioAnalysis";
 
 // =============================================================================
 // CONSTANTS
@@ -88,61 +91,14 @@ const formatBarBeat = (beat, timeSignatureTop) => {
 // =============================================================================
 // Onset-envelope + autocorrelation. Far more robust than threshold-on-RMS: ignores
 // dynamics, tolerates missed onsets, works across genres. Returns rounded BPM in
-// [60, 200] (octave-corrected toward 90–160 sweet spot), or null if no clear lag.
+// [60, 200], or null if no clear lag.
+//
+// Part 10: implementation moved to utils/audioAnalysis.js so SPX DJ Pro, SPX
+// Cast and Beat Lab can share the same analyzer. Local shim returns just the
+// rounded BPM number to preserve the existing onBpmDetected(num) call shape.
 const detectBpmAutocorr = (audioBuffer) => {
-  if (!audioBuffer || !audioBuffer.length) return null;
-  const sr = audioBuffer.sampleRate;
-  const nch = audioBuffer.numberOfChannels;
-  // 1) Mono mix (avg of channels) — covers stereo bass/snare panning.
-  const len = audioBuffer.length;
-  const mono = new Float32Array(len);
-  for (let c = 0; c < nch; c++) {
-    const ch = audioBuffer.getChannelData(c);
-    for (let i = 0; i < len; i++) mono[i] += ch[i] / nch;
-  }
-  // 2) One-pole high-pass at ~100 Hz to focus on transients (kick/snare attack).
-  // Coefficient: alpha = RC / (RC + dt) where RC = 1/(2π·fc).
-  const fc = 100;
-  const dt = 1 / sr;
-  const RC = 1 / (2 * Math.PI * fc);
-  const alpha = RC / (RC + dt);
-  let prevIn = mono[0], prevOut = 0;
-  for (let i = 1; i < len; i++) {
-    const out = alpha * (prevOut + mono[i] - prevIn);
-    prevIn = mono[i]; prevOut = out; mono[i] = out;
-  }
-  // 3) Onset envelope: short-window RMS (1024 / 512 hop), then half-wave-rectified derivative (spectral-flux fallback).
-  const windowSize = 1024, hopSize = 512;
-  const hopTime = hopSize / sr;
-  const numHops = Math.max(0, Math.floor((len - windowSize) / hopSize));
-  if (numHops < 16) return null;
-  const env = new Float32Array(numHops);
-  for (let h = 0; h < numHops; h++) {
-    const start = h * hopSize;
-    let sum = 0;
-    for (let j = 0; j < windowSize; j++) { const v = mono[start + j]; sum += v * v; }
-    env[h] = Math.sqrt(sum / windowSize);
-  }
-  const flux = new Float32Array(numHops);
-  for (let i = 1; i < numHops; i++) flux[i] = Math.max(0, env[i] - env[i - 1]);
-  // 4) Autocorrelation in [60, 300] BPM range (lag = 60/bpm seconds).
-  const minLag = Math.max(1, Math.floor((60 / 300) / hopTime)); // fastest BPM
-  const maxLag = Math.min(numHops - 1, Math.floor((60 /  60) / hopTime)); // slowest BPM
-  if (maxLag <= minLag) return null;
-  let bestLag = -1, bestScore = 0;
-  for (let lag = minLag; lag <= maxLag; lag++) {
-    let s = 0;
-    for (let i = 0; i + lag < numHops; i++) s += flux[i] * flux[i + lag];
-    if (s > bestScore) { bestScore = s; bestLag = lag; }
-  }
-  if (bestLag < 1 || bestScore <= 0) return null;
-  let bpm = 60 / (bestLag * hopTime);
-  // 5) Octave correction toward 90–160 BPM.
-  while (bpm > 0 && bpm < 90)  bpm *= 2;
-  while (bpm > 160) bpm /= 2;
-  bpm = Math.round(bpm);
-  if (!isFinite(bpm) || bpm < 60 || bpm > 200) return null;
-  return bpm;
+  const r = analyzeAll(audioBuffer);
+  return r?.bpm?.bpm ?? null;
 };
 
 // =============================================================================
@@ -392,6 +348,16 @@ const Region = React.memo(({
       <div className="arr-region-handle left" onMouseDown={(e) => handleMouseDown(e, "resize-left")}/>
       <div className="arr-region-content">
         <span className="arr-region-label">{region.name || (isInstrument ? "MIDI" : "Audio")}</span>
+        {/* Part 10: Camelot key badge — color-coded by Camelot wheel position so harmonically-mixable keys are visually adjacent. Hidden when no analysis is available (instruments, undecoded clips). */}
+        {region.metadata?.key?.camelot && (
+          <span
+            className="arr-region-camelot"
+            style={{ background: camelotColor(region.metadata.key.camelot), color: "#06070d" }}
+            title={`${region.metadata.key.key} (${region.metadata.key.camelot}) · ${region.metadata.bpm?.bpm ?? "?"} BPM · ${region.metadata.loudness?.lufs ?? "?"} LUFS · key conf ${region.metadata.key.confidence}`}
+          >
+            {region.metadata.key.camelot}
+          </span>
+        )}
         {!isInstrument && (region.audioUrl || region.audioBuffer) && (
           <WaveformMini audioUrl={region.audioUrl} audioBuffer={region.audioBuffer} color={trackColor} width={Math.max(width - 16, 20)} height={trackHeight - 28}/>
         )}
@@ -898,6 +864,10 @@ const ArrangerView = ({
   onBrowseSounds, onOpenPianoRoll, onTimelineDoubleClick,
   MidiRegionPreview, onAddTrack, onBpmDetected,
   onOpenClipEditor, // Bug #9
+  // Part 10: full audio analysis (BPM + key + Camelot + loudness) emitted per
+  // dropped/imported audio file. Parent can store this on the track / region
+  // for display in the inspector and as a colored badge on the clip.
+  onAnalysisComplete,
 }) => {
   // ── State ──
   const [zoom,          setZoom]          = useState(DEFAULT_ZOOM);
@@ -983,14 +953,24 @@ const ArrangerView = ({
         // Bug #3b: reuse the same singleton context so dropping many files doesn't exhaust the AudioContext pool.
         decodedBuf = await getDecodeCtx().decodeAudioData(arrayBuf);
         duration = decodedBuf.duration;
-        // Bug #4: replace naive RMS+mean-of-intervals with HPF → onset envelope → autocorrelation.
+        // Part 10: single-pass BPM + key + loudness analysis. analyzeAll
+        // shares the mono mixdown so a 4-min file analyzes in one O(N) sweep.
+        // Wrapped in try/catch + tagged log so a single failed file (e.g.
+        // ultra-short stab sample) doesn't break the whole drop.
         try {
-          const det = detectBpmAutocorr(decodedBuf);
-          if (det && onBpmDetected) onBpmDetected(det);
-        } catch(e) { /* detection is best-effort */ }
+          const analysis = analyzeAll(decodedBuf);
+          if (analysis?.bpm?.bpm && onBpmDetected) onBpmDetected(analysis.bpm.bpm);
+          if (analysis && onAnalysisComplete) onAnalysisComplete(analysis, file.name);
+          if (analysis) console.log(`[SPX analyze] ${file.name}: BPM ${analysis.bpm?.bpm} (conf ${analysis.bpm?.confidence}), key ${analysis.key?.key} (${analysis.key?.camelot}, conf ${analysis.key?.confidence}), LUFS ${analysis.loudness?.lufs}`);
+        } catch (e) { console.warn("[SPX analyze] failed for", file.name, e); }
       } catch(err) {}
       const beatsPerSecond = bpm / 60;
       const regionBeats = Math.ceil(duration * beatsPerSecond);
+      // Part 10: stash the cached analysis on the track + region so the
+      // inspector + region badge can render BPM / Camelot without re-running
+      // analyzeAll. analyzeAll caches per-AudioBuffer (WeakMap), so this read
+      // is O(1).
+      const meta = (() => { try { return analyzeAll(decodedBuf); } catch { return null; } })();
       // Bug #1 (Part 9): use prev.length inside the functional updater so back-to-back
       // drops within the same loop iteration each get the correct index/color.
       setTracks(prev => {
@@ -1000,12 +980,14 @@ const ArrangerView = ({
           color: TRACK_COLORS[i % TRACK_COLORS.length],
           audioBuffer: decodedBuf,
           audio_url: url,
+          metadata: meta,
           regions: [{
             id: `reg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
             startBeat: startBeat,
             duration: regionBeats,
             audioUrl: url,
             audioBuffer: decodedBuf,
+            metadata: meta,
             name: file.name.replace(/\.[^.]+$/, ''),
             color: TRACK_COLORS[i % TRACK_COLORS.length],
           }],
