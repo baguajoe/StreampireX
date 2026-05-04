@@ -1587,53 +1587,190 @@ const COMPONENT_MAP = {
   GainRiderUI, HarmonicSumUI,
 };
 
-// Bug #5 (Part 9): preset bar — Save / Load / Delete user presets per pluginKey.
-// Renders above whichever plugin UI we're hosting; the UI itself is unchanged.
-// Lazy-imported so trees that don't use SPXPluginHost don't pull in localStorage code.
-import { savePreset, loadPreset, listPresets, deletePreset } from "../utils/pluginPresets";
+// Part 11: preset bar — Save / Load / Delete + Default reset + A/B compare +
+// modal save dialog + factory presets. Used by both SPXPluginHost (every SPX
+// plugin window) AND ConsoleFXPanel (every native effect). Single source of
+// truth so the UX matches across all plugins. Pulls all preset I/O from
+// utils/pluginPresets — factory presets are hard-coded there and survive
+// localStorage clears.
+import { savePreset, loadPreset, listPresets, deletePreset, isFactoryPreset, getFactoryDefaults, sanitizePresetName } from "../utils/pluginPresets";
 
-const PresetBar = ({ pluginKey, params, onChange }) => {
-  const [presets, setPresets] = React.useState(() => listPresets(pluginKey));
-  const [selected, setSelected] = React.useState("");
-  const refresh = () => setPresets(listPresets(pluginKey));
-  const handleSave = () => {
-    const name = window.prompt("Preset name:", selected || "");
-    if (!name?.trim()) return;
-    if (savePreset(pluginKey, name.trim(), params)) { refresh(); setSelected(name.trim()); }
-  };
-  const handleLoad = (name) => {
-    if (!name) return;
-    const p = loadPreset(pluginKey, name);
-    if (!p) { window.alert("Preset not found or schema mismatch."); return; }
-    Object.entries(p).forEach(([k, v]) => onChange(k, v));
-    setSelected(name);
-  };
-  const handleDelete = () => {
-    if (!selected) return;
-    if (!window.confirm(`Delete preset "${selected}"?`)) return;
-    deletePreset(pluginKey, selected); setSelected(""); refresh();
+// Modal save dialog — replaces window.prompt. Validates name, sanitizes for
+// the localStorage key format, and warns before overwriting an existing
+// preset (factory presets cannot be overwritten — factory wins on load, so a
+// user-saved preset with the same name would be shadowed forever).
+const PresetSaveModal = ({ pluginKey, params, existingNames, defaultName, onSave, onClose }) => {
+  const [name, setName] = React.useState(defaultName || "");
+  const [err, setErr] = React.useState("");
+  const inputRef = React.useRef(null);
+  React.useEffect(() => { inputRef.current?.focus(); inputRef.current?.select(); }, []);
+  React.useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  const submit = () => {
+    const clean = sanitizePresetName(name);
+    if (!clean) { setErr("Name required"); return; }
+    if (isFactoryPreset(pluginKey, clean)) { setErr("That name is reserved by a factory preset — pick another"); return; }
+    if (existingNames.includes(clean)) {
+      if (!window.confirm(`Overwrite "${clean}"?`)) return;
+    }
+    if (savePreset(pluginKey, clean, params)) onSave(clean);
+    else setErr("Save failed (storage full?)");
   };
   return (
-    <div className="spx-preset-bar">
-      <span className="spx-preset-label">PRESET</span>
-      <select className="spx-preset-select" value={selected} onChange={e => handleLoad(e.target.value)}>
-        <option value="">— User Presets —</option>
-        {presets.map(n => <option key={n} value={n}>{n}</option>)}
-      </select>
-      <button className="spx-preset-btn" onClick={handleSave} title="Save current params as a new preset">Save</button>
-      <button className="spx-preset-btn" onClick={handleDelete} disabled={!selected} title="Delete the selected preset">Del</button>
+    <div className="spx-preset-modal-bg" onClick={onClose}>
+      <div className="spx-preset-modal" onClick={e => e.stopPropagation()}>
+        <div className="spx-preset-modal-hdr">SAVE PRESET</div>
+        <input
+          ref={inputRef}
+          className="spx-preset-modal-input"
+          placeholder="My Vocal Setting"
+          value={name}
+          onChange={e => { setName(e.target.value); setErr(""); }}
+          onKeyDown={e => e.key === "Enter" && submit()}
+          maxLength={48}
+        />
+        {err && <div className="spx-preset-modal-err">{err}</div>}
+        <div className="spx-preset-modal-row">
+          <button className="spx-preset-btn" onClick={onClose}>Cancel</button>
+          <button className="spx-preset-btn primary" onClick={submit}>Save</button>
+        </div>
+      </div>
     </div>
   );
 };
 
-export function SPXPluginHost({ pluginKey, params, onChange, onClose }) {
+// Part 11: Exported so RecordingStudio.ConsoleFXPanel can give native effects
+// the same UI. Props:
+//   pluginKey   — key into FACTORY_PRESETS / FACTORY_DEFAULTS (eg "eq").
+//   params      — current param object for this plugin instance.
+//   onChange    — (newParamsObject) => void; receives a FULL merged params
+//                 object (matches SPXPluginHost's existing onChange contract).
+//                 ConsoleFXPanel wraps updateEffect to fan-out per-param
+//                 updates from this single object.
+//   setStatus   — optional; if passed, every action emits a brief message.
+export const PresetBar = ({ pluginKey, params, onChange, setStatus }) => {
+  const [presets, setPresets] = React.useState(() => listPresets(pluginKey));
+  const [selected, setSelected] = React.useState("");
+  const [showSave, setShowSave] = React.useState(false);
+  // A/B compare slots — in-memory only, fresh each plugin open. snapshot a
+  // shallow clone so mutating `params` later doesn't leak into the slot.
+  const [ab, setAb] = React.useState({ A: null, B: null, active: null });
+  const refresh = () => setPresets(listPresets(pluginKey));
+  const tell = (msg) => { setStatus && setStatus(msg); };
+  // Merge preset on top of current so we don't drop unrelated fields (eg.
+  // `enabled` flag which presets intentionally omit).
+  const apply = (paramObj) => onChange({ ...(params || {}), ...paramObj });
+
+  const handleLoad = (name) => {
+    if (!name) { setSelected(""); return; }
+    const p = loadPreset(pluginKey, name);
+    if (!p) { tell(`✗ Preset not found: ${name}`); return; }
+    apply(p);
+    setSelected(name);
+    tell(`✓ Loaded preset: ${name}`);
+  };
+  const handleSaved = (name) => {
+    refresh(); setSelected(name); setShowSave(false);
+    tell(`✓ Preset saved: ${name}`);
+  };
+  const handleDelete = () => {
+    if (!selected || isFactoryPreset(pluginKey, selected)) return;
+    if (!window.confirm(`Delete preset "${selected}"?`)) return;
+    deletePreset(pluginKey, selected);
+    setSelected(""); refresh();
+    tell(`Preset deleted: ${selected}`);
+  };
+  const handleDefault = () => {
+    const defs = getFactoryDefaults(pluginKey);
+    if (!defs) { tell("No factory defaults registered for this plugin"); return; }
+    apply(defs); setSelected("");
+    tell("Reset to defaults");
+  };
+  // A/B logic: first click on an empty slot stores current params there.
+  // Subsequent click switches to that slot's params (and stores the previous
+  // active slot's params first if the snapshot is empty). Shift+click /
+  // double-click overwrites the slot with current params.
+  const snapshotCurrent = () => JSON.parse(JSON.stringify(params || {}));
+  const handleAb = (slot, e) => {
+    setAb(prev => {
+      const isOverwrite = e?.shiftKey || e?.detail >= 2;
+      // Empty slot or overwrite: store current.
+      if (!prev[slot] || isOverwrite) {
+        tell(`Stored slot ${slot}`);
+        return { ...prev, [slot]: snapshotCurrent(), active: slot };
+      }
+      // Already-active slot: re-snapshot current so the user can keep editing
+      // without losing what they just heard.
+      if (prev.active === slot) {
+        return { ...prev, [slot]: snapshotCurrent() };
+      }
+      // Switch: stash current into the prev-active slot if it has data, then
+      // load the clicked slot.
+      const next = { ...prev };
+      if (prev.active && prev[prev.active]) next[prev.active] = snapshotCurrent();
+      apply(prev[slot]); next.active = slot;
+      tell(`Switched to ${slot}`);
+      return next;
+    });
+  };
+
+  const factoryNames = presets.factory.map(p => p.name);
+  const userNames = presets.user;
+  const selectedIsFactory = isFactoryPreset(pluginKey, selected);
+  return (
+    <>
+      <div className="spx-preset-bar">
+        <span className="spx-preset-label">PRESET</span>
+        <select className="spx-preset-select" value={selected} onChange={e => handleLoad(e.target.value)}>
+          <option value="">— Select preset —</option>
+          {factoryNames.length > 0 && (
+            <optgroup label="▶ FACTORY">
+              {factoryNames.map(n => <option key={"f:" + n} value={n}>{n}</option>)}
+            </optgroup>
+          )}
+          {userNames.length > 0 && (
+            <optgroup label="▶ USER">
+              {userNames.map(n => <option key={"u:" + n} value={n}>{n}</option>)}
+            </optgroup>
+          )}
+        </select>
+        <button className="spx-preset-btn" onClick={() => setShowSave(true)} title="Save current params as a new preset">Save</button>
+        <button className="spx-preset-btn"
+          onClick={handleDelete}
+          disabled={!selected || selectedIsFactory}
+          title={selectedIsFactory ? "Factory presets cannot be deleted" : "Delete the selected user preset"}
+        >Del</button>
+        <button className="spx-preset-btn" onClick={handleDefault} title="Reset to factory defaults">↺ Default</button>
+        <span className="spx-preset-ab-group" title="A/B compare — click to store / switch · Shift-click to overwrite">
+          <button className={"spx-preset-ab" + (ab.active === "A" ? " active" : "") + (ab.A ? " stored" : "")} onClick={(e) => handleAb("A", e)}>A</button>
+          <button className={"spx-preset-ab" + (ab.active === "B" ? " active" : "") + (ab.B ? " stored" : "")} onClick={(e) => handleAb("B", e)}>B</button>
+        </span>
+      </div>
+      {showSave && (
+        <PresetSaveModal
+          pluginKey={pluginKey}
+          params={params}
+          existingNames={userNames}
+          defaultName={selectedIsFactory ? "" : selected}
+          onSave={handleSaved}
+          onClose={() => setShowSave(false)}
+        />
+      )}
+    </>
+  );
+};
+
+export function SPXPluginHost({ pluginKey, params, onChange, onClose, setStatus }) {
   const fxDef = ALL_FX_EXTENDED.find((f) => f.key === pluginKey);
   if (!fxDef?.component) return null;
   const Comp = COMPONENT_MAP[fxDef.component];
   if (!Comp) return null;
   return (
     <div className="spx-plugin-host">
-      <PresetBar pluginKey={pluginKey} params={params} onChange={onChange} />
+      <PresetBar pluginKey={pluginKey} params={params} onChange={onChange} setStatus={setStatus} />
       <Comp params={params} onChange={onChange} onClose={onClose} />
     </div>
   );

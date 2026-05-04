@@ -4175,12 +4175,14 @@ const RecordingStudio = ({ user }) => {
               },
             }))}
             onClose={() => { setActiveEffectsTrack(null); setOpenFxKey(null); }}
+            setStatus={setStatus}
           />
         )}
         {afx && openFxKey && !SPX_PLUGIN_KEYS.has(openFxKey) && (
           <DraggablePanel title={"FX — " + (afx.name || "Track")} onClose={() => { setActiveEffectsTrack(null); setOpenFxKey(null); }} initialX={window.innerWidth-680} initialY={60}>
             <ConsoleFXPanel track={afx} trackIndex={activeEffectsTrack} updateEffect={updateEffect}
-              onClose={() => { setActiveEffectsTrack(null); setOpenFxKey(null); }} openFxKey={openFxKey}/>
+              onClose={() => { setActiveEffectsTrack(null); setOpenFxKey(null); }} openFxKey={openFxKey}
+              setStatus={setStatus}/>
           </DraggablePanel>
         )}
 

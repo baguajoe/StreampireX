@@ -248,14 +248,39 @@
 /* Part 10: Camelot key badge on Arrange-view regions — small chip top-right. */
 .arr-region-camelot { position:absolute; top:3px; right:4px; padding:1px 5px; border-radius:3px; font-size:9px; font-weight:800; letter-spacing:0.5px; pointer-events:auto; cursor:help; box-shadow:0 1px 3px rgba(0,0,0,.5); z-index:2; line-height:1.3; }
 
-/* Bug #5 (Part 9): SPX plugin user-preset bar — sits above each plugin UI. */
+/* Bug #5 (Part 9 → upgraded Part 11): unified preset bar — used by SPX plugin
+   host AND ConsoleFXPanel for native effects. Same look everywhere so a user
+   builds muscle memory once. */
 .spx-plugin-host { display:flex; flex-direction:column; gap:0; }
-.spx-preset-bar { display:flex; align-items:center; gap:6px; padding:6px 10px; background:#0a1018; border-bottom:1px solid #1e2638; flex-shrink:0; }
+.spx-preset-bar { display:flex; align-items:center; gap:6px; padding:6px 10px; background:#0a1018; border-bottom:1px solid #1e2638; border-radius:3px; flex-shrink:0; flex-wrap:wrap; margin-bottom:6px; }
 .spx-preset-label { color:#4e6a82; font-size:9px; font-weight:700; letter-spacing:1.5px; }
-.spx-preset-select { background:#0d1420; border:1px solid #243048; color:#cdd9e5; border-radius:3px; font-size:10px; padding:3px 6px; flex:1; min-width:120px; max-width:200px; }
+.spx-preset-select { background:#0d1420; border:1px solid #243048; color:#cdd9e5; border-radius:3px; font-size:10px; padding:3px 6px; flex:1; min-width:120px; max-width:200px; font-family:var(--rs-font); }
+.spx-preset-select optgroup { color:var(--rs-teal); font-weight:700; font-style:normal; }
 .spx-preset-btn { background:transparent; border:1px solid #243048; color:#8ba3bc; border-radius:3px; cursor:pointer; font-family:var(--rs-font); font-size:10px; font-weight:700; padding:3px 10px; transition:all .12s; }
 .spx-preset-btn:hover:not(:disabled) { border-color:var(--rs-teal); color:var(--rs-teal); }
 .spx-preset-btn:disabled { opacity:.4; cursor:not-allowed; }
+.spx-preset-btn.primary { background:rgba(0,255,200,.14); border-color:var(--rs-teal); color:var(--rs-teal); }
+.spx-preset-btn.primary:hover { background:rgba(0,255,200,.22); }
+
+/* Part 11: A/B compare slot pair — two tight buttons. Stored slot has a faint
+   border tint; active slot glows teal so the user can see at a glance which
+   set of params is currently in effect. */
+.spx-preset-ab-group { display:inline-flex; gap:1px; margin-left:4px; }
+.spx-preset-ab { background:transparent; border:1px solid #243048; color:#5a6b82; cursor:pointer; font-family:var(--rs-font); font-size:10px; font-weight:800; padding:3px 9px; transition:all .12s; }
+.spx-preset-ab:first-child { border-radius:3px 0 0 3px; }
+.spx-preset-ab:last-child { border-radius:0 3px 3px 0; border-left:none; }
+.spx-preset-ab.stored { color:#8ba3bc; border-color:#3a4860; }
+.spx-preset-ab.active { background:rgba(0,255,200,.18); border-color:var(--rs-teal); color:var(--rs-teal); text-shadow:0 0 4px rgba(0,255,200,.6); }
+
+/* Part 11: modal save dialog — replaces window.prompt. Matches the studio's
+   dark-glass aesthetic (#06070d bg, teal accents, JetBrains Mono). */
+.spx-preset-modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.72); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:9999; }
+.spx-preset-modal { background:linear-gradient(180deg,#0c1220,#06070d); border:1px solid rgba(0,255,200,.3); border-radius:8px; box-shadow:0 16px 48px rgba(0,0,0,.85), 0 0 0 1px rgba(0,255,200,.05); padding:18px 20px; min-width:340px; max-width:480px; font-family:var(--rs-font); color:#e6f4ff; }
+.spx-preset-modal-hdr { color:var(--rs-teal); font-size:11px; font-weight:800; letter-spacing:2px; margin-bottom:12px; }
+.spx-preset-modal-input { width:100%; background:#0d1420; border:1px solid #243048; color:#e6f4ff; border-radius:4px; font-family:var(--rs-font); font-size:13px; padding:8px 10px; box-sizing:border-box; transition:border-color .12s; }
+.spx-preset-modal-input:focus { outline:none; border-color:var(--rs-teal); box-shadow:0 0 0 2px rgba(0,255,200,.15); }
+.spx-preset-modal-err { color:#ff5967; font-size:10px; margin-top:6px; }
+.spx-preset-modal-row { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
 .daw-fx-panel-popup { background:var(--rs-bg2); border:1px solid var(--rs-border); border-radius:6px; bottom:20px; box-shadow:0 12px 40px rgba(0,0,0,.7); max-height:60vh; overflow-y:auto; position:fixed; right:20px; width:420px; z-index:400; }
 .rs-analog-tabs { display:flex; gap:2px; padding:8px 8px 0; border-bottom:1px solid var(--rs-border2); }
 .daw-analog-tab { background:transparent; border:none; border-bottom:2px solid transparent; color:var(--rs-text3); cursor:pointer; font-family:var(--rs-font); font-size:11px; padding:6px 12px; transition:all .15s; }
