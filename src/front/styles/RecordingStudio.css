@@ -227,6 +227,18 @@
 .rs-divider { height:1px; background:var(--rs-border2); margin:4px 0; }
 .rs-remove-item { color:var(--rs-text3); cursor:pointer; font-size:11px; padding:6px 16px; }
 .rs-remove-item:hover { background:var(--rs-surface); color:var(--rs-text); }
+/* Bug #4 (Part 9): "(None) / Clear all inserts" entry at top of insert picker. */
+.rs-insert-none-row { color:var(--rs-text3); cursor:pointer; font-size:11px; padding:8px 16px; background:rgba(255,89,103,.06); border-bottom:1px solid var(--rs-border2); transition:background .1s; }
+.rs-insert-none-row:hover { background:rgba(255,89,103,.18); color:#ff8a98; }
+
+/* Bug #5 (Part 9): SPX plugin user-preset bar — sits above each plugin UI. */
+.spx-plugin-host { display:flex; flex-direction:column; gap:0; }
+.spx-preset-bar { display:flex; align-items:center; gap:6px; padding:6px 10px; background:#0a1018; border-bottom:1px solid #1e2638; flex-shrink:0; }
+.spx-preset-label { color:#4e6a82; font-size:9px; font-weight:700; letter-spacing:1.5px; }
+.spx-preset-select { background:#0d1420; border:1px solid #243048; color:#cdd9e5; border-radius:3px; font-size:10px; padding:3px 6px; flex:1; min-width:120px; max-width:200px; }
+.spx-preset-btn { background:transparent; border:1px solid #243048; color:#8ba3bc; border-radius:3px; cursor:pointer; font-family:var(--rs-font); font-size:10px; font-weight:700; padding:3px 10px; transition:all .12s; }
+.spx-preset-btn:hover:not(:disabled) { border-color:var(--rs-teal); color:var(--rs-teal); }
+.spx-preset-btn:disabled { opacity:.4; cursor:not-allowed; }
 .daw-fx-panel-popup { background:var(--rs-bg2); border:1px solid var(--rs-border); border-radius:6px; bottom:20px; box-shadow:0 12px 40px rgba(0,0,0,.7); max-height:60vh; overflow-y:auto; position:fixed; right:20px; width:420px; z-index:400; }
 .rs-analog-tabs { display:flex; gap:2px; padding:8px 8px 0; border-bottom:1px solid var(--rs-border2); }
 .daw-analog-tab { background:transparent; border:none; border-bottom:2px solid transparent; color:var(--rs-text3); cursor:pointer; font-family:var(--rs-font); font-size:11px; padding:6px 12px; transition:all .15s; }
@@ -1784,9 +1796,22 @@
 .daw-console { position: relative !important; }
 
 /* Lock mixer lower section to fixed height at bottom */
-.ch-mid { height: 50px !important; flex: 0 0 50px !important; }
+/* Bug #8 (Part 9): .ch-mid was forced to 50px, which clipped the record-arm
+   button row. The row needs ~26px (20px button + padding) plus the pan knob
+   underneath (~36px), so 70px gives both rows breathing room. The added
+   .daw-ch-controls overrides also let the rec button + monitor icon wrap
+   onto a second line if the channel narrows below ~110px instead of being
+   hidden by the next section's background. */
+.ch-mid { min-height: 70px !important; flex: 0 0 auto !important; overflow: visible !important; }
+.ch-mid .daw-ch-controls { flex-wrap: wrap !important; row-gap: 3px !important; padding: 2px 4px !important; justify-content: center !important; }
+.ch-mid .daw-ch-rec-btn { flex-shrink: 0 !important; }
 .ch-lower { height: 260px !important; flex: 0 0 260px !important; overflow: visible !important; }
 .ch-lower .daw-ch-fader-area { height: 170px !important; max-height: 170px !important; flex: 0 0 170px !important; }
+
+/* Bug #7 (Part 9): per-track monitor badge — match M/S/e visual scale, glow
+   teal when active so users can quickly see which track is being monitored. */
+.daw-ch-badge.mon { font-size: 11px !important; color: #4e6a82 !important; }
+.daw-ch-badge.mon.mon-on { background: rgba(0,255,200,.12) !important; border-color: rgba(0,255,200,.5) !important; color: #00ffc8 !important; text-shadow: 0 0 4px rgba(0,255,200,.6) !important; }
 
 /* Mixer fixed at bottom — split container flex col */
 .rs-split-screen { display: flex !important; flex-direction: column !important; height: 100% !important; overflow: hidden !important; }

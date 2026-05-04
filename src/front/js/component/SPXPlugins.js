@@ -1587,12 +1587,56 @@ const COMPONENT_MAP = {
   GainRiderUI, HarmonicSumUI,
 };
 
+// Bug #5 (Part 9): preset bar — Save / Load / Delete user presets per pluginKey.
+// Renders above whichever plugin UI we're hosting; the UI itself is unchanged.
+// Lazy-imported so trees that don't use SPXPluginHost don't pull in localStorage code.
+import { savePreset, loadPreset, listPresets, deletePreset } from "../utils/pluginPresets";
+
+const PresetBar = ({ pluginKey, params, onChange }) => {
+  const [presets, setPresets] = React.useState(() => listPresets(pluginKey));
+  const [selected, setSelected] = React.useState("");
+  const refresh = () => setPresets(listPresets(pluginKey));
+  const handleSave = () => {
+    const name = window.prompt("Preset name:", selected || "");
+    if (!name?.trim()) return;
+    if (savePreset(pluginKey, name.trim(), params)) { refresh(); setSelected(name.trim()); }
+  };
+  const handleLoad = (name) => {
+    if (!name) return;
+    const p = loadPreset(pluginKey, name);
+    if (!p) { window.alert("Preset not found or schema mismatch."); return; }
+    Object.entries(p).forEach(([k, v]) => onChange(k, v));
+    setSelected(name);
+  };
+  const handleDelete = () => {
+    if (!selected) return;
+    if (!window.confirm(`Delete preset "${selected}"?`)) return;
+    deletePreset(pluginKey, selected); setSelected(""); refresh();
+  };
+  return (
+    <div className="spx-preset-bar">
+      <span className="spx-preset-label">PRESET</span>
+      <select className="spx-preset-select" value={selected} onChange={e => handleLoad(e.target.value)}>
+        <option value="">— User Presets —</option>
+        {presets.map(n => <option key={n} value={n}>{n}</option>)}
+      </select>
+      <button className="spx-preset-btn" onClick={handleSave} title="Save current params as a new preset">Save</button>
+      <button className="spx-preset-btn" onClick={handleDelete} disabled={!selected} title="Delete the selected preset">Del</button>
+    </div>
+  );
+};
+
 export function SPXPluginHost({ pluginKey, params, onChange, onClose }) {
   const fxDef = ALL_FX_EXTENDED.find((f) => f.key === pluginKey);
   if (!fxDef?.component) return null;
   const Comp = COMPONENT_MAP[fxDef.component];
   if (!Comp) return null;
-  return <Comp params={params} onChange={onChange} onClose={onClose} />;
+  return (
+    <div className="spx-plugin-host">
+      <PresetBar pluginKey={pluginKey} params={params} onChange={onChange} />
+      <Comp params={params} onChange={onChange} onClose={onClose} />
+    </div>
+  );
 }
 
 export default SPXPluginHost;

@@ -539,8 +539,23 @@ const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, upd
     { cat: "Mastering",     cls: "master", items: ALL_FX_EXTENDED.filter(f=>f.type==="mastering") },
     { cat: "SPX Creative",  cls: "spx", items: ALL_FX_EXTENDED.filter(f=>!["comp","limit","eq","reverb","delay","filter","distortion"].includes(f.type) && SPX_KEYS.has(f.key)) },
   ];
+  // Bug #4 (Part 9): clear-all entry at the top of the picker so users can
+  // remove every active insert on a track without right-clicking each slot.
+  // Sets enabled=false on every effect (preserves params for re-enable).
+  const clearAllInserts = () => {
+    const ti = insertPickerState.trackIndex;
+    if (ti < 0) return;
+    const t = tracks[ti]; if (!t || !t.effects) { setInsertPickerState(null); return; }
+    Object.keys(t.effects).forEach(k => { if (t.effects[k]?.enabled) updateEffect(ti, k, "enabled", false); });
+    setInsertPickerState(null);
+    setStatus("Inserts cleared");
+  };
   return (
     <>
+      <div className="rs-insert-none-row" onClick={clearAllInserts} title="Disable every insert on this track">
+        <span>✕ None / Clear all inserts</span>
+      </div>
+      <div className="rs-divider"/>
       {groups.map(group => (
         <div key={group.cat}>
           {group.cls === 'header' ? (
@@ -1974,6 +1989,54 @@ const RecordingStudio = ({ user }) => {
   // Publish latest builder so the cycle-wrap closure always sees current `tracks`.
   buildSourcesRef.current = buildPlaybackSources;
 
+  // Bug #3 (Part 9): the playback chain is only built at startPlayback time, so
+  // inserting/toggling an effect mid-playback was silently a no-op. Watch a
+  // serialized signature of every track's effects (which keys are enabled) and
+  // rebuild the live source chain so the user actually hears their inserts.
+  // Param-knob changes still wait for the next play to take effect — rebuilding
+  // on every param tweak would glitch audio. Toggling enabled is the threshold.
+  const fxSignature = useMemo(
+    () => tracks.map(t => Object.entries(t.effects || {}).filter(([, v]) => v?.enabled).map(([k]) => k).sort().join(",")).join("|"),
+    [tracks]
+  );
+  const lastFxSignatureRef = useRef("");
+  useEffect(() => {
+    if (!isPlaying) { lastFxSignatureRef.current = fxSignature; return; }
+    if (fxSignature === lastFxSignatureRef.current) return;
+    lastFxSignatureRef.current = fxSignature;
+    const ctx = audioCtxRef.current; if (!ctx) return;
+    // Rebuild from the current playhead so the user keeps their place.
+    const elapsed = ctx.currentTime - playStartRef.current + playOffsetRef.current;
+    playOffsetRef.current = elapsed;
+    playStartRef.current = ctx.currentTime;
+    buildPlaybackSources(ctx, elapsed);
+  }, [fxSignature, isPlaying]);
+
+  // Bug #2 (Part 9): mute / solo toggled from ArrangerView only set state — the
+  // Console rows additionally poke trackGainsRef directly, but Arrange has no
+  // ref. Sync gains from track state on every change so both surfaces affect
+  // live audio identically.
+  useEffect(() => {
+    const anySolo = tracks.some(t => t.solo);
+    tracks.forEach((t, i) => {
+      const gn = trackGainsRef.current[i]; if (!gn) return;
+      const audible = !t.muted && (!anySolo || t.solo);
+      gn.gain.value = audible ? (t.volume ?? 1) : 0;
+    });
+  }, [tracks]);
+
+  // Bug #7 (Part 9): per-track input monitor — when recording, follow the armed
+  // track's `monitoring` field. Toggle takes effect immediately without
+  // restarting the recorder. Global `monitoringEnabled` still wins (live mic
+  // is already routed elsewhere; doubling it would cause feedback/comb filter).
+  useEffect(() => {
+    if (!isRecording || !recMonitorGainRef.current) return;
+    const armed = tracks.find(t => t.armed);
+    const target = monitoringEnabled ? 0 : (armed?.monitoring ? 0.6 : 0);
+    try { recMonitorGainRef.current.gain.setTargetAtTime(target, audioCtxRef.current?.currentTime || 0, 0.02); }
+    catch { recMonitorGainRef.current.gain.value = target; }
+  }, [tracks, isRecording, monitoringEnabled]);
+
   // Bug #5d: toggling CYCLE on with no valid region defined was a silent no-op (start>=end never triggers wrap).
   // Snap to the bar at the playhead and span 4 bars by default so the user gets immediate feedback.
   const toggleCycle = useCallback(() => {
@@ -2027,13 +2090,18 @@ const RecordingStudio = ({ user }) => {
     const regionId = `rgn_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const startBeat = secondsToBeat(playOffsetRef.current, bpm);
     const durationBeat = secondsToBeat(audioBuffer.duration, bpm);
-    setTracks(prev => prev.map((t, i) => i === trackIndex ? { ...t, regions: [...(t.regions || []), { id: regionId, name: tracks[trackIndex]?.name || `Track ${trackIndex + 1}`, startBeat, duration: durationBeat, audioUrl, color: tracks[trackIndex]?.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length], loopEnabled: false, loopCount: 1 }] } : t));
+    // Bug #9 (Part 9): include audioBuffer on the region so WaveformMini's
+    // decoded-buffer fast path renders real peaks even before the blob fetch
+    // resolves (which can fail in Codespaces if the URL is recycled).
+    setTracks(prev => prev.map((t, i) => i === trackIndex ? { ...t, regions: [...(t.regions || []), { id: regionId, name: tracks[trackIndex]?.name || `Track ${trackIndex + 1}`, startBeat, duration: durationBeat, audioUrl, audioBuffer, color: tracks[trackIndex]?.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length], loopEnabled: false, loopCount: 1 }] } : t));
   };
 
   const createRegionFromImport = (trackIndex, audioBuffer, name, audioUrl) => {
     const regionId = `rgn_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const durationBeat = secondsToBeat(audioBuffer.duration, bpm);
-    setTracks(prev => prev.map((t, i) => i === trackIndex ? { ...t, regions: [...(t.regions || []), { id: regionId, name: name || `Import ${trackIndex + 1}`, startBeat: 0, duration: durationBeat, audioUrl, color: t.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length], loopEnabled: false, loopCount: 1 }] } : t));
+    // Bug #9 (Part 9): same as above — pass the decoded buffer so the waveform
+    // renders peaks immediately for imports too.
+    setTracks(prev => prev.map((t, i) => i === trackIndex ? { ...t, regions: [...(t.regions || []), { id: regionId, name: name || `Import ${trackIndex + 1}`, startBeat: 0, duration: durationBeat, audioUrl, audioBuffer, color: t.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length], loopEnabled: false, loopCount: 1 }] } : t));
   };
 
   const uploadTrack = async (blob, ti) => {
@@ -2066,22 +2134,53 @@ const RecordingStudio = ({ user }) => {
       // Re-enumerate now that permission is granted so labels/IDs are real (Bug #11-2).
       navigator.mediaDevices.enumerateDevices().then(d => setInputDevices(d.filter(x => x.kind === "audioinput"))).catch(() => {});
       mediaStreamRef.current = stream; setMicSimStream(stream);
+      // Bug #6 (Part 9) diagnostics: log the actual input track so we can see
+      // when the browser hands us a virtual/silent driver (e.g. Waves SoundGrid)
+      // even though the dropdown said MOTU.
+      const audioTracks = stream.getAudioTracks();
+      const inputLabel = audioTracks[0]?.label || "(unknown)";
+      const inputSettings = audioTracks[0]?.getSettings?.() || {};
+      console.log("[SPX rec] stream input:", inputLabel, "settings:", inputSettings);
+      if (audioTracks.length === 0 || !audioTracks[0].enabled) {
+        setStatus("✗ No active audio track on input stream");
+        return;
+      }
       const src = ctx.createMediaStreamSource(stream); recInputSrcRef.current = src;
       inputAnalyserRef.current = ctx.createAnalyser(); inputAnalyserRef.current.fftSize = 256; src.connect(inputAnalyserRef.current);
       // Bug #11-3: route mic to destination so user hears themselves while recording. Held at 0 if direct-monitor is already on, to avoid double-routing/feedback.
-      const recMon = ctx.createGain(); recMon.gain.value = monitoringEnabled ? 0 : 0.6; src.connect(recMon); recMon.connect(ctx.destination); recMonitorGainRef.current = recMon;
+      // Bug #7 (Part 9): if the armed track has its own per-track monitor enabled,
+      // start at 0.6; otherwise default to 0 (silent unless user explicitly opts in).
+      // Global monitoringEnabled still wins (held at 0 to avoid double-routing/feedback).
+      const armedTrack = tracks[ai];
+      const initialMon = monitoringEnabled ? 0 : (armedTrack?.monitoring ? 0.6 : 0);
+      const recMon = ctx.createGain(); recMon.gain.value = initialMon; src.connect(recMon); recMon.connect(ctx.destination); recMonitorGainRef.current = recMon;
       const mon = () => { if (!inputAnalyserRef.current) return; const d = new Uint8Array(inputAnalyserRef.current.frequencyBinCount); inputAnalyserRef.current.getByteFrequencyData(d); setInputLevel(d.reduce((a, b) => a + b, 0) / d.length / 255); inputAnimRef.current = requestAnimationFrame(mon); }; mon();
       if (countIn && countInBars > 0) { setStatus(`Count in (${countInBars} bar${countInBars > 1 ? "s" : ""})...`); await playCountIn(ctx); }
       // supportedMime guard: Safari rejects webm; let the browser pick its default when none of our preferred mimes are available.
       const supportedMime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus"
         : MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm"
         : MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "";
+      // Bug #6 (Part 9): pass the SAME `stream` we attached the analyser to. If
+      // we ever wrap this in cloneStream() for parallel taps, both consumers
+      // must keep referencing the original or one will end up silent.
       const rec = new MediaRecorder(stream, supportedMime ? { mimeType: supportedMime } : undefined);
+      console.log("[SPX rec] MediaRecorder mime:", rec.mimeType, "state:", rec.state);
       chunksRef.current = [];
-      rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      let totalChunkBytes = 0;
+      rec.ondataavailable = (e) => {
+        // Bug #6 (Part 9): track chunk sizes so a silent file is distinguishable
+        // from "MediaRecorder never emitted data" (which usually means the
+        // stream is paused/disabled).
+        if (e.data && e.data.size > 0) {
+          totalChunkBytes += e.data.size;
+          chunksRef.current.push(e.data);
+        }
+      };
+      rec.onerror = (e) => { console.error("[SPX rec] MediaRecorder error:", e?.error || e); setStatus(`✗ Recorder error: ${e?.error?.message || "unknown"}`); };
       rec.onstop = async () => {
+        console.log("[SPX rec] stopped. chunks:", chunksRef.current.length, "bytes:", totalChunkBytes);
         const blob = new Blob(chunksRef.current, supportedMime ? { type: supportedMime } : undefined);
-        if (!blob.size) { setStatus("✗ Recording produced no audio"); return; }
+        if (!blob.size) { setStatus("✗ Recording produced no audio (0 bytes captured)"); return; }
         const audioUrl = URL.createObjectURL(blob);
         let buf;
         try {
@@ -2094,11 +2193,25 @@ const RecordingStudio = ({ user }) => {
           setStatus(`✗ Recording decode failed: ${err?.message || err}`);
           return;
         }
+        // Bug #6 (Part 9): sanity-check the decoded buffer — if MediaRecorder
+        // captured a virtual/silent stream we get bytes but zero amplitude.
+        let peak = 0;
+        try {
+          for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+            const d = buf.getChannelData(ch);
+            for (let i = 0; i < d.length; i += 256) { const v = Math.abs(d[i]); if (v > peak) peak = v; }
+          }
+        } catch (_) {}
+        console.log("[SPX rec] decoded buffer:", buf.duration.toFixed(2) + "s", "peak amplitude:", peak.toFixed(4));
         updateTrack(ai, { audioBuffer: buf, audio_url: audioUrl }); createRegionFromRecording(ai, buf, audioUrl);
-        try { await uploadTrack(blob, ai); } catch (err) { console.error("[SPX] uploadTrack failed:", err); setStatus(`✓ Recorded (upload failed: ${err?.message || err})`); return; }
-        setStatus("✓ Recorded");
+        if (peak < 0.001) {
+          setStatus(`⚠ Recorded but signal is silent (peak ${peak.toFixed(4)}) — check input "${inputLabel}"`);
+        } else {
+          setStatus(`✓ Recorded (peak ${peak.toFixed(2)})`);
+        }
+        try { await uploadTrack(blob, ai); } catch (err) { console.error("[SPX] uploadTrack failed:", err); return; }
       };
-      mediaRecorderRef.current = rec; rec.start(100); startPlayback(true); setIsRecording(true); setStatus(`● REC Track ${ai + 1}`);
+      mediaRecorderRef.current = rec; rec.start(100); startPlayback(true); setIsRecording(true); setStatus(`● REC Track ${ai + 1} — ${inputLabel}`);
     } catch (e) { setStatus(`✗ Mic: ${e.message}`); }
   };
 
@@ -3291,6 +3404,8 @@ const RecordingStudio = ({ user }) => {
                           <div className={"daw-ch-badge" + (t.muted ? " m-on" : "")} onClick={e => { e.stopPropagation(); const nm = !t.muted; updateTrack(i, { muted: nm }); const audible = !nm && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? t.volume : 0; }}>M</div>
                           <div className={"daw-ch-badge" + (t.solo ? " s-on" : "")} onClick={e => { e.stopPropagation(); const ns = !t.solo; updateTrack(i, { solo: ns }); const whs = tracks.some((x, idx) => idx === i ? ns : x.solo); tracks.forEach((x, idx) => { const gn = trackGainsRef.current[idx]; if (!gn) return; const s = idx === i ? ns : x.solo; gn.gain.value = (!x.muted && (!whs || s)) ? x.volume : 0; }); }}>S</div>
                           <div className={"daw-ch-badge" + (selectedTrack === i ? " e-on" : "")} onClick={e => { e.stopPropagation(); setSelectedTrack(i); setActiveEffectsTrack(i); }}>e</div>
+                          {/* Bug #7 (Part 9): per-track input monitor (Cubase-style). Toggles `monitoring` so the recording mic gets routed to ctx.destination only when this track is armed. */}
+                          <div className={"daw-ch-badge mon" + (t.monitoring ? " mon-on" : "")} onClick={e => { e.stopPropagation(); updateTrack(i, { monitoring: !t.monitoring }); }} title={t.monitoring ? "Input monitor ON" : "Input monitor OFF"}>🔊</div>
                           <button className={"daw-ch-rec-btn" + (t.armed ? " armed" : "")} onClick={e => { e.stopPropagation(); updateTrack(i, { armed: !t.armed }); }}>●</button>
                         </div>
                         <div className="daw-ch-pan">
@@ -3457,6 +3572,8 @@ const RecordingStudio = ({ user }) => {
                       <div className={"daw-ch-badge" + (t.muted ? " m-on" : "")} onClick={e => { e.stopPropagation(); const nm = !t.muted; updateTrack(i, { muted: nm }); const audible = !nm && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? t.volume : 0; }}>M</div>
                       <div className={"daw-ch-badge" + (t.solo ? " s-on" : "")} onClick={e => { e.stopPropagation(); const ns = !t.solo; updateTrack(i, { solo: ns }); const whs = tracks.some((x, idx) => idx === i ? ns : x.solo); tracks.forEach((x, idx) => { const gn = trackGainsRef.current[idx]; if (!gn) return; const s = idx === i ? ns : x.solo; gn.gain.value = (!x.muted && (!whs || s)) ? x.volume : 0; }); }}>S</div>
                       <div className={"daw-ch-badge" + (selectedTrack === i ? " e-on" : "")} onClick={e => { e.stopPropagation(); setSelectedTrack(i); setActiveEffectsTrack(i); }}>e</div>
+                      {/* Bug #7 (Part 9): per-track input monitor in the split-screen mixer too. */}
+                      <div className={"daw-ch-badge mon" + (t.monitoring ? " mon-on" : "")} onClick={e => { e.stopPropagation(); updateTrack(i, { monitoring: !t.monitoring }); }} title={t.monitoring ? "Input monitor ON" : "Input monitor OFF"}>🔊</div>
                       <button className={"daw-ch-rec-btn" + (t.armed ? " armed" : "")} onClick={e => { e.stopPropagation(); updateTrack(i, { armed: !t.armed }); }} title="Record arm">●</button>
                     </div>
                     <div className="daw-ch-pan">
@@ -4014,13 +4131,18 @@ const RecordingStudio = ({ user }) => {
         {showAddTrackDialog && (
           <AddTrackDialog
             onAdd={(type, trackName) => {
-              if (tracks.length >= maxTracks) return;
-              const i = tracks.length;
-              const t = { ...DEFAULT_TRACK(i, type) };
-              if (trackName) t.name = trackName;
-              setTracks(prev => [...prev, t]);
-              setSelectedTrackIndex(i);
-              setStatus("✓ " + t.name + " added");
+              // Bug #1 (Part 9): always read prev.length so multiple onAdd calls
+              // (count > 1, or a stale closure after a file drop) each get the
+              // correct index instead of overwriting the same slot.
+              setTracks(prev => {
+                if (prev.length >= maxTracks) return prev;
+                const i = prev.length;
+                const t = { ...DEFAULT_TRACK(i, type) };
+                if (trackName) t.name = trackName;
+                setSelectedTrackIndex(i);
+                setStatus("✓ " + t.name + " added");
+                return [...prev, t];
+              });
             }}
             onClose={() => setShowAddTrackDialog(false)}
             maxTracks={maxTracks}

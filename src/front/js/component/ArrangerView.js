@@ -951,17 +951,20 @@ const ArrangerView = ({
   }, [setTracks]);
 
   const addTrack = useCallback((type = "audio") => {
-    if (maxTracks > 0 && tracks.length >= maxTracks) return;
-    const i = tracks.length;
-    // Use the shared trackFactory so the new track has `effects: DEFAULT_EFFECTS()`
-    // and won't crash when the user adds inserts. ArrangerView keeps its own
-    // TRACK_COLORS palette for region colors, so we override `color` here.
-    setTracks(prev => [...prev, DEFAULT_TRACK(i, type, {
-      name: `${type === "instrument" ? "MIDI" : "Audio"} ${i + 1}`,
-      color: TRACK_COLORS[i % TRACK_COLORS.length],
-    })]);
-    setSelectedTrack(i);
-  }, [tracks.length, maxTracks, setTracks]);
+    // Bug #1 (Part 9): read `prev.length` inside the functional updater so a
+    // file-drop that appended a track milliseconds earlier doesn't leave us
+    // with a stale closure (i / limit check both wrong → silent no-op).
+    setTracks(prev => {
+      const i = prev.length;
+      if (maxTracks > 0 && i >= maxTracks) return prev;
+      const t = DEFAULT_TRACK(i, type, {
+        name: `${type === "instrument" ? "MIDI" : "Audio"} ${i + 1}`,
+        color: TRACK_COLORS[i % TRACK_COLORS.length],
+      });
+      setSelectedTrack(i);
+      return [...prev, t];
+    });
+  }, [maxTracks, setTracks]);
 
   const handleFileDrop = useCallback(async (e) => {
     e.preventDefault();
@@ -988,28 +991,30 @@ const ArrangerView = ({
       } catch(err) {}
       const beatsPerSecond = bpm / 60;
       const regionBeats = Math.ceil(duration * beatsPerSecond);
-      const i = tracks.length;
-      // Use the shared trackFactory so dragged-in tracks have `effects` and
-      // can accept inserts (audit Bugs #1/#2). Audio data and the initial
-      // region are passed via overrides; color is preserved from the AV palette.
-      const newTrack = DEFAULT_TRACK(i, 'audio', {
-        name: file.name.replace(/\.[^.]+$/, ''),
-        color: TRACK_COLORS[i % TRACK_COLORS.length],
-        audioBuffer: decodedBuf,
-        audio_url: url,
-        regions: [{
-          id: `reg_${Date.now()}`,
-          startBeat: startBeat,
-          duration: regionBeats,
-          audioUrl: url,
+      // Bug #1 (Part 9): use prev.length inside the functional updater so back-to-back
+      // drops within the same loop iteration each get the correct index/color.
+      setTracks(prev => {
+        const i = prev.length;
+        const newTrack = DEFAULT_TRACK(i, 'audio', {
           name: file.name.replace(/\.[^.]+$/, ''),
           color: TRACK_COLORS[i % TRACK_COLORS.length],
-        }],
+          audioBuffer: decodedBuf,
+          audio_url: url,
+          regions: [{
+            id: `reg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            startBeat: startBeat,
+            duration: regionBeats,
+            audioUrl: url,
+            audioBuffer: decodedBuf,
+            name: file.name.replace(/\.[^.]+$/, ''),
+            color: TRACK_COLORS[i % TRACK_COLORS.length],
+          }],
+        });
+        setSelectedTrack(i);
+        return [...prev, newTrack];
       });
-      setTracks(prev => [...prev, newTrack]);
-      setSelectedTrack(i);
     }
-  }, [tracks.length, bpm, zoom, setTracks]);
+  }, [bpm, zoom, setTracks, onBpmDetected]);
 
   const removeTrack = useCallback((index) => {
     if (tracks.length <= 1) return;
