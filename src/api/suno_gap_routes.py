@@ -1,3 +1,7 @@
+# Part 18c: All four routes below are stubs returning fake success.
+# UI navigation (layout.js routes, home.js footer, sidebar.js menu) is hidden in 18c
+# so users can't reach them. Backend kept for curl/orphan callers — wire to Suno
+# (or comparable music-gen API) in 18d/Phase 2 before re-exposing in the UI.
 import os
 import uuid
 import requests

@@ -94,60 +94,40 @@ export default function SPXComicGenerator({
 
     setGeneratedPanels((prev) => [...newPanels, ...prev]);
 
-    // Fire all Replicate requests in parallel
-    const results = await Promise.all(
-      newPanels.map(async (panel) => {
-        try {
-          const response = await fetch("https://api.replicate.com/v1/models/black-forest-labs/flux-1.1-pro/predictions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              // Authorization header will be injected by backend proxy
-              // Wire to: /api/script/generate-panel which adds the Replicate token
-            },
-            body: JSON.stringify({
-              input: {
-                prompt: builtPrompt,
-                width: ratio.width,
-                height: ratio.height,
-                num_inference_steps: 28,
-                guidance: 3.5,
-                seed: panel.seed ? parseInt(panel.seed) : undefined,
-                output_format: "webp",
-                output_quality: 90,
-              },
-            }),
-          });
-
-          if (!response.ok) throw new Error("Replicate API error");
-          const data = await response.json();
-
-          // Poll for result
-          let prediction = data;
-          while (prediction.status !== "succeeded" && prediction.status !== "failed") {
-            await new Promise((r) => setTimeout(r, 1500));
-            const poll = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-              headers: { /* auth injected by proxy */ },
-            });
-            prediction = await poll.json();
-          }
-
-          if (prediction.status === "succeeded") {
-            return { id: panel.id, status: "done", imageUrl: prediction.output?.[0] || prediction.output };
-          } else {
-            return { id: panel.id, status: "error", imageUrl: null };
-          }
-        } catch (err) {
-          // Backend proxy not wired yet — show placeholder
-          return {
-            id: panel.id,
-            status: "placeholder",
-            imageUrl: null,
-            placeholderNote: "Wire /api/script/generate-panel to Replicate API",
-          };
+    // Part 18c: route through backend so the Replicate token stays server-side.
+    // Backend handles polling and returns one entry per panel.
+    const backend = process.env.REACT_APP_BACKEND_URL || "";
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    let results;
+    try {
+      const response = await fetch(`${backend}/api/script/generate-panel`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          prompt: builtPrompt,
+          width: ratio.width,
+          height: ratio.height,
+          seed: seed ? parseInt(seed) : undefined,
+          num_panels: genCount,
+        }),
+      });
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      const data = await response.json();
+      const panels = Array.isArray(data.panels) ? data.panels : [];
+      results = newPanels.map((panel, idx) => {
+        const r = panels[idx];
+        if (r && r.status === "succeeded" && r.image_url) {
+          return { id: panel.id, status: "done", imageUrl: r.image_url };
         }
-      })
-    );
+        return { id: panel.id, status: "error", imageUrl: null };
+      });
+    } catch (err) {
+      setError("Generation failed — please try again.");
+      results = newPanels.map((panel) => ({ id: panel.id, status: "error", imageUrl: null }));
+    }
 
     // Update generated panels with results
     setGeneratedPanels((prev) =>
@@ -323,8 +303,7 @@ export default function SPXComicGenerator({
               Describe your panel, pick a style,<br />and hit Generate Panels.
             </div>
             <div className="spx-gen-placeholder-note">
-              Powered by FLUX 1.1 Pro via Replicate API<br />
-              Wire <code>/api/script/generate-panel</code> to activate
+              Powered by FLUX 1.1 Pro via Replicate API
             </div>
           </div>
         ) : (
@@ -347,7 +326,7 @@ export default function SPXComicGenerator({
                     <div className="spx-gen-img-placeholder">
                       <div style={{ fontSize: 28, opacity: 0.2 }}>◈</div>
                       <div style={{ fontSize: 10, opacity: 0.5, textAlign: "center", padding: "0 12px" }}>
-                        {panel.placeholderNote || "Waiting for API"}
+                        Generation failed
                       </div>
                     </div>
                   )}

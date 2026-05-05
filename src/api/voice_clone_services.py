@@ -18,10 +18,11 @@
 
 # AI Credit System
 try:
-    from api.ai_credits_routes import deduct_user_credits, check_tier_access, AI_FEATURE_COSTS
+    from api.ai_credits_routes import deduct_user_credits, refund_user_credits, check_tier_access, AI_FEATURE_COSTS
     _HAS_CREDITS = True
 except ImportError:
     _HAS_CREDITS = False
+    refund_user_credits = None
 
 def _check_and_deduct_voice_credits(user_id, feature='voice_clone_tts'):
     """Check and deduct AI credits before ElevenLabs call. Returns (ok, error_response)."""
@@ -35,6 +36,21 @@ def _check_and_deduct_voice_credits(user_id, feature='voice_clone_tts'):
     except Exception as e:
         print(f"Credit check warning: {e}")
         return True, None  # Allow if credit system errors
+
+
+def _refund_voice_credits(user_id, feature, count=1):
+    """Refund AI credits if the ElevenLabs call (or N segments of a batch) failed.
+    Mirrors ai_video_generation_routes.py refund pattern. Safe no-op when credit
+    system is absent. Caller is responsible for picking the right feature key."""
+    if not _HAS_CREDITS or refund_user_credits is None:
+        return False
+    try:
+        for _ in range(max(1, int(count))):
+            refund_user_credits(user_id, feature)
+        return True
+    except Exception as e:
+        print(f"Credit refund warning ({feature} x{count}): {e}")
+        return False
 
 
 from flask import Blueprint, request, jsonify
@@ -220,7 +236,8 @@ def generate_podcast_intro():
 
     audio_url, duration = generate_voice_audio(script, voice_id, "podcast_intro")
     if not audio_url:
-        return jsonify({"error": "Failed to generate intro audio"}), 500
+        _refund_voice_credits(user_id, 'ai_podcast_intro')
+        return jsonify({"error": "Failed to generate intro audio", "credits_refunded": True}), 500
 
     return jsonify({
         "message": "🎙️ Podcast intro generated!",
@@ -265,7 +282,8 @@ def generate_podcast_outro():
 
     audio_url, duration = generate_voice_audio(script, voice_id, "podcast_outro")
     if not audio_url:
-        return jsonify({"error": "Failed to generate outro audio"}), 500
+        _refund_voice_credits(user_id, 'ai_podcast_intro')
+        return jsonify({"error": "Failed to generate outro audio", "credits_refunded": True}), 500
 
     return jsonify({
         "message": "🎙️ Podcast outro generated!",
@@ -370,12 +388,16 @@ def generate_batch_narration():
         })
 
     successful = sum(1 for r in results if r.get("audio_url"))
+    refunded = False
+    if successful == 0 and len(segments) > 0:
+        refunded = _refund_voice_credits(user_id, 'voice_clone_tts')
     return jsonify({
         "message": f"🎬 Generated {successful}/{len(segments)} narration segments!",
         "segments": results,
         "voice_name": voice_name,
         "total_segments": len(segments),
         "successful": successful,
+        "credits_refunded": refunded,
     }), 200
 
 
@@ -449,7 +471,8 @@ def generate_stream_alert():
 
     audio_url, duration = generate_voice_audio(script, voice_id, f"stream_alert_{alert_type}")
     if not audio_url:
-        return jsonify({"error": "Failed to generate alert audio"}), 500
+        _refund_voice_credits(user_id, 'voice_clone_tts')
+        return jsonify({"error": "Failed to generate alert audio", "credits_refunded": True}), 500
 
     return jsonify({
         "message": f"🔴 Stream alert generated!",
@@ -497,12 +520,16 @@ def pregenerate_stream_alerts():
         }
 
     successful = sum(1 for a in alerts.values() if a.get("audio_url"))
+    refunded = False
+    if successful == 0 and len(alerts) > 0:
+        refunded = _refund_voice_credits(user_id, 'voice_clone_tts')
     return jsonify({
         "message": f"🔴 Pre-generated {successful}/{len(alerts)} alert sounds!",
         "alerts": alerts,
         "tone": tone,
         "voice_name": voice_name,
         "tip": "These alerts will play instantly during your streams when events happen.",
+        "credits_refunded": refunded,
     }), 200
 
 
@@ -609,10 +636,14 @@ def generate_batch_shoutouts():
         })
 
     successful = sum(1 for r in results if r.get("audio_url"))
+    refunded = False
+    if successful == 0 and len(shoutouts) > 0:
+        refunded = _refund_voice_credits(user_id, 'voice_clone_tts')
     return jsonify({
         "message": f"🎤 Generated {successful}/{len(shoutouts)} shoutouts!",
         "shoutouts": results,
         "voice_name": voice_name,
+        "credits_refunded": refunded,
     }), 200
 
 
@@ -661,7 +692,8 @@ def generate_story_narration():
 
     audio_url, duration = generate_voice_audio(script, voice_id, f"{content_type}_narration")
     if not audio_url:
-        return jsonify({"error": "Failed to generate narration"}), 500
+        _refund_voice_credits(user_id, 'ai_video_narration')
+        return jsonify({"error": "Failed to generate narration", "credits_refunded": True}), 500
 
     return jsonify({
         "message": f"📱 {content_type.title()} narration generated!",
@@ -720,6 +752,9 @@ def generate_course_lesson_audio():
 
         url1, dur1 = generate_voice_audio(part1, voice_id, "course_p1")
         url2, dur2 = generate_voice_audio(part2, voice_id, "course_p2")
+        refunded = False
+        if not url1 and not url2:
+            refunded = _refund_voice_credits(user_id, 'voice_clone_tts')
 
         return jsonify({
             "message": f"📚 Lesson audio generated in 2 parts!",
@@ -732,12 +767,14 @@ def generate_course_lesson_audio():
             "total_duration": (dur1 or 0) + (dur2 or 0),
             "voice_name": voice_name,
             "tip": "Combine parts in the video editor or upload separately as lesson audio.",
+            "credits_refunded": refunded,
         }), 200
 
     # Single chunk
     audio_url, duration = generate_voice_audio(script, voice_id, "course_lesson")
     if not audio_url:
-        return jsonify({"error": "Failed to generate lesson audio"}), 500
+        _refund_voice_credits(user_id, 'voice_clone_tts')
+        return jsonify({"error": "Failed to generate lesson audio", "credits_refunded": True}), 500
 
     return jsonify({
         "message": f"📚 Lesson audio generated!",
@@ -799,6 +836,9 @@ def generate_course_batch():
 
     successful = sum(1 for r in results if r.get("audio_url"))
     total_duration = sum(r.get("duration_seconds", 0) or 0 for r in results)
+    refunded = False
+    if successful == 0 and len(lessons) > 0:
+        refunded = _refund_voice_credits(user_id, 'voice_clone_tts')
 
     return jsonify({
         "message": f"📚 Generated {successful}/{len(lessons)} lesson audios!",
@@ -808,6 +848,7 @@ def generate_course_batch():
         "total_lessons": len(lessons),
         "successful": successful,
         "total_duration_seconds": round(total_duration, 1),
+        "credits_refunded": refunded,
     }), 200
 
 

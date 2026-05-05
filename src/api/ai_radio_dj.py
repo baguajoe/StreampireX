@@ -22,10 +22,11 @@
 
 # AI Credit System
 try:
-    from api.ai_credits_routes import deduct_user_credits, check_tier_access, AI_FEATURE_COSTS
+    from api.ai_credits_routes import deduct_user_credits, refund_user_credits, check_tier_access, AI_FEATURE_COSTS
     _HAS_CREDITS = True
 except ImportError:
     _HAS_CREDITS = False
+    refund_user_credits = None
 
 def _check_radio_credits(user_id, feature='ai_radio_dj_tts'):
     """Check and deduct credits for radio DJ TTS."""
@@ -37,6 +38,19 @@ def _check_radio_credits(user_id, feature='ai_radio_dj_tts'):
     except Exception as e:
         print(f"Radio credit check warning: {e}")
         return True  # Allow if credit system errors
+
+
+def _refund_radio_credits(user_id, feature='ai_radio_dj_tts'):
+    """Refund credits when every TTS path in the priority chain failed.
+    Mirrors the voice_clone_services pattern. Safe no-op when credits are absent."""
+    if not _HAS_CREDITS or refund_user_credits is None:
+        return False
+    try:
+        refund_user_credits(user_id, feature)
+        return True
+    except Exception as e:
+        print(f"Radio credit refund warning ({feature}): {e}")
+        return False
 
 
 from flask import Blueprint, request, jsonify
@@ -1203,7 +1217,8 @@ def api_generate_break():
     )
 
     if not result:
-        return jsonify({"error": "Failed to generate talk break"}), 500
+        _refund_radio_credits(user_id, 'ai_radio_dj_tts')
+        return jsonify({"error": "Failed to generate talk break", "credits_refunded": True}), 500
 
     return jsonify(result), 200
 
@@ -1262,7 +1277,8 @@ def api_generate_stitched_segment():
     )
 
     if not result:
-        return jsonify({"error": "Failed to generate segment"}), 500
+        _refund_radio_credits(user_id, 'ai_radio_dj_tts')
+        return jsonify({"error": "Failed to generate segment", "credits_refunded": True}), 500
 
     return jsonify(result), 200
 
@@ -1581,7 +1597,8 @@ def preview_cloned_voice():
         result = _tts_elevenlabs(test_text, custom_voice_id, preview_path, elevenlabs_key)
 
         if not result:
-            return jsonify({"error": "Preview generation failed"}), 500
+            _refund_radio_credits(user_id, 'ai_radio_dj_tts')
+            return jsonify({"error": "Preview generation failed", "credits_refunded": True}), 500
 
         preview_filename = f"voice_preview_{station_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.mp3"
         with open(preview_path, "rb") as f:
@@ -1596,7 +1613,8 @@ def preview_cloned_voice():
 
     except Exception as e:
         print(f"❌ Voice preview error: {e}")
-        return jsonify({"error": f"Preview failed: {str(e)}"}), 500
+        _refund_radio_credits(user_id, 'ai_radio_dj_tts')
+        return jsonify({"error": f"Preview failed: {str(e)}", "credits_refunded": True}), 500
     finally:
         try:
             import shutil
