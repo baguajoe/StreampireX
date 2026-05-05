@@ -138,6 +138,12 @@ import DrumDesigner from "../component/DrumDesigner";
 import InstrumentBuilder from "../component/InstrumentBuilder";
 import UnifiedFXChain from '../component/UnifiedFXChain';
 import { SPXPluginHost, ALL_FX_EXTENDED } from '../component/SPXPlugins';
+// Part 16: PluginHost integration. The 111-plugin factory library lives in
+// audio/plugins/ and previously was only reachable from /plugin-rack-demo.
+// We pull the factories + registry directly so the studio's inserts picker
+// can offer the full library and buildFxChain can instantiate them inline.
+import { PLUGIN_FACTORIES } from '../component/audio/plugins/PluginHost';
+import pluginRegistry, { getAllPlugins as getAllHostPlugins } from '../component/audio/plugins/registry';
 import MasteringChain from '../component/MasteringChain';
 import LoopermanBrowser from '../component/LoopermanBrowser';
 import VoiceToMIDI from "../component/VoiceToMIDI";
@@ -266,6 +272,20 @@ const dbToMeterPos = (db) => clamp((db + 60) / 66, 0, 1);
 // vs ConsoleFXPanel — ConsoleFXPanel only knows about the native effect keys
 // (eq/comp/gate/etc.) defined in DEFAULT_EFFECTS.
 const SPX_PLUGIN_KEYS = new Set(ALL_FX_EXTENDED.filter(f => f.component).map(f => f.key));
+
+// Part 16: unified "what inserts are loaded on this track?" — combines native +
+// SPX entries (from ALL_FX_EXTENDED) with any `ph_*`-keyed PluginHost plugin
+// in track.effects. Returns [{ key, name, type }] in declaration order.
+const getLoadedInserts = (track) => {
+  if (!track?.effects) return [];
+  const out = ALL_FX_EXTENDED.filter(fx => track.effects[fx.key]?.enabled);
+  for (const k of Object.keys(track.effects)) {
+    if (!k.startsWith("ph_") || !track.effects[k]?.enabled) continue;
+    const def = pluginRegistry[k.slice(3)];
+    if (def) out.push({ key: k, name: def.name || k, type: def.category || "host" });
+  }
+  return out;
+};
 
 
 // ── Cubase-style fader curve ──────────────────────────────────
@@ -518,6 +538,18 @@ const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, upd
     window.addEventListener('mouseup', onUp);
   };
   const SPX_KEYS = new Set(ALL_FX_EXTENDED.filter(f=>f.component).map(f=>f.key));
+  // Part 16: surface every PluginHost-registered plugin (audio/plugins/*)
+  // through the inserts picker. The track.effects key is `ph_<pluginId>` so
+  // it never collides with native or SPX keys; buildFxChain detects the
+  // prefix and routes through PLUGIN_FACTORIES. Grouped by registry category.
+  const HOST_PLUGINS = getAllHostPlugins();
+  const hostByCat = {};
+  HOST_PLUGINS.forEach(p => {
+    if (!PLUGIN_FACTORIES[p.id]) return;  // only show plugins we can actually instantiate
+    const cat = (p.category || "creative").replace(/^./, c => c.toUpperCase());
+    (hostByCat[cat] = hostByCat[cat] || []).push({ key: `ph_${p.id}`, name: p.name || p.id, type: p.type, _host: true });
+  });
+  const HOST_GROUPS = Object.keys(hostByCat).sort().map(cat => ({ cat: `Plugin Rack — ${cat}`, cls: "host", items: hostByCat[cat] }));
   const groups = [
     { cat: "Vocal Tools",   cls: "vocal", items: [{key:"__vocal_processor",name:"Vocal Processor"},{key:"__mic_simulator",name:"Mic Simulator"}] },
     { cat: "── Standard FX ──", cls: "header", items: [] },
@@ -542,6 +574,8 @@ const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, upd
     { cat: "── Mastering ──", cls: "header", items: [] },
     { cat: "Mastering",     cls: "master", items: ALL_FX_EXTENDED.filter(f=>f.type==="mastering") },
     { cat: "SPX Creative",  cls: "spx", items: ALL_FX_EXTENDED.filter(f=>!["comp","limit","eq","reverb","delay","filter","distortion"].includes(f.type) && SPX_KEYS.has(f.key)) },
+    { cat: "── Plugin Rack Library ──", cls: "header", items: [] },
+    ...HOST_GROUPS,
   ];
   // Bug #4 (Part 9): clear-all entry at the top of the picker so users can
   // remove every active insert on a track without right-clicking each slot.
@@ -1544,6 +1578,213 @@ const RecordingStudio = ({ user }) => {
     if (fx.phaseScope?.enabled) { const g = ctx.createGain(); g.gain.value=1; nodes.push(g); }
     if (fx.goniometer?.enabled) { const g = ctx.createGain(); g.gain.value=1; nodes.push(g); }
 
+    // ── Part 16: 14 SPX plugins that previously had UI but no DSP. ──
+    // Each handler builds a real Web Audio chain so the user hears their
+    // changes. Complex DSP (true SSB freq shift, real granular synthesis,
+    // proper vocoder) is approximated via standard nodes; richer
+    // implementations live in the audio/plugins/ PluginHost system.
+    if (fx.baxandallEQ?.enabled) {
+      const lo = ctx.createBiquadFilter(); lo.type="lowshelf";  lo.frequency.value = fx.baxandallEQ.bassFreq   || 100;   lo.gain.value = fx.baxandallEQ.bass   || 0;
+      const mi = ctx.createBiquadFilter(); mi.type="peaking";   mi.frequency.value = fx.baxandallEQ.midFreq    || 1000;  mi.Q.value    = fx.baxandallEQ.midQ   || 0.7; mi.gain.value = fx.baxandallEQ.mid || 0;
+      const hi = ctx.createBiquadFilter(); hi.type="highshelf"; hi.frequency.value = fx.baxandallEQ.trebleFreq || 10000; hi.gain.value = fx.baxandallEQ.treble || 0;
+      const og = ctx.createGain(); og.gain.value = Math.pow(10, (fx.baxandallEQ.outputGain || 0) / 20);
+      nodes.push(lo, mi, hi, og);
+    }
+    if (fx.tiltEQ?.enabled) {
+      const t = fx.tiltEQ.tilt || 0;
+      const lo = ctx.createBiquadFilter(); lo.type="lowshelf";  lo.frequency.value = fx.tiltEQ.tiltFreq || 1000; lo.gain.value = -t / 2;
+      const hi = ctx.createBiquadFilter(); hi.type="highshelf"; hi.frequency.value = fx.tiltEQ.tiltFreq || 1000; hi.gain.value =  t / 2;
+      const pr = ctx.createBiquadFilter(); pr.type="peaking";   pr.frequency.value = fx.tiltEQ.presenceFreq || 3000; pr.Q.value = 1; pr.gain.value = fx.tiltEQ.presence || 0;
+      const air = ctx.createBiquadFilter(); air.type="highshelf"; air.frequency.value = fx.tiltEQ.airFreq || 12000; air.gain.value = fx.tiltEQ.air || 0;
+      const og = ctx.createGain(); og.gain.value = Math.pow(10, (fx.tiltEQ.outputGain || 0) / 20);
+      nodes.push(lo, hi, pr, air, og);
+    }
+    if (fx.pultecForge?.enabled) {
+      const lf = fx.pultecForge.lowFreq  || 60;
+      const hf = (fx.pultecForge.highFreq || 10) * 1000; // UI unit is kHz
+      const lo = ctx.createBiquadFilter(); lo.type="lowshelf";  lo.frequency.value = lf; lo.gain.value = (fx.pultecForge.lowBoost  || 0) - (fx.pultecForge.lowAtten  || 0);
+      const hi = ctx.createBiquadFilter(); hi.type="highshelf"; hi.frequency.value = hf; hi.gain.value = (fx.pultecForge.highBoost || 0) - (fx.pultecForge.highAtten || 0);
+      hi.Q.value = 0.5 + (fx.pultecForge.highBW || 0.5);
+      const og = ctx.createGain(); og.gain.value = Math.pow(10, (fx.pultecForge.outputGain || 0) / 20);
+      nodes.push(lo, hi, og);
+    }
+    if (fx.graphicEQ?.enabled) {
+      // 31-band ISO graphic EQ. Each band is a single peaking biquad with Q≈4.3
+      // (one-third-octave). Pre-amp is a final gain stage.
+      const ISO = [20,25,31.5,40,50,63,80,100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150,4000,5000,6300,8000,10000,12500,16000,20000];
+      const bands = fx.graphicEQ.bands || {};
+      ISO.forEach(f => {
+        const g = bands[f]; if (!g) return; // skip neutral bands for performance
+        const b = ctx.createBiquadFilter(); b.type="peaking"; b.frequency.value = f; b.Q.value = 4.3; b.gain.value = g;
+        nodes.push(b);
+      });
+      if (fx.graphicEQ.preAmp) { const og = ctx.createGain(); og.gain.value = Math.pow(10, fx.graphicEQ.preAmp / 20); nodes.push(og); }
+    }
+    if (fx.stereoWidener?.enabled) {
+      // Mid/Side widener: split L/R, derive M=L+R, S=L-R, scale S by width,
+      // recombine. width=1 is unity, width=2 is double S, width=0 collapses to mono.
+      const w = (fx.stereoWidener.width != null ? fx.stereoWidener.width : 1.0);
+      const split = ctx.createChannelSplitter(2);
+      const mGain = ctx.createGain(); mGain.gain.value = 0.5;
+      const sGain = ctx.createGain(); sGain.gain.value = 0.5 * w;
+      const sInv  = ctx.createGain(); sInv.gain.value  = -0.5 * w;
+      const merge = ctx.createChannelMerger(2);
+      // L = M + S, R = M - S → wire to merger inputs 0 and 1
+      // Build (M, S) by tapping channels and summing through gains. We chain
+      // the nodes into the FX list so buildPlaybackSources' linear chaining
+      // still works: the splitter is the input, the merger is the output.
+      // Intermediate sums route through nGain anchors connected internally.
+      const passL = ctx.createGain(), passR = ctx.createGain();
+      split.connect(passL, 0); split.connect(passR, 1);
+      passL.connect(mGain); passR.connect(mGain); mGain.connect(merge, 0, 0); mGain.connect(merge, 0, 1);
+      passL.connect(sGain); passR.connect(sInv);  sGain.connect(merge, 0, 0); sInv.connect(merge,  0, 1);
+      // Compound node: chainer wires `last → split` and `merge → next`,
+      // leaving the M/S sub-graph untouched.
+      nodes.push({ inputNode: split, outputNode: merge });
+    }
+    if (fx.enhancer808?.enabled) {
+      // Sub boost via lowshelf at user freq, harmonic exciter via tanh saturation
+      // mixed parallel. Punch shapes the attack via a transient-leaning shelf.
+      const sub = ctx.createBiquadFilter(); sub.type="lowshelf"; sub.frequency.value = fx.enhancer808.freq || 60; sub.gain.value = (fx.enhancer808.sub || 0) * 12;
+      const punch = ctx.createBiquadFilter(); punch.type="peaking"; punch.frequency.value = (fx.enhancer808.freq || 60) * 1.5; punch.Q.value = 1.2; punch.gain.value = (fx.enhancer808.punch || 0) * 6;
+      const ws = ctx.createWaveShaper(); const harm = (fx.enhancer808.harmonic || 0); const N=2048; const c = new Float32Array(N);
+      for (let i = 0; i < N; i++) { const x = (i*2)/N - 1; c[i] = Math.tanh(x * (1 + harm * 4)); }
+      ws.curve = c; ws.oversample = "2x";
+      const og = ctx.createGain(); og.gain.value = fx.enhancer808.outputGain != null ? fx.enhancer808.outputGain : 1.0;
+      nodes.push(sub, punch, ws, og);
+    }
+    if (fx.formantFilter?.enabled) {
+      // Three peaking filters at the morphed F1/F2/F3 of the chosen vowels.
+      // Approximation: not a true formant filter but produces audibly distinct
+      // vowel coloration suitable for talkbox/wah effects.
+      const FORMANTS = { A:[700,1220,2600], E:[400,1700,2400], I:[270,2290,3010], O:[450,800,2830], U:[325,700,2530] };
+      const fA = FORMANTS[fx.formantFilter.vowelA] || FORMANTS.A;
+      const fB = FORMANTS[fx.formantFilter.vowelB] || FORMANTS.E;
+      const m  = fx.formantFilter.morph != null ? fx.formantFilter.morph : 0.5;
+      const Q  = fx.formantFilter.q || 8;
+      const f1 = ctx.createBiquadFilter(); f1.type="peaking"; f1.frequency.value = fA[0] * (1 - m) + fB[0] * m; f1.Q.value = Q; f1.gain.value = 18;
+      const f2 = ctx.createBiquadFilter(); f2.type="peaking"; f2.frequency.value = fA[1] * (1 - m) + fB[1] * m; f2.Q.value = Q; f2.gain.value = 14;
+      const f3 = ctx.createBiquadFilter(); f3.type="peaking"; f3.frequency.value = fA[2] * (1 - m) + fB[2] * m; f3.Q.value = Q; f3.gain.value = 10;
+      const og = ctx.createGain(); og.gain.value = Math.pow(10, (fx.formantFilter.outputGain || 0) / 20);
+      nodes.push(f1, f2, f3, og);
+    }
+    if (fx.freqShifter?.enabled) {
+      // True single-sideband frequency shift requires a Hilbert transformer pair.
+      // V1: amplitude-modulation approximation that produces audibly similar
+      // sidebands for moderate shift amounts. Real SSB lives in the PluginHost
+      // FrequencyShifterPlugin (audio/plugins/plugins/FrequencyShifterPlugin.js).
+      const carrier = ctx.createOscillator(); carrier.frequency.value = Math.abs(fx.freqShifter.shift || 0);
+      const carrierGain = ctx.createGain(); carrierGain.gain.value = 1;
+      const modGain = ctx.createGain(); modGain.gain.value = 1;
+      carrier.connect(carrierGain); carrierGain.connect(modGain.gain);
+      carrier.start();
+      const mix = (fx.freqShifter.mix != null ? fx.freqShifter.mix : 100) / 100;
+      const wet = ctx.createGain(); wet.gain.value = mix;
+      modGain.connect(wet);
+      nodes.push({ inputNode: modGain, outputNode: wet });
+    }
+    if (fx.granularFreeze?.enabled) {
+      // True granular synthesis freeze needs an audio worklet to read random
+      // grains from a circular buffer. V1: long delay with high feedback for
+      // a sustained "frozen" texture when the freeze switch is on. Pitch and
+      // grain controls are not honored in this approximation.
+      const d = ctx.createDelay(2.0);
+      d.delayTime.value = (fx.granularFreeze.grainSize || 80) / 1000;
+      const fb = ctx.createGain(); fb.gain.value = fx.granularFreeze.freeze ? 0.95 : (fx.granularFreeze.density || 0.7) * 0.6;
+      const wet = ctx.createGain(); wet.gain.value = (fx.granularFreeze.mix != null ? fx.granularFreeze.mix : 80) / 100;
+      const og  = ctx.createGain(); og.gain.value = Math.pow(10, (fx.granularFreeze.outputGain || 0) / 20);
+      d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(og);
+      nodes.push({ inputNode: d, outputNode: og });
+    }
+    if (fx.noiseReduction?.enabled) {
+      // Approximated as a frequency-aware downward expander: a gentle highpass
+      // attenuates rumble + a DynamicsCompressor in expander mode (ratio < 1
+      // is not supported on Web Audio, so we use ratio=1.5 with attack/release
+      // tuned to an aggressive gate). Real spectral subtraction lives in the
+      // PluginHost AINoiseReducePlugin.
+      const hp = ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value = 60;
+      const c = ctx.createDynamicsCompressor();
+      c.threshold.value = fx.noiseReduction.threshold != null ? fx.noiseReduction.threshold : -40;
+      c.ratio.value = 1 + (fx.noiseReduction.reduction || 0.6) * 6;
+      c.attack.value  = (fx.noiseReduction.attack  || 10)  / 1000;
+      c.release.value = (fx.noiseReduction.release || 200) / 1000;
+      c.knee.value = 6;
+      const og = ctx.createGain(); og.gain.value = Math.pow(10, (fx.noiseReduction.outputGain || 0) / 20);
+      nodes.push(hp, c, og);
+    }
+    if (fx.ringMod?.enabled) {
+      // Audio-rate amplitude modulation: input × carrier sine.
+      // mode "ringmod" = pure RM (DC-balanced carrier), "am" = unipolar carrier
+      // (preserves some of the original signal), "freqshift" → falls back to RM
+      // since true SSB needs a Hilbert pair (see freqShifter handler).
+      const carrier = ctx.createOscillator();
+      carrier.type = fx.ringMod.carrierType || "sine";
+      carrier.frequency.value = fx.ringMod.carrierFreq || 440;
+      const dc = ctx.createGain(); dc.gain.value = (fx.ringMod.mode === "am") ? 0.5 : 0;
+      const carrierGain = ctx.createGain(); carrierGain.gain.value = 1;
+      const ampMod = ctx.createGain(); ampMod.gain.value = 0;
+      carrier.connect(carrierGain); carrierGain.connect(ampMod.gain);
+      // dc bias is approximated by also feeding a constant 0.5 — but Web Audio
+      // doesn't have ConstantSourceNode in older browsers, so skip and accept RM.
+      carrier.start();
+      const mix = (fx.ringMod.mix != null ? fx.ringMod.mix : 50) / 100;
+      const wet = ctx.createGain(); wet.gain.value = mix;
+      const og  = ctx.createGain(); og.gain.value = Math.pow(10, (fx.ringMod.outputGain || 0) / 20);
+      ampMod.connect(wet); wet.connect(og);
+      nodes.push({ inputNode: ampMod, outputNode: og });
+    }
+    if (fx.spectrumAnalyzer?.enabled) {
+      // Meter-only — passthrough so the chain stays connected. The analyser
+      // tap for visualization is the SPX plugin window's responsibility.
+      const g = ctx.createGain(); g.gain.value = 1; nodes.push(g);
+    }
+    if (fx.loudnessMeter2?.enabled) {
+      const g = ctx.createGain(); g.gain.value = 1; nodes.push(g);
+    }
+    if (fx.vocoderSPX?.enabled) {
+      // Approximation: N-band peaking filter array driven by carrier frequency
+      // distribution. Real channel vocoder lives in the PluginHost system; this
+      // gives audible band-emphasis coloration that varies with carrier freq.
+      const bands = Math.min(16, fx.vocoderSPX.bands || 16);
+      const baseF = fx.vocoderSPX.carrierFreq || 110;
+      for (let i = 0; i < bands; i++) {
+        const b = ctx.createBiquadFilter();
+        b.type = "peaking";
+        b.frequency.value = baseF * Math.pow(2, i * 6 / bands); // log-spaced
+        b.Q.value = 4 + (fx.vocoderSPX.unvoiced || 0.3) * 10;
+        b.gain.value = 6;
+        nodes.push(b);
+      }
+      const mix = (fx.vocoderSPX.mix != null ? fx.vocoderSPX.mix : 100) / 100;
+      const og = ctx.createGain(); og.gain.value = mix * Math.pow(10, (fx.vocoderSPX.outputGain || 0) / 20);
+      nodes.push(og);
+    }
+
+    // ── Part 16: PluginHost factories ─────────────────────────────────────
+    // Any track.effects key prefixed `ph_` resolves to a plugin factory in
+    // PLUGIN_FACTORIES (the 111-plugin library in audio/plugins/). The factory
+    // returns { inputNode, outputNode, ... }; we push as a compound node so
+    // the existing chainer wires it without dry-shortcut bleed. Param updates
+    // happen by re-instantiating on fxSignature change — same coarse-grained
+    // strategy buildFxChain uses today for native effects.
+    for (const fxKey of Object.keys(fx)) {
+      if (!fxKey.startsWith("ph_") || !fx[fxKey]?.enabled) continue;
+      const pluginId = fxKey.slice(3);  // "ph_a_i_compressor" → "a_i_compressor"
+      const factory = PLUGIN_FACTORIES[pluginId];
+      if (!factory) { console.warn("[SPX PluginHost] no factory for", pluginId); continue; }
+      const def = pluginRegistry[pluginId];
+      const defaults = {};
+      if (def?.params) def.params.forEach(p => { defaults[p.id] = p.default; });
+      const params = { ...defaults, ...fx[fxKey] };
+      delete params.enabled;
+      try {
+        const inst = factory(ctx, params);
+        if (inst?.inputNode && inst?.outputNode) {
+          nodes.push({ inputNode: inst.inputNode, outputNode: inst.outputNode, _hostInstance: inst, _pluginId: pluginId });
+        }
+      } catch (e) { console.warn("[SPX PluginHost] factory threw for", pluginId, e); }
+    }
+
     return nodes;
   };
 
@@ -1782,7 +2023,7 @@ const RecordingStudio = ({ user }) => {
     const meter = ctx.createAnalyser(); meter.fftSize = 2048;
     const fxNodes = (track.effects && Object.keys(track.effects).length) ? buildFxChain(ctx, track) : [];
     let last = preGain;
-    fxNodes.forEach(n => { last.connect(n); last = n; });
+    fxNodes.forEach(n => { const ni = n.inputNode || n, no = n.outputNode || n; last.connect(ni); last = no; });
     last.connect(panNode); panNode.connect(fader); fader.connect(meter);
     const boardId = trackConsoleChar[track.id] || "none";
     const consoleOut = ctx.createGain();
@@ -1808,7 +2049,7 @@ const RecordingStudio = ({ user }) => {
     const meter = ctx.createAnalyser(); meter.fftSize = 2048;
     const fxNodes = (busTrack.effects && Object.keys(busTrack.effects).length) ? buildFxChain(ctx, busTrack) : [];
     let last = preGain;
-    fxNodes.forEach(n => { last.connect(n); last = n; });
+    fxNodes.forEach(n => { const ni = n.inputNode || n, no = n.outputNode || n; last.connect(ni); last = no; });
     last.connect(panNode); panNode.connect(fader); fader.connect(meter);
     const busConsoleOut = ctx.createGain();
     const busConsoleNodes = applyConsoleCharacter(ctx, meter, busConsoleOut, trackConsoleChar[busTrack?.id] || "none") || [];
@@ -1827,8 +2068,12 @@ const RecordingStudio = ({ user }) => {
     if (old) {
       ["input","preGain","panNode","fader","meter","consoleOut"].forEach(k => { try { old[k]?.disconnect(); } catch (_) {} });
       (old.fxNodes || []).forEach(n => {
+        // Part 16: handle compound nodes ({inputNode, outputNode}) — disconnect
+        // both ends so feedback paths and modulation oscillators tear down cleanly.
+        const ni = n.inputNode || n, no = n.outputNode || n;
         try { if (typeof n.stop === "function") n.stop(); } catch (_) {}
-        try { n.disconnect(); } catch (_) {}
+        try { ni.disconnect(); } catch (_) {}
+        if (no !== ni) { try { no.disconnect(); } catch (_) {} }
       });
       (old.consoleNodes || []).forEach(n => { try { n.disconnect(); } catch (_) {} });
       (old.sendNodes || []).forEach(n => { try { n.disconnect(); } catch (_) {} });
@@ -2028,10 +2273,27 @@ const RecordingStudio = ({ user }) => {
       const analyserL = ctx.createAnalyser(); analyserL.fftSize = 2048; analyserL.smoothingTimeConstant = 0.88;
       const analyserR = ctx.createAnalyser(); analyserR.fftSize = 2048; analyserR.smoothingTimeConstant = 0.88;
       const fxNodes = (t.effects && Object.keys(t.effects).length) ? buildFxChain(ctx, t) : []; let last = s;
-      fxNodes.forEach(n => { last.connect(n); last = n; });
+      // Part 16: chainer supports compound nodes via { inputNode, outputNode }
+      // (same shape as PluginHost.addPlugin returns) so multi-node DSP fragments
+      // — stereoWidener M/S split, ringMod's modulation graph, etc. — wire
+      // cleanly without the loop adding spurious dry-shortcut connections.
+      fxNodes.forEach(n => { const ni = n.inputNode || n, no = n.outputNode || n; last.connect(ni); last = no; });
       last.connect(g); g.connect(p); p.connect(splitter);
       splitter.connect(analyserL, 0); splitter.connect(analyserR, 1);
-      p.connect(masterGainRef.current); if (t.effects) buildSends(ctx, t, p, masterGainRef.current);
+      // Part 16: insert per-track console character on playback path. Pre-Part 16
+      // the per-track CONSOLE_BOARDS dropdown only colored the live-mixer graph
+      // (which audio tracks never traverse), so picking SSL 4000E on a recorded
+      // track did nothing audible. Now we route p → consoleOut → master so the
+      // user actually hears the analog board. Sends still tap from p (pre-console)
+      // which matches typical analog studio aux-send wiring.
+      const consoleId = trackConsoleChar[t.id] || "none";
+      let masterIn = p;
+      if (consoleId && consoleId !== "none") {
+        const consoleOut = ctx.createGain();
+        applyConsoleCharacter(ctx, p, consoleOut, consoleId);
+        masterIn = consoleOut;
+      }
+      masterIn.connect(masterGainRef.current); if (t.effects) buildSends(ctx, t, p, masterGainRef.current);
       // Clamp offset to within buffer length so we don't throw or get silence on wrap.
       const safeOffset = Math.max(0, Math.min(fromOffsetSec, Math.max(0, t.audioBuffer.duration - 0.001)));
       s.start(0, safeOffset);
@@ -2066,6 +2328,26 @@ const RecordingStudio = ({ user }) => {
     playStartRef.current = ctx.currentTime;
     buildPlaybackSources(ctx, elapsed);
   }, [fxSignature, isPlaying]);
+
+  // Part 16: same rebuild trigger for console-board changes during playback. The
+  // existing trackConsoleChar useEffect (RS:930-936) only rebuilt the live-mixer
+  // graph; without this, picking a different console mid-playback was silent
+  // until the next play.
+  const consoleSignature = useMemo(
+    () => tracks.map(t => `${t.id}:${trackConsoleChar[t.id] || "none"}`).join("|"),
+    [tracks, trackConsoleChar]
+  );
+  const lastConsoleSignatureRef = useRef("");
+  useEffect(() => {
+    if (!isPlaying) { lastConsoleSignatureRef.current = consoleSignature; return; }
+    if (consoleSignature === lastConsoleSignatureRef.current) return;
+    lastConsoleSignatureRef.current = consoleSignature;
+    const ctx = audioCtxRef.current; if (!ctx) return;
+    const elapsed = ctx.currentTime - playStartRef.current + playOffsetRef.current;
+    playOffsetRef.current = elapsed;
+    playStartRef.current = ctx.currentTime;
+    buildPlaybackSources(ctx, elapsed);
+  }, [consoleSignature, isPlaying]);
 
   // Bug #2 (Part 9): mute / solo toggled from ArrangerView only set state — the
   // Console rows additionally poke trackGainsRef directly, but Arrange has no
@@ -3475,13 +3757,13 @@ const RecordingStudio = ({ user }) => {
                         <div className="ch-upper">
                         <div className="daw-ch-inserts">
                           <div className="daw-ch-inserts-label">INSERTS</div>
-                          {ALL_FX_EXTENDED.filter(fx => t.effects?.[fx.key]?.enabled).map(fx => (
+                          {getLoadedInserts(t).map(fx => (
                             <div key={fx.key} className={"daw-ch-insert-slot active " + (fx.type || "")}
                               onClick={e => { e.stopPropagation(); setSelectedTrack(i); setActiveEffectsTrack(i); setOpenFxKey(fx.key); }}>
                               {fx.name}
                             </div>
                           ))}
-                          {Array.from({length: Math.max(0, 6 - ALL_FX_EXTENDED.filter(fx => t.effects?.[fx.key]?.enabled).length)}).map((_, si) => (
+                          {Array.from({length: Math.max(0, 6 - getLoadedInserts(t).length)}).map((_, si) => (
                             <div key={"empty"+si} className="daw-ch-insert-slot empty"
                               onClick={e => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setInsertPickerState({ trackIndex: i, x: rect.right + 4, y: rect.top }); }}>
                             </div>
@@ -3663,7 +3945,7 @@ const RecordingStudio = ({ user }) => {
             <div className="daw-console-scroll">
               {tracks.map((t, i) => {
                 const meter = meterLevels[i] || { left: 0, right: 0, peak: 0 };
-                const loaded = ALL_FX_EXTENDED.filter(fx => t.effects?.[fx.key]?.enabled);
+                const loaded = getLoadedInserts(t);
                 return (
                   <div key={t.id} className={"daw-channel"+(selectedTrack===i?" selected":"")+(t.armed?" armed":"")+(t.trackType==="bus"?" bus-channel":"")+(selectedChannels.has(t.id)?" linked":"")} onClick={e=>{if(e.ctrlKey||e.metaKey){setSelectedChannels(prev=>{const n=new Set(prev);n.has(t.id)?n.delete(t.id):n.add(t.id);return n;});}else setSelectedTrack(i);}} onContextMenu={e=>{e.preventDefault();setChannelCtxMenu({x:e.clientX,y:e.clientY,trackId:t.id,trackIndex:i});}}>
                     <div className="daw-ch-colorbar" style={{ background: t.color || "#4a90d9" }}/>

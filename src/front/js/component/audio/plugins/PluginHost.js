@@ -120,7 +120,9 @@ let _nextId = 1;
 const _loadedWorklets = new Set();
 
 // Factory map: pluginId → create function
-const PLUGIN_FACTORIES = {
+// Part 16: exported so callers (Recording Studio) can instantiate plugin
+// instances directly, bypassing the PluginHost class for simple insert chains.
+export const PLUGIN_FACTORIES = {
   gain:       createGainPlugin,
   eq_3band:   createEQ3BandPlugin,
   compressor: createCompressorPlugin,
