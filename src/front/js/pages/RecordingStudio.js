@@ -2248,6 +2248,19 @@ const RecordingStudio = ({ user }) => {
           setStatus(`✗ Recording decode failed: ${err?.message || err}`);
           return;
         }
+        // Part 13b bug 1: USB/MOTU mics commonly deliver a mono stream. The
+        // playback chain SHOULD upmix mono via channelInterpretation:'speakers',
+        // but several FX nodes (Convolver, the splitter→analyser tap) pin
+        // their channel count and end up routing the recording to one ear
+        // only. Materialize a 2-channel buffer once at decode so every
+        // downstream consumer sees stereo.
+        if (buf.numberOfChannels === 1) {
+          const mono = buf.getChannelData(0);
+          const stereo = ctx.createBuffer(2, buf.length, buf.sampleRate);
+          stereo.copyToChannel(mono, 0);
+          stereo.copyToChannel(mono, 1);
+          buf = stereo;
+        }
         // Bug #6 (Part 9): sanity-check the decoded buffer — if MediaRecorder
         // captured a virtual/silent stream we get bytes but zero amplitude.
         let peak = 0;
@@ -2310,6 +2323,31 @@ const RecordingStudio = ({ user }) => {
 
   const removeTrack = (idx) => {
     if (tracks.length <= 1) { setStatus("⚠ Must have at least 1 track"); return; }
+    // Part 13b bug 2: stop and tear down the audio graph BEFORE dropping the
+    // track from React state — otherwise the BufferSourceNode keeps emitting
+    // through master and the user hears phantom audio for a deleted track.
+    const removed = tracks[idx];
+    try { trackSourcesRef.current[idx]?.stop(); } catch (_) {}
+    try { trackSourcesRef.current[idx]?.disconnect(); } catch (_) {}
+    try { trackGainsRef.current[idx]?.disconnect(); } catch (_) {}
+    try { trackPansRef.current[idx]?.disconnect(); } catch (_) {}
+    const an = trackAnalysersRef.current[idx];
+    try { an?.left?.disconnect(); } catch (_) {}
+    try { an?.right?.disconnect(); } catch (_) {}
+    trackSourcesRef.current.splice(idx, 1);
+    trackGainsRef.current.splice(idx, 1);
+    trackPansRef.current.splice(idx, 1);
+    trackAnalysersRef.current.splice(idx, 1);
+    if (removed?.id) {
+      const old = trackNodesRef.current.get(removed.id);
+      if (old) {
+        ["input","preGain","panNode","fader","meter","consoleOut"].forEach(k => { try { old[k]?.disconnect(); } catch (_) {} });
+        (old.fxNodes || []).forEach(n => { try { n.disconnect(); } catch (_) {} });
+        (old.consoleNodes || []).forEach(n => { try { n.disconnect(); } catch (_) {} });
+        (old.sendNodes || []).forEach(n => { try { n.disconnect(); } catch (_) {} });
+      }
+      trackNodesRef.current.delete(removed.id);
+    }
     setTracks(prev => prev.filter((_, i) => i !== idx));
     if (activeEffectsTrack === idx) setActiveEffectsTrack(null);
     else if (activeEffectsTrack > idx) setActiveEffectsTrack(activeEffectsTrack - 1);
@@ -3310,6 +3348,7 @@ const RecordingStudio = ({ user }) => {
           <div className="rs-relative">
             <ArrangerView onBpmDetected={det => { setBpm(det); setStatus("♩ BPM detected: " + det); }} cycleEnabled={cycleEnabled} cycleStart={cycleStart} cycleEnd={cycleEnd}
               onCycleChange={(s, e) => { setCycleStart(s); setCycleEnd(e); }} onCycleToggle={toggleCycle}
+              selectedTrack={selectedTrack} onSelectTrack={setSelectedTrack}
               tracks={tracks} setTracks={setTracks} bpm={bpm} timeSignatureTop={timeSignature[0]} timeSignatureBottom={timeSignature[1]}
               masterVolume={masterVolume} onMasterVolumeChange={setMasterVolume} projectName={projectName} userTier={userTier}
               playheadBeat={playheadBeat} isPlaying={isPlaying} isRecording={isRecording}
@@ -3610,7 +3649,7 @@ const RecordingStudio = ({ user }) => {
                     <button className="arr-ctx-item" onClick={()=>{updateTrack(channelCtxMenu.trackIndex,{color:"#ff3b30"});setChannelCtxMenu(null);}}>🎨 Red</button>
                     <button className="arr-ctx-item" onClick={()=>{updateTrack(channelCtxMenu.trackIndex,{color:"#ff6600"});setChannelCtxMenu(null);}}>🎨 Orange</button>
                     <div className="ctx-separator" />
-                    <button className="arr-ctx-item danger" onClick={()=>{setTracks(prev=>prev.filter((_,idx)=>idx!==channelCtxMenu.trackIndex));setChannelCtxMenu(null);}}>🗑 Remove Track</button>
+                    <button className="arr-ctx-item danger" onClick={()=>{removeTrack(channelCtxMenu.trackIndex);setChannelCtxMenu(null);}}>🗑 Remove Track</button>
                   </div>
                 )}
               </div>
@@ -3726,9 +3765,6 @@ const RecordingStudio = ({ user }) => {
                 </div>
                 </div>
                 <div className="ch-mid">
-                                <div className="daw-ch-pan" style={{padding:"4px 0"}}>
-                  <PanKnob value={masterPan || 0} onChange={v => { setMasterPan(v); if (masterPanRef.current) masterPanRef.current.pan.value = v; }} size={32}/>
-                </div>
                 <div className="daw-ch-controls">
                   <div className="daw-ch-badge">M</div>
                   <div className="daw-ch-badge">S</div>
@@ -3736,7 +3772,7 @@ const RecordingStudio = ({ user }) => {
                   <div className="daw-ch-rec-btn"/>
                 </div>
                 <div className="daw-ch-pan">
-                  <PanKnob value={masterPan} onChange={v => setMasterPan(v)} size={32}/>
+                  <PanKnob value={masterPan || 0} onChange={v => { setMasterPan(v); if (masterPanRef.current) masterPanRef.current.pan.value = v; }} size={32}/>
                 </div>
                 </div>
                 <div className="ch-lower">

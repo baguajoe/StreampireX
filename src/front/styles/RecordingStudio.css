@@ -1957,3 +1957,39 @@
 .qwerty-midi-label  { color: #4e6a82; font-weight: 700; letter-spacing: 1px; }
 .qwerty-midi-status { color: #00ffc8; font-weight: 800; }
 .qwerty-midi-hud-keys { font-size: 9px; color: #5a6a7a; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(0,255,200,.15); line-height: 1.5; }
+
+/* ── Part 13b: Console mixer alignment + readability ────────────────────── */
+/* Bug 3: ch-upper / ch-mid / ch-lower had variable heights, so each strip's */
+/* fader, name input, and console select sat at a different y-coordinate.  */
+/* Bug 4: when text inside a strip changed width (vol readout, insert     */
+/* labels) the strip reflowed; pinning sub-section heights and the vol    */
+/* readout width keeps neighbouring strips visually still during fades.   */
+/* Bug 5: routing value, inserts label, console select, vol unit, R/W and */
+/* name input had low contrast/size — bumped to ≥11px and ≥0.85 alpha.    */
+.daw-console-scroll { align-items: flex-start !important; }
+.ch-upper { height: 180px !important; min-height: 180px !important; max-height: 180px !important; flex: 0 0 180px !important; }
+.ch-mid   { height: 90px  !important; min-height: 90px  !important; max-height: 90px  !important; flex: 0 0 90px  !important;
+            display: flex !important; flex-direction: column !important; justify-content: flex-start !important; gap: 2px !important; }
+.ch-lower { flex: 1 1 auto !important; min-height: 320px !important;
+            display: flex !important; flex-direction: column !important; justify-content: flex-start !important; }
+.daw-ch-fader-area { height: 220px !important; min-height: 220px !important; max-height: 220px !important; flex: 0 0 220px !important; }
+.daw-ch-vol-display { height: 22px !important; min-height: 22px !important; line-height: 1.2 !important;
+                      display: flex !important; align-items: center !important; justify-content: center !important; }
+.daw-ch-vol-input { min-width: 44px !important; }
+.daw-ch-vol-val   { display: inline-block !important; min-width: 56px !important; text-align: center !important; font-variant-numeric: tabular-nums !important; }
+.daw-ch-automation { height: 22px !important; min-height: 22px !important; flex: 0 0 22px !important; }
+.daw-ch-name { flex: 0 0 auto !important; }
+
+/* Bug 5 — bump contrast & legibility of the small console labels. */
+.daw-ch-routing-value      { color: rgba(255,255,255,0.88) !important; font-size: 12px !important; font-weight: 600 !important; }
+.daw-ch-inserts-label      { color: rgba(255,255,255,0.78) !important; font-size: 11px !important; }
+.daw-ch-console-select     { color: rgba(255,255,255,0.88) !important; font-size: 11px !important; padding: 2px 4px !important;
+                             background: #0a0e18 !important; border-color: #2a3852 !important; }
+.daw-ch-console-select option { color: #cdd9e5 !important; background: #0a0e18 !important; }
+.daw-ch-vol-unit           { color: rgba(255,255,255,0.75) !important; font-size: 11px !important; }
+.daw-ch-vol-val            { color: rgba(255,255,255,0.92) !important; font-size: 12px !important; font-weight: 700 !important; }
+.daw-ch-vol-input          { color: rgba(255,255,255,0.95) !important; font-size: 11px !important; }
+.daw-ch-name-input         { color: rgba(255,255,255,0.92) !important; font-size: 12px !important; font-weight: 600 !important; }
+.daw-ch-rw                 { color: rgba(255,255,255,0.75) !important; font-size: 10px !important; font-weight: 700 !important; }
+.daw-ch-rw.active          { color: #00ffc8 !important; }
+.rs-master-label           { color: #ff8a3d !important; font-size: 12px !important; font-weight: 800 !important; letter-spacing: 1px !important; }
