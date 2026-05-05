@@ -5,8 +5,8 @@
 // ============================================================
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-// Part 17: param-driven visualizations applied to top SPX plugin UIs.
-import { TransferCurve, GainReductionMeter, ImpulseResponse } from "./audio/PluginVisualizer";
+// Part 17 + 18: param-driven visualizations applied to top SPX plugin UIs.
+import { TransferCurve, GainReductionMeter, ImpulseResponse, LFOVisualizer, DelayTapVisualizer, SpectrumAnalyzer } from "./audio/PluginVisualizer";
 import { PultecForgeUI, DynamicEQUI, GraphicEQUI, TiltEQUI, BaxandallEQUI, EQ_FX_ADDITIONS } from './SPXPlugins_EQ';
 import { VocoderSPXUI, GranularFreezeUI, NoiseReductionUI, RingModUI, FormantFilterUI, SpectrumAnalyzerUI, CREATIVE_FX_ADDITIONS } from './SPXPlugins_Creative';
 import { TapeStopUI, TransientShaperUI, MultibandSatUI, StereoImagerUI, EnhancerSPX808UI, LoFiCrusherUI, InfiniteReverbUI, ReverseDelayUI, DeclickerUI, DehummmerUI, MidSideCompUI, SubOctaverUI, ChorusEnsembleUI, TempoDelayUI, PitchRandomizerUI, AutoWahUI, DrumEnhancerUI, VocalSaturatorUI, GainStagerUI, MultibandLimiterUI, GoniometerUI, PhaseScopeUI, DialogueIsolatorUI, CabinetSimUI, FreqShifterUI } from './SPXPlugins_SPX100';
@@ -344,6 +344,10 @@ export function BrickWallUI({ params, onChange, onClose }) {
         <Toggle label="True Peak" value={s.truePeak} onChange={(v) => setS((p) => ({ ...p, truePeak: v }))} color={c} />
         <Toggle label="ISP Detect" value={s.ispDetect} onChange={(v) => setS((p) => ({ ...p, ispDetect: v }))} color={c} />
       </div>
+      {/* Part 18: brickwall = effectively ratio=∞ above the ceiling. */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <GainReductionMeter size="default" threshold={s.ceiling} ratio={20} knee={0.5} makeup={s.outputGain} />
+      </div>
     </PluginWindow>
   );
 }
@@ -497,6 +501,10 @@ export function ParallelCrushUI({ params, onChange, onClose }) {
         { key: "dryGain", label: "Dry Gain", min: -12, max: 12, step: 0.1, unit: "dB" },
         { key: "mix", label: "Blend", min: 0, max: 100, step: 1, unit: "%" },
       ]} state={s} setState={setS} color={c} />
+      {/* Part 18: parallel-crush GR transfer (extreme ratios common). */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <GainReductionMeter size="default" threshold={s.threshold} ratio={s.ratio} knee={2} makeup={s.wetGain} />
+      </div>
     </PluginWindow>
   );
 }
@@ -619,6 +627,17 @@ export function IronBandUI({ params, onChange, onClose }) {
           >{s[freq]} Hz</button>
         </div>
       ))}
+      {/* Part 18: 4-band peaking EQ + HPF/LPF spectrum response. */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <SpectrumAnalyzer size="default" filters={[
+          ...(s.hpf > 20 ? [{ type: "highpass", frequency: s.hpf, Q: 0.7 }] : []),
+          { type: "peaking", frequency: s.lowFreq,    Q: 1, gain: s.lowGain },
+          { type: "peaking", frequency: s.lowMidFreq, Q: 1, gain: s.lowMidGain },
+          { type: "peaking", frequency: s.hiMidFreq,  Q: 1, gain: s.hiMidGain },
+          { type: "peaking", frequency: s.hiFreq,     Q: 1, gain: s.hiGain },
+          ...(s.lpf < 20000 ? [{ type: "lowpass", frequency: s.lpf, Q: 0.7 }] : []),
+        ]} />
+      </div>
     </PluginWindow>
   );
 }
@@ -827,6 +846,11 @@ export function EchoFieldUI({ params, onChange, onClose }) {
       <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
         <Toggle label="Tempo Sync" value={s.sync} onChange={(v) => setS((p) => ({ ...p, sync: v }))} color={c} />
       </div>
+      {/* Part 18: feedback decay shown as 5 progressively softer taps. */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <DelayTapVisualizer size="default" maxTime={2000}
+          taps={Array.from({ length: 5 }, (_, i) => ({ time: s.time * (i + 1), level: Math.pow(s.feedback, i) }))} />
+      </div>
     </PluginWindow>
   );
 }
@@ -859,6 +883,10 @@ export function StereoBloomUI({ params, onChange, onClose }) {
         { key: "detuneR", label: "Det R", min: 0, max: 50, step: 0.5, unit: "¢" },
         { key: "mix", label: "Mix", min: 0, max: 100, step: 1, unit: "%" },
       ]} state={s} setState={setS} color={c} />
+      {/* Part 18: chorus/flanger LFO shape (always sine for BBD-style). */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <LFOVisualizer size="default" shape="sine" rate={s.rate} depth={s.depth} />
+      </div>
     </PluginWindow>
   );
 }
@@ -923,6 +951,13 @@ export function DualDelayUI({ params, onChange, onClose }) {
         { key: "lpf", label: "LPF", min: 1000, max: 20000, step: 100, unit: "Hz" },
         { key: "mix", label: "Mix", min: 0, max: 100, step: 1, unit: "%" },
       ]} state={s} setState={setS} color={c} />
+      {/* Part 18: L (yellow) + R (teal) tap stems with feedback decay. */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <DelayTapVisualizer size="default" maxTime={2000} taps={[
+          ...Array.from({ length: 4 }, (_, i) => ({ time: s.timeL * (i + 1), level: Math.pow(s.feedbackL, i) })),
+          ...Array.from({ length: 4 }, (_, i) => ({ time: s.timeR * (i + 1), level: Math.pow(s.feedbackR, i) * 0.85 })),
+        ]} />
+      </div>
     </PluginWindow>
   );
 }

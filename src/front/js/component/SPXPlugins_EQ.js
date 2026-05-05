@@ -174,6 +174,15 @@ export function DynamicEQUI({ params, onChange, onClose }) {
           </div>
         )}
       </div>
+      {/* Part 18: cumulative response from all 5 bands' STATIC gain settings.
+          Dynamic threshold-triggered offsets aren't shown — they'd require live
+          input level analysis beyond the param-driven model. */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <SpectrumAnalyzer size="default" filters={s.bands.filter(b => b.gain !== 0).map(b => ({
+          type: b.type === "peak" ? "peaking" : b.type,
+          frequency: b.freq, Q: b.q, gain: b.gain,
+        }))} />
+      </div>
     </PluginWindow>
   );
 }

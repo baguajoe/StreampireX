@@ -394,6 +394,68 @@ const CubaseMeter = React.memo(({ leftLevel = 0, rightLevel = 0, height = 200, s
 });
 
 // =============================================================================
+// DB SCALE (Part 18) — inline SVG so number positions are deterministic.
+// =============================================================================
+// Pre-Part 18 the scale labels were absolutely-positioned <span>s inside an
+// 18px-wide container. With non-shrinking absolute children some browsers
+// rendered "-12" and "-18" close enough to read as "-1812". SVG <text>
+// elements with explicit y attributes side-step the cascade and give
+// pixel-perfect positioning regardless of CSS overrides.
+//
+// Two flavors share one component:
+//   type="fader" — left side of the fader, log Cubase taper
+//                  (+6 / 0 / -6 / -12 / -18 / -∞)
+//   type="meter" — right side of the meter, peak-meter scaling
+//                  (0 / -6 / -12 / -18 / -24 / -36 / -48)
+const DB_SCALE_MARKS = {
+  fader: [
+    { db: "+6",  y: 4   },
+    { db:  "0",  y: 47  },
+    { db: "-6",  y: 92  },
+    { db: "-12", y: 137 },
+    { db: "-18", y: 159 },
+    { db:  "-∞", y: 178 },
+  ],
+  meter: [
+    { db:  "0",  y: 6   },
+    { db: "-6",  y: 25  },
+    { db: "-12", y: 47  },
+    { db: "-18", y: 75  },
+    { db: "-24", y: 105 },
+    { db: "-36", y: 142 },
+    { db: "-48", y: 167 },
+  ],
+};
+const DBScale = React.memo(({ type = "fader", height = 180 }) => {
+  const marks = DB_SCALE_MARKS[type];
+  const w = 26;  // wide enough for "-48" + tick mark
+  const align = type === "fader" ? "end"   : "start";
+  const tx    = type === "fader" ? w - 6   : 4;
+  return (
+    <svg width={w} height={height} style={{ display: "block", flexShrink: 0, pointerEvents: "none" }}>
+      {marks.map(m => (
+        <g key={m.db}>
+          {/* tick mark */}
+          <line
+            x1={type === "fader" ? w - 4 : 0} y1={m.y - 3}
+            x2={type === "fader" ? w     : 4} y2={m.y - 3}
+            stroke="rgba(255,255,255,0.25)" strokeWidth={1}
+          />
+          <text
+            x={tx} y={m.y}
+            fill="rgba(255,255,255,0.6)"
+            fontSize={9} fontWeight={600}
+            fontFamily='"JetBrains Mono","SF Mono",Consolas,monospace'
+            textAnchor={align}
+            style={{ fontVariantNumeric: "tabular-nums" }}
+          >{m.db}</text>
+        </g>
+      ))}
+    </svg>
+  );
+});
+
+// =============================================================================
 // MIC MODEL SELECTOR
 // =============================================================================
 const MicModelSelector = React.memo(({ trackIndex, currentModel, onApply }) => {
@@ -3823,12 +3885,12 @@ const RecordingStudio = ({ user }) => {
                         <div className="ch-lower">
                         <div className="daw-ch-fader-area">
                           <div className="daw-ch-fader-row">
-                            <div className="daw-ch-db-scale" style={{textAlign:"right"}}><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
+                            <DBScale type="fader" />
                             <div className="daw-ch-fader">
                               <SvgFader value={t.volume ?? 1.0} showScale={false} onChange={v => { updateTrack(i, { volume: v }); const audible = !t.muted && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? v : 0; }}/>
                             </div>
                             <CubaseMeter leftLevel={meter.left||0} rightLevel={meter.right||0} height={180} showScale={false}/>
-                        <div className="daw-ch-meter-scale"><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-∞</span></div>
+                        <DBScale type="meter" />
                           </div>
                           <div className="daw-ch-vol-display">
                             <span className="daw-ch-vol-val">{t.volume > 0 ? (20 * Math.log10(t.volume)).toFixed(1) : "-∞"} dB</span>
@@ -3883,12 +3945,12 @@ const RecordingStudio = ({ user }) => {
                     <div className="ch-lower">
                     <div className="daw-ch-fader-area">
                       <div className="daw-ch-fader-row">
-                        <div className="daw-ch-db-scale" style={{textAlign:"right"}}><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
+                        <DBScale type="fader" />
                         <div className="daw-ch-fader">
                           <SvgFader value={masterVolume ?? 1.0} showScale={false} isMaster={true} onChange={v => { setMasterVolume(v); if (masterGainRef.current) masterGainRef.current.gain.value = v; }}/>
                         </div>
                         <CubaseMeter leftLevel={masterMeterLevels?.left||0} rightLevel={masterMeterLevels?.right||0} height={180} showScale={false}/>
-                        <div className="daw-ch-meter-scale"><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-∞</span></div>
+                        <DBScale type="meter" />
                       </div>
                       <div className="daw-ch-vol-display">
                         <span className="daw-ch-vol-val rs-orange">{masterVolume > 0 ? (20 * Math.log10(masterVolume)).toFixed(1) : "-∞"} dB</span>
@@ -3991,13 +4053,13 @@ const RecordingStudio = ({ user }) => {
                     <div className="ch-lower">
                     <div className="daw-ch-fader-area">
                       <div className="daw-ch-fader-row">
-                        <div className="daw-ch-db-scale" style={{textAlign:"right"}}><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
+                        <DBScale type="fader" />
                         <div className="daw-ch-fader">
                           <SvgFader value={t.volume ?? 1.0} showScale={false}
                             onChange={v => { updateTrack(i, { volume: v }); const audible = !t.muted && (!hasSolo || t.solo); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = audible ? v : 0; }}/>
                         </div>
                         <CubaseMeter leftLevel={meter.left || 0} rightLevel={meter.right || 0} height={180} showScale={false}/>
-                        <div className="daw-ch-meter-scale"><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-∞</span></div>
+                        <DBScale type="meter" />
                       </div>
                       <div className="daw-ch-vol-display" onClick={e => e.stopPropagation()}>
                         <input
@@ -4060,13 +4122,13 @@ const RecordingStudio = ({ user }) => {
                 <div className="ch-lower">
                 <div className="daw-ch-fader-area">
                   <div className="daw-ch-fader-row">
-                        <div className="daw-ch-db-scale" style={{textAlign:"right"}}><span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-∞</span></div>
+                        <DBScale type="fader" />
                     <div className="daw-ch-fader">
                       <SvgFader value={masterVolume ?? 1.0} showScale={false} isMaster={true}
                         onChange={v => { setMasterVolume(v); if (masterGainRef.current) masterGainRef.current.gain.value = v; }}/>
                     </div>
                     <CubaseMeter leftLevel={masterMeterLevels?.left || 0} rightLevel={masterMeterLevels?.right || 0} height={180} showScale={false}/>
-                        <div className="daw-ch-meter-scale"><span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-∞</span></div>
+                        <DBScale type="meter" />
                   </div>
                   <div className="daw-ch-vol-display">
                     <span className="daw-ch-vol-val rs-orange">{masterVolume > 0 ? (20 * Math.log10(masterVolume)).toFixed(1) : "-∞"} dB</span>

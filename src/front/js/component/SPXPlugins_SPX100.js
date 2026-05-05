@@ -4,6 +4,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Knob, Toggle, PluginWindow } from "./SPXPlugins";
+// Part 18: visualizations.
+import { LFOVisualizer, DelayTapVisualizer } from "./audio/PluginVisualizer";
 
 function KnobRow({ knobs, state, setState, color }) {
   return (
@@ -207,6 +209,11 @@ export function ReverseDelayUI({ params, onChange, onClose }) {
         { key:"filter",   label:"Filter",   min:0,   max:1,    step:0.01          },
         { key:"mix",      label:"Mix",      min:0,   max:1,    step:0.01          },
       ]} state={s} setState={setS} color={c} />
+      {/* Part 18: reverse-tap visualization (single tap with feedback decay). */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <DelayTapVisualizer size="default" maxTime={2500}
+          taps={Array.from({ length: 4 }, (_, i) => ({ time: s.time * (i + 1), level: Math.pow(s.feedback, i) }))} />
+      </div>
     </PluginWindow>
   );
 }
@@ -329,6 +336,10 @@ export function ChorusEnsembleUI({ params, onChange, onClose }) {
       <div style={{ textAlign:"center", fontSize:9, color:"#555", marginTop:8 }}>
         8-VOICE BBD ENSEMBLE · ROLAND DIMENSION STYLE
       </div>
+      {/* Part 18: ensemble LFO rate scales with mode (1=slow chorus, 4=ensemble). */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <LFOVisualizer size="default" shape="sine" rate={0.3 * s.mode} depth={s.depth} />
+      </div>
     </PluginWindow>
   );
 }
@@ -360,6 +371,14 @@ export function TempoDelayUI({ params, onChange, onClose }) {
       ]} state={s} setState={setS} color={c} />
       <div style={{ display:"flex", justifyContent:"center", marginTop:8 }}>
         <Toggle label="Ping Pong" value={s.pingPong} onChange={v => setS(p => ({ ...p, pingPong: v }))} color={c} />
+      </div>
+      {/* Part 18: tap pattern derived from BPM + division. */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <DelayTapVisualizer size="default" maxTime={2000} taps={(() => {
+          const beatMs = 60000 / s.bpm;
+          const tapMs = beatMs * (4 / s.division);
+          return Array.from({ length: 6 }, (_, i) => ({ time: tapMs * (i + 1), level: Math.pow(s.feedback, i) }));
+        })()} />
       </div>
     </PluginWindow>
   );
@@ -401,6 +420,10 @@ export function AutoWahUI({ params, onChange, onClose }) {
         { key:"release",     label:"Release",     min:10,  max:2000,  step:5,  unit:"ms" },
         { key:"mix",         label:"Mix",         min:0,   max:1,     step:0.01           },
       ]} state={s} setState={setS} color={c} />
+      {/* Part 18: envelope-driven sweep — visualize as triangle (rising/falling sweep). */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <LFOVisualizer size="default" shape="triangle" rate={1000 / (s.attack + s.release)} depth={s.sensitivity} />
+      </div>
     </PluginWindow>
   );
 }

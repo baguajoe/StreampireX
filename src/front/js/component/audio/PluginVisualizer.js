@@ -224,4 +224,72 @@ export const ImpulseResponse = ({ buffer = null, decay = 1.0, size = "default" }
   );
 };
 
-export default { SpectrumAnalyzer, GainReductionMeter, TransferCurve, ImpulseResponse };
+// ── 5. LFOVisualizer (Part 18) — animated LFO waveform ─────────────────────
+// Plots one full cycle of a chorus/flanger/phaser/tremolo LFO at the chosen
+// shape, depth, and rate. The X axis is one period; rate just affects the
+// label, not the visual cycle count, so users can compare shapes at a glance.
+// `shape` accepts "sine"|"triangle"|"square"|"sawtooth".
+export const LFOVisualizer = ({ shape = "sine", rate = 1, depth = 1, size = "default" }) => {
+  const s = SIZES[size] || SIZES.default;
+  const N = 128;
+  const samples = useMemo(() => {
+    const out = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      const phase = (i / N) * 2 * Math.PI;
+      let v;
+      if (shape === "triangle") v = 1 - 4 * Math.abs(((i / N + 0.25) % 1) - 0.5);
+      else if (shape === "square") v = Math.sin(phase) >= 0 ? 1 : -1;
+      else if (shape === "sawtooth") v = 2 * (i / N) - 1;
+      else v = Math.sin(phase);
+      out[i] = v * depth;
+    }
+    return out;
+  }, [shape, depth]);
+  const path = useMemo(() => {
+    const mid = s.h / 2;
+    return Array.from(samples, (v, i) => {
+      const x = (i / (N - 1)) * s.w;
+      const y = mid - v * mid * 0.85;
+      return `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    }).join(" ");
+  }, [samples, s.w, s.h]);
+  return (
+    <svg width={s.w} height={s.h} style={{ background: COL_BG, borderRadius: 3, display: "block" }}>
+      <line x1={0} y1={s.h / 2} x2={s.w} y2={s.h / 2} stroke={COL_GRID} strokeWidth={0.5} />
+      <path d={path} stroke={COL_DATA} strokeWidth={1.5} fill="none" strokeLinejoin="round" />
+      <text x={2} y={s.fontSize + 1} fill={COL_LABEL} fontSize={s.fontSize} fontFamily="JetBrains Mono, monospace">{shape.toUpperCase()}</text>
+      <text x={s.w - 38} y={s.fontSize + 1} fill={COL_LABEL} fontSize={s.fontSize} fontFamily="JetBrains Mono, monospace">{rate.toFixed(2)} Hz</text>
+    </svg>
+  );
+};
+
+// ── 6. DelayTapVisualizer (Part 18) — delay-line tap pattern ────────────────
+// Shows where the delay taps fall in time and how much they're attenuated.
+// `taps` is an array of { time: ms, level: 0..1 } describing each tap.
+// Useful for multitap delays, ping-pong, dotted-eighth, slap-back. For a
+// single delay just pass one tap; for feedback delays append decaying repeats.
+export const DelayTapVisualizer = ({ taps = [], maxTime = 1000, size = "default" }) => {
+  const s = SIZES[size] || SIZES.default;
+  const xMax = maxTime;
+  return (
+    <svg width={s.w} height={s.h} style={{ background: COL_BG, borderRadius: 3, display: "block" }}>
+      {/* time axis */}
+      <line x1={0} y1={s.h - 8} x2={s.w} y2={s.h - 8} stroke={COL_GRID} strokeWidth={0.5} />
+      {/* dry signal stem at t=0 */}
+      <line x1={2} y1={s.h - 8} x2={2} y2={4} stroke={COL_PEAK} strokeWidth={1.5} />
+      <text x={4} y={6} fill={COL_PEAK} fontSize={s.fontSize} fontFamily="JetBrains Mono, monospace">DRY</text>
+      {/* taps */}
+      {taps.map((t, i) => {
+        const x = Math.min(s.w - 2, (t.time / xMax) * s.w);
+        const h = (s.h - 14) * Math.max(0.05, Math.min(1, t.level));
+        return (
+          <line key={i} x1={x} y1={s.h - 8} x2={x} y2={s.h - 8 - h}
+            stroke={COL_DATA} strokeWidth={1.5} />
+        );
+      })}
+      <text x={s.w - 30} y={s.h - 1} fill={COL_LABEL} fontSize={s.fontSize} fontFamily="JetBrains Mono, monospace">{xMax}ms</text>
+    </svg>
+  );
+};
+
+export default { SpectrumAnalyzer, GainReductionMeter, TransferCurve, ImpulseResponse, LFOVisualizer, DelayTapVisualizer };
