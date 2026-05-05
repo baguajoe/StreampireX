@@ -35,6 +35,11 @@
 //   - Loudness is integrated over the whole file, not gated like ITU LUFS.
 // =============================================================================
 
+// Set true while iterating on key detection; logs each pipeline stage so a
+// "wrong key" report can be debugged without recompiling. Cheap (one console
+// group per detect) but keep it off in shipped builds.
+const DEBUG_KEY = true;
+
 // ── Pitch class names + Camelot wheel codes ─────────────────────────────────
 // Indexed 0=C, 1=C#, 2=D, 3=D#, 4=E, 5=F, 6=F#, 7=G, 8=G#, 9=A, 10=A#, 11=B.
 export const NOTE_NAMES   = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
@@ -103,9 +108,16 @@ const onePoleLP = (src, sr, cutoff) => {
   return out;
 };
 
+// Part 14b: JavaScript's `%` preserves the sign of the dividend, so a naive
+// `(i + n) % len` with negative `n` produces negative indices and `arr[-1] ===
+// undefined`. That undefined poisons pearson() to NaN, which it returns as 0,
+// which made every non-r=0 candidate score exactly 0 and locked detection to a
+// single (wrong) key. Normalize n into [0, len) before indexing.
 const rotate = (arr, n) => {
-  const out = new Array(arr.length);
-  for (let i = 0; i < arr.length; i++) out[i] = arr[(i + n) % arr.length];
+  const len = arr.length;
+  const k = ((n % len) + len) % len;
+  const out = new Array(len);
+  for (let i = 0; i < len; i++) out[i] = arr[(i + k) % len];
   return out;
 };
 
@@ -278,22 +290,18 @@ const applyCQT = (fftMag, kernel) => {
   return out;
 };
 
-// HPCP — collapse 84 CQT bins to a 12-element pitch class profile, with a
-// simplified harmonic deconvolution: a fraction of each bin's energy is
-// reattributed to the bin a perfect 5th below (3rd harmonic) and a major 3rd
-// below (5th harmonic). This blunts vanilla chromagram's over-attribution to
-// overtones, which is what makes naive detection confuse a key with its
-// dominant or relative.
+// HPCP — collapse 84 CQT bins to a 12-element pitch class profile. Part 14
+// also added a harmonic-deconvolution step that reattributed 30% of each bin
+// to its perfect-5th and major-3rd neighbours; in practice that just blurred
+// the chromagram toward uniformity. This direct-accumulation form matches the
+// Tier 1 (Part 10) chromagram that worked. Multi-profile + bass validation
+// now do the heavy lifting that the deconvolution was supposed to do.
 const buildHPCP = (cqtFrame) => {
   const hpcp = new Float32Array(12);
   for (let k = 0; k < cqtFrame.length; k++) {
     const m = cqtFrame[k];
     if (m < 1e-6) continue;
-    const pc = k % 12;
-    hpcp[pc] += m;
-    const harm = m * 0.3;
-    hpcp[(pc + 5) % 12] += harm * 0.5;  // pc-7 mod 12 — perfect 5th below
-    hpcp[(pc + 8) % 12] += harm * 0.3;  // pc-4 mod 12 — major 3rd below
+    hpcp[k % 12] += m;
   }
   return hpcp;
 };
@@ -347,6 +355,17 @@ const _detectKey = (mono, sr) => {
   const numFrames = Math.floor((mono.length - FFT_SIZE_KEY) / HOP_SIZE_KEY);
   if (numFrames < 4) return null;
 
+  // Part 14b: one-shot Pearson sanity test. If this prints anything other
+  // than ~0.7+ for the C-major scale against the Krumhansl C-major template,
+  // the correlator itself is broken — investigate before reading any other
+  // diagnostics below.
+  if (DEBUG_KEY) {
+    const a = [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0];  // C major triad
+    const b = KEY_PROFILES.krumhansl.major;
+    console.log(`[KEY DEBUG] Pearson sanity (C major triad vs Krumhansl C maj) = ${pearson(a, b).toFixed(4)} (expect > 0.5)`);
+    console.log(`[KEY DEBUG] rotate test (-1) = ${rotate([0,1,2,3,4,5,6,7,8,9,10,11], -1).join(",")} (expect 11,0,1,...,10)`);
+  }
+
   // Hann window for FFT framing.
   const win = new Float32Array(FFT_SIZE_KEY);
   for (let i = 0; i < FFT_SIZE_KEY; i++) {
@@ -371,14 +390,39 @@ const _detectKey = (mono, sr) => {
     hpcpFrames[f] = buildHPCP(cqtFrames[f]);
   }
 
+  if (DEBUG_KEY && cqtFrames.length > 0) {
+    const f = cqtFrames[Math.floor(cqtFrames.length / 2)];
+    let cmin = Infinity, cmax = 0, csum = 0, nz = 0;
+    for (let i = 0; i < f.length; i++) {
+      if (f[i] < cmin) cmin = f[i];
+      if (f[i] > cmax) cmax = f[i];
+      csum += f[i];
+      if (f[i] > 1e-6) nz++;
+    }
+    console.log(`[KEY DEBUG] CQT mid-frame: min=${cmin.toExponential(2)} max=${cmax.toExponential(2)} avg=${(csum / f.length).toExponential(2)} nonzero=${nz}/${f.length}`);
+    const h = hpcpFrames[Math.floor(hpcpFrames.length / 2)];
+    let hmin = Infinity, hmax = 0, hsum = 0;
+    for (let i = 0; i < 12; i++) {
+      if (h[i] < hmin) hmin = h[i];
+      if (h[i] > hmax) hmax = h[i];
+      hsum += h[i];
+    }
+    console.log(`[KEY DEBUG] HPCP mid-frame: [${Array.from(h).map(v => v.toExponential(2)).join(", ")}]`);
+    console.log(`[KEY DEBUG] HPCP stats: min=${hmin.toExponential(2)} max=${hmax.toExponential(2)} sum=${hsum.toExponential(2)}`);
+  }
+
   // ── STAGE 3: split central 90% into 4 equal segments. ──
   // Skipping the first/last 5% drops intros (often atonal or percussive)
-  // and outro fades that confuse a whole-song chroma average.
+  // and outro fades that confuse a whole-song chroma average. Silent
+  // segments (e.g. mid-song breakdown) are dropped entirely — they would
+  // otherwise produce a constant HPCP, which makes Pearson degenerate to 0
+  // for every key and pollutes the group-vote tally.
   const skip = Math.floor(numFrames * 0.05);
   const usable = numFrames - 2 * skip;
   if (usable < 4) return null;
   const segLen = Math.floor(usable / 4);
-  const segHpcp = [];
+  const segHpcp = [];        // surviving (non-silent) segment HPCPs
+  const segIndex = [];       // original [0..3] index for diagnostics
   for (let s = 0; s < 4; s++) {
     const lo = skip + s * segLen;
     const hi = s === 3 ? numFrames - skip : skip + (s + 1) * segLen;
@@ -388,20 +432,35 @@ const _detectKey = (mono, sr) => {
       for (let i = 0; i < 12; i++) acc[i] += hpcpFrames[f][i];
       n++;
     }
-    if (n === 0) return null;
+    if (n === 0) continue;
     let total = 0; for (let i = 0; i < 12; i++) total += acc[i];
+    if (total < 1e-9) {
+      if (DEBUG_KEY) console.log(`[KEY DEBUG] Segment ${s + 1} silent (total=${total.toExponential(2)}) — skipping`);
+      continue;
+    }
     const norm = new Array(12);
-    for (let i = 0; i < 12; i++) norm[i] = total > 0 ? acc[i] / total : 0;
+    for (let i = 0; i < 12; i++) norm[i] = acc[i] / total;
     segHpcp.push(norm);
+    segIndex.push(s);
+  }
+  if (segHpcp.length === 0) return null;
+
+  if (DEBUG_KEY) {
+    segHpcp.forEach((seg, i) => {
+      console.log(`[KEY DEBUG] Segment ${segIndex[i] + 1} HPCP normed: [${seg.map(v => v.toFixed(4)).join(", ")}]`);
+    });
+    console.log(`[KEY DEBUG] Profile names:`, PROFILE_NAMES);
+    console.log(`[KEY DEBUG] Krumhansl major template:`, KEY_PROFILES.krumhansl.major);
+    console.log(`[KEY DEBUG] rotate(krumhansl.major, -3) =`, rotate(KEY_PROFILES.krumhansl.major, -3));
   }
 
-  // ── STAGE 4: 4 segments × 4 profiles = 16 candidates. ──
+  // ── STAGE 4: N segments × 4 profiles = 4N candidates. ──
   // For each (segment, profile) we keep ONE candidate — the best (root, scale)
   // pair under that profile. The candidate's `.score` is the Pearson
   // correlation of the segment's HPCP against the rotated profile.
   const candidates = [];
-  const segmentSummary = [];  // segmentSummary[s][profileName] = best candidate
-  for (let s = 0; s < 4; s++) {
+  const segmentSummary = [];  // segmentSummary[i][profileName] = best candidate
+  for (let s = 0; s < segHpcp.length; s++) {
     const profile = segHpcp[s];
     const perProfileBest = {};
     for (const profName of PROFILE_NAMES) {
@@ -410,8 +469,11 @@ const _detectKey = (mono, sr) => {
       for (let r = 0; r < 12; r++) {
         const sMaj = pearson(profile, rotate(tmpl.major, -r));
         const sMin = pearson(profile, rotate(tmpl.minor, -r));
-        if (!best || sMaj > best.score) best = { root: r, scale: "major", score: sMaj, profile: profName, segment: s };
-        if (sMin > best.score)         best = { root: r, scale: "minor", score: sMin, profile: profName, segment: s };
+        if (DEBUG_KEY && s === 0 && profName === 'krumhansl' && r === 0) {
+          console.log(`[KEY DEBUG] seg=${segIndex[s]} root=0 maj/min vs ${profName} = ${sMaj.toFixed(4)} / ${sMin.toFixed(4)}`);
+        }
+        if (!best || sMaj > best.score) best = { root: r, scale: "major", score: sMaj, profile: profName, segment: segIndex[s] };
+        if (sMin > best.score)         best = { root: r, scale: "minor", score: sMin, profile: profName, segment: segIndex[s] };
       }
       candidates.push(best);
       perProfileBest[profName] = best;
@@ -459,11 +521,11 @@ const _detectKey = (mono, sr) => {
   try {
     console.groupCollapsed(`[SPX Key] ${winnerKey} (${camelot}) confidence ${confidence}`);
     console.log(`Bass note: ${bassNote >= 0 ? NOTE_NAMES[bassNote] : "—"}`);
-    for (let s = 0; s < 4; s++) {
+    for (let s = 0; s < segmentSummary.length; s++) {
       const sb = segmentSummary[s];
       const top = PROFILE_NAMES.map(p => ({ name: p, c: sb[p] }))
         .sort((a, b) => b.c.score - a.c.score)[0];
-      console.log(`Segment ${s + 1}: ${formatKey(top.c.root, top.c.scale)} (${top.name}, score ${top.c.score.toFixed(3)})`);
+      console.log(`Segment ${(top.c.segment ?? s) + 1}: ${formatKey(top.c.root, top.c.scale)} (${top.name}, score ${top.c.score.toFixed(3)})`);
     }
     console.log("Profile votes:", profileVotes);
     console.log(`Bass validation: ${validateKeyAgainstBass(winner.root, winner.scale, bassNote).toFixed(2)}× winner, ${validateKeyAgainstBass(ru.root, ru.scale, bassNote).toFixed(2)}× runner-up`);
@@ -484,7 +546,7 @@ const _detectKey = (mono, sr) => {
     profileVotes,
     segments: segmentSummary.map((sb, i) => {
       const top = PROFILE_NAMES.map(p => sb[p]).sort((a, b) => b.score - a.score)[0];
-      return { index: i, key: formatKey(top.root, top.scale), profile: top.profile, score: +top.score.toFixed(3) };
+      return { index: top.segment ?? i, key: formatKey(top.root, top.scale), profile: top.profile, score: +top.score.toFixed(3) };
     }),
   };
 };
