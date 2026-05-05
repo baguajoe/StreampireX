@@ -868,13 +868,28 @@ const ArrangerView = ({
   // dropped/imported audio file. Parent can store this on the track / region
   // for display in the inspector and as a colored badge on the clip.
   onAnalysisComplete,
+  // Part 13 (#13-1): when the parent passes selectedTrack/onSelectTrack, the
+  // arranger acts as a controlled component so LeftSidebar (and any other
+  // parent-rendered inspector) shares the same selection. Falls back to local
+  // state when the prop is omitted.
+  selectedTrack: selectedTrackProp,
+  onSelectTrack,
+  // Optional parent ref to the lanes scroll container — used by Follow
+  // Playhead in RecordingStudio to drive auto-scroll without lifting state.
+  scrollContainerRef,
 }) => {
   // ── State ──
   const [zoom,          setZoom]          = useState(DEFAULT_ZOOM);
   const [snapIndex,     setSnapIndex]     = useState(2);     // 1/2 bar default
   const [scrollLeft,    setScrollLeft]    = useState(0);
   const [scrollTop,     setScrollTop]     = useState(0);
-  const [selectedTrack, setSelectedTrack] = useState(0);
+  const [internalSelectedTrack, setInternalSelectedTrack] = useState(0);
+  const selectedTrack = selectedTrackProp != null ? selectedTrackProp : internalSelectedTrack;
+  const setSelectedTrack = useCallback((updater) => {
+    const next = typeof updater === "function" ? updater(selectedTrack) : updater;
+    if (onSelectTrack) onSelectTrack(next);
+    setInternalSelectedTrack(next);
+  }, [selectedTrack, onSelectTrack]);
   const [selectedRegion,setSelectedRegion]= useState(null);
   const [contextMenu,   setContextMenu]   = useState(null);
   const [showAutoTrack, setShowAutoTrack] = useState(null);  // track index
@@ -1364,7 +1379,13 @@ const ArrangerView = ({
 
           {/* Scrollable track lanes */}
           <div
-            ref={scrollRef}
+            ref={(el) => {
+              scrollRef.current = el;
+              if (scrollContainerRef) {
+                if (typeof scrollContainerRef === "function") scrollContainerRef(el);
+                else scrollContainerRef.current = el;
+              }
+            }}
             className="arr-lanes-scroll"
             onScroll={handleScroll}
             onDragOver={(e) => e.preventDefault()}

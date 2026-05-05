@@ -786,6 +786,67 @@ const RecordingStudio = ({ user }) => {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  // Follow Playhead: F toggles modes. Skip while typing or when the clip
+  // editor owns the keyboard, matching the existing S-shortcut guard.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "f" && e.key !== "F") return;
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      const t = e.target;
+      const inField = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
+      if (inField) return;
+      if (document.querySelector(".ace-overlay")) return;
+      e.preventDefault();
+      cycleFollowMode();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [cycleFollowMode]);
+
+  // Manual-scroll detection: if the user scrolls during playback (and it
+  // wasn't a programmatic scroll we just made), disable follow until next Play.
+  useEffect(() => {
+    const el = arrangeScrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      if (!isPlaying) return;
+      if (Date.now() - lastProgrammaticScrollRef.current < 100) return;
+      userScrollOverrideRef.current = true;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [isPlaying, followMode]);
+
+  // Auto-scroll on currentTime changes. Page mode jumps the viewport when the
+  // playhead reaches the right edge; smooth mode keeps it ~1/3 from the left.
+  // Reads the playhead's absolute X from the DOM so it stays correct under any
+  // zoom/bpm without lifting ArrangerView's internal zoom state.
+  useEffect(() => {
+    if (!isPlaying || followMode === "off") return;
+    if (userScrollOverrideRef.current) return;
+    const container = arrangeScrollRef.current;
+    if (!container) return;
+    if (document.querySelector(".arr-region.dragging")) return;
+    const playheadEl = container.querySelector(".arr-playhead");
+    if (!playheadEl) return;
+    const leftPx = parseFloat(playheadEl.style.left) || 0;
+    const playheadX = leftPx + container.scrollLeft;
+    const viewportRight = container.scrollLeft + container.clientWidth;
+    let nextScroll = null;
+    if (followMode === "page") {
+      if (playheadX > viewportRight - 50 || playheadX < container.scrollLeft) {
+        nextScroll = Math.max(0, playheadX - 50);
+      }
+    } else if (followMode === "smooth") {
+      nextScroll = Math.max(0, playheadX - container.clientWidth / 3);
+    }
+    if (nextScroll != null && Math.abs(nextScroll - container.scrollLeft) > 0.5) {
+      lastProgrammaticScrollRef.current = Date.now();
+      container.scrollLeft = nextScroll;
+    }
+  }, [currentTime, isPlaying, followMode]);
+
   // Bug #10c: handleCutRegion is defined later; use a ref so the effect (mounted once) reads the latest closure.
   const handleCutRegionRef = useRef(null);
   const [showFlexPitch, setShowFlexPitch] = useState(false);
@@ -798,6 +859,25 @@ const RecordingStudio = ({ user }) => {
   const [mixerHeightPx, setMixerHeightPx] = useState(450);
   const splitDragRef = useRef(false);
   const splitContainerRef = useRef(null);
+
+  // Cubase-style Follow Playhead. 3 modes cycle off → page → smooth → off; the
+  // active mode persists in localStorage. Manual user scrolls during playback
+  // disable follow until the next Play press.
+  const [followMode, setFollowMode] = useState(() => {
+    const v = localStorage.getItem("spx_rs_follow_mode");
+    return v === "off" || v === "page" || v === "smooth" ? v : "page";
+  });
+  const arrangeScrollRef = useRef(null);
+  const userScrollOverrideRef = useRef(false);
+  const lastProgrammaticScrollRef = useRef(0);
+  const cycleFollowMode = useCallback(() => {
+    setFollowMode(prev => {
+      const next = prev === "off" ? "page" : prev === "page" ? "smooth" : "off";
+      try { localStorage.setItem("spx_rs_follow_mode", next); } catch {}
+      userScrollOverrideRef.current = false;
+      return next;
+    });
+  }, []);
   const [projectName, setProjectName] = useState("Untitled Project");
   const [projectId, setProjectId] = useState(null);
   const [projects, setProjects] = useState([]);
@@ -2458,6 +2538,9 @@ const RecordingStudio = ({ user }) => {
   const startPlayback = (overdub = false) => {
     const ctx = getCtx();
     const maxDur = buildPlaybackSources(ctx, playOffsetRef.current);
+    // Re-arm Follow Playhead: a previous manual scroll only suppresses follow
+    // until the next Play press (Cubase behavior).
+    userScrollOverrideRef.current = false;
     setDuration(maxDur); playStartRef.current = ctx.currentTime; setIsPlaying(true);
     if (metronomeOn) startMetronome(ctx);
     startMeterAnimation();
@@ -3692,6 +3775,7 @@ const RecordingStudio = ({ user }) => {
           <div className="rs-relative">
             <ArrangerView onBpmDetected={det => { setBpm(det); setStatus("♩ BPM detected: " + det); }} cycleEnabled={cycleEnabled} cycleStart={cycleStart} cycleEnd={cycleEnd}
               onCycleChange={(s, e) => { setCycleStart(s); setCycleEnd(e); }} onCycleToggle={toggleCycle}
+              scrollContainerRef={arrangeScrollRef}
               selectedTrack={selectedTrack} onSelectTrack={setSelectedTrack}
               tracks={tracks} setTracks={setTracks} bpm={bpm} timeSignatureTop={timeSignature[0]} timeSignatureBottom={timeSignature[1]}
               masterVolume={masterVolume} onMasterVolumeChange={setMasterVolume} projectName={projectName} userTier={userTier}
@@ -3785,6 +3869,7 @@ const RecordingStudio = ({ user }) => {
             <div className="rs-split-top" style={{ flex: "1 1 auto", minHeight: 0 }}>
               <span className="rs-split-pane-label">ARRANGE</span>
               <ArrangerView onBpmDetected={det => { setBpm(det); setStatus("♩ BPM detected: " + det); }} tracks={tracks} setTracks={setTracks} bpm={bpm} currentTime={currentTime} isPlaying={isPlaying}
+                scrollContainerRef={arrangeScrollRef}
                 selectedTrack={selectedTrack} onSelectTrack={setSelectedTrack} zoom={zoom} onZoomChange={setZoom}
                 onBrowseSounds={handleBrowseSounds} onOpenPianoRoll={onOpenPianoRoll}
                 onTimelineDoubleClick={handleTimelineDoubleClick} MidiRegionPreview={MidiRegionPreview}
@@ -4668,6 +4753,13 @@ const RecordingStudio = ({ user }) => {
           </button>
           <button className={"daw-transport-btn daw-rec-btn"+(isRecording?" active":"")} onClick={()=>isRecording?stopRecording():startRecording()}>
             <span className="daw-rec-dot"/>
+          </button>
+          <button
+            className={`spx-follow-btn spx-follow-${followMode}`}
+            onClick={cycleFollowMode}
+            title={`Follow Playhead: ${followMode.toUpperCase()} (F)`}
+          >
+            {followMode === "off" ? "⇥" : followMode === "page" ? "⇉" : "⟳"}
           </button>
           <div className="daw-lcd">
             <span className="daw-lcd-time">{fmt(currentTime)}</span>
