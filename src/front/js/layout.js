@@ -64,6 +64,7 @@ import PublicEPKPage from "./pages/PublicEPK";
 import Contact from "./pages/Contact";
 import VoiceCloneServices from "./pages/VoiceCloneServices";
 import PluginRackDemo from "./pages/PluginRackDemo";
+import StudioSmokeTest from "./pages/StudioSmokeTest";
 import PodcastStudio from "./pages/PodcastStudio";
 import PodcastGuestJoin from "./pages/PodcastGuestJoin";
 import { AsyncGuestRecordPage } from "./pages/PodcastStudioPhase2";
@@ -601,6 +602,8 @@ const AppShell = ({ user }) => {
                                 <Route path="/recording-studio" element={<RecordingStudio />} />
                                 <Route path="/spx-beat-lab" element={<SamplerBeatMaker />} />
                                 <Route path="/plugin-rack-demo" element={<PluginRackDemo />} />
+                                {/* Part 17: dev-only simulator verification — not in nav, direct URL only. */}
+                                <Route path="/studio-smoke-test" element={<StudioSmokeTest />} />
                                 <Route path="/wam-plugin-store" element={<WAMPluginStore />} />
                                 <Route path="/ai-mastering" element={<AIMasteringPage />} />
                                 <Route path="/ai-content-writer" element={<AIContentWriter />} />

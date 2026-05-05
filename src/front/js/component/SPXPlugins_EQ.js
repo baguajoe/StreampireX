@@ -5,6 +5,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Knob, Toggle, PluginWindow, KnobRow } from "./SPXPlugins";
+// Part 17: live param-driven visualizations.
+import { SpectrumAnalyzer } from "./audio/PluginVisualizer";
 
 // ─── 1. PULTEC FORGE — Passive EQ: simultaneous boost+cut, musical curves ────
 // Famous for the low-end "Pultec trick": boost and cut at same frequency
@@ -75,6 +77,13 @@ export function PultecForgeUI({ params, onChange, onClose }) {
       <div style={{ display: "flex", justifyContent: "center" }}>
         <Knob label="Output" value={s.outputGain} min={-12} max={12} step={0.5} unit="dB"
           color={c} onChange={(v) => setS(p => ({ ...p, outputGain: v }))} />
+      </div>
+      {/* Part 17: cumulative frequency response of the lowshelf+highshelf chain. */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <SpectrumAnalyzer size="default" filters={[
+          { type: "lowshelf",  frequency: s.lowFreq,         gain: s.lowBoost - s.lowAtten },
+          { type: "highshelf", frequency: s.highFreq * 1000, gain: s.highBoost - s.highAtten, Q: 0.5 + s.highBW },
+        ]} />
       </div>
     </PluginWindow>
   );
@@ -251,6 +260,14 @@ export function GraphicEQUI({ params, onChange, onClose }) {
           );
         })}
       </div>
+      {/* Part 17: cumulative response of all 31 ISO peaking filters. */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <SpectrumAnalyzer size="default" filters={
+          ISO_BANDS.filter(f => (s.bands?.[f] || 0) !== 0).map(f => ({
+            type: "peaking", frequency: f, Q: 4.3, gain: s.bands[f] || 0,
+          }))
+        } />
+      </div>
     </PluginWindow>
   );
 }
@@ -302,6 +319,15 @@ export function TiltEQUI({ params, onChange, onClose }) {
         <Knob label="Output" value={s.outputGain} min={-12} max={12} step={0.5} unit="dB"
           color={c} onChange={(v) => setS(p => ({ ...p, outputGain: v }))} />
       </div>
+      {/* Part 17: tilt = mirrored shelves around pivot, plus presence/air. */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <SpectrumAnalyzer size="default" filters={[
+          { type: "lowshelf",  frequency: s.tiltFreq,     gain: -s.tilt / 2 },
+          { type: "highshelf", frequency: s.tiltFreq,     gain:  s.tilt / 2 },
+          { type: "peaking",   frequency: s.presenceFreq, gain:  s.presence, Q: 1 },
+          { type: "highshelf", frequency: s.airFreq,      gain:  s.air },
+        ]} />
+      </div>
     </PluginWindow>
   );
 }
@@ -350,6 +376,14 @@ export function BaxandallEQUI({ params, onChange, onClose }) {
       <div style={{ display: "flex", justifyContent: "center" }}>
         <Knob label="Output" value={s.outputGain} min={-12} max={12} step={0.5} unit="dB"
           color={c} onChange={(v) => setS(p => ({ ...p, outputGain: v }))} />
+      </div>
+      {/* Part 17: bass/mid/treble shelf+peaking response. */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <SpectrumAnalyzer size="default" filters={[
+          { type: "lowshelf",  frequency: s.bassFreq,   gain: s.bass },
+          { type: "peaking",   frequency: s.midFreq,    gain: s.mid, Q: s.midQ || 0.7 },
+          { type: "highshelf", frequency: s.trebleFreq, gain: s.treble },
+        ]} />
       </div>
     </PluginWindow>
   );

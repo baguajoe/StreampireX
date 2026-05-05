@@ -4,7 +4,9 @@
 // Drop into: src/front/js/audio/plugins/SPXPlugins.js
 // ============================================================
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+// Part 17: param-driven visualizations applied to top SPX plugin UIs.
+import { TransferCurve, GainReductionMeter, ImpulseResponse } from "./audio/PluginVisualizer";
 import { PultecForgeUI, DynamicEQUI, GraphicEQUI, TiltEQUI, BaxandallEQUI, EQ_FX_ADDITIONS } from './SPXPlugins_EQ';
 import { VocoderSPXUI, GranularFreezeUI, NoiseReductionUI, RingModUI, FormantFilterUI, SpectrumAnalyzerUI, CREATIVE_FX_ADDITIONS } from './SPXPlugins_Creative';
 import { TapeStopUI, TransientShaperUI, MultibandSatUI, StereoImagerUI, EnhancerSPX808UI, LoFiCrusherUI, InfiniteReverbUI, ReverseDelayUI, DeclickerUI, DehummmerUI, MidSideCompUI, SubOctaverUI, ChorusEnsembleUI, TempoDelayUI, PitchRandomizerUI, AutoWahUI, DrumEnhancerUI, VocalSaturatorUI, GainStagerUI, MultibandLimiterUI, GoniometerUI, PhaseScopeUI, DialogueIsolatorUI, CabinetSimUI, FreqShifterUI } from './SPXPlugins_SPX100';
@@ -208,6 +210,15 @@ export function TapeForgeUI({ params, onChange, onClose }) {
       <div style={{ textAlign: "center", fontSize: 9, color: "#666", marginTop: 8 }}>
         MAGNETIC HYSTERESIS · JILES-ATHERTON MODEL
       </div>
+      {/* Part 17: input/output transfer curve. Mirrors the buildFxChain tape
+          saturation curve: tanh(x*(1+drv*5)) softened by HF-loss makeup. */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <TransferCurve size="default" curve={useMemo(() => {
+          const N = 1024, c = new Float32Array(N), d = s.drive;
+          for (let i = 0; i < N; i++) { const x = (i*2)/N - 1; c[i] = Math.tanh(x * (1 + d * 5)); }
+          return c;
+        }, [s.drive])} />
+      </div>
     </PluginWindow>
   );
 }
@@ -235,6 +246,18 @@ export function ValveGlowUI({ params, onChange, onClose }) {
       <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
         <Toggle label="DC Block" value={s.dcBlock} onChange={(v) => setS((p) => ({ ...p, dcBlock: v }))} color={c} />
       </div>
+      {/* Part 17: tube curve = asymmetric tanh + 2nd/4th harmonic injection. */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <TransferCurve size="default" curve={useMemo(() => {
+          const N = 1024, c = new Float32Array(N), d = s.drive, b = s.bias - 0.5, h2 = s.even2nd, h4 = s.even4th;
+          for (let i = 0; i < N; i++) {
+            const x = (i*2)/N - 1 + b * 0.3;
+            c[i] = Math.tanh(x * (1 + d * 4)) + h2 * 0.3 * x * x + h4 * 0.15 * x * x * x * x;
+            if (c[i] > 1) c[i] = 1; if (c[i] < -1) c[i] = -1;
+          }
+          return c;
+        }, [s.drive, s.bias, s.even2nd, s.even4th])} />
+      </div>
     </PluginWindow>
   );
 }
@@ -256,6 +279,19 @@ export function IronCoreUI({ params, onChange, onClose }) {
         { key: "resonance", label: "Reson", min: 0, max: 1, step: 0.01 },
         { key: "outputGain", label: "Output", min: -12, max: 12, step: 0.1, unit: "dB" },
       ]} state={s} setState={setS} color={c} />
+      {/* Part 17: transformer soft-clip with slew limit. */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <TransferCurve size="default" curve={useMemo(() => {
+          const N = 1024, c = new Float32Array(N), sl = s.slewRate, cs = s.coreSize;
+          for (let i = 0; i < N; i++) {
+            const x = (i*2)/N - 1;
+            // Slew limits the steepness near zero; core size sets compression amount.
+            const k = 1 + cs * 3;
+            c[i] = Math.tanh(x * k) * (1 - sl * 0.2 * Math.abs(x));
+          }
+          return c;
+        }, [s.slewRate, s.coreSize])} />
+      </div>
     </PluginWindow>
   );
 }
@@ -343,6 +379,10 @@ export function WarmPressUI({ params, onChange, onClose }) {
         { key: "makeupGain", label: "Makeup", min: -6, max: 24, step: 0.1, unit: "dB" },
         { key: "mix", label: "Mix", min: 0, max: 100, step: 1, unit: "%" },
       ]} state={s} setState={setS} color={c} />
+      {/* Part 17: gain reduction transfer curve (input dB → output dB). */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <GainReductionMeter size="default" threshold={s.threshold} ratio={s.ratio} knee={s.knee} makeup={s.makeupGain} />
+      </div>
     </PluginWindow>
   );
 }
@@ -370,6 +410,10 @@ export function GlueBusUI({ params, onChange, onClose }) {
       ]} state={s} setState={setS} color={c} />
       <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
         <Toggle label="Auto Gain" value={s.autoGain} onChange={(v) => setS((p) => ({ ...p, autoGain: v }))} color={c} />
+      </div>
+      {/* Part 17: VCA bus comp transfer — soft 6 dB knee assumed. */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <GainReductionMeter size="default" threshold={s.threshold} ratio={s.ratio} knee={6} makeup={s.makeupGain} />
       </div>
     </PluginWindow>
   );
@@ -399,6 +443,10 @@ export function FETStrikeUI({ params, onChange, onClose }) {
       <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
         <Toggle label="All Button (20:1)" value={s.allButtonRatio}
           onChange={(v) => setS((p) => ({ ...p, allButtonRatio: v, ratio: v ? 20 : 8 }))} color={c} />
+      </div>
+      {/* Part 17: FET-style hard knee (knee=2). */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <GainReductionMeter size="default" threshold={s.threshold} ratio={s.ratio} knee={2} makeup={s.outputGain} />
       </div>
     </PluginWindow>
   );
@@ -663,6 +711,10 @@ function ReverbBase({ name, tag, color, params, onChange, onClose, extraKnobs = 
       {extraKnobs.length > 0 && (
         <KnobRow knobs={extraKnobs} state={s} setState={setS} color={color} />
       )}
+      {/* Part 17: synthesized impulse-response shape from decay knob. */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <ImpulseResponse size="default" decay={s.decay} />
+      </div>
     </PluginWindow>
   );
 }
@@ -708,6 +760,9 @@ export function PlateForgeUI({ params, onChange, onClose }) {
         { key: "treble", label: "Treble", min: -6, max: 6, step: 0.1, unit: "dB" },
         { key: "mix", label: "Mix", min: 0, max: 100, step: 1, unit: "%" },
       ]} state={s} setState={setS} color={c} />
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <ImpulseResponse size="default" decay={s.decay} />
+      </div>
     </PluginWindow>
   );
 }
@@ -739,6 +794,10 @@ export function SpringBoxUI({ params, onChange, onClose }) {
         { key: "inputGain", label: "Input", min: -12, max: 12, step: 0.5, unit: "dB" },
         { key: "mix", label: "Mix", min: 0, max: 100, step: 1, unit: "%" },
       ]} state={s} setState={setS} color={c} />
+      {/* Part 17: spring tanks → short tail; tension scales decay length. */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <ImpulseResponse size="default" decay={0.4 + s.tension * 1.6} />
+      </div>
     </PluginWindow>
   );
 }
