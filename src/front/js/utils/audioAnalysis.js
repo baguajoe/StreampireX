@@ -306,19 +306,40 @@ const buildHPCP = (cqtFrame) => {
   return hpcp;
 };
 
-// Bass note: average the bottom two CQT octaves (C1–B2, bins 0–23) across all
-// frames and pick the strongest pitch class. In nearly all popular music the
-// bass plays the tonic on beat 1, so this is a powerful tonic-validation
-// signal. Returns -1 when the bass region is silent.
+// Bass note: count the strongest pitch class in the bottom two CQT octaves
+// (C1–B2, bins 0–23) per frame, then pick the pitch class that "wins" the
+// most frames. Part 14b averaged raw magnitudes, which let kick-drum
+// transients dominate (kicks are loud broadband impulses centred near C/D);
+// frame-wins voting drops their influence because a kick only wins the one
+// frame it transients in, while a sustained 808 wins every frame it rings
+// through. Returns -1 when bass content is too sparse for confidence.
 const detectBassNote = (cqtFrames) => {
   if (!cqtFrames.length) return -1;
-  const bass = new Float32Array(12);
+  const pitchClassWins = new Int32Array(12);
+  let validFrames = 0;
   for (const frame of cqtFrames) {
-    for (let k = 0; k < 24; k++) bass[k % 12] += frame[k];
+    const framePc = new Float32Array(12);
+    let frameTotal = 0;
+    for (let k = 0; k < 24; k++) {
+      framePc[k % 12] += frame[k];
+      frameTotal += frame[k];
+    }
+    if (frameTotal < 1e-6) continue;
+    validFrames++;
+    let mi = 0, mv = framePc[0];
+    for (let i = 1; i < 12; i++) if (framePc[i] > mv) { mv = framePc[i]; mi = i; }
+    pitchClassWins[mi]++;
   }
-  let maxIdx = 0, maxVal = bass[0];
-  for (let i = 1; i < 12; i++) if (bass[i] > maxVal) { maxVal = bass[i]; maxIdx = i; }
-  return maxVal > 0 ? maxIdx : -1;
+  if (validFrames === 0) return -1;
+  let maxIdx = 0, maxWins = pitchClassWins[0];
+  for (let i = 1; i < 12; i++) if (pitchClassWins[i] > maxWins) { maxWins = pitchClassWins[i]; maxIdx = i; }
+  if (DEBUG_KEY) {
+    console.log(`[KEY DEBUG] Bass pitch-class wins:`, NOTE_NAMES.map((n, i) => `${n}=${pitchClassWins[i]}`).join(' '));
+    console.log(`[KEY DEBUG] Bass winner: ${NOTE_NAMES[maxIdx]} (${maxWins}/${validFrames} frames)`);
+  }
+  // Need at least 10% of valid frames agreeing — otherwise the bass is too
+  // diffuse to trust as a tonic signal and we let the chromagram decide alone.
+  return maxWins > validFrames * 0.1 ? maxIdx : -1;
 };
 
 // Multiplier applied to a candidate's score based on whether the dominant
@@ -484,13 +505,36 @@ const _detectKey = (mono, sr) => {
   // ── STAGE 5: bass note + per-candidate bass-validation multiplier. ──
   const bassNote = detectBassNote(cqtFrames);
 
+  // Part 14c: profile-dominance boost. Each (segment × profile) pair produces
+  // one candidate, so 4 profiles always cast 4 votes per segment. Without
+  // weighting that means a single profile that nails a genre (e.g. Edma on
+  // EDM/hip-hop) gets outvoted 3-1 by profiles that consistently disagree
+  // among themselves. We tally which profile wins each segment outright; a
+  // profile that wins ≥50% of segments has demonstrated genre fit and gets
+  // a 1.6× boost on every candidate it produced.
+  const profileWinCount = { krumhansl: 0, temperley: 0, edma: 0, shaath: 0 };
+  for (let s = 0; s < segmentSummary.length; s++) {
+    const sb = segmentSummary[s];
+    const top = PROFILE_NAMES.map(p => sb[p]).sort((a, b) => b.score - a.score)[0];
+    profileWinCount[top.profile]++;
+  }
+  const dominantProfile = Object.entries(profileWinCount).sort((a, b) => b[1] - a[1])[0][0];
+  const dominantWins = profileWinCount[dominantProfile];
+  const profileBoost = (profile) =>
+    (dominantWins >= segmentSummary.length / 2 && profile === dominantProfile) ? 1.6 : 1.0;
+
+  if (DEBUG_KEY) {
+    console.log(`[KEY DEBUG] Profile wins per segment:`, profileWinCount);
+    console.log(`[KEY DEBUG] Dominant profile: ${dominantProfile} (${dominantWins}/${segmentSummary.length} segments) → ${profileBoost(dominantProfile).toFixed(2)}× boost`);
+  }
+
   // ── STAGE 6: group candidates by (root, scale), sum bass-weighted scores. ──
   const groups = new Map();
   for (const c of candidates) {
     if (!c) continue;
     const k = `${c.root}_${c.scale}`;
     const mult = validateKeyAgainstBass(c.root, c.scale, bassNote);
-    const w = Math.max(0.0001, c.score) * mult;
+    const w = Math.max(0.0001, c.score) * mult * profileBoost(c.profile);
     let g = groups.get(k);
     if (!g) {
       g = { root: c.root, scale: c.scale, weighted: 0, raw: 0, hits: 0, profiles: new Set() };
