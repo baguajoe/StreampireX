@@ -7,9 +7,9 @@
 // =============================================================================
 
 export const createSaturationPlugin = (context, initialParams = {}) => {
-  const drivePct = initialParams.drive ?? 20;
-  const mixPct = initialParams.mix ?? 50;
-  const toneHz = initialParams.tone ?? 8000;
+  const drivePct = initialParams.drive ?? 0;
+  const mixPct = initialParams.mix ?? 0;
+  const toneHz = initialParams.tone ?? 20000;
 
   const inputGain = context.createGain();
   const dryGain = context.createGain();

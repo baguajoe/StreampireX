@@ -12,12 +12,12 @@ export const createShimmerReverbPlugin = (context, p = {}) => {
 
   // Shimmer: long delay with feedback creates shimmer wash
   delay.delayTime.value = p.size ?? 0.5;
-  feedback.gain.value   = p.feedback ?? 0.7;
+  feedback.gain.value   = p.feedback ?? 0;
 
   const filter = context.createBiquadFilter();
   filter.type = 'lowpass'; filter.frequency.value = p.tone ?? 4000;
 
-  const mix = (p.mix ?? 40) / 100;
+  const mix = (p.mix ?? 0) / 100;
   dryGain.gain.value = 1 - mix;
   wetGain.gain.value = mix;
 

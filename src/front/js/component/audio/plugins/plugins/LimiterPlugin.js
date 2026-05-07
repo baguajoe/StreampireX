@@ -8,7 +8,7 @@
 
 export const createLimiterPlugin = (context, initialParams = {}) => {
   const ceilingDb = initialParams.ceiling ?? -0.3;
-  const releaseMs = initialParams.release ?? 50;
+  const releaseMs = initialParams.release ?? 100;
   const driveDb = initialParams.drive ?? 0;
 
   const dbToLin = (db) => Math.pow(10, db / 20);

@@ -6,7 +6,7 @@ export const createVocalDoublerPlugin = (context, p = {}) => {
   const input=context.createGain(), output=context.createGain();
   const dryGain=context.createGain(), wetGain=context.createGain();
   const delays=[0.018,0.025,0.031].map(t=>{ const d=context.createDelay(0.1); d.delayTime.value=t+(Math.random()-0.5)*0.005; return d; });
-  const mix=(p.mix??50)/100;
+  const mix=(p.mix??0)/100;
   dryGain.gain.value=1-mix; wetGain.gain.value=mix/delays.length;
   input.connect(dryGain); dryGain.connect(output);
   delays.forEach(d=>{ input.connect(d); d.connect(wetGain); });

@@ -7,16 +7,16 @@ export const createTubeCompPlugin = (context, p = {}) => {
   const output = context.createGain();
   const comp   = context.createDynamicsCompressor();
 
-  comp.threshold.value = p.threshold ?? -20;
-  comp.knee.value      = 12; // very soft knee — tube style
-  comp.ratio.value     = p.ratio ?? 3;
-  comp.attack.value    = 0.02;
-  comp.release.value   = 0.3;
+  comp.threshold.value = p.threshold ?? -10;
+  comp.knee.value      = 6;
+  comp.ratio.value     = p.ratio ?? 2;
+  comp.attack.value    = 0.01;
+  comp.release.value   = 0.1;
 
   // Tube harmonic saturation
   const tube = context.createWaveShaper();
   const n = 512; const curve = new Float32Array(n);
-  const drive = p.drive ?? 0.3;
+  const drive = p.drive ?? 0;
   for (let i = 0; i < n; i++) {
     const x = (2 * i / (n-1)) - 1;
     curve[i] = (1 + drive) * x / (1 + drive * Math.abs(x)); // soft clip
@@ -25,7 +25,7 @@ export const createTubeCompPlugin = (context, p = {}) => {
   tube.oversample = '4x';
 
   const warmth = context.createBiquadFilter();
-  warmth.type = 'lowshelf'; warmth.frequency.value = 200; warmth.gain.value = p.warmth ?? 1.5;
+  warmth.type = 'lowshelf'; warmth.frequency.value = 200; warmth.gain.value = p.warmth ?? 0;
 
   const makeup = context.createGain();
   makeup.gain.value = Math.pow(10, (p.makeup ?? 0) / 20);

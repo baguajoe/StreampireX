@@ -7,8 +7,8 @@ export const createAutoPanPlugin = (context, p = {}) => {
   const splitter=context.createChannelSplitter(2), merger=context.createChannelMerger(2);
   const lfo=context.createOscillator(), lfoGainL=context.createGain(), lfoGainR=context.createGain();
   const gainL=context.createGain(), gainR=context.createGain();
-  lfo.frequency.value=p.rate??0.5; gainL.gain.value=0.5; gainR.gain.value=0.5;
-  lfoGainL.gain.value=p.depth??0.4; lfoGainR.gain.value=-(p.depth??0.4);
+  lfo.frequency.value=p.rate??1; gainL.gain.value=0.5; gainR.gain.value=0.5;
+  lfoGainL.gain.value=p.depth??0; lfoGainR.gain.value=-(p.depth??0);
   lfo.connect(lfoGainL); lfoGainL.connect(gainL.gain);
   lfo.connect(lfoGainR); lfoGainR.connect(gainR.gain);
   lfo.start();

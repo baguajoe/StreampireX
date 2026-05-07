@@ -3,54 +3,61 @@
 // =============================================================================
 
 export const createDynamicEQPlugin = (context, p = {}) => {
+  // Single-band dynamic peaking EQ matching registry params:
+  // freq (Hz), gain (dB), q, threshold (dB), ratio (:1)
   const input   = context.createGain();
   const output  = context.createGain();
   const detector = context.createAnalyser();
   detector.fftSize = 256;
 
-  const bands = [
-    { freq: p.lowFreq ?? 200,  gain: p.lowGain ?? 0,  q: 1.0, type: 'lowshelf'  },
-    { freq: p.midFreq ?? 1000, gain: p.midGain ?? 0,  q: 1.4, type: 'peaking'   },
-    { freq: p.highFreq ?? 8000,gain: p.highGain ?? 0, q: 1.0, type: 'highshelf' },
-  ];
+  const filter = context.createBiquadFilter();
+  filter.type = 'peaking';
+  filter.frequency.value = Number.isFinite(p.freq) ? p.freq : 1000;
+  filter.Q.value = Number.isFinite(p.q) ? p.q : 1;
+  // Static gain target (the maximum amount of dynamic adjustment)
+  let staticGain = Number.isFinite(p.gain) ? p.gain : 0;
+  filter.gain.value = staticGain;
 
-  const filters = bands.map(b => {
-    const f = context.createBiquadFilter();
-    f.type = b.type; f.frequency.value = b.freq;
-    f.gain.value = b.gain; f.Q.value = b.q;
-    return f;
-  });
-
-  input.connect(filters[0]);
-  filters[0].connect(filters[1]);
-  filters[1].connect(filters[2]);
-  filters[2].connect(output);
+  input.connect(filter);
+  filter.connect(output);
   input.connect(detector);
 
   const buf = new Uint8Array(detector.frequencyBinCount);
-  let threshold = p.threshold ?? -20;
-  let depth     = p.depth ?? 6;
+  let threshold = Number.isFinite(p.threshold) ? p.threshold : -20;
+  let ratio     = Number.isFinite(p.ratio) ? p.ratio : 3;
 
   const tick = setInterval(() => {
     detector.getByteFrequencyData(buf);
     const rms = buf.reduce((a,v) => a + v*v, 0) / buf.length;
-    const db  = 20 * Math.log10(Math.sqrt(rms) / 128 + 1e-6);
+    const db  = 20 * Math.log10(Math.sqrt(rms) / buf.length / 128 + 1e-6);
     const over = Math.max(0, db - threshold);
-    filters[1].gain.setTargetAtTime(-Math.min(depth, over), 0, 0.05);
+    // Dynamic reduction proportional to over-threshold; magnitude limited by staticGain magnitude.
+    const reduction = over * (1 - 1 / Math.max(1, ratio));
+    const sign = staticGain >= 0 ? -1 : 1; // if boosting, dynamics cut; if cutting, dynamics widen
+    const target = staticGain + sign * Math.min(Math.abs(staticGain) + 12, reduction);
+    filter.gain.setTargetAtTime(target, 0, 0.05);
   }, 50);
 
   return {
     inputNode: input, node: input,
     setParam(k, v) {
-      if (k === 'threshold') threshold = v;
-      if (k === 'depth')     depth = v;
-      if (k === 'lowFreq')   filters[0].frequency.setTargetAtTime(v, 0, 0.01);
-      if (k === 'midFreq')   filters[1].frequency.setTargetAtTime(v, 0, 0.01);
-      if (k === 'highFreq')  filters[2].frequency.setTargetAtTime(v, 0, 0.01);
+      const safe = Number.isFinite(v) ? v : 0;
+      if (k === 'freq')      filter.frequency.setTargetAtTime(Math.max(20, Math.min(20000, safe)), 0, 0.01);
+      if (k === 'gain')      { staticGain = Math.max(-18, Math.min(18, safe)); }
+      if (k === 'q')         filter.Q.setTargetAtTime(Math.max(0.1, Math.min(10, safe)), 0, 0.01);
+      if (k === 'threshold') threshold = Math.max(-40, Math.min(0, safe));
+      if (k === 'ratio')     ratio = Math.max(1, Math.min(20, safe));
     },
-    getState: () => ({ threshold, depth, ...Object.fromEntries(bands.map((b,i)=>[[`f${i}`],filters[i].frequency.value])) }),
+    getState: () => ({ freq: filter.frequency.value, gain: staticGain, q: filter.Q.value, threshold, ratio }),
     connect: d => output.connect(d),
     disconnect: () => { clearInterval(tick); output.disconnect(); },
+    destroy: () => {
+      try { clearInterval(tick); } catch {}
+      try { output.disconnect(); } catch {}
+      try { input.disconnect(); } catch {}
+      try { filter.disconnect(); } catch {}
+      try { detector.disconnect(); } catch {}
+    },
   };
 };
 
@@ -225,7 +232,7 @@ export const createNotchEQPlugin = (context, p = {}) => {
   const notch  = context.createBiquadFilter();
 
   notch.type            = 'notch';
-  notch.frequency.value = p.freq ?? 1000;
+  notch.frequency.value = p.freq ?? 60;
   notch.Q.value         = p.q ?? 10;
 
   input.connect(notch); notch.connect(output);

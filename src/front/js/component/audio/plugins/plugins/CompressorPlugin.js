@@ -15,10 +15,10 @@ export const createCompressorPlugin = (context, initialParams = {}) => {
     // Check if worklet processor is registered (loaded by PluginHost)
     node = new AudioWorkletNode(context, 'spx-compressor', {
       parameterData: {
-        threshold: initialParams.threshold ?? -18,
-        ratio: initialParams.ratio ?? 4,
+        threshold: initialParams.threshold ?? -10,
+        ratio: initialParams.ratio ?? 2,
         attack: initialParams.attack ?? 10,
-        release: initialParams.release ?? 150,
+        release: initialParams.release ?? 100,
         knee: initialParams.knee ?? 6,
         makeup: initialParams.makeup ?? 0,
       },
@@ -30,10 +30,10 @@ export const createCompressorPlugin = (context, initialParams = {}) => {
     // Fallback to native DynamicsCompressorNode
     console.warn('[CompressorPlugin] Worklet unavailable, using native fallback:', e.message);
     const comp = context.createDynamicsCompressor();
-    comp.threshold.value = initialParams.threshold ?? -18;
-    comp.ratio.value = initialParams.ratio ?? 4;
+    comp.threshold.value = initialParams.threshold ?? -10;
+    comp.ratio.value = initialParams.ratio ?? 2;
     comp.attack.value = (initialParams.attack ?? 10) / 1000;
-    comp.release.value = (initialParams.release ?? 150) / 1000;
+    comp.release.value = (initialParams.release ?? 100) / 1000;
     comp.knee.value = initialParams.knee ?? 6;
 
     const makeupGain = context.createGain();

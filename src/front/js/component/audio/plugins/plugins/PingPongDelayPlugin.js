@@ -14,13 +14,13 @@ export const createPingPongDelayPlugin = (context, p = {}) => {
   const merger   = context.createChannelMerger(2);
   const splitter = context.createChannelSplitter(2);
 
-  const time = (p.time ?? 375) / 1000;
+  const time = (p.time ?? 250) / 1000;
   delayL.delayTime.value = time;
   delayR.delayTime.value = time * 2;
-  feedbackL.gain.value   = p.feedback ?? 0.4;
-  feedbackR.gain.value   = p.feedback ?? 0.4;
+  feedbackL.gain.value   = p.feedback ?? 0.3;
+  feedbackR.gain.value   = p.feedback ?? 0.3;
 
-  const mix = (p.mix ?? 30) / 100;
+  const mix = (p.mix ?? 0) / 100;
   dryGain.gain.value = 1 - mix;
   wetGain.gain.value = mix;
 

@@ -5,12 +5,28 @@
 export const createGraphicEQPlugin = (context, p = {}) => {
   const input  = context.createGain();
   const output = context.createGain();
-  const ISO    = [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 
-  const filters = ISO.map((freq, i) => {
+  // Registry uses b63..b16k naming (9 bands, 63 Hz to 16 kHz, ISO octave centers).
+  const BAND_DEFS = [
+    { id: 'b63',  freq: 63 },
+    { id: 'b125', freq: 125 },
+    { id: 'b250', freq: 250 },
+    { id: 'b500', freq: 500 },
+    { id: 'b1k',  freq: 1000 },
+    { id: 'b2k',  freq: 2000 },
+    { id: 'b4k',  freq: 4000 },
+    { id: 'b8k',  freq: 8000 },
+    { id: 'b16k', freq: 16000 },
+  ];
+
+  const idToIndex = new Map();
+  const filters = BAND_DEFS.map((b, i) => {
+    idToIndex.set(b.id, i);
     const f = context.createBiquadFilter();
-    f.type = 'peaking'; f.frequency.value = freq; f.Q.value = 2.87;
-    f.gain.value = p[`band${i}`] ?? 0;
+    f.type = 'peaking';
+    f.frequency.value = b.freq;
+    f.Q.value = 2.87;
+    f.gain.value = Number.isFinite(p[b.id]) ? p[b.id] : (Number.isFinite(p[`band${i}`]) ? p[`band${i}`] : 0);
     return f;
   });
 
@@ -21,12 +37,27 @@ export const createGraphicEQPlugin = (context, p = {}) => {
   return {
     inputNode: input, node: input,
     setParam(k, v) {
+      const safe = Math.max(-12, Math.min(12, Number.isFinite(v) ? v : 0));
+      // Match registry param ids
+      if (idToIndex.has(k)) {
+        filters[idToIndex.get(k)].gain.setTargetAtTime(safe, 0, 0.01);
+        return;
+      }
+      // Legacy bandN support
       const m = k.match(/^band(\d+)$/);
-      if (m) filters[parseInt(m[1])]?.gain.setTargetAtTime(v, 0, 0.01);
+      if (m) {
+        const idx = parseInt(m[1]);
+        if (filters[idx]) filters[idx].gain.setTargetAtTime(safe, 0, 0.01);
+      }
     },
-    getState: () => Object.fromEntries(filters.map((f,i) => [`band${i}`, f.gain.value])),
+    getState: () => Object.fromEntries(BAND_DEFS.map((b, i) => [b.id, filters[i].gain.value])),
     connect: d => output.connect(d),
     disconnect: () => output.disconnect(),
+    destroy: () => {
+      try { output.disconnect(); } catch {}
+      try { input.disconnect(); } catch {}
+      filters.forEach(f => { try { f.disconnect(); } catch {} });
+    },
   };
 };
 

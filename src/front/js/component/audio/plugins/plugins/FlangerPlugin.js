@@ -13,14 +13,14 @@ export const createFlangerPlugin = (context, p = {}) => {
   const lfoGain  = context.createGain();
 
   delay.delayTime.value = 0.005;
-  feedback.gain.value   = p.feedback ?? 0.5;
-  lfo.frequency.value   = p.rate ?? 0.3;
+  feedback.gain.value   = p.feedback ?? 0.2;
+  lfo.frequency.value   = p.rate ?? 0.5;
   lfoGain.gain.value    = p.depth ?? 0.003;
 
   lfo.connect(lfoGain); lfoGain.connect(delay.delayTime);
   lfo.start();
 
-  const mix = (p.mix ?? 50) / 100;
+  const mix = (p.mix ?? 0) / 100;
   dryGain.gain.value = 1 - mix;
   wetGain.gain.value = mix;
 
@@ -69,7 +69,7 @@ export const createPhaserPlugin = (context, p = {}) => {
 
   stages.reduce((a, b) => { a.connect(b); return b; }, input.connect(stages[0]) && stages[0]);
 
-  const mix = (p.mix ?? 50) / 100;
+  const mix = (p.mix ?? 0) / 100;
   dryGain.gain.value = 1 - mix;
   wetGain.gain.value = mix;
 

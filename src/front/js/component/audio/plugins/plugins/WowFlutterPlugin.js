@@ -8,8 +8,8 @@ export const createWowFlutterPlugin = (context, p = {}) => {
   const wowLFO=context.createOscillator(), wowGain=context.createGain();
   const flutterLFO=context.createOscillator(), flutterGain=context.createGain();
   delay.delayTime.value=0.02;
-  wowLFO.frequency.value=0.5; wowGain.gain.value=p.wow??0.005;
-  flutterLFO.frequency.value=8; flutterGain.gain.value=p.flutter??0.001;
+  wowLFO.frequency.value=0.5; wowGain.gain.value=p.wow??0;
+  flutterLFO.frequency.value=8; flutterGain.gain.value=p.flutter??0;
   wowLFO.connect(wowGain); wowGain.connect(delay.delayTime);
   flutterLFO.connect(flutterGain); flutterGain.connect(delay.delayTime);
   wowLFO.start(); flutterLFO.start();

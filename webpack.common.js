@@ -2,7 +2,8 @@ const webpack = require('webpack');
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const Dotenv = require('dotenv-webpack');
-const { GenerateSW } = require('workbox-webpack-plugin');
+// Workbox `GenerateSW` is now applied in webpack.prod.js only. Running it in
+// dev caused service-worker caching to mask source edits in the browser.
 
 
 module.exports = {
@@ -45,11 +46,6 @@ module.exports = {
         favicon: '4geeks.ico',
         template: 'template.html'
     }),
-    new Dotenv({ safe: true, systemvars: true }),
-    new GenerateSW({
-      clientsClaim: true,
-      skipWaiting: true,
-      exclude: [/animations\//]
-    })
+    new Dotenv({ safe: true, systemvars: true })
   ]
 };

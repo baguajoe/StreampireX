@@ -34,8 +34,8 @@ export const createSPXPerceptualEQPlugin = (context, p = {}) => {
   filters[filters.length - 1].connect(output);
 
   // ── Psychoacoustic parameters ────────────────────────────────────────────
-  let recover   = p.recover   ?? 0.5;
-  let order     = p.order     ?? 0.5;
+  let recover   = p.recover   ?? 0;
+  let order     = p.order     ?? 0;
   let boost     = p.boost     ?? 6;
   let cut       = p.cut       ?? -6;
   let enabled   = true;

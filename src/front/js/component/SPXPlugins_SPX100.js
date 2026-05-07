@@ -171,7 +171,7 @@ export function LoFiCrusherUI({ params, onChange, onClose }) {
 
 // ─── 7. INFINITE REVERB ──────────────────────────────────────────────────────
 export function InfiniteReverbUI({ params, onChange, onClose }) {
-  const [s, setS] = useState({ freeze:false, roomSize:0.9, damping:0.3, mix:0.5, shimmer:0, ...params });
+  const [s, setS] = useState({ freeze:false, roomSize:0.9, damping:0.3, mix:0, shimmer:0, ...params });
   useEffect(() => onChange(s), [s]);
   const c = "#7744ff";
   return (
@@ -238,7 +238,7 @@ export function DeclickerUI({ params, onChange, onClose }) {
 }
 
 // ─── 10. DEHUMMER ────────────────────────────────────────────────────────────
-export function DehummmerUI({ params, onChange, onClose }) {
+export function DehummerUI({ params, onChange, onClose }) {
   const [s, setS] = useState({ freq:60, harmonics:5, depth:0.9, learn:false, ...params });
   useEffect(() => onChange(s), [s]);
   const c = "#88ff44";
@@ -694,7 +694,7 @@ export const SPX100_FX_ADDITIONS = [
   { key:"infiniteReverb",    name:"InfiniteReverb",    type:"reverb",      component:"InfiniteReverbUI"    },
   { key:"reverseDelay",      name:"ReverseDelay",      type:"delay",       component:"ReverseDelayUI"      },
   { key:"declicker",         name:"Declicker",         type:"filter",      component:"DeclickerUI"         },
-  { key:"dehummer",          name:"Dehummer",          type:"filter",      component:"DehummmerUI"         },
+  { key:"dehummer",          name:"Dehummer",          type:"filter",      component:"DehummerUI"          },
   { key:"midSideComp",       name:"MidSideComp",       type:"comp",        component:"MidSideCompUI"       },
   { key:"subOctaver",        name:"SubOctaver",        type:"filter",      component:"SubOctaverUI"        },
   { key:"chorusEnsemble",    name:"ChorusEnsemble",    type:"reverb",      component:"ChorusEnsembleUI"    },

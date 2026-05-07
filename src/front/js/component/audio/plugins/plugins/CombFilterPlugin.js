@@ -8,7 +8,7 @@ export const createCombFilterPlugin = (context, p = {}) => {
   const freq=p.freq??100;
   delay.delayTime.value=1/freq;
   feedback.gain.value=p.feedback??0.8;
-  const mix=(p.mix??50)/100;
+  const mix=(p.mix??0)/100;
   dryGain.gain.value=1-mix; wetGain.gain.value=mix;
   input.connect(dryGain); dryGain.connect(output);
   input.connect(delay); delay.connect(feedback); feedback.connect(delay); delay.connect(wetGain); wetGain.connect(output);

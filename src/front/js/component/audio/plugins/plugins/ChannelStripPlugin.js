@@ -4,13 +4,39 @@
 
 export const createChannelStripPlugin = (context, p = {}) => {
   const input=context.createGain(), output=context.createGain();
-  const hpf=context.createBiquadFilter(), eq=context.createBiquadFilter(), comp=context.createDynamicsCompressor(), level=context.createGain();
-  hpf.type='highpass'; hpf.frequency.value=p.hpf??80;
-  eq.type='peaking'; eq.frequency.value=p.eqFreq??1000; eq.gain.value=p.eqGain??0; eq.Q.value=1;
-  comp.threshold.value=p.threshold??-18; comp.ratio.value=p.ratio??4; comp.knee.value=6; comp.attack.value=0.01; comp.release.value=0.1;
-  level.gain.value=Math.pow(10,(p.gain??0)/20);
-  input.connect(hpf); hpf.connect(eq); eq.connect(comp); comp.connect(level); level.connect(output);
-  return { inputNode:input, node:input,
-    setParam(k,v){ if(k==='hpf')hpf.frequency.setTargetAtTime(v,0,.01); if(k==='eqGain')eq.gain.setTargetAtTime(v,0,.01); if(k==='threshold')comp.threshold.setTargetAtTime(v,0,.01); if(k==='gain')level.gain.setTargetAtTime(Math.pow(10,v/20),0,.01); },
-    getState:()=>({hpf:hpf.frequency.value,eqGain:eq.gain.value,threshold:comp.threshold.value}), connect:d=>output.connect(d), disconnect:()=>output.disconnect() };
+  const inGain=context.createGain();
+  const phaseGain=context.createGain();
+  const hpf=context.createBiquadFilter(); hpf.type='highpass';
+  const lpf=context.createBiquadFilter(); lpf.type='lowpass';
+  const outGain=context.createGain();
+
+  const inputGainDb=Math.max(-24,Math.min(24,Number.isFinite(p.inputGain)?p.inputGain:0));
+  const hpfHz=Math.max(0,Math.min(500,Number.isFinite(p.hpf)?p.hpf:0));
+  const lpfHz=Math.max(2000,Math.min(20000,Number.isFinite(p.lpf)?p.lpf:20000));
+  const phaseFlip=Number.isFinite(p.phase)?p.phase:0;
+  const outputGainDb=Math.max(-24,Math.min(24,Number.isFinite(p.outputGain)?p.outputGain:0));
+
+  inGain.gain.value=Math.pow(10,inputGainDb/20);
+  hpf.frequency.value=hpfHz<=0?20:hpfHz;
+  lpf.frequency.value=lpfHz;
+  phaseGain.gain.value=phaseFlip>=0.5?-1:1;
+  outGain.gain.value=Math.pow(10,outputGainDb/20);
+
+  input.connect(inGain); inGain.connect(phaseGain); phaseGain.connect(hpf); hpf.connect(lpf); lpf.connect(outGain); outGain.connect(output);
+  return {
+    inputNode:input, node:input,
+    setParam(k,v){
+      if(!Number.isFinite(v)) return;
+      const t=context.currentTime;
+      if(k==='inputGain') inGain.gain.setTargetAtTime(Math.pow(10,Math.max(-24,Math.min(24,v))/20),t,0.01);
+      else if(k==='hpf'){ const c=Math.max(0,Math.min(500,v)); hpf.frequency.setTargetAtTime(c<=0?20:c,t,0.01); }
+      else if(k==='lpf') lpf.frequency.setTargetAtTime(Math.max(2000,Math.min(20000,v)),t,0.01);
+      else if(k==='phase') phaseGain.gain.setTargetAtTime(v>=0.5?-1:1,t,0.01);
+      else if(k==='outputGain') outGain.gain.setTargetAtTime(Math.pow(10,Math.max(-24,Math.min(24,v))/20),t,0.01);
+    },
+    getState:()=>({inputGain:20*Math.log10(inGain.gain.value||1e-6),hpf:hpf.frequency.value,lpf:lpf.frequency.value,phase:phaseGain.gain.value<0?1:0,outputGain:20*Math.log10(outGain.gain.value||1e-6)}),
+    connect:d=>output.connect(d),
+    disconnect:()=>{try{output.disconnect();}catch(e){}},
+    destroy:()=>{[input,inGain,phaseGain,hpf,lpf,outGain,output].forEach(n=>{try{n.disconnect();}catch(e){}});}
+  };
 };

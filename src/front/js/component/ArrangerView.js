@@ -922,6 +922,17 @@ const ArrangerView = ({
     setScrollTop(e.target.scrollTop);
   }, []);
 
+  // Stable callback ref so React doesn't re-mount onDrop/onDragOver listeners
+  // each render (an inline ref function caused desktop-file drops to silently
+  // no-op after the Follow Playhead commit).
+  const setScrollRefs = useCallback((el) => {
+    scrollRef.current = el;
+    if (scrollContainerRef) {
+      if (typeof scrollContainerRef === "function") scrollContainerRef(el);
+      else scrollContainerRef.current = el;
+    }
+  }, [scrollContainerRef]);
+
   // ── Zoom ──
   const handleWheel = useCallback((e) => {
     if (e.ctrlKey || e.metaKey) {
@@ -1379,13 +1390,7 @@ const ArrangerView = ({
 
           {/* Scrollable track lanes */}
           <div
-            ref={(el) => {
-              scrollRef.current = el;
-              if (scrollContainerRef) {
-                if (typeof scrollContainerRef === "function") scrollContainerRef(el);
-                else scrollContainerRef.current = el;
-              }
-            }}
+            ref={setScrollRefs}
             className="arr-lanes-scroll"
             onScroll={handleScroll}
             onDragOver={(e) => e.preventDefault()}

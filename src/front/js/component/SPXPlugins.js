@@ -9,7 +9,31 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { TransferCurve, GainReductionMeter, ImpulseResponse, LFOVisualizer, DelayTapVisualizer, SpectrumAnalyzer } from "./audio/PluginVisualizer";
 import { PultecForgeUI, DynamicEQUI, GraphicEQUI, TiltEQUI, BaxandallEQUI, EQ_FX_ADDITIONS } from './SPXPlugins_EQ';
 import { VocoderSPXUI, GranularFreezeUI, NoiseReductionUI, RingModUI, FormantFilterUI, SpectrumAnalyzerUI, CREATIVE_FX_ADDITIONS } from './SPXPlugins_Creative';
-import { TapeStopUI, TransientShaperUI, MultibandSatUI, StereoImagerUI, EnhancerSPX808UI, LoFiCrusherUI, InfiniteReverbUI, ReverseDelayUI, DeclickerUI, DehummmerUI, MidSideCompUI, SubOctaverUI, ChorusEnsembleUI, TempoDelayUI, PitchRandomizerUI, AutoWahUI, DrumEnhancerUI, VocalSaturatorUI, GainStagerUI, MultibandLimiterUI, GoniometerUI, PhaseScopeUI, DialogueIsolatorUI, CabinetSimUI, FreqShifterUI } from './SPXPlugins_SPX100';
+import { TapeStopUI, TransientShaperUI, MultibandSatUI, StereoImagerUI, EnhancerSPX808UI, LoFiCrusherUI, InfiniteReverbUI, ReverseDelayUI, DeclickerUI, DehummerUI, MidSideCompUI, SubOctaverUI, ChorusEnsembleUI, TempoDelayUI, PitchRandomizerUI, AutoWahUI, DrumEnhancerUI, VocalSaturatorUI, GainStagerUI, MultibandLimiterUI, GoniometerUI, PhaseScopeUI, DialogueIsolatorUI, CabinetSimUI, FreqShifterUI } from './SPXPlugins_SPX100';
+import GenericPlaceholderUI from './audio/PluginUIs/GenericPlaceholderUI';
+// Phase F4-A.7 differentiated UIs — replaces the placeholder wrappers and overrides
+// the legacy *UI exports for the 9 keepers that already had stub UIs.
+import HallReverbUI    from './audio/PluginUIs/HallReverbUI';
+import PlateReverbUI   from './audio/PluginUIs/PlateReverbUI';
+import SpringReverbUI  from './audio/PluginUIs/SpringReverbUI';
+import RoomReverbUI    from './audio/PluginUIs/RoomReverbUI';
+import ChamberReverbUI from './audio/PluginUIs/ChamberReverbUI';
+import ShimmerReverbUI from './audio/PluginUIs/ShimmerReverbUI';
+import TubeCompUI      from './audio/PluginUIs/TubeCompUI';
+import VocalCompUI     from './audio/PluginUIs/VocalCompUI';
+import CompressorUI    from './audio/PluginUIs/CompressorUI';
+// `*UI2` agents shipped replacements for legacy UIs. Importing under aliases so
+// the COMPONENT_MAP entry name (e.g. `GateVerbUI`) keeps stable while the actual
+// component swaps to the differentiated one.
+import GateVerbUINew     from './audio/PluginUIs/GateVerbUI2';
+import VintageAirUINew   from './audio/PluginUIs/VintageAirUI2';
+import InfiniteReverbUINew from './audio/PluginUIs/InfiniteReverbUI2';
+import FETStrikeUINew    from './audio/PluginUIs/FETStrikeUI2';
+import OptoPressUINew    from './audio/PluginUIs/OptoPressUI2';
+import GlueBusUINew      from './audio/PluginUIs/GlueBusUI2';
+import WarmPressUINew    from './audio/PluginUIs/WarmPressUI2';
+import MultiPressUINew   from './audio/PluginUIs/MultiPressUI2';
+import ParallelCrushUINew from './audio/PluginUIs/ParallelCrushUI2';
 
 // ─── UTILITY ────────────────────────────────────────────────
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -1197,7 +1221,7 @@ export function MasterWallUI({ params, onChange, onClose }) {
 // 34. STEREO FORGE — Width, M-S matrix, mono compatibility
 export function StereoForgeUI({ params, onChange, onClose }) {
   const [s, setS] = useState({
-    width: 100, midGain: 0, sideGain: 0, balance: 0,
+    width: 50, midGain: 0, sideGain: 0, balance: 0,
     monoBelow: 100, phase: false, mono: false, ...params,
   });
   useEffect(() => onChange(s), [s]);
@@ -1501,6 +1525,209 @@ export function HarmonicSumUI({ params, onChange, onClose }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// PHASE C1 — UIs for ozone-level engines that already exist in
+// RecordingStudio.buildFxChain (matchEQ, lowEndFocus, spectralRecovery,
+// loudnessTarget, msImager, codecPreview, loudnessMeter2). Param surfaces
+// match the factory's setParam keys 1:1.
+// ═══════════════════════════════════════════════════════════════
+
+export function MatchEQUI({ params, onChange, onClose }) {
+  const [s, setS] = useState({ low: 0, high: 0, ...params });
+  useEffect(() => onChange(s), [s]);
+  const c = "#a0c8ff";
+  return (
+    <PluginWindow name="MatchEQ" tag="MATCH" color={c} onClose={onClose}>
+      <KnobRow knobs={[
+        { key: "low",  label: "Low 200Hz",   min: -12, max: 12, step: 0.1, unit: "dB" },
+        { key: "high", label: "High 8kHz",   min: -12, max: 12, step: 0.1, unit: "dB" },
+      ]} state={s} setState={setS} color={c} />
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <SpectrumAnalyzer size="default" filters={[
+          { type: "lowshelf",  frequency: 200,  gain: s.low },
+          { type: "highshelf", frequency: 8000, gain: s.high },
+        ]} />
+      </div>
+    </PluginWindow>
+  );
+}
+
+export function LowEndFocusUI({ params, onChange, onClose }) {
+  const [s, setS] = useState({ sub: 3, kick: 2, ...params });
+  useEffect(() => onChange(s), [s]);
+  const c = "#ff8844";
+  return (
+    <PluginWindow name="LowEndFocus" tag="LOW" color={c} onClose={onClose}>
+      <KnobRow knobs={[
+        { key: "sub",  label: "Sub 60Hz",    min: -12, max: 12, step: 0.1, unit: "dB" },
+        { key: "kick", label: "Kick 100Hz",  min: -12, max: 12, step: 0.1, unit: "dB" },
+      ]} state={s} setState={setS} color={c} />
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <SpectrumAnalyzer size="default" filters={[
+          { type: "highpass", frequency: 30,  Q: 0.7 },
+          { type: "peaking",  frequency: 60,  Q: 0.8, gain: s.sub },
+          { type: "peaking",  frequency: 100, Q: 1,   gain: s.kick },
+        ]} />
+      </div>
+    </PluginWindow>
+  );
+}
+
+export function SpectralRecoveryUI({ params, onChange, onClose }) {
+  const [s, setS] = useState({ amount: 4, presence: 2, ...params });
+  useEffect(() => onChange(s), [s]);
+  const c = "#88ddff";
+  return (
+    <PluginWindow name="SpectralRecovery" tag="AIR" color={c} onClose={onClose}>
+      <KnobRow knobs={[
+        { key: "amount",   label: "Air 10kHz",     min: -12, max: 18, step: 0.1, unit: "dB" },
+        { key: "presence", label: "Presence 8kHz", min: -12, max: 12, step: 0.1, unit: "dB" },
+      ]} state={s} setState={setS} color={c} />
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <SpectrumAnalyzer size="default" filters={[
+          { type: "highshelf", frequency: 10000,         gain: s.amount },
+          { type: "peaking",   frequency: 8000, Q: 0.5,  gain: s.presence },
+        ]} />
+      </div>
+    </PluginWindow>
+  );
+}
+
+export function LoudnessTargetUI({ params, onChange, onClose }) {
+  const [s, setS] = useState({ ceiling: -1, target: 0, ...params });
+  useEffect(() => onChange(s), [s]);
+  const c = "#22ddaa";
+  return (
+    <PluginWindow name="LoudnessTarget" tag="LUFS" color={c} onClose={onClose}>
+      <KnobRow knobs={[
+        { key: "ceiling", label: "Ceiling", min: -6,  max: 0,  step: 0.1, unit: "dB" },
+        { key: "target",  label: "Target",  min: -12, max: 12, step: 0.1, unit: "dB" },
+      ]} state={s} setState={setS} color={c} />
+      <div style={{ marginTop: 8, fontSize: 9, color: "#666", textAlign: "center", lineHeight: 1.5 }}>
+        Hard limit at ceiling, makeup gain to hit target.
+      </div>
+    </PluginWindow>
+  );
+}
+
+export function MSImagerUI({ params, onChange, onClose }) {
+  const [s, setS] = useState({ width: 1, ...params });
+  useEffect(() => onChange(s), [s]);
+  const c = "#ff66ff";
+  return (
+    <PluginWindow name="MSImager" tag="WIDTH" color={c} onClose={onClose}>
+      <KnobRow knobs={[
+        { key: "width", label: "Width", min: 0, max: 2, step: 0.01 },
+      ]} state={s} setState={setS} color={c} />
+      <div style={{ marginTop: 8, fontSize: 9, color: "#666", textAlign: "center" }}>
+        0 = mono · 1 = original · 2 = double-wide
+      </div>
+    </PluginWindow>
+  );
+}
+
+export function CodecPreviewUI({ params, onChange, onClose }) {
+  const [s, setS] = useState({ ...params });
+  useEffect(() => onChange(s), [s]);
+  const c = "#888888";
+  return (
+    <PluginWindow name="CodecPreview" tag="CODEC" color={c} onClose={onClose}>
+      <div style={{ padding: 12, fontSize: 11, color: "#aaa", textAlign: "center", lineHeight: 1.6 }}>
+        <div style={{ fontWeight: 700, color: c }}>HPF 40 Hz · LPF 16 kHz</div>
+        <div style={{ marginTop: 6, fontSize: 9, opacity: 0.7 }}>
+          Approximates lossy-codec frequency limits so you hear what listeners on
+          mp3 / AAC playback will get.
+        </div>
+      </div>
+      <div style={{ marginTop: 6, display: "flex", justifyContent: "center" }}>
+        <SpectrumAnalyzer size="default" filters={[
+          { type: "highpass", frequency: 40,    Q: 0.7 },
+          { type: "lowpass",  frequency: 16000, Q: 0.7 },
+        ]} />
+      </div>
+    </PluginWindow>
+  );
+}
+
+// Phase C2.1 — MidSideEQ (4 mid bands + 4 side bands).
+export function MidSideEQUI({ params, onChange, onClose }) {
+  const [s, setS] = useState({
+    midLowGain: 0, midLowMidGain: 0, midHiMidGain: 0, midHiGain: 0,
+    sideLowGain: 0, sideLowMidGain: 0, sideHiMidGain: 0, sideHiGain: 0,
+    ...params,
+  });
+  useEffect(() => onChange(s), [s]);
+  const c = "#aa88ff";
+  return (
+    <PluginWindow name="MidSideEQ" tag="M/S" color={c} onClose={onClose}>
+      <div style={{ fontSize: 9, color: c, textAlign: "center", marginBottom: 4, fontWeight: 700 }}>MID</div>
+      <KnobRow knobs={[
+        { key: "midLowGain",    label: "Low 100",   min: -12, max: 12, step: 0.1, unit: "dB" },
+        { key: "midLowMidGain", label: "L-Mid 400", min: -12, max: 12, step: 0.1, unit: "dB" },
+        { key: "midHiMidGain",  label: "H-Mid 3k",  min: -12, max: 12, step: 0.1, unit: "dB" },
+        { key: "midHiGain",     label: "Hi 10k",    min: -12, max: 12, step: 0.1, unit: "dB" },
+      ]} state={s} setState={setS} color={c} />
+      <div style={{ fontSize: 9, color: c, textAlign: "center", marginTop: 8, marginBottom: 4, fontWeight: 700 }}>SIDE</div>
+      <KnobRow knobs={[
+        { key: "sideLowGain",    label: "Low 100",   min: -12, max: 12, step: 0.1, unit: "dB" },
+        { key: "sideLowMidGain", label: "L-Mid 400", min: -12, max: 12, step: 0.1, unit: "dB" },
+        { key: "sideHiMidGain",  label: "H-Mid 3k",  min: -12, max: 12, step: 0.1, unit: "dB" },
+        { key: "sideHiGain",     label: "Hi 10k",    min: -12, max: 12, step: 0.1, unit: "dB" },
+      ]} state={s} setState={setS} color={c} />
+      <div style={{ marginTop: 8, fontSize: 9, color: "#666", textAlign: "center" }}>
+        Independent EQ on Mid and Side channels (M/S processing).
+      </div>
+    </PluginWindow>
+  );
+}
+
+export function LoudnessMeter2UI({ params, onChange, onClose }) {
+  const [s, setS] = useState({
+    target: "streaming", integrated: -14, lra: 8, truePeak: -1,
+    momentary: -14, shortTerm: -14, ...params,
+  });
+  useEffect(() => onChange(s), [s]);
+  const c = "#44ffaa";
+  const targets = { streaming: -14, cd: -9, broadcast: -23, film: -24, game: -16 };
+  const mkBar = (val, min, max, col) => {
+    const pct = clamp((val - min) / (max - min), 0, 1) * 100;
+    return (
+      <div style={{ flex: 1, background: "#111", borderRadius: 2, height: 10, position: "relative" }}>
+        <div style={{ width: pct + "%", background: col, height: "100%", borderRadius: 2, transition: "width 0.2s" }} />
+      </div>
+    );
+  };
+  return (
+    <PluginWindow name="LoudnessMeter II" tag="LUFS" color={c} onClose={onClose}>
+      <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap", marginBottom: 10 }}>
+        {Object.entries(targets).map(([t, v]) => (
+          <button key={t} onClick={() => setS((p) => ({ ...p, target: t, integrated: v }))}
+            style={{
+              background: s.target === t ? c : "#1a1a2e", color: s.target === t ? "#000" : "#888",
+              border: `1px solid ${c}44`, borderRadius: 4, padding: "3px 8px",
+              fontSize: 9, cursor: "pointer", fontFamily: "inherit", fontWeight: 700,
+            }}>{t.toUpperCase()} ({v})</button>
+        ))}
+      </div>
+      {[
+        { label: "Integrated", key: "integrated", min: -40, max: 0,  col: c },
+        { label: "Short Term", key: "shortTerm",  min: -40, max: 0,  col: "#ffaa00" },
+        { label: "Momentary",  key: "momentary",  min: -40, max: 0,  col: "#ff4444" },
+        { label: "LRA",        key: "lra",        min: 0,   max: 30, col: "#8888ff" },
+        { label: "True Peak",  key: "truePeak",   min: -20, max: 0,  col: "#ff6666" },
+      ].map(({ label, key, min, max, col }) => (
+        <div key={key} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+          <div style={{ fontSize: 9, color: "#888", width: 72 }}>{label}</div>
+          {mkBar(s[key], min, max, col)}
+          <div style={{ fontSize: 10, color: col, width: 40, textAlign: "right", fontWeight: 700 }}>
+            {s[key]} {key === "lra" ? "LU" : key === "truePeak" ? "dBTP" : "LUFS"}
+          </div>
+        </div>
+      ))}
+    </PluginWindow>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // PLUGIN REGISTRY — paste ALL_FX_EXTENDED into RecordingStudio.js
 // replacing the existing ALL_FX array in the console inserts section
 // ═══════════════════════════════════════════════════════════════
@@ -1508,7 +1735,7 @@ export function HarmonicSumUI({ params, onChange, onClose }) {
 export const ALL_FX_EXTENDED = [
   // ── EXISTING (keep these) ──
   { key: "eq",              name: "EQ",            type: "eq",         component: null },
-  { key: "compressor",      name: "Compressor",    type: "comp",       component: null },
+  { key: "compressor",      name: "Compressor",    type: "comp",       component: "CompressorUI" },
   { key: "gate",            name: "Gate",          type: "comp",       component: null },
   { key: "deesser",         name: "De-Esser",      type: "comp",       component: null },
   { key: "limiter",         name: "Limiter",       type: "limit",      component: null },
@@ -1538,19 +1765,31 @@ export const ALL_FX_EXTENDED = [
   { key: "optoPress",       name: "OptoPress",     type: "comp",       component: "OptoPressUI" },
   { key: "parallelCrush",   name: "ParallelCrush", type: "comp",       component: "ParallelCrushUI" },
   { key: "multiPress",      name: "MultiPress",    type: "comp",       component: "MultiPressUI" },
-  { key: "transGate",       name: "TransGate",     type: "comp",       component: "TransGateUI" },
+  { key: "transGate",       name: "TransGate",     type: "gate",       component: "TransGateUI" },
+  // Phase F4-A.5 differentiation keepers — placeholder UI wrappers until F4-A.7.
+  { key: "tubeComp",        name: "TubeComp",      type: "comp",       component: "TubeCompUI" },
+  { key: "vocalComp",       name: "VocalComp",     type: "comp",       component: "VocalCompUI" },
   // ── SPX EQ ──
   { key: "ironBand",        name: "IronBand",      type: "eq",         component: "IronBandUI" },
   { key: "spectraCurve",    name: "SpectraCurve",  type: "eq",         component: "SpectraCurveUI" },
   // ── SPX SPATIAL ──
-  { key: "hallForgeS",      name: "HallForge I",   type: "reverb",     component: "HallForgeSmallUI" },
-  { key: "hallForgeL",      name: "HallForge II",  type: "reverb",     component: "HallForgeLargeUI" },
+  // Phase F4-A.5 differentiated reverb suite. UI = placeholder wrapper until F4-A.7 ships hardware UIs.
+  { key: "hall",            name: "HallReverb",    type: "reverb",     component: "HallReverbUI" },
+  { key: "plate",           name: "PlateReverb",   type: "reverb",     component: "PlateReverbUI" },
+  { key: "spring",          name: "SpringReverb",  type: "reverb",     component: "SpringReverbUI" },
+  { key: "room",            name: "RoomReverb",    type: "reverb",     component: "RoomReverbUI" },
+  { key: "chamber",         name: "ChamberReverb", type: "reverb",     component: "ChamberReverbUI" },
+  { key: "shimmer",         name: "ShimmerReverb", type: "reverb",     component: "ShimmerReverbUI" },
   { key: "gateVerb",        name: "GateVerb",      type: "reverb",     component: "GateVerbUI" },
   { key: "vintageAir",      name: "VintageAir",    type: "reverb",     component: "VintageAirUI" },
-  { key: "stochasticHall",  name: "StochasticHall",type: "reverb",     component: "StochasticHallUI" },
-  { key: "greatHall",       name: "GreatHall",     type: "reverb",     component: "GreatHallUI" },
-  { key: "plateForge",      name: "PlateForge",    type: "reverb",     component: "PlateForgeUI" },
-  { key: "springBox",       name: "SpringBox",     type: "reverb",     component: "SpringBoxUI" },
+  // Deprecated reverb clones — kept in registry as `comingSoon` so picker can grey them out / hide.
+  // Factory code preserved in RecordingStudio.js for Phase E differentiation. Migrate users to the keepers above.
+  { key: "hallForgeS",      name: "HallForge I",   type: "reverb",     component: "HallForgeSmallUI", comingSoon: true },
+  { key: "hallForgeL",      name: "HallForge II",  type: "reverb",     component: "HallForgeLargeUI", comingSoon: true },
+  { key: "stochasticHall",  name: "StochasticHall",type: "reverb",     component: "StochasticHallUI", comingSoon: true },
+  { key: "greatHall",       name: "GreatHall",     type: "reverb",     component: "GreatHallUI",      comingSoon: true },
+  { key: "plateForge",      name: "PlateForge",    type: "reverb",     component: "PlateForgeUI",     comingSoon: true },
+  { key: "springBox",       name: "SpringBox",     type: "reverb",     component: "SpringBoxUI",      comingSoon: true },
   { key: "echoField",       name: "EchoField",     type: "delay",      component: "EchoFieldUI" },
   { key: "stereoBloom",     name: "StereoBloom",   type: "reverb",     component: "StereoBloomUI" },
   { key: "pitchForge",      name: "PitchForge",    type: "filter",     component: "PitchForgeUI" },
@@ -1560,22 +1799,19 @@ export const ALL_FX_EXTENDED = [
   { key: "voiceForge",      name: "VoiceForge",    type: "filter",     component: "VoiceForgeUI" },
   { key: "breathGate",      name: "BreathGate",    type: "comp",       component: "BreathGateUI" },
   { key: "sibilantCut",     name: "SibilantCut",   type: "comp",       component: "SibilantCutUI" },
-  { key: "phantomDouble",   name: "PhantomDouble", type: "reverb",     component: "PhantomDoubleUI" },
-  { key: "vocalSpace",      name: "VocalSpace",    type: "reverb",     component: "VocalSpaceUI" },
+  { key: "phantomDouble",   name: "PhantomDouble", type: "reverb",     component: "PhantomDoubleUI", comingSoon: true },
+  { key: "vocalSpace",      name: "VocalSpace",    type: "reverb",     component: "VocalSpaceUI",    comingSoon: true },
   // ── SPX MASTERING ──
   { key: "masterWall",      name: "MasterWall",    type: "limit",      component: "MasterWallUI" },
   { key: "stereoForge",     name: "StereoForge",   type: "eq",         component: "StereoForgeUI" },
   { key: "loudnessMeter",   name: "LoudnessMeter", type: "eq",         component: "LoudnessMeterUI" },
   { key: "harmonicExcite",  name: "HarmonicExcite",type: "distortion", component: "HarmonicExciteUI" },
   { key: "vinylPress",      name: "VinylPress",    type: "distortion", component: "VinylPressUI" },
-  { key: "ditherForge",     name: "DitherForge",   type: "limit",      component: "DitherForgeUI" },
-  { key: "dcBlock",         name: "DCBlock",       type: "filter",     component: "DCBlockUI" },
-  { key: "spaceForge",      name: "SpaceForge",    type: "reverb",     component: "SpaceForgeUI" },
+  { key: "spaceForge",      name: "SpaceForge",    type: "reverb",     component: "SpaceForgeUI",    comingSoon: true },
   { key: "vortexMod",       name: "VortexMod",     type: "filter",     component: "VortexModUI" },
   { key: "gainRider",       name: "GainRider",     type: "comp",       component: "GainRiderUI" },
   { key: "harmonicSum",     name: "HarmonicSum",   type: "distortion", component: "HarmonicSumUI" },
   { key: "pultecForge",    name: "PultecForge",    type: "eq",         component: "PultecForgeUI"    },
-  { key: "dynamicEQ",      name: "DynamicEQ",      type: "eq",         component: "DynamicEQUI"      },
   { key: "graphicEQ",      name: "GraphicEQ",      type: "eq",         component: "GraphicEQUI"      },
   { key: "tiltEQ",         name: "TiltEQ",         type: "eq",         component: "TiltEQUI"         },
   { key: "baxandallEQ",    name: "BaxandallEQ",    type: "eq",         component: "BaxandallEQUI"    },
@@ -1587,17 +1823,10 @@ export const ALL_FX_EXTENDED = [
   { key: "spectrumAnalyzer", name: "SpectrumAnalyzer", type: "eq",     component: "SpectrumAnalyzerUI" },
   { key:"tapeStop",name:"TapeStop",type:"creative",component:"TapeStopUI" },
   { key:"transientShaper",name:"TransientShaper",type:"comp",component:"TransientShaperUI" },
-  { key:"multibandSat",name:"MultibandSat",type:"distortion",component:"MultibandSatUI" },
-  { key:"stereoImager",name:"StereoImager",type:"reverb",component:"StereoImagerUI" },
   { key:"enhancer808",name:"808Enhancer",type:"distortion",component:"EnhancerSPX808UI" },
-  { key:"loFiCrusher",name:"LoFiCrusher",type:"distortion",component:"LoFiCrusherUI" },
   { key:"infiniteReverb",name:"InfiniteReverb",type:"reverb",component:"InfiniteReverbUI" },
   { key:"reverseDelay",name:"ReverseDelay",type:"delay",component:"ReverseDelayUI" },
-  { key:"declicker",name:"Declicker",type:"filter",component:"DeclickerUI" },
-  { key:"dehummer",name:"Dehummer",type:"filter",component:"DehummmerUI" },
-  { key:"midSideComp",name:"MidSideComp",type:"comp",component:"MidSideCompUI" },
   { key:"subOctaver",name:"SubOctaver",type:"filter",component:"SubOctaverUI" },
-  { key:"chorusEnsemble",name:"ChorusEnsemble",type:"reverb",component:"ChorusEnsembleUI" },
   { key:"tempoDelay",name:"TempoDelay",type:"delay",component:"TempoDelayUI" },
   { key:"pitchRandomizer",name:"PitchRandomizer",type:"filter",component:"PitchRandomizerUI" },
   { key:"autoWah",name:"AutoWah",type:"filter",component:"AutoWahUI" },
@@ -1608,11 +1837,6 @@ export const ALL_FX_EXTENDED = [
   // ── Missing plugins from COMPONENT_MAP ──
   { key:"ditherForge",    name:"DitherForge",     type:"mastering", component:"DitherForgeUI" },
   { key:"dcBlock",        name:"DC Block",         type:"mastering", component:"DCBlockUI" },
-  { key:"spaceForge",     name:"SpaceForge",       type:"reverb",    component:"SpaceForgeUI" },
-  { key:"vortexMod",      name:"VortexMod",        type:"filter",    component:"VortexModUI" },
-  { key:"gainRider",      name:"GainRider",        type:"comp",      component:"GainRiderUI" },
-  { key:"harmonicSum",    name:"HarmonicSum",      type:"distortion",component:"HarmonicSumUI" },
-  { key:"transientShaper",name:"TransientShaper",  type:"comp",      component:"TransientShaperUI" },
   { key:"stereoImager",   name:"StereoImager",     type:"mastering", component:"StereoImagerUI" },
   { key:"midSideComp",    name:"Mid-Side Comp",    type:"comp",      component:"MidSideCompUI" },
   { key:"multibandLimiter",name:"MultibandLimiter",type:"mastering", component:"MultibandLimiterUI" },
@@ -1620,29 +1844,12 @@ export const ALL_FX_EXTENDED = [
   { key:"goniometer",     name:"Goniometer",       type:"mastering", component:"GoniometerUI" },
   { key:"phaseScope",     name:"PhaseScope",       type:"mastering", component:"PhaseScopeUI" },
   { key:"loudnessMeter2", name:"LoudnessMeter II", type:"mastering", component:"LoudnessMeter2UI" },
-  { key:"tapeStop",       name:"TapeStop",         type:"creative",  component:"TapeStopUI" },
-  { key:"reverseDelay",   name:"ReverseDelay",     type:"delay",     component:"ReverseDelayUI" },
-  { key:"tempoDelay",     name:"TempoDelay",       type:"delay",     component:"TempoDelayUI" },
-  { key:"dualDelay",      name:"DualDelay",        type:"delay",     component:"DualDelayUI" },
-  { key:"echoField",      name:"EchoField",        type:"reverb",    component:"EchoFieldUI" },
-  { key:"infiniteReverb", name:"InfiniteReverb",   type:"reverb",    component:"InfiniteReverbUI" },
-  { key:"stereoBloom",    name:"StereoBloom",      type:"reverb",    component:"StereoBloomUI" },
-  { key:"pitchForge",     name:"PitchForge",       type:"filter",    component:"PitchForgeUI" },
-  { key:"pitchLock",      name:"PitchLock",        type:"filter",    component:"PitchLockUI" },
-  { key:"pitchRandomizer",name:"PitchRandomizer",  type:"filter",    component:"PitchRandomizerUI" },
-  { key:"subOctaver",     name:"SubOctaver",       type:"filter",    component:"SubOctaverUI" },
-  { key:"autoWah",        name:"AutoWah",          type:"filter",    component:"AutoWahUI" },
   { key:"loFiCrusher",    name:"Lo-Fi Crusher",    type:"distortion",component:"LoFiCrusherUI" },
   { key:"chorusEnsemble", name:"ChorusEnsemble",   type:"filter",    component:"ChorusEnsembleUI" },
-  { key:"voiceForge",     name:"VoiceForge",       type:"filter",    component:"VoiceForgeUI" },
-  { key:"breathGate",     name:"BreathGate",       type:"comp",      component:"BreathGateUI" },
-  { key:"sibilantCut",    name:"SibilantCut",      type:"comp",      component:"SibilantCutUI" },
-  { key:"drumEnhancer",   name:"DrumEnhancer",     type:"comp",      component:"DrumEnhancerUI" },
   { key:"declicker",      name:"Declicker",        type:"mastering", component:"DeclickerUI" },
   { key:"dehummer",       name:"Dehummer",         type:"mastering", component:"DehummerUI" },
   { key:"dialogueIsolator",name:"DialogueIsolator",type:"mastering", component:"DialogueIsolatorUI" },
   { key:"cabinetSim",     name:"CabinetSim",       type:"distortion",component:"CabinetSimUI" },
-  { key:"vinylPress",     name:"VinylPress",       type:"distortion",component:"VinylPressUI" },
 
   // ── New Ozone-level mastering plugins ──
   { key:"matchEQ",        name:"Match EQ",         type:"mastering", component:"MatchEQUI" },
@@ -1653,13 +1860,150 @@ export const ALL_FX_EXTENDED = [
   { key:"spectralRecovery",name:"Spectral Recovery",type:"mastering", component:"SpectralRecoveryUI" },
   { key:"loudnessTarget", name:"Loudness Target",   type:"mastering", component:"LoudnessTargetUI" },
   { key:"msImager",       name:"M/S Imager",        type:"mastering", component:"MSImagerUI" },
-  { key:"multibandLimiter",name:"MultibandLimiter",type:"limit",component:"MultibandLimiterUI" },
-  { key:"goniometer",name:"Goniometer",type:"eq",component:"GoniometerUI" },
-  { key:"phaseScope",name:"PhaseScope",type:"eq",component:"PhaseScopeUI" },
-  { key:"dialogueIsolator",name:"DialogueIsolator",type:"filter",component:"DialogueIsolatorUI" },
-  { key:"cabinetSim",name:"CabinetSim",type:"distortion",component:"CabinetSimUI" },
   { key:"freqShifter",name:"FreqShifter",type:"filter",component:"FreqShifterUI" },
 ];
+
+// Default params keyed by ALL_FX_EXTENDED.key. Picker seeds these into
+// track.effects[key] at insert time so buildFxChain sees populated params
+// on the first chain build (was previously empty-merged with only {enabled:true},
+// causing zero-node chains for plugins whose handler iterates an array).
+// Values lifted verbatim from each UI's useState({...defaults}) initializer.
+const REVERB_BASE_DEFAULTS = {
+  preDelay: 20, decay: 2.0, diffusion: 0.8, damping: 0.5,
+  earlyLevel: 0.7, lateLevel: 0.8, mix: 0, hpf: 80, lpf: 8000,
+};
+const ISO_GRAPHIC_BANDS = [20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000].reduce((a, f) => ({ ...a, [f]: 0 }), {});
+export const PLUGIN_DEFAULTS = {
+  // Analog character
+  tapeForge: { drive: 0, bias: 0.5, speed: 15, saturation: 0, hfLoss: 0, noise: 0, wow: 0, flutter: 0 },
+  valveGlow: { drive: 0, warmth: 0, even2nd: 0, even4th: 0, bias: 0.5, outputGain: 0, dcBlock: true },
+  ironCore: { slewRate: 0, coreSize: 0, dcMag: 0, resonance: 0, outputGain: 0 },
+  consoleSoul: { crosstalk: 0, noiseFloor: -90, tolerance: 0.02, channelColor: 0, sumSaturation: 0 },
+  // Dynamics
+  brickWall: { ceiling: -0.3, lookahead: 3, release: 100, truePeak: true, ispDetect: true, outputGain: 0 },
+  warmPress: { threshold: -10, ratio: 2, attack: 10, release: 100, knee: 6, makeupGain: 0, model: "optical", mix: 100 },
+  glueBus: { threshold: -10, ratio: 2, attack: 10, release: 100, makeupGain: 0, mix: 100, sidechainHPF: 60, autoGain: true },
+  fetStrike: { threshold: -10, ratio: 2, attack: 10, release: 100, inputGain: 0, outputGain: 0, saturation: 0, allButtonRatio: false },
+  optoPress: { peakReduction: 17, gainControl: 0, hfEmphasis: 0, tubeSaturation: 0, outputGain: 0 },
+  parallelCrush: { threshold: -10, ratio: 2, attack: 10, release: 100, wetGain: 0, dryGain: 0, mix: 100, crush: 0 },
+  multiPress: { xover1: 100, xover2: 1000, xover3: 8000, b1Thresh: -10, b1Ratio: 2, b1Gain: 0, b2Thresh: -10, b2Ratio: 2, b2Gain: 0, b3Thresh: -10, b3Ratio: 2, b3Gain: 0, b4Thresh: -10, b4Ratio: 2, b4Gain: 0 },
+  transGate: { threshold: -40, attack: 1, hold: 50, release: 100, range: -20, hysteresis: 3, scHPF: 80, scLPF: 8000, lookahead: 1, flip: false },
+  transientShaper: { attack: 0, sustain: 0, speed: 0.5, outputGain: 1 },
+  midSideComp: { midThresh: -10, midRatio: 2, sideThresh: -10, sideRatio: 2, attack: 10, release: 100, makeup: 0 },
+  drumEnhancer: { punch: 0, snap: 0, glue: 0, sub: 0, air: 0, outputGain: 1 },
+  vocalSaturator: { drive: 0, warmth: 0, presence: 0, air: 0, mix: 0, outputGain: 1 },
+  multibandLimiter: { ceiling: -0.3, xover1: 200, xover2: 2000, xover3: 8000, lookahead: 3 },
+  // EQ
+  ironBand: { lowGain: 0, lowFreq: 100, lowMidGain: 0, lowMidFreq: 360, hiMidGain: 0, hiMidFreq: 3200, hiGain: 0, hiFreq: 10000, hpf: 0, lpf: 20000, inputGain: 0 },
+  spectraCurve: {
+    mode: "stereo",
+    bands: [
+      { freq: 80, gain: 0, q: 1, type: "highpass" },
+      { freq: 250, gain: 0, q: 1, type: "peak" },
+      { freq: 1000, gain: 0, q: 1, type: "peak" },
+      { freq: 4000, gain: 0, q: 1, type: "peak" },
+      { freq: 12000, gain: 0, q: 1, type: "peak" },
+      { freq: 18000, gain: 0, q: 0.7, type: "lowpass" },
+    ],
+  },
+  pultecForge: { lowFreq: 60, lowBoost: 0, lowAtten: 0, highFreq: 10, highBoost: 0, highAtten: 0, highBW: 0.5, outputGain: 0 },
+  dynamicEQ: {
+    bands: [
+      { freq: 80,    gain: 0, q: 1,   threshold: -20, ratio: 4, attack: 10, release: 100, dynamic: false, type: "highpass" },
+      { freq: 250,   gain: 0, q: 1,   threshold: -18, ratio: 3, attack: 10, release: 100, dynamic: false, type: "peak" },
+      { freq: 1000,  gain: 0, q: 1,   threshold: -18, ratio: 3, attack: 10, release: 100, dynamic: false, type: "peak" },
+      { freq: 4000,  gain: 0, q: 1,   threshold: -18, ratio: 3, attack: 5,  release: 80,  dynamic: false, type: "peak" },
+      { freq: 12000, gain: 0, q: 0.7, threshold: -18, ratio: 3, attack: 5,  release: 80,  dynamic: false, type: "highshelf" },
+    ],
+    selectedBand: 0,
+  },
+  graphicEQ: { bands: ISO_GRAPHIC_BANDS, preAmp: 0 },
+  tiltEQ: { tilt: 0, tiltFreq: 1000, air: 0, airFreq: 12000, presence: 0, presenceFreq: 3000, outputGain: 0 },
+  baxandallEQ: { bass: 0, bassFreq: 100, treble: 0, trebleFreq: 10000, mid: 0, midFreq: 1000, midQ: 0.7, outputGain: 0, monoBelow: 0 },
+  // Phase F4-A.5 differentiated reverbs — per-engine defaults (DSP and UI land in F4-A.5/A.6/A.7).
+  hall:    { decay: 2.4, preDelay: 20, damping: 0.4, hfDamping: 0.5, width: 1.0, mix: 25 },
+  plate:   { decay: 1.8, preDelay: 12, diffusion: 0.85, damping: 0.4, brightness: 0.6, mix: 25 },
+  spring:  { decay: 1.4, springs: 3, tone: 0.55, boing: 0.35, mix: 25 },
+  room:    { size: 0.45, damping: 0.5, brightness: 0.6, mix: 20 },
+  chamber: { decay: 1.6, damping: 0.45, color: 0.5, mix: 25 },
+  shimmer: { decay: 3.5, shimmer: 0.6, octave: 1, damping: 0.4, mix: 30 },
+  // New compressor keepers (DSP/UI in F4-A.5/A.7)
+  tubeComp:  { threshold: -14, ratio: 3, attack: 20, release: 300, drive: 0.4, warmth: 0.5, makeup: 0, stereoLink: true },
+  vocalComp: { threshold: -16, ratio: 3, attack: 5, release: 80, deEss: 0.4, presence: 0.3, air: 0.2, mix: 100 },
+  // Reverb (ReverbBase + per-plugin extraKnobs, defaults 0 since UI never declared one)
+  hallForgeS: { ...REVERB_BASE_DEFAULTS, roomSize: 0 },
+  hallForgeL: { ...REVERB_BASE_DEFAULTS, surroundWidth: 0 },
+  gateVerb: { ...REVERB_BASE_DEFAULTS, gateThresh: 0, gateDecay: 0 },
+  vintageAir: { ...REVERB_BASE_DEFAULTS, decay: 1.8, tapeWow: 0.3, flutter: 0.2, bias: 0.5 },
+  stochasticHall: { ...REVERB_BASE_DEFAULTS, randomness: 0, spread: 0 },
+  greatHall: { ...REVERB_BASE_DEFAULTS },
+  plateForge: { decay: 2.0, damping: 0.4, diffusion: 0.9, mix: 10, bass: 0, treble: 0, width: 1 },
+  springBox: { tanks: 3, tension: 0.6, damping: 0.4, drip: 0.3, mix: 10, inputGain: 0 },
+  vocalSpace: { preDelay: 15, decay: 1.8, brightness: 0.6, warmth: 0.5, size: 0.4, earlyMix: 0.6, lateMix: 0.4, mix: 0 },
+  spaceForge: { ir: "concert_hall", preDelay: 10, stretch: 1.0, trim: 1.0, earlyGain: 0, lateGain: 0, mix: 0 },
+  infiniteReverb: { freeze: false, roomSize: 0.9, damping: 0.3, mix: 0, shimmer: 0 },
+  phantomDouble: { delay: 18, spread: 0.8, pitchVarL: -5, pitchVarR: 5, modRate: 0.3, modDepth: 3, mix: 30 },
+  // Delay
+  echoField: { time: 250, feedback: 0.3, modRate: 0.3, modDepth: 0.2, hpf: 100, lpf: 8000, mix: 0, stereoSpread: 0.5, sync: false },
+  dualDelay: { timeL: 250, timeR: 375, feedbackL: 0.3, feedbackR: 0.3, crossfeedL: 0.1, crossfeedR: 0.1, modRate: 0.3, modDepth: 0.1, hpf: 80, lpf: 10000, mix: 0 },
+  reverseDelay: { time: 250, feedback: 0.3, mix: 0, filter: 0.5 },
+  tempoDelay: { bpm: 120, division: 4, feedback: 0.3, filterHP: 100, filterLP: 8000, mix: 0, pingPong: false },
+  // Modulation / pitch / creative
+  stereoBloom: { mode: "chorus", rate: 0.5, depth: 0.6, feedback: 0.2, detuneL: -8, detuneR: 8, mix: 0 },
+  vortexMod: { mode: "flanger", rate: 0.5, depth: 0.7, feedback: 0.2, stages: 4, center: 1000, mix: 0, stereo: true },
+  chorusEnsemble: { mode: 1, mix: 0, depth: 0.5 },
+  autoWah: { sensitivity: 0.6, minFreq: 200, maxFreq: 4000, resonance: 8, attack: 5, release: 200, mix: 0 },
+  pitchForge: { shift: 0, formant: 0, grainSize: 80, crossfade: 0.5, mix: 100, pitchA: 0, pitchB: 7, harmony: false },
+  pitchLock: { key: "C", scale: "major", speed: 0, retune: 0, humanize: 0, formant: 0, detune: 0, bypass: false },
+  pitchRandomizer: { amount: 0, rate: 4, smooth: 0.7, mix: 1.0 },
+  subOctaver: { oct1Level: 0, oct2Level: 0, dryLevel: 1.0, filter: 0.4, trackSpeed: 0.5 },
+  tapeStop: { active: false, stopTime: 0.5, startTime: 0.3, curve: 0.5 },
+  freqShifter: { shift: 0, lfoRate: 0, lfoDepth: 0, mix: 100 },
+  ringMod: { mode: "ringmod", carrierFreq: 440, carrierType: "sine", mix: 0, lfoRate: 0, lfoDepth: 0, sidebandBalance: 0, outputGain: 0 },
+  formantFilter: { vowelA: "A", vowelB: "E", morph: 0.5, autoWah: false, wahRate: 1, wahDepth: 0.5, q: 8, outputGain: 0, mix: 0 },
+  granularFreeze: { freeze: false, grainSize: 80, density: 0.7, pitch: 0, spread: 0.5, position: 0.5, randomize: 0.3, attack: 20, release: 50, mix: 80, outputGain: 0 },
+  vocoderSPX: { bands: 32, carrierType: "sawtooth", carrierFreq: 110, attack: 5, release: 50, formantShift: 0, mix: 0, unvoiced: 0.3, breathiness: 0.2, outputGain: 0, freeze: false },
+  noiseReduction: { reduction: 0, threshold: -40, attack: 10, release: 200, smoothing: 0, learn: false, learnDone: false, preserveTransients: true, outputGain: 0 },
+  // Vocal suite
+  voiceForge: { voices: 2, key: "C", scale: "major", v1Shift: -5, v2Shift: 3, v3Shift: 7, v4Shift: 12, v1Vol: 0, v2Vol: 0, v3Vol: 0, v4Vol: 0, formant: 0, mix: 0 },
+  breathGate: { threshold: -40, sensitivity: 0.7, attack: 2, release: 100, breathReduction: -20, noiseFloor: -60, learn: false },
+  sibilantCut: { freq: 7000, bandwidth: 0.5, threshold: -20, ratio: 3, attackSpeed: 0.3, mode: "dynamic", listenSC: false },
+  // Mastering / utility
+  masterWall: { ceiling: -0.3, lookahead: 5, release: 100, threshold: -1, clipMargin: 0.3, truePeak: true, dither: "none", outputGain: 0 },
+  stereoForge: { width: 100, midGain: 0, sideGain: 0, balance: 0, monoBelow: 0, phase: false, mono: false },
+  stereoImager: { lowWidth: 1.0, midWidth: 1.0, highWidth: 1.0, xover1: 300, xover2: 5000 },
+  loudnessMeter: { target: "streaming", integrated: -14, lra: 8, truePeak: -1, momentary: -14, shortTerm: -14 },
+  harmonicExcite: { freq: 3000, drive: 0, even: 0, odd: 0, mix: 0, airBoost: 0 },
+  harmonicSum: { drive: 0, even2nd: 0, odd3rd: 0, odd5th: 0, noiseFloor: -90, crosstalk: 0, outputGain: 0 },
+  vinylPress: { warmth: 0, crackle: 0, dust: 0, warp: 0, riaa: true, rpm: 33, hpf: 20, outputGain: 0 },
+  ditherForge: { bitDepth: 24, type: "shaped", noiseShaping: "F1", highPass: true, level: 0.5 },
+  dcBlock: { hpfFreq: 5, hpfSlope: 12, dcRemove: true, subCut: 30 },
+  gainRider: { targetLevel: -10, speed: 0.95, maxGain: 0, minGain: -12, lookahead: 10, smooth: 0.2, gateThresh: -60 },
+  gainStager: { gain: 1, targetDb: -18, trim: 0, phase: false, rmsDb: -100, peakDb: -100 },
+  enhancer808: { freq: 60, punch: 0, sub: 0, harmonic: 0, outputGain: 1.0 },
+  loFiCrusher: { bits: 24, rate: 1.0, filter: 1.0, noise: 0, wobble: 0, mix: 1.0 },
+  multibandSat: { xover1: 200, xover2: 2000, xover3: 8000, drive1: 0, drive2: 0, drive3: 0, drive4: 0, mix: 0 },
+  declicker: { sensitivity: 0, strength: 0, maxWidth: 3 },
+  dehummer: { freq: 60, harmonics: 5, depth: 0, learn: false },
+  dialogueIsolator: { isolation: 0, sensitivity: 0, smoothing: 0, mix: 100 },
+  cabinetSim: { cabinet: 0, mic: 0, distance: 0, angle: 0, mix: 100 },
+  // Visualization-only / minimal
+  goniometer: { decay: 0.95 },
+  phaseScope: {},
+  spectrumAnalyzer: { mode: "bars", scale: "log", peakHold: true, decay: 0.95, resolution: 1024, range: [-90, 0] },
+  // Phase C1 — UIs now exist; defaults match each factory's setParam range.
+  matchEQ: { low: 0, high: 0 },
+  lowEndFocus: { sub: 0, kick: 0 },
+  codecPreview: {},
+  midSideEQ: {
+    midLowGain: 0, midLowMidGain: 0, midHiMidGain: 0, midHiGain: 0,
+    sideLowGain: 0, sideLowMidGain: 0, sideHiMidGain: 0, sideHiGain: 0,
+  },
+  spectralRecovery: { amount: 0, presence: 0 },
+  loudnessTarget: { ceiling: -1, target: 0 },
+  msImager: { width: 1 },
+  loudnessMeter2: { target: "streaming", integrated: -14, lra: 8, truePeak: -1, momentary: -14, shortTerm: -14 },
+};
 
 // ═══════════════════════════════════════════════════════════════
 // PLUGIN HOST — renders the correct floating window by key
@@ -1679,6 +2023,35 @@ const COMPONENT_MAP = {
   MasterWallUI, StereoForgeUI, LoudnessMeterUI, HarmonicExciteUI,
   VinylPressUI, DitherForgeUI, DCBlockUI, SpaceForgeUI, VortexModUI,
   GainRiderUI, HarmonicSumUI,
+  PultecForgeUI, GraphicEQUI, TiltEQUI, BaxandallEQUI, EnhancerSPX808UI,
+  DehummerUI,
+  // Phase B Batch 1.2 additions:
+  RingModUI, VocalSaturatorUI, GainStagerUI, MidSideCompUI,
+  // Phase B Batch 1.3 additions:
+  LoFiCrusherUI, ChorusEnsembleUI, DeclickerUI, DialogueIsolatorUI,
+  CabinetSimUI, DynamicEQUI, FreqShifterUI,
+  // Phase B Batch 1.1 additions (P0 demo-blocker UIs):
+  VocoderSPXUI, GranularFreezeUI, NoiseReductionUI,
+  // Phase C1 additions (UIs for ozone-level engines):
+  MatchEQUI, LowEndFocusUI, SpectralRecoveryUI, LoudnessTargetUI,
+  MSImagerUI, CodecPreviewUI, LoudnessMeter2UI,
+  // Phase C2.1 additions:
+  MidSideEQUI,
+  // Phase F4-A.7 differentiated keepers (real hardware UIs):
+  HallReverbUI, PlateReverbUI, SpringReverbUI, RoomReverbUI, ChamberReverbUI, ShimmerReverbUI,
+  TubeCompUI, VocalCompUI, CompressorUI,
+  // Phase F4-A.7 — override 9 legacy UIs with differentiated replacements.
+  // Property-shorthand earlier entries above are kept syntactically but these
+  // explicit assignments take precedence (later entry wins on duplicate keys).
+  GateVerbUI:     GateVerbUINew,
+  VintageAirUI:   VintageAirUINew,
+  InfiniteReverbUI: InfiniteReverbUINew,
+  FETStrikeUI:    FETStrikeUINew,
+  OptoPressUI:    OptoPressUINew,
+  GlueBusUI:      GlueBusUINew,
+  WarmPressUI:    WarmPressUINew,
+  MultiPressUI:   MultiPressUINew,
+  ParallelCrushUI: ParallelCrushUINew,
 };
 
 // Part 11: preset bar — Save / Load / Delete + Default reset + A/B compare +

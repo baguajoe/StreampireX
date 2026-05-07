@@ -98,6 +98,7 @@ import "../../styles/PluginRackUI.css";
 import "../../styles/DAWFeatures2.css";
 import { AudioEngine } from "../component/audio/engine/AudioEngine";
 import { loadAllWorklets } from "../component/audio/engine/SPXWorklets";
+import * as Tone from "tone";
 import AIMixAssistant from "../component/AIMixAssistant";
 import ChannelStripAIMix from "../component/ChannelStripAIMix";
 import SamplerBeatMaker from "../component/SamplerBeatMaker";
@@ -137,7 +138,7 @@ import SynthCreator from "../component/SynthCreator";
 import DrumDesigner from "../component/DrumDesigner";
 import InstrumentBuilder from "../component/InstrumentBuilder";
 import UnifiedFXChain from '../component/UnifiedFXChain';
-import { SPXPluginHost, ALL_FX_EXTENDED } from '../component/SPXPlugins';
+import { SPXPluginHost, ALL_FX_EXTENDED, PLUGIN_DEFAULTS } from '../component/SPXPlugins';
 // Part 16: PluginHost integration. The 111-plugin factory library lives in
 // audio/plugins/ and previously was only reachable from /plugin-rack-demo.
 // We pull the factories + registry directly so the studio's inserts picker
@@ -145,6 +146,7 @@ import { SPXPluginHost, ALL_FX_EXTENDED } from '../component/SPXPlugins';
 import { PLUGIN_FACTORIES } from '../component/audio/plugins/PluginHost';
 import pluginRegistry, { getAllPlugins as getAllHostPlugins } from '../component/audio/plugins/registry';
 import MasteringChain from '../component/MasteringChain';
+import ConsolePanel from '../component/audio/ConsolePanel';
 import LoopermanBrowser from '../component/LoopermanBrowser';
 import VoiceToMIDI from "../component/VoiceToMIDI";
 import DrumKitConnector from "../component/DrumKitConnector";
@@ -217,6 +219,44 @@ const CONSOLE_BOARDS = {
   neve8014:  { name: "Neve 8014",   color: "#2266aa" },
   sonyMXP:   { name: "Sony MXP",    color: "#aaaaff" },
   calrec:    { name: "Calrec",      color: "#88ccaa" },
+};
+
+// ── Phase F4-A.7B: Console-character factory presets (named-param shape) ──
+// Maps board id → 11-named-param object. The DSP factory in
+// `applyConsoleCharacter` reads from this when no live override is supplied;
+// the ConsolePanel UI reads it for Reset / "factory" baseline; user tweaks
+// live in trackConsoleParams[trackId] / masterConsoleParams.
+const CONSOLE_FACTORY_PARAMS = {
+  ssl4ke:    { hpfFreq: 18, hpfQ: 0.5, satInDrive: 1.2,  satInAsym: 0, lowFreq: 200, lowGain: -0.8, highFreq: 10000, highGain: 1.2,  satOutDrive: 1.1,  satOutAsym: 0, outputGain: 0.98 },
+  ssl4kg:    { hpfFreq: 15, hpfQ: 0.4, satInDrive: 1.1,  satInAsym: 0, lowFreq: 160, lowGain: -0.5, highFreq: 12000, highGain: 0.8,  satOutDrive: 1.05, satOutAsym: 0, outputGain: 0.99 },
+  neve8078:  { hpfFreq: 30, hpfQ: 0.7, satInDrive: 1.6,  satInAsym: 1, lowFreq: 250, lowGain:  1.5, highFreq:  8000, highGain: -0.5, satOutDrive: 1.4,  satOutAsym: 1, outputGain: 0.95 },
+  neve1073:  { hpfFreq: 50, hpfQ: 0.8, satInDrive: 1.8,  satInAsym: 1, lowFreq: 300, lowGain:  2.0, highFreq:  6000, highGain: -0.8, satOutDrive: 1.6,  satOutAsym: 1, outputGain: 0.93 },
+  api1604:   { hpfFreq: 20, hpfQ: 0.6, satInDrive: 1.3,  satInAsym: 0, lowFreq: 100, lowGain:  0.5, highFreq:  5000, highGain: 1.0,  satOutDrive: 1.25, satOutAsym: 0, outputGain: 0.97 },
+  tridentA:  { hpfFreq: 25, hpfQ: 0.5, satInDrive: 1.4,  satInAsym: 1, lowFreq: 180, lowGain:  1.0, highFreq:  9000, highGain: 0.6,  satOutDrive: 1.3,  satOutAsym: 1, outputGain: 0.96 },
+  studer900: { hpfFreq: 22, hpfQ: 0.4, satInDrive: 1.05, satInAsym: 0, lowFreq: 120, lowGain: -0.3, highFreq: 15000, highGain: 0.3,  satOutDrive: 1.02, satOutAsym: 0, outputGain: 1.0  },
+  mciJH636:  { hpfFreq: 28, hpfQ: 0.6, satInDrive: 1.5,  satInAsym: 1, lowFreq: 220, lowGain:  1.2, highFreq:  7500, highGain: 0.8,  satOutDrive: 1.35, satOutAsym: 1, outputGain: 0.96 },
+  ssl9000:   { hpfFreq: 12, hpfQ: 0.4, satInDrive: 1.15, satInAsym: 0, lowFreq: 140, lowGain: -0.3, highFreq: 14000, highGain: 1.0,  satOutDrive: 1.1,  satOutAsym: 0, outputGain: 0.99 },
+  neve8068:  { hpfFreq: 35, hpfQ: 0.7, satInDrive: 1.7,  satInAsym: 1, lowFreq: 280, lowGain:  1.8, highFreq:  7500, highGain: -0.6, satOutDrive: 1.45, satOutAsym: 1, outputGain: 0.94 },
+  api2488:   { hpfFreq: 22, hpfQ: 0.5, satInDrive: 1.35, satInAsym: 0, lowFreq: 110, lowGain:  0.8, highFreq:  4800, highGain: 1.2,  satOutDrive: 1.3,  satOutAsym: 0, outputGain: 0.97 },
+  helios69:  { hpfFreq: 40, hpfQ: 0.8, satInDrive: 1.9,  satInAsym: 1, lowFreq: 350, lowGain:  2.5, highFreq:  6000, highGain: -1.0, satOutDrive: 1.5,  satOutAsym: 1, outputGain: 0.92 },
+  neveVR:    { hpfFreq: 20, hpfQ: 0.5, satInDrive: 1.45, satInAsym: 1, lowFreq: 200, lowGain:  1.2, highFreq:  9000, highGain: 0.2,  satOutDrive: 1.3,  satOutAsym: 1, outputGain: 0.96 },
+  emiTG:     { hpfFreq: 45, hpfQ: 0.9, satInDrive: 2.0,  satInAsym: 1, lowFreq: 400, lowGain:  3.0, highFreq:  5500, highGain: -1.5, satOutDrive: 1.6,  satOutAsym: 1, outputGain: 0.90 },
+  sslAWS:    { hpfFreq: 10, hpfQ: 0.3, satInDrive: 1.1,  satInAsym: 0, lowFreq: 130, lowGain: -0.2, highFreq: 16000, highGain: 0.6,  satOutDrive: 1.05, satOutAsym: 0, outputGain: 1.0  },
+  amekAngela:{ hpfFreq: 32, hpfQ: 0.6, satInDrive: 1.55, satInAsym: 1, lowFreq: 240, lowGain:  1.6, highFreq:  8500, highGain: -0.3, satOutDrive: 1.4,  satOutAsym: 1, outputGain: 0.95 },
+  harrison:  { hpfFreq: 8,  hpfQ: 0.3, satInDrive: 1.05, satInAsym: 0, lowFreq: 100, lowGain:  0.2, highFreq: 18000, highGain: 0.4,  satOutDrive: 1.02, satOutAsym: 0, outputGain: 1.0  },
+  neve8014:  { hpfFreq: 60, hpfQ: 1.0, satInDrive: 2.1,  satInAsym: 1, lowFreq: 500, lowGain:  3.5, highFreq:  5000, highGain: -2.0, satOutDrive: 1.7,  satOutAsym: 1, outputGain: 0.88 },
+  sonyMXP:   { hpfFreq: 14, hpfQ: 0.4, satInDrive: 1.2,  satInAsym: 0, lowFreq: 180, lowGain:  0.3, highFreq: 13000, highGain: 0.8,  satOutDrive: 1.1,  satOutAsym: 0, outputGain: 0.98 },
+  calrec:    { hpfFreq: 16, hpfQ: 0.4, satInDrive: 1.15, satInAsym: 0, lowFreq: 150, lowGain: -0.1, highFreq: 15000, highGain: 0.5,  satOutDrive: 1.08, satOutAsym: 0, outputGain: 0.99 },
+};
+
+// Family aesthetic — drives ConsolePanel skin / knob style.
+const CONSOLE_FAMILY = {
+  ssl4ke: "ssl", ssl4kg: "ssl", ssl9000: "ssl", sslAWS: "ssl",
+  neve8078: "neve", neve1073: "neve", neve8068: "neve", neveVR: "neve", neve8014: "neve",
+  api1604: "api", api2488: "api",
+  tridentA: "trident",
+  studer900: "vintage", mciJH636: "vintage", emiTG: "vintage", helios69: "vintage",
+  amekAngela: "vintage", harrison: "vintage", sonyMXP: "vintage", calrec: "vintage",
 };
 
 const MIC_MODELS = {
@@ -587,7 +627,7 @@ const DraggablePanel = ({ title, children, onClose, initialX=100, initialY=60 })
   );
 };
 
-const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, updateEffect, setActiveEffectsTrack, setOpenFxKey, setShowVocalModal, setShowMicSimModal, setStatus }) => {
+const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, updateEffect, seedEffect, setActiveEffectsTrack, setOpenFxKey, setShowVocalModal, setShowMicSimModal, setStatus, setTracks, disposeAllForTrack }) => {
   const [openCats, setOpenCats] = React.useState({});
   const [dragOffset, setDragOffset] = React.useState({x:0,y:0});
   const dragRef = React.useRef(null);
@@ -600,6 +640,10 @@ const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, upd
     window.addEventListener('mouseup', onUp);
   };
   const SPX_KEYS = new Set(ALL_FX_EXTENDED.filter(f=>f.component).map(f=>f.key));
+  // Phase F4-A.5: hide `comingSoon: true` entries (deprecated reverb clones,
+  // pre-differentiation stubs) from the picker. Factory code stays in RS.js
+  // for Phase E differentiation, but users can't add them as inserts.
+  const visible = (f) => !f.comingSoon;
   // Part 16: surface every PluginHost-registered plugin (audio/plugins/*)
   // through the inserts picker. The track.effects key is `ph_<pluginId>` so
   // it never collides with native or SPX keys; buildFxChain detects the
@@ -615,38 +659,39 @@ const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, upd
   const groups = [
     { cat: "Vocal Tools",   cls: "vocal", items: [{key:"__vocal_processor",name:"Vocal Processor"},{key:"__mic_simulator",name:"Mic Simulator"}] },
     { cat: "── Standard FX ──", cls: "header", items: [] },
-    { cat: "EQ",            cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="eq" && !SPX_KEYS.has(f.key)) },
-    { cat: "Dynamics",      cls: "", items: ALL_FX_EXTENDED.filter(f=>["comp","limit"].includes(f.type) && !SPX_KEYS.has(f.key)) },
-    { cat: "Reverb",        cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="reverb" && !SPX_KEYS.has(f.key)) },
-    { cat: "Delay",         cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="delay" && !SPX_KEYS.has(f.key)) },
-    { cat: "Modulation",    cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="filter" && !SPX_KEYS.has(f.key)) },
-    { cat: "Saturation",    cls: "", items: ALL_FX_EXTENDED.filter(f=>f.type==="distortion" && !SPX_KEYS.has(f.key)) },
-    { cat: "Utility",       cls: "", items: ALL_FX_EXTENDED.filter(f=>!["comp","limit","eq","reverb","delay","filter","distortion"].includes(f.type) && !SPX_KEYS.has(f.key)) },
+    { cat: "EQ",            cls: "", items: ALL_FX_EXTENDED.filter(f=>visible(f) && f.type==="eq" && !SPX_KEYS.has(f.key)) },
+    { cat: "Dynamics",      cls: "", items: ALL_FX_EXTENDED.filter(f=>visible(f) && ["comp","limit","gate"].includes(f.type) && !SPX_KEYS.has(f.key)) },
+    { cat: "Reverb",        cls: "", items: ALL_FX_EXTENDED.filter(f=>visible(f) && f.type==="reverb" && !SPX_KEYS.has(f.key)) },
+    { cat: "Delay",         cls: "", items: ALL_FX_EXTENDED.filter(f=>visible(f) && f.type==="delay" && !SPX_KEYS.has(f.key)) },
+    { cat: "Modulation",    cls: "", items: ALL_FX_EXTENDED.filter(f=>visible(f) && f.type==="filter" && !SPX_KEYS.has(f.key)) },
+    { cat: "Saturation",    cls: "", items: ALL_FX_EXTENDED.filter(f=>visible(f) && f.type==="distortion" && !SPX_KEYS.has(f.key)) },
+    { cat: "Utility",       cls: "", items: ALL_FX_EXTENDED.filter(f=>visible(f) && !["comp","limit","gate","eq","reverb","delay","filter","distortion"].includes(f.type) && !SPX_KEYS.has(f.key)) },
     { cat: "── SPX Plugins ──", cls: "header", items: [] },
-    { cat: "SPX Dynamics",  cls: "spx", items: ALL_FX_EXTENDED.filter(f=>["comp","limit"].includes(f.type) && SPX_KEYS.has(f.key)) },
-    { cat: "SPX EQ",        cls: "spx", items: ALL_FX_EXTENDED.filter(f=>f.type==="eq" && SPX_KEYS.has(f.key)) },
-    { cat: "SPX Reverb",    cls: "spx", items: ALL_FX_EXTENDED.filter(f=>f.type==="reverb" && SPX_KEYS.has(f.key)) },
-    { cat: "SPX Delay",     cls: "spx", items: ALL_FX_EXTENDED.filter(f=>f.type==="delay" && SPX_KEYS.has(f.key)) },
-    { cat: "SPX Modulation",cls: "spx", items: ALL_FX_EXTENDED.filter(f=>f.type==="filter" && SPX_KEYS.has(f.key)) },
-    { cat: "SPX Saturation",cls: "spx", items: ALL_FX_EXTENDED.filter(f=>f.type==="distortion" && SPX_KEYS.has(f.key)) },
+    { cat: "SPX Dynamics",  cls: "spx", items: ALL_FX_EXTENDED.filter(f=>visible(f) && ["comp","limit","gate"].includes(f.type) && SPX_KEYS.has(f.key)) },
+    { cat: "SPX EQ",        cls: "spx", items: ALL_FX_EXTENDED.filter(f=>visible(f) && f.type==="eq" && SPX_KEYS.has(f.key)) },
+    { cat: "SPX Reverb",    cls: "spx", items: ALL_FX_EXTENDED.filter(f=>visible(f) && f.type==="reverb" && SPX_KEYS.has(f.key)) },
+    { cat: "SPX Delay",     cls: "spx", items: ALL_FX_EXTENDED.filter(f=>visible(f) && f.type==="delay" && SPX_KEYS.has(f.key)) },
+    { cat: "SPX Modulation",cls: "spx", items: ALL_FX_EXTENDED.filter(f=>visible(f) && f.type==="filter" && SPX_KEYS.has(f.key)) },
+    { cat: "SPX Saturation",cls: "spx", items: ALL_FX_EXTENDED.filter(f=>visible(f) && f.type==="distortion" && SPX_KEYS.has(f.key)) },
     { cat: "── Analog Character ──", cls: "header", items: [] },
-    { cat: "Vocals",        cls: "spx", items: ALL_FX_EXTENDED.filter(f=>["warmPress","valveGlow","hallForgeS","hallForgeL","deesser","springBox"].includes(f.key)) },
-    { cat: "Drums",         cls: "spx", items: ALL_FX_EXTENDED.filter(f=>["glueBus","fetStrike","tapeForge","transGate","parallelCrush","ironCore"].includes(f.key)) },
-    { cat: "Mix Bus",       cls: "spx", items: ALL_FX_EXTENDED.filter(f=>["brickWall","multiPress","consoleSoul","spectraCurve","ironBand"].includes(f.key)) },
+    { cat: "Vocals",        cls: "spx", items: ALL_FX_EXTENDED.filter(f=>visible(f) && ["warmPress","valveGlow","deesser","vocalComp"].includes(f.key)) },
+    { cat: "Drums",         cls: "spx", items: ALL_FX_EXTENDED.filter(f=>visible(f) && ["glueBus","fetStrike","tapeForge","transGate","parallelCrush","ironCore"].includes(f.key)) },
+    { cat: "Mix Bus",       cls: "spx", items: ALL_FX_EXTENDED.filter(f=>visible(f) && ["brickWall","multiPress","consoleSoul","spectraCurve","ironBand","tubeComp"].includes(f.key)) },
     { cat: "── Mastering ──", cls: "header", items: [] },
-    { cat: "Mastering",     cls: "master", items: ALL_FX_EXTENDED.filter(f=>f.type==="mastering") },
-    { cat: "SPX Creative",  cls: "spx", items: ALL_FX_EXTENDED.filter(f=>!["comp","limit","eq","reverb","delay","filter","distortion"].includes(f.type) && SPX_KEYS.has(f.key)) },
+    { cat: "Mastering",     cls: "master", items: ALL_FX_EXTENDED.filter(f=>visible(f) && f.type==="mastering") },
+    { cat: "SPX Creative",  cls: "spx", items: ALL_FX_EXTENDED.filter(f=>visible(f) && !["comp","limit","gate","eq","reverb","delay","filter","distortion"].includes(f.type) && SPX_KEYS.has(f.key)) },
     { cat: "── Plugin Rack Library ──", cls: "header", items: [] },
     ...HOST_GROUPS,
   ];
-  // Bug #4 (Part 9): clear-all entry at the top of the picker so users can
-  // remove every active insert on a track without right-clicking each slot.
-  // Sets enabled=false on every effect (preserves params for re-enable).
+  // Phase 3 / Fix 1: full clear — drop every effect key + dispose every live
+  // PluginInstance for the track. (Old behavior just toggled enabled=false,
+  // leaving stale params and orphaned LFO oscillators in the registry.)
   const clearAllInserts = () => {
     const ti = insertPickerState.trackIndex;
     if (ti < 0) return;
     const t = tracks[ti]; if (!t || !t.effects) { setInsertPickerState(null); return; }
-    Object.keys(t.effects).forEach(k => { if (t.effects[k]?.enabled) updateEffect(ti, k, "enabled", false); });
+    if (t.id) disposeAllForTrack(t.id);
+    setTracks(prev => prev.map((tr, i) => i !== ti ? tr : ({ ...tr, effects: {} })));
     setInsertPickerState(null);
     setStatus("Inserts cleared");
   };
@@ -677,7 +722,7 @@ const InsertPickerMenu = ({ insertPickerState, setInsertPickerState, tracks, upd
                   if (fx.key==="__vocal_processor"){setInsertPickerState(null);setShowVocalModal(true);return;}
                   if (fx.key==="__mic_simulator"){setInsertPickerState(null);setShowMicSimModal(true);return;}
                   if (already) return;
-                  updateEffect(insertPickerState.trackIndex,fx.key,"enabled",true);
+                  seedEffect(insertPickerState.trackIndex, fx.key, PLUGIN_DEFAULTS[fx.key] || {});
                   setActiveEffectsTrack(insertPickerState.trackIndex);
                   setOpenFxKey(fx.key);
                   setInsertPickerState(null);
@@ -898,6 +943,18 @@ const RecordingStudio = ({ user }) => {
   const [analogSubview, setAnalogSubview] = useState("ampsim");
   const [trackConsoleChar, setTrackConsoleChar] = useState({});
   const [masterConsoleChar, setMasterConsoleChar] = useState("none");
+  // Phase F4-A.7B: per-track and master live console params (named-key shape).
+  // When a non-`none` console is selected, seed from CONSOLE_FACTORY_PARAMS;
+  // user knob tweaks update this state AND ramp the live AudioParam via the
+  // registered PluginInstance (`${trackId}:console` / `master:console`).
+  const [trackConsoleParams, setTrackConsoleParams] = useState({}); // { [trackId]: paramsObj }
+  const [masterConsoleParams, setMasterConsoleParams] = useState(null); // paramsObj | null
+  // Which console panel is currently visible (per track-id or "master"). Closing
+  // the panel does NOT change the dropdown selection — DSP keeps running.
+  const [openConsolePanel, setOpenConsolePanel] = useState(null);
+  // A/B compare slot: stores the "B" snapshot per scope so the user can flip
+  // between two configurations of the same console.
+  const [consoleABSlot, setConsoleABSlot] = useState({}); // { [scope]: paramsObj }
   const [binauralOn, setBinauralOn] = useState(false);
   const [monitorSpeaker, setMonitorSpeaker] = useState("flat");
   const [showMonitorSelector, setShowMonitorSelector] = useState(false);
@@ -971,6 +1028,37 @@ const RecordingStudio = ({ user }) => {
   const [mixerUpperH, setMixerUpperH] = useState(180);
   const mixerUpperDragRef = useRef(false);
   const [openFxKey, setOpenFxKey] = useState(null);
+
+  // ── Phase 3: Live plugin-instance registry ────────────────────────────
+  // Map<`${trackId}:${pluginKey}`, PluginInstance>
+  // Populated by buildFxChain after each handler creates its nodes.
+  // Read by the plugin-window onChange handler so knob turns ramp the
+  // already-running AudioParams instead of forcing a chain rebuild.
+  const liveInstancesRef = useRef(new Map());
+  const registerInstance = (trackId, pluginKey, instance) => {
+    const key = `${trackId}:${pluginKey}`;
+    const prev = liveInstancesRef.current.get(key);
+    if (prev) { try { prev.dispose(); } catch (e) { /* noop */ } }
+    liveInstancesRef.current.set(key, instance);
+    console.warn("[REGISTER]", key, "instance stored");  // Phase F3 instrumentation — Bug #1
+  };
+  const getInstance = (trackId, pluginKey) =>
+    liveInstancesRef.current.get(`${trackId}:${pluginKey}`);
+  const disposeInstance = (trackId, pluginKey) => {
+    const key = `${trackId}:${pluginKey}`;
+    const inst = liveInstancesRef.current.get(key);
+    if (inst) { try { inst.dispose(); } catch (e) { /* noop */ } liveInstancesRef.current.delete(key); }
+  };
+  const disposeAllForTrack = (trackId) => {
+    const prefix = `${trackId}:`;
+    for (const k of Array.from(liveInstancesRef.current.keys())) {
+      if (k.startsWith(prefix)) {
+        const inst = liveInstancesRef.current.get(k);
+        try { inst?.dispose(); } catch (e) { /* noop */ }
+        liveInstancesRef.current.delete(k);
+      }
+    }
+  };
   const [micSimStream, setMicSimStream] = useState(null);
   const [showMicBuilder, setShowMicBuilder] = useState(false);
   const [showVocalModal, setShowVocalModal] = useState(false);
@@ -986,6 +1074,8 @@ const RecordingStudio = ({ user }) => {
   const [selectedChannels, setSelectedChannels] = useState(new Set());
   const [clipboardTrackSettings, setClipboardTrackSettings] = useState(null);
   const [channelCtxMenu, setChannelCtxMenu] = useState(null);
+  // Phase 3 / Fix 1: insert-slot context menu — { x, y, trackIndex, fxKey, fxName }
+  const [insertCtxMenu, setInsertCtxMenu] = useState(null);
   const [showTakeLanes, setShowTakeLanes] = useState(false);
   const [takeLanesTrackIndex, setTakeLanesTrackIndex] = useState(null);
   const [showSaveAsModal, setShowSaveAsModal] = useState(false);
@@ -1035,6 +1125,8 @@ const RecordingStudio = ({ user }) => {
   const inputAnimRef = useRef(null);
   const recMonitorGainRef = useRef(null);
   const recInputSrcRef = useRef(null);
+  const micSplitterRef = useRef(null);
+  const micMergerRef = useRef(null);
   const trackNodesRef = useRef(new Map());
   const tapTimesRef = useRef([]);
   const loopCheckRef = useRef(null);
@@ -1123,11 +1215,90 @@ const RecordingStudio = ({ user }) => {
     // Rebuild console character on master bus
     const newConsoleOut = ctx.createGain();
     masterConsoleOutRef.current = newConsoleOut;
-    applyConsoleCharacter(ctx, masterGainRef.current, newConsoleOut, masterConsoleChar || "none");
+    applyConsoleCharacter(ctx, masterGainRef.current, newConsoleOut, masterConsoleChar || "none", { trackId: "master", params: masterConsoleParams || undefined });
     if (masterConsoleChar && masterConsoleChar !== "none") {
       newConsoleOut.connect(masterPanRef.current);
     } else {
       masterGainRef.current.connect(masterPanRef.current);
+    }
+  }, [masterConsoleChar, masterConsoleParams]);
+
+  // ── Phase F4-A.7B: console-board selection w/ param seeding ──
+  // Wraps setTrackConsoleChar/setMasterConsoleChar so picking a non-`none`
+  // board ALSO seeds the live params slot from the factory, and picking
+  // `none` clears the slot. The dropdown onChange handlers below call these
+  // wrappers instead of the raw state setters.
+  const selectTrackConsole = useCallback((trackId, boardId) => {
+    setTrackConsoleChar(prev => ({ ...prev, [trackId]: boardId }));
+    setTrackConsoleParams(prev => {
+      if (!boardId || boardId === "none") {
+        if (!(trackId in prev)) return prev;
+        const next = { ...prev }; delete next[trackId]; return next;
+      }
+      const factory = CONSOLE_FACTORY_PARAMS[boardId];
+      if (!factory) return prev;
+      // Seed only if missing or board changed; preserve user tweaks across
+      // re-selects of the SAME board (rare path, but matches user expectation).
+      const existing = prev[trackId];
+      if (existing && existing._board === boardId) return prev;
+      return { ...prev, [trackId]: { ...factory, _board: boardId } };
+    });
+  }, []);
+
+  const selectMasterConsole = useCallback((boardId) => {
+    setMasterConsoleChar(boardId);
+    setMasterConsoleParams(prev => {
+      if (!boardId || boardId === "none") return null;
+      const factory = CONSOLE_FACTORY_PARAMS[boardId];
+      if (!factory) return prev;
+      if (prev && prev._board === boardId) return prev;
+      return { ...factory, _board: boardId };
+    });
+  }, []);
+
+  // Update a single console param. Updates state AND ramps the live AudioParam
+  // on the registered PluginInstance (key: `${trackId}:console` or `master:console`).
+  const updateTrackConsoleParam = useCallback((trackId, name, value) => {
+    setTrackConsoleParams(prev => ({
+      ...prev,
+      [trackId]: { ...(prev[trackId] || {}), [name]: value },
+    }));
+    const inst = liveInstancesRef.current.get(`${trackId}:console`);
+    if (inst && typeof inst.setParam === "function") {
+      try { inst.setParam(name, value); } catch (_e) { /* noop */ }
+    }
+  }, []);
+
+  const updateMasterConsoleParam = useCallback((name, value) => {
+    setMasterConsoleParams(prev => ({ ...(prev || {}), [name]: value }));
+    const inst = liveInstancesRef.current.get(`master:console`);
+    if (inst && typeof inst.setParam === "function") {
+      try { inst.setParam(name, value); } catch (_e) { /* noop */ }
+    }
+  }, []);
+
+  // Reset a console scope back to its factory baseline (clears user tweaks
+  // for the currently-selected board). Both updates state and ramps live
+  // AudioParams via setParam — no graph rebuild needed.
+  const resetTrackConsole = useCallback((trackId) => {
+    const boardId = trackConsoleChar[trackId];
+    if (!boardId || boardId === "none") return;
+    const factory = CONSOLE_FACTORY_PARAMS[boardId]; if (!factory) return;
+    setTrackConsoleParams(prev => ({ ...prev, [trackId]: { ...factory, _board: boardId } }));
+    const inst = liveInstancesRef.current.get(`${trackId}:console`);
+    if (inst && typeof inst.setParam === "function") {
+      Object.entries(factory).forEach(([k, v]) => { try { inst.setParam(k, v); } catch (_e) {} });
+    }
+  }, [trackConsoleChar]);
+
+  const resetMasterConsole = useCallback(() => {
+    const boardId = masterConsoleChar;
+    if (!boardId || boardId === "none") return;
+    const factory = CONSOLE_FACTORY_PARAMS[boardId]; if (!factory) return;
+    setMasterConsoleParams({ ...factory, _board: boardId });
+    const inst = liveInstancesRef.current.get(`master:console`);
+    if (inst && typeof inst.setParam === "function") {
+      Object.entries(factory).forEach(([k, v]) => { try { inst.setParam(k, v); } catch (_e) {} });
     }
   }, [masterConsoleChar]);
 
@@ -1222,685 +1393,4453 @@ const RecordingStudio = ({ user }) => {
     wsNode.curve = curve; wsNode.oversample = "4x";
   };
 
-  const applyConsoleCharacter = (ctx, inputNode, outputNode, boardId) => {
+  // ── Phase F4-A.7B: applyConsoleCharacter — PluginInstance shape ──
+  // Builds the 5-stage console chain (HPF → tanh sat → low-shelf → high-shelf →
+  // tanh sat → output gain) and connects inputNode → chain → outputNode.
+  //
+  // Returns the legacy array-of-internal-nodes (for the existing disconnect
+  // bookkeeping in ensureTrackGraph / ensureBusGraph), and ALSO registers a
+  // PluginInstance under `${trackId}:console` (or "master:console") so the
+  // ConsolePanel UI can ramp live AudioParams without rebuilding the graph.
+  //
+  // opts (all optional):
+  //   params       — named-param override ({ hpfFreq, hpfQ, satInDrive,
+  //                  satInAsym, lowFreq, lowGain, highFreq, highGain,
+  //                  satOutDrive, satOutAsym, outputGain }). When supplied,
+  //                  these REPLACE the factory baseline for boardId. Used for
+  //                  applying user-tweaked state on graph rebuild.
+  //   trackId      — register a PluginInstance under this key. "master" for
+  //                  master bus. When omitted, no instance is registered
+  //                  (legacy callers that don't need live tweak access).
+  const applyConsoleCharacter = (ctx, inputNode, outputNode, boardId, opts = {}) => {
     if (!boardId || boardId === "none") { inputNode.connect(outputNode); return [inputNode]; }
-    const configs = {
-      ssl4ke:    [18, 0.5, 1.2, false, 200, -0.8, 10000, 1.2, 1.1,  false, 0.98],
-      ssl4kg:    [15, 0.4, 1.1, false, 160, -0.5, 12000, 0.8, 1.05, false, 0.99],
-      neve8078:  [30, 0.7, 1.6, true,  250, 1.5,  8000,  -0.5,1.4,  true,  0.95],
-      neve1073:  [50, 0.8, 1.8, true,  300, 2.0,  6000,  -0.8,1.6,  true,  0.93],
-      api1604:   [20, 0.6, 1.3, false, 100, 0.5,  5000,  1.0, 1.25, false, 0.97],
-      tridentA:  [25, 0.5, 1.4, true,  180, 1.0,  9000,  0.6, 1.3,  true,  0.96],
-      studer900: [22, 0.4, 1.05,false, 120, -0.3, 15000, 0.3, 1.02, false, 1.0 ],
-      mciJH636:  [28, 0.6, 1.5, true,  220, 1.2,  7500,  0.8, 1.35, true,  0.96],
-      // ── New consoles ──
-      ssl9000:   [12, 0.4, 1.15,false, 140, -0.3, 14000, 1.0, 1.1,  false, 0.99],  // SSL 9000 — modern pop/hip-hop
-      neve8068:  [35, 0.7, 1.7, true,  280, 1.8,  7500,  -0.6,1.45, true,  0.94],  // Neve 8068 — slightly darker 8078
-      api2488:   [22, 0.5, 1.35,false, 110, 0.8,  4800,  1.2, 1.3,  false, 0.97],  // API 2488 — more headroom
-      helios69:  [40, 0.8, 1.9, true,  350, 2.5,  6000,  -1.0,1.5,  true,  0.92],  // Helios Type 69 — dark British
-      neveVR:    [20, 0.5, 1.45,true,  200, 1.2,  9000,  0.2, 1.3,  true,  0.96],  // Neve VR — 80s/90s warm
-      emiTG:     [45, 0.9, 2.0, true,  400, 3.0,  5500,  -1.5,1.6,  true,  0.90],  // EMI TG12345 — Abbey Road
-      sslAWS:    [10, 0.3, 1.1, false, 130, -0.2, 16000, 0.6, 1.05, false, 1.0 ],  // SSL AWS — hybrid clean
-      amekAngela:[32, 0.6, 1.55,true,  240, 1.6,  8500,  -0.3,1.4,  true,  0.95],  // Amek Angela — Neve designed
-      harrison:  [8,  0.3, 1.05,false, 100, 0.2,  18000, 0.4, 1.02, false, 1.0 ],  // Harrison 4032 — very clean
-      neve8014:  [60, 1.0, 2.1, true,  500, 3.5,  5000,  -2.0,1.7,  true,  0.88],  // Neve 8014 — vintage dark
-      sonyMXP:   [14, 0.4, 1.2, false, 180, 0.3,  13000, 0.8, 1.1,  false, 0.98],  // Sony MXP-3000 — smooth highs
-      calrec:    [16, 0.4, 1.15,false, 150, -0.1, 15000, 0.5, 1.08, false, 0.99],  // Calrec — broadcast clean
-    };
-    const c = configs[boardId];
-    if (!c) { inputNode.connect(outputNode); return [inputNode]; }
-    const inputSat = ctx.createWaveShaper(), inputHp = ctx.createBiquadFilter();
-    const eqLo = ctx.createBiquadFilter(), eqHi = ctx.createBiquadFilter();
-    const outputSat = ctx.createWaveShaper(), outputGain = ctx.createGain();
-    inputHp.type = "highpass"; inputHp.frequency.value = c[0]; inputHp.Q.value = c[1];
-    buildSatCurve(inputSat, c[2], c[3]);
-    eqLo.type = "lowshelf";  eqLo.frequency.value = c[4];  eqLo.gain.value = c[5];
-    eqHi.type = "highshelf"; eqHi.frequency.value = c[6];  eqHi.gain.value = c[7];
-    buildSatCurve(outputSat, c[8], c[9]);
-    outputGain.gain.value = c[10];
+    const factory = CONSOLE_FACTORY_PARAMS[boardId];
+    if (!factory) { inputNode.connect(outputNode); return [inputNode]; }
+    const p = { ...factory, ...(opts.params || {}) };
+
+    const inputHp  = ctx.createBiquadFilter();
+    const inputSat = ctx.createWaveShaper();
+    const eqLo     = ctx.createBiquadFilter();
+    const eqHi     = ctx.createBiquadFilter();
+    const outputSat = ctx.createWaveShaper();
+    const outputGain = ctx.createGain();
+    inputHp.type = "highpass"; inputHp.frequency.value = p.hpfFreq; inputHp.Q.value = p.hpfQ;
+    buildSatCurve(inputSat, p.satInDrive, !!p.satInAsym);
+    eqLo.type = "lowshelf";  eqLo.frequency.value = p.lowFreq;  eqLo.gain.value = p.lowGain;
+    eqHi.type = "highshelf"; eqHi.frequency.value = p.highFreq; eqHi.gain.value = p.highGain;
+    buildSatCurve(outputSat, p.satOutDrive, !!p.satOutAsym);
+    outputGain.gain.value = p.outputGain;
     inputNode.connect(inputHp); inputHp.connect(inputSat); inputSat.connect(eqLo);
     eqLo.connect(eqHi); eqHi.connect(outputSat); outputSat.connect(outputGain);
     outputGain.connect(outputNode);
+
+    // Register a live PluginInstance for the ConsolePanel UI to ramp.
+    if (opts.trackId) {
+      const TAU_C = 0.01;
+      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+      const safeNum = (v, fb) => (Number.isFinite(v) ? v : fb);
+      const inst = {
+        inputNode: inputHp,
+        outputNode,
+        setParam(name, value) {
+          const t = ctx.currentTime;
+          const v = safeNum(value, 0);
+          switch (name) {
+            case "hpfFreq":     inputHp.frequency.setTargetAtTime(clamp(v, 5, 500), t, TAU_C); break;
+            case "hpfQ":        inputHp.Q.setTargetAtTime(clamp(v, 0.1, 2), t, TAU_C); break;
+            case "satInDrive":  buildSatCurve(inputSat, clamp(v, 0, 3), !!p.satInAsym); break;
+            case "satInAsym":   p.satInAsym = !!v; buildSatCurve(inputSat, p.satInDrive, !!v); break;
+            case "lowFreq":     eqLo.frequency.setTargetAtTime(clamp(v, 40, 600), t, TAU_C); break;
+            case "lowGain":     eqLo.gain.setTargetAtTime(clamp(v, -6, 6), t, TAU_C); break;
+            case "highFreq":    eqHi.frequency.setTargetAtTime(clamp(v, 3000, 18000), t, TAU_C); break;
+            case "highGain":    eqHi.gain.setTargetAtTime(clamp(v, -3, 3), t, TAU_C); break;
+            case "satOutDrive": buildSatCurve(outputSat, clamp(v, 0, 3), !!p.satOutAsym); break;
+            case "satOutAsym":  p.satOutAsym = !!v; buildSatCurve(outputSat, p.satOutDrive, !!v); break;
+            case "outputGain":  outputGain.gain.setTargetAtTime(clamp(v, 0.5, 1.2), t, TAU_C); break;
+            default: break;
+          }
+          // Keep the cached `p` mirror up to date for asym-toggle's drive read.
+          if (name === "satInDrive" || name === "satOutDrive" ||
+              name === "hpfFreq" || name === "hpfQ" ||
+              name === "lowFreq" || name === "lowGain" ||
+              name === "highFreq" || name === "highGain" ||
+              name === "outputGain") {
+            p[name] = v;
+          }
+        },
+        dispose() {
+          for (const n of [inputHp, inputSat, eqLo, eqHi, outputSat, outputGain]) {
+            try { n.disconnect(); } catch (_e) { /* noop */ }
+          }
+        },
+      };
+      registerInstance(opts.trackId, "console", inst);
+    }
+
     return [inputHp, inputSat, eqLo, eqHi, outputSat, outputGain];
   };
 
   const buildFxChain = (ctx, track) => {
     const nodes = []; const fx = track.effects;
-    if (fx.eq?.enabled) {
-      const lo = ctx.createBiquadFilter(); lo.type = "lowshelf";  lo.frequency.value = 320;         lo.gain.value = fx.eq.lowGain;
-      const mi = ctx.createBiquadFilter(); mi.type = "peaking";   mi.frequency.value = fx.eq.midFreq; mi.Q.value = 1.5; mi.gain.value = fx.eq.midGain;
-      const hi = ctx.createBiquadFilter(); hi.type = "highshelf"; hi.frequency.value = 3200;         hi.gain.value = fx.eq.highGain;
-      nodes.push(lo, mi, hi);
-    }
-    if (fx.filter?.enabled)      { const f = ctx.createBiquadFilter(); f.type = fx.filter.type; f.frequency.value = fx.filter.frequency; f.Q.value = fx.filter.Q; nodes.push(f); }
-    if (fx.compressor?.enabled)  { const c = ctx.createDynamicsCompressor(); c.threshold.value = fx.compressor.threshold; c.ratio.value = fx.compressor.ratio; c.attack.value = fx.compressor.attack; c.release.value = fx.compressor.release; nodes.push(c); }
-    if (fx.distortion?.enabled && fx.distortion.amount > 0) { const ws = ctx.createWaveShaper(); const amt = fx.distortion.amount; const curve = new Float32Array(44100); for (let i = 0; i < 44100; i++) { const x = (i * 2) / 44100 - 1; curve[i] = ((3 + amt) * x * 20 * (Math.PI / 180)) / (Math.PI + amt * Math.abs(x)); } ws.curve = curve; ws.oversample = "4x"; nodes.push(ws); }
-    if (fx.limiter?.enabled)     { const lim = ctx.createDynamicsCompressor(); lim.threshold.value = fx.limiter.threshold; lim.knee.value = fx.limiter.knee; lim.ratio.value = fx.limiter.ratio; lim.attack.value = fx.limiter.attack; lim.release.value = fx.limiter.release; nodes.push(lim); }
-    if (fx.gate?.enabled)        { const gt = ctx.createDynamicsCompressor(); gt.threshold.value = fx.gate.threshold; gt.ratio.value = 20; gt.knee.value = 0; gt.attack.value = fx.gate.attack; gt.release.value = fx.gate.release; nodes.push(gt); }
-    if (fx.deesser?.enabled)     { const bp = ctx.createBiquadFilter(); bp.type = "peaking"; bp.frequency.value = fx.deesser.frequency; bp.Q.value = 4; bp.gain.value = -Math.abs(fx.deesser.threshold); nodes.push(bp); }
-    if (fx.chorus?.enabled)      { const cd = ctx.createDelay(0.05); cd.delayTime.value = fx.chorus.depth; const cLfo = ctx.createOscillator(); const cLfoG = ctx.createGain(); cLfo.frequency.value = fx.chorus.rate; cLfoG.gain.value = fx.chorus.depth * 0.5; cLfo.connect(cLfoG); cLfoG.connect(cd.delayTime); cLfo.start(); nodes.push(cd, cLfo, cLfoG); }
-    if (fx.flanger?.enabled)     { const fd = ctx.createDelay(0.02); fd.delayTime.value = fx.flanger.depth; const fLfo = ctx.createOscillator(); const fLfoG = ctx.createGain(); fLfo.frequency.value = fx.flanger.rate; fLfoG.gain.value = fx.flanger.depth * 0.5; fLfo.connect(fLfoG); fLfoG.connect(fd.delayTime); fLfo.start(); nodes.push(fd, fLfo, fLfoG); }
-    if (fx.phaser?.enabled)      { for (let s = 0; s < (fx.phaser.stages || 4); s++) { const ap = ctx.createBiquadFilter(); ap.type = "allpass"; ap.frequency.value = fx.phaser.baseFreq * (1 + s * 0.5); ap.Q.value = fx.phaser.Q; nodes.push(ap); } }
-    if (fx.tremolo?.enabled)     { const tGain = ctx.createGain(); tGain.gain.value = 1 - fx.tremolo.depth * 0.5; const tLfo = ctx.createOscillator(); const tLfoG = ctx.createGain(); tLfo.frequency.value = fx.tremolo.rate; tLfoG.gain.value = fx.tremolo.depth * 0.5; tLfo.connect(tLfoG); tLfoG.connect(tGain.gain); tLfo.start(); nodes.push(tGain, tLfo, tLfoG); }
-    if (fx.bitcrusher?.enabled)  { const bws = ctx.createWaveShaper(); const steps = Math.pow(2, fx.bitcrusher.bits || 8); const bcurve = new Float32Array(44100); for (let i = 0; i < 44100; i++) { const x = (i * 2) / 44100 - 1; bcurve[i] = Math.round(x * steps) / steps; } bws.curve = bcurve; nodes.push(bws); }
-    if (fx.exciter?.enabled)     { const ehpf = ctx.createBiquadFilter(); ehpf.type = "highpass"; ehpf.frequency.value = fx.exciter.frequency; const ews = ctx.createWaveShaper(); const ecurve = new Float32Array(44100); for (let i = 0; i < 44100; i++) { const x = (i * 2) / 44100 - 1; ecurve[i] = x + (fx.exciter.amount / 100) * Math.sin(x * Math.PI); } ews.curve = ecurve; nodes.push(ehpf, ews); }
-    if (fx.tapeSaturation?.enabled) { const tws = ctx.createWaveShaper(); const drv = fx.tapeSaturation.drive || 0.3; const tcurve = new Float32Array(44100); for (let i = 0; i < 44100; i++) { const x = (i * 2) / 44100 - 1; tcurve[i] = Math.tanh(x * (1 + drv * 5)); } tws.curve = tcurve; tws.oversample = "4x"; const tlp = ctx.createBiquadFilter(); tlp.type = "lowpass"; tlp.frequency.value = 12000 - fx.tapeSaturation.warmth * 6000; nodes.push(tws, tlp); }
-    if (fx.gainUtility?.enabled) { const ug = ctx.createGain(); ug.gain.value = Math.pow(10, (fx.gainUtility.gain || 0) / 20) * (fx.gainUtility.phaseInvert ? -1 : 1); nodes.push(ug); }
+    // Defensive AudioParam setters: clamp NaN/undefined/out-of-range values to
+    // safe defaults so plugins don't crash the audio graph with non-finite
+    // AudioParam errors. Wrap every direct .value assignment with these.
+    const safe = (v, fallback, min, max) => {
+      if (!Number.isFinite(v)) return fallback;
+      if (min !== undefined && v < min) return min;
+      if (max !== undefined && v > max) return max;
+      return v;
+    };
+    const setFreq        = (param, v) => { param.value = safe(v, 1000, 20, 20000); };
+    const setQ           = (param, v) => { param.value = safe(v, 1, 0.0001, 1000); };
+    const setGainDb      = (param, db) => { param.value = safe(db, 0, -60, 24); };
+    const setGainLinear  = (param, v) => { param.value = safe(v, 1, 0, 4); };
+    const setTime        = (param, v) => { param.value = safe(v, 0, 0, 5); };
+    const setMix         = (param, v) => { param.value = safe(v, 0, 0, 1); };
+    const setDetune      = (param, v) => { param.value = safe(v, 0, -1200, 1200); };
+    const setCompThresh  = (param, v) => { param.value = safe(v, -20, -100, 0); };
+    const setCompRatio   = (param, v) => { param.value = safe(v, 4, 1, 20); };
+    const setCompAttack  = (param, v) => { param.value = safe(v, 0.01, 0, 1); };
+    const setCompRelease = (param, v) => { param.value = safe(v, 0.1, 0, 1); };
+    const setCompKnee    = (param, v) => { param.value = safe(v, 6, 0, 40); };
+    const setPan         = (param, v) => { param.value = safe(v, 0, -1, 1); };
+
+    // Reverb/delay UIs ship mix knobs in two flavors: percent (0–100) and
+    // fraction (0–1). Normalize so factories don't have to know which:
+    // values > 1 are treated as percent and divided. Used for build-time
+    // initialization (returns the normalized number) and for setParam ramps
+    // on the wet-gain (writes the normalized value to the AudioParam).
+    const normalizeMix = (v, fallback = 0.25) => {
+      if (!Number.isFinite(v)) return fallback;
+      const n = v > 1 ? v / 100 : v;
+      return n < 0 ? 0 : (n > 1 ? 1 : n);
+    };
+    const setReverbMix = (param, v) => {
+      // 10ms ramp matches the standard TAU defined below; literal here so this
+      // helper is callable from the helpers block before TAU is in scope.
+      param.setTargetAtTime(normalizeMix(v, 0.25), ctx.currentTime, 0.01);
+    };
+
+    // ── Phase 3 PluginInstance contract ─────────────────────────────────
+    // Every SPX-native handler should produce a PluginInstance:
+    //   {
+    //     inputNode:  AudioNode,                    // chain entry
+    //     outputNode: AudioNode,                    // chain exit
+    //     setParam(name: string, value: number),    // ramp live AudioParam(s)
+    //     dispose(): void                           // disconnect + stop osc/lfos
+    //   }
+    // The instance is registered into liveInstancesRef under
+    // `${track.id}:${pluginKey}` so the plugin-window onChange can route
+    // knob turns straight to AudioParam.setTargetAtTime — no chain rebuild.
+    //
+    // setParam invariants:
+    //   • Use safe() helpers so NaN/undefined/out-of-range can't crash audio.
+    //   • Default tau = 0.01 (10ms). LFO `rate`/`frequency` use 0.05 to
+    //     avoid audible pitch sweep on rate-knob drags.
+    //   • setParam(unknownKey, _) silently no-ops via `default:`.
+    //   • For WaveShaper.curve / Convolver.buffer — rebuild & assign
+    //     synchronously (cheap; click-free for waveshaper, audible click on
+    //     IR swap is accepted, mirrors PluginHost ReverbPlugin behavior).
+    //
+    // Topology rule for "always-on" filters that the legacy code added
+    // conditionally (e.g. ironBand HPF only if hpf > 20): the factory must
+    // build them ALL at neutral pass-through values so live param ramps
+    // never need to add/remove nodes mid-stream.
+    //
+    // ── Plugin factories ────────────────────────────────────────────────
+    const TAU = 0.01;
+    const TAU_LFO = 0.05;
+
+    // Install helper: invoke factory, register instance, push compound node.
+    // Centralizes the registry+chain wiring so each handler stays one-liner-ish.
+    const install = (pluginKey, factory) => {
+      const inst = factory(fx[pluginKey] || {});
+      registerInstance(track.id, pluginKey, inst);
+      nodes.push({ inputNode: inst.inputNode, outputNode: inst.outputNode });
+    };
+    const disposeNodes = (...ns) => { for (const n of ns) { try { n?.disconnect(); } catch (e) { /* noop */ } } };
+    // Stop oscillators safely (LFOs created with .start() must be .stop()'d)
+    const stopOscs = (...oscs) => { for (const o of oscs) { try { o?.stop(); } catch (e) { /* noop */ } try { o?.disconnect(); } catch (e) { /* noop */ } } };
+
+    // Passthrough factory for meter-only / placeholder plugins.
+    const makePassthrough = () => {
+      const g = ctx.createGain(); setGainLinear(g.gain, 1);
+      return { inputNode: g, outputNode: g, setParam() {}, dispose() { disposeNodes(g); } };
+    };
+
+    // Build a tanh-saturation curve. driveAmt 0 → linear identity, 1 → heavy.
+    const makeTanhCurve = (driveAmt, N = 2048) => {
+      const c = new Float32Array(N);
+      const k = 1 + safe(driveAmt, 0, 0, 4) * 5;
+      for (let i = 0; i < N; i++) { const x = (i*2)/N - 1; c[i] = Math.tanh(x * k); }
+      return c;
+    };
+    // Bit-crusher quantization curve. bits 16+ → near-identity, 1 → harsh.
+    const makeBitcrushCurve = (bits, N = 4096) => {
+      const c = new Float32Array(N); const steps = Math.pow(2, safe(bits, 8, 1, 24));
+      for (let i = 0; i < N; i++) { const x = (i*2)/N - 1; c[i] = Math.round(x * steps) / steps; }
+      return c;
+    };
+    // Identity curve y=x — used as the "off" state for WaveShapers when amount=0.
+    const makeIdentityCurve = (N = 1024) => {
+      const c = new Float32Array(N);
+      for (let i = 0; i < N; i++) c[i] = (i*2)/N - 1;
+      return c;
+    };
+
+    // ironBand — 4-band parametric EQ with always-on HPF/LPF/input-trim.
+    // Topology fixed: inputGain → HPF → low → lowMid → hiMid → hi → LPF.
+    // Off-state: HPF=20Hz, LPF=20kHz, gains=0dB, inputGain=0dB (unity).
+    const makeIronBand = (p) => {
+      const ig = ctx.createGain();
+      setGainLinear(ig.gain, Math.pow(10, (p.inputGain || 0) / 20));
+      const hpf = ctx.createBiquadFilter(); hpf.type = "highpass";
+      setFreq(hpf.frequency, (p.hpf || 0) > 20 ? p.hpf : 20); setQ(hpf.Q, 0.7);
+      const low    = ctx.createBiquadFilter(); low.type    = "peaking";
+      setFreq(low.frequency,    p.lowFreq    || 100);  setQ(low.Q, 1);    setGainDb(low.gain,    p.lowGain    || 0);
+      const lowMid = ctx.createBiquadFilter(); lowMid.type = "peaking";
+      setFreq(lowMid.frequency, p.lowMidFreq || 500);  setQ(lowMid.Q, 1); setGainDb(lowMid.gain, p.lowMidGain || 0);
+      const hiMid  = ctx.createBiquadFilter(); hiMid.type  = "peaking";
+      setFreq(hiMid.frequency,  p.hiMidFreq  || 2500); setQ(hiMid.Q, 1);  setGainDb(hiMid.gain,  p.hiMidGain  || 0);
+      const hi     = ctx.createBiquadFilter(); hi.type     = "peaking";
+      setFreq(hi.frequency,     p.hiFreq     || 8000); setQ(hi.Q, 1);     setGainDb(hi.gain,     p.hiGain     || 0);
+      const lpf = ctx.createBiquadFilter(); lpf.type = "lowpass";
+      setFreq(lpf.frequency, (p.lpf ?? 20000) < 20000 ? p.lpf : 20000); setQ(lpf.Q, 0.7);
+      ig.connect(hpf); hpf.connect(low); low.connect(lowMid); lowMid.connect(hiMid); hiMid.connect(hi); hi.connect(lpf);
+      return {
+        inputNode: ig, outputNode: lpf,
+        setParam(name, value) {
+          const t = ctx.currentTime;
+          switch (name) {
+            case "inputGain":  ig.gain.setTargetAtTime(safe(Math.pow(10, safe(value, 0, -60, 24) / 20), 1, 0, 4), t, TAU); break;
+            case "hpf":        hpf.frequency.setTargetAtTime(safe((value || 0) > 20 ? value : 20, 20, 20, 20000), t, TAU); break;
+            case "lpf":        lpf.frequency.setTargetAtTime(safe((value ?? 20000) < 20000 ? value : 20000, 20000, 20, 20000), t, TAU); break;
+            case "lowFreq":    low.frequency.setTargetAtTime(safe(value, 100, 20, 20000), t, TAU); break;
+            case "lowGain":    low.gain.setTargetAtTime(safe(value, 0, -60, 24), t, TAU); break;
+            case "lowMidFreq": lowMid.frequency.setTargetAtTime(safe(value, 500, 20, 20000), t, TAU); break;
+            case "lowMidGain": lowMid.gain.setTargetAtTime(safe(value, 0, -60, 24), t, TAU); break;
+            case "hiMidFreq":  hiMid.frequency.setTargetAtTime(safe(value, 2500, 20, 20000), t, TAU); break;
+            case "hiMidGain":  hiMid.gain.setTargetAtTime(safe(value, 0, -60, 24), t, TAU); break;
+            case "hiFreq":     hi.frequency.setTargetAtTime(safe(value, 8000, 20, 20000), t, TAU); break;
+            case "hiGain":     hi.gain.setTargetAtTime(safe(value, 0, -60, 24), t, TAU); break;
+            default: break;  // enabled toggle / unknown: no-op (chain rebuild handles enable/disable)
+          }
+        },
+        dispose() {
+          for (const n of [ig, hpf, low, lowMid, hiMid, hi, lpf]) {
+            try { n.disconnect(); } catch (e) { /* noop */ }
+          }
+        },
+      };
+    };
+
+    if (fx.eq?.enabled) install("eq", (p) => {
+      const lo = ctx.createBiquadFilter(); lo.type = "lowshelf";  setFreq(lo.frequency, 320);          setGainDb(lo.gain, p.lowGain);
+      const mi = ctx.createBiquadFilter(); mi.type = "peaking";   setFreq(mi.frequency, p.midFreq);    setQ(mi.Q, 1.5); setGainDb(mi.gain, p.midGain);
+      const hi = ctx.createBiquadFilter(); hi.type = "highshelf"; setFreq(hi.frequency, 3200);         setGainDb(hi.gain, p.highGain);
+      lo.connect(mi); mi.connect(hi);
+      return {
+        inputNode: lo, outputNode: hi,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "lowGain":  lo.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          case "midFreq":  mi.frequency.setTargetAtTime(safe(v, 1000, 20, 20000), t, TAU); break;
+          case "midGain":  mi.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          case "highGain": hi.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(lo, mi, hi); },
+      };
+    });
+    if (fx.filter?.enabled) install("filter", (p) => {
+      // BiquadFilter.type is a string, not an AudioParam — type changes require
+      // node swap (not real-time). Frequency and Q ramp normally.
+      const f = ctx.createBiquadFilter(); f.type = p.type || "lowpass";
+      setFreq(f.frequency, p.frequency); setQ(f.Q, p.Q);
+      return {
+        inputNode: f, outputNode: f,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "frequency": f.frequency.setTargetAtTime(safe(v, 1000, 20, 20000), t, TAU); break;
+          case "Q":         f.Q.setTargetAtTime(safe(v, 1, 0.0001, 1000), t, TAU); break;
+          case "type":      try { f.type = v || "lowpass"; } catch (e) { /* invalid type */ } break;
+          default: break;
+        } },
+        dispose() { disposeNodes(f); },
+      };
+    });
+    if (fx.compressor?.enabled) install("compressor", (p) => {
+      const c = ctx.createDynamicsCompressor();
+      setCompThresh(c.threshold, p.threshold); setCompRatio(c.ratio, p.ratio);
+      setCompAttack(c.attack, p.attack); setCompRelease(c.release, p.release);
+      return {
+        inputNode: c, outputNode: c,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "threshold": c.threshold.setTargetAtTime(safe(v, -20, -100, 0), t, TAU); break;
+          case "ratio":     c.ratio.setTargetAtTime(safe(v, 4, 1, 20), t, TAU); break;
+          case "attack":    c.attack.setTargetAtTime(safe(v, 0.01, 0, 1), t, TAU); break;
+          case "release":   c.release.setTargetAtTime(safe(v, 0.1, 0, 1), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(c); },
+      };
+    });
+    if (fx.distortion?.enabled) install("distortion", (p) => {
+      const ws = ctx.createWaveShaper(); ws.oversample = "4x";
+      const buildCurve = (amt) => {
+        const N = 4096; const c = new Float32Array(N);
+        const a = safe(amt, 0, 0, 100);
+        if (a <= 0) { for (let i = 0; i < N; i++) c[i] = (i*2)/N - 1; return c; }
+        for (let i = 0; i < N; i++) { const x = (i*2)/N - 1; c[i] = ((3 + a) * x * 20 * (Math.PI / 180)) / (Math.PI + a * Math.abs(x)); }
+        return c;
+      };
+      ws.curve = buildCurve(p.amount || 0);
+      return {
+        inputNode: ws, outputNode: ws,
+        setParam(n, v) { if (n === "amount") ws.curve = buildCurve(v); },
+        dispose() { disposeNodes(ws); },
+      };
+    });
+    if (fx.limiter?.enabled) install("limiter", (p) => {
+      const lim = ctx.createDynamicsCompressor();
+      setCompThresh(lim.threshold, p.threshold); setCompKnee(lim.knee, p.knee);
+      setCompRatio(lim.ratio, p.ratio); setCompAttack(lim.attack, p.attack); setCompRelease(lim.release, p.release);
+      return {
+        inputNode: lim, outputNode: lim,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "threshold": lim.threshold.setTargetAtTime(safe(v, -1, -100, 0), t, TAU); break;
+          case "knee":      lim.knee.setTargetAtTime(safe(v, 0, 0, 40), t, TAU); break;
+          case "ratio":     lim.ratio.setTargetAtTime(safe(v, 20, 1, 20), t, TAU); break;
+          case "attack":    lim.attack.setTargetAtTime(safe(v, 0.001, 0, 1), t, TAU); break;
+          case "release":   lim.release.setTargetAtTime(safe(v, 0.01, 0, 1), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(lim); },
+      };
+    });
+    if (fx.gate?.enabled) install("gate", (p) => {
+      // Approximated with DynamicsCompressor at ratio=20, knee=0 — closest the
+      // built-in node gets to a noise gate. ratio/knee aren't user-facing here.
+      const gt = ctx.createDynamicsCompressor();
+      setCompThresh(gt.threshold, p.threshold); setCompRatio(gt.ratio, 20); setCompKnee(gt.knee, 0);
+      setCompAttack(gt.attack, p.attack); setCompRelease(gt.release, p.release);
+      return {
+        inputNode: gt, outputNode: gt,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "threshold": gt.threshold.setTargetAtTime(safe(v, -40, -100, 0), t, TAU); break;
+          case "attack":    gt.attack.setTargetAtTime(safe(v, 0.001, 0, 1), t, TAU); break;
+          case "release":   gt.release.setTargetAtTime(safe(v, 0.1, 0, 1), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(gt); },
+      };
+    });
+    if (fx.deesser?.enabled) install("deesser", (p) => {
+      // Single peaking notch at sibilance band; "threshold" repurposed as
+      // notch depth (negative dB).
+      const bp = ctx.createBiquadFilter(); bp.type = "peaking";
+      setFreq(bp.frequency, p.frequency); setQ(bp.Q, 4); setGainDb(bp.gain, -Math.abs(p.threshold || 6));
+      return {
+        inputNode: bp, outputNode: bp,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "frequency": bp.frequency.setTargetAtTime(safe(v, 7000, 20, 20000), t, TAU); break;
+          case "threshold": bp.gain.setTargetAtTime(safe(-Math.abs(v ?? 6), -6, -60, 0), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(bp); },
+      };
+    });
+    if (fx.chorus?.enabled) install("chorus", (p) => {
+      // Delay center modulated by LFO. depth controls both delay center and LFO swing.
+      const cd = ctx.createDelay(0.05); setTime(cd.delayTime, p.depth || 0.005);
+      const lfo = ctx.createOscillator(); const lfoG = ctx.createGain();
+      setFreq(lfo.frequency, p.rate || 1.5); setGainLinear(lfoG.gain, (p.depth || 0.005) * 0.5);
+      lfo.connect(lfoG); lfoG.connect(cd.delayTime); lfo.start();
+      return {
+        inputNode: cd, outputNode: cd,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "rate":  lfo.frequency.setTargetAtTime(safe(v, 1.5, 0, 20), t, TAU_LFO); break;
+          case "depth": cd.delayTime.setTargetAtTime(safe(v, 0.005, 0, 0.05), t, TAU);
+                        lfoG.gain.setTargetAtTime(safe(safe(v, 0.005, 0, 0.05) * 0.5, 0.0025, 0, 4), t, TAU); break;
+          default: break;
+        } },
+        dispose() { stopOscs(lfo); disposeNodes(cd, lfoG); },
+      };
+    });
+    if (fx.flanger?.enabled) install("flanger", (p) => {
+      const fd = ctx.createDelay(0.02); setTime(fd.delayTime, p.depth || 0.003);
+      const lfo = ctx.createOscillator(); const lfoG = ctx.createGain();
+      setFreq(lfo.frequency, p.rate || 0.5); setGainLinear(lfoG.gain, (p.depth || 0.003) * 0.5);
+      lfo.connect(lfoG); lfoG.connect(fd.delayTime); lfo.start();
+      return {
+        inputNode: fd, outputNode: fd,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "rate":  lfo.frequency.setTargetAtTime(safe(v, 0.5, 0, 20), t, TAU_LFO); break;
+          case "depth": fd.delayTime.setTargetAtTime(safe(v, 0.003, 0, 0.02), t, TAU);
+                        lfoG.gain.setTargetAtTime(safe(safe(v, 0.003, 0, 0.02) * 0.5, 0.0015, 0, 4), t, TAU); break;
+          default: break;
+        } },
+        dispose() { stopOscs(lfo); disposeNodes(fd, lfoG); },
+      };
+    });
+    if (fx.phaser?.enabled) install("phaser", (p) => {
+      // Always build a fixed 8-stage allpass cascade so live changes to the
+      // `stages` knob are bypassed cosmetically — extra stages over user
+      // selection are zeroed via Q=0.0001 (negligible). Real-time stage count
+      // would require chain rebuild.
+      const MAX_STAGES = 8;
+      const stages = Math.min(MAX_STAGES, p.stages || 4);
+      const baseFreq = p.baseFreq || 350;
+      const Qval = p.Q || 5;
+      const filters = [];
+      for (let s = 0; s < MAX_STAGES; s++) {
+        const ap = ctx.createBiquadFilter(); ap.type = "allpass";
+        setFreq(ap.frequency, baseFreq * (1 + s * 0.5));
+        setQ(ap.Q, s < stages ? Qval : 0.0001);
+        filters.push(ap);
+      }
+      let prev = filters[0]; for (let i = 1; i < filters.length; i++) { prev.connect(filters[i]); prev = filters[i]; }
+      let curStages = stages, curBase = baseFreq, curQ = Qval;
+      const applyStages = () => {
+        const t = ctx.currentTime;
+        for (let s = 0; s < MAX_STAGES; s++) {
+          filters[s].frequency.setTargetAtTime(safe(curBase * (1 + s * 0.5), 350, 20, 20000), t, TAU);
+          filters[s].Q.setTargetAtTime(safe(s < curStages ? curQ : 0.0001, 1, 0.0001, 1000), t, TAU);
+        }
+      };
+      return {
+        inputNode: filters[0], outputNode: filters[MAX_STAGES - 1],
+        setParam(n, v) { switch (n) {
+          case "stages":   curStages = Math.min(MAX_STAGES, Math.max(1, Math.floor(safe(v, 4, 1, MAX_STAGES)))); applyStages(); break;
+          case "baseFreq": curBase = safe(v, 350, 20, 20000); applyStages(); break;
+          case "Q":        curQ = safe(v, 5, 0.0001, 1000); applyStages(); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(...filters); },
+      };
+    });
+    if (fx.tremolo?.enabled) install("tremolo", (p) => {
+      const tGain = ctx.createGain(); setGainLinear(tGain.gain, 1 - (p.depth || 0.5) * 0.5);
+      const lfo = ctx.createOscillator(); const lfoG = ctx.createGain();
+      setFreq(lfo.frequency, p.rate || 4); setGainLinear(lfoG.gain, (p.depth || 0.5) * 0.5);
+      lfo.connect(lfoG); lfoG.connect(tGain.gain); lfo.start();
+      return {
+        inputNode: tGain, outputNode: tGain,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "rate":  lfo.frequency.setTargetAtTime(safe(v, 4, 0, 20), t, TAU_LFO); break;
+          case "depth": tGain.gain.setTargetAtTime(safe(1 - safe(v, 0.5, 0, 1) * 0.5, 0.75, 0, 4), t, TAU);
+                        lfoG.gain.setTargetAtTime(safe(safe(v, 0.5, 0, 1) * 0.5, 0.25, 0, 4), t, TAU); break;
+          default: break;
+        } },
+        dispose() { stopOscs(lfo); disposeNodes(tGain, lfoG); },
+      };
+    });
+    if (fx.bitcrusher?.enabled) install("bitcrusher", (p) => {
+      const ws = ctx.createWaveShaper();
+      ws.curve = makeBitcrushCurve(p.bits || 8);
+      return {
+        inputNode: ws, outputNode: ws,
+        setParam(n, v) { if (n === "bits") ws.curve = makeBitcrushCurve(v); },
+        dispose() { disposeNodes(ws); },
+      };
+    });
+    if (fx.exciter?.enabled) install("exciter", (p) => {
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; setFreq(hp.frequency, p.frequency || 3000);
+      const ws = ctx.createWaveShaper();
+      const buildCurve = (amt) => {
+        const N = 2048; const c = new Float32Array(N); const a = safe(amt, 0, 0, 100) / 100;
+        for (let i = 0; i < N; i++) { const x = (i*2)/N - 1; c[i] = x + a * Math.sin(x * Math.PI); }
+        return c;
+      };
+      ws.curve = buildCurve(p.amount || 0);
+      hp.connect(ws);
+      return {
+        inputNode: hp, outputNode: ws,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "frequency": hp.frequency.setTargetAtTime(safe(v, 3000, 20, 20000), t, TAU); break;
+          case "amount":    ws.curve = buildCurve(v); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(hp, ws); },
+      };
+    });
+    if (fx.tapeSaturation?.enabled) install("tapeSaturation", (p) => {
+      const ws = ctx.createWaveShaper(); ws.oversample = "4x";
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; setFreq(lp.frequency, 12000 - (p.warmth || 0) * 6000);
+      ws.curve = makeTanhCurve(p.drive || 0);
+      ws.connect(lp);
+      return {
+        inputNode: ws, outputNode: lp,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "drive":  ws.curve = makeTanhCurve(v); break;
+          case "warmth": lp.frequency.setTargetAtTime(safe(12000 - safe(v, 0, 0, 1) * 6000, 12000, 20, 20000), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(ws, lp); },
+      };
+    });
+    if (fx.gainUtility?.enabled) install("gainUtility", (p) => {
+      // Phase-invert is a sign flip on the GainNode value (must allow negatives).
+      // Live param updates: ramp magnitude with setTargetAtTime, but a phaseInvert
+      // toggle is a discrete sign change applied via direct .value (clamped via safe).
+      const ug = ctx.createGain();
+      ug.gain.value = safe(Math.pow(10, (p.gain || 0) / 20) * (p.phaseInvert ? -1 : 1), 1, -4, 4);
+      let lastInvert = !!p.phaseInvert;
+      let lastGainDb = p.gain || 0;
+      const recompute = () => {
+        const t = ctx.currentTime;
+        const target = safe(Math.pow(10, lastGainDb / 20) * (lastInvert ? -1 : 1), 1, -4, 4);
+        ug.gain.setTargetAtTime(target, t, TAU);
+      };
+      return {
+        inputNode: ug, outputNode: ug,
+        setParam(n, v) {
+          if (n === "gain") { lastGainDb = safe(v, 0, -60, 24); recompute(); }
+          else if (n === "phaseInvert") { lastInvert = !!v; recompute(); }
+        },
+        dispose() { disposeNodes(ug); },
+      };
+    });
 
     // ── SPX ANALOG COLORING ──
-    if (fx.tapeForge?.enabled) {
-      const drv = fx.tapeForge.drive || 0.5; const sat = fx.tapeForge.saturation || 0.6;
-      const hfl = fx.tapeForge.hfLoss || 0.3;
-      const ws = ctx.createWaveShaper(); const N = 44100; const c = new Float32Array(N);
-      for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = Math.tanh(x*(1+drv*4))/(1+sat*0.5); }
-      ws.curve = c; ws.oversample = "4x";
-      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 18000-(hfl*10000);
-      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 20+(fx.tapeForge.bias||0.5)*30;
-      nodes.push(ws, lp, hp);
-    }
-    if (fx.valveGlow?.enabled) {
-      const warmth = fx.valveGlow.warmth || 0.5; const drive = fx.valveGlow.drive || 0.4;
-      const ws = ctx.createWaveShaper(); const N = 44100; const c = new Float32Array(N);
-      for (let i = 0; i < N; i++) { const x = (i*2)/N-1; const k = drive*10; c[i] = (1+k/2)*x/(1+k*Math.abs(x)); }
-      ws.curve = c; ws.oversample = "2x";
-      const lo = ctx.createBiquadFilter(); lo.type = "lowshelf"; lo.frequency.value = 250; lo.gain.value = warmth*3;
-      nodes.push(lo, ws);
-    }
-    if (fx.ironCore?.enabled) {
-      const sat = fx.ironCore.saturation || 0.5; const punch = fx.ironCore.punch || 0.5;
-      const ws = ctx.createWaveShaper(); const N = 44100; const c = new Float32Array(N);
-      for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = x*Math.pow(1-Math.abs(x)*sat,punch*2); }
-      ws.curve = c; ws.oversample = "4x";
-      const xfmr = ctx.createBiquadFilter(); xfmr.type = "peaking"; xfmr.frequency.value = 80; xfmr.Q.value = 0.5; xfmr.gain.value = punch*4;
-      nodes.push(ws, xfmr);
-    }
-    if (fx.consoleSoul?.enabled) {
-      const color = fx.consoleSoul.color || 0.5; const air = fx.consoleSoul.air || 0.3;
-      const ws = ctx.createWaveShaper(); const N = 44100; const c = new Float32Array(N);
-      for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = Math.tanh(x*(1+color*2))/(1+color*0.3); }
-      ws.curve = c; ws.oversample = "2x";
-      const hi = ctx.createBiquadFilter(); hi.type = "highshelf"; hi.frequency.value = 12000; hi.gain.value = air*4;
-      nodes.push(ws, hi);
-    }
-    if (fx.harmonicExcite?.enabled) {
-      const amt = fx.harmonicExcite.amount || 0.5; const freq = fx.harmonicExcite.frequency || 3000;
-      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = freq;
-      const ws = ctx.createWaveShaper(); const N = 44100; const c = new Float32Array(N);
-      for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = x + amt*0.3*Math.sin(x*Math.PI*2); }
-      ws.curve = c;
-      const g = ctx.createGain(); g.gain.value = amt*0.4;
-      nodes.push(hp, ws, g);
-    }
-    if (fx.vinylPress?.enabled) {
-      const crackle = fx.vinylPress.crackle || 0.1; const warmth = fx.vinylPress.warmth || 0.5;
-      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 14000-(warmth*4000);
-      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 30+(crackle*20);
-      const ws = ctx.createWaveShaper(); const N = 44100; const c = new Float32Array(N);
-      for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = Math.tanh(x*(1+warmth)); }
-      ws.curve = c; nodes.push(ws, lp, hp);
-    }
-    if (fx.loFiCrusher?.enabled) {
-      const bits = fx.loFiCrusher.bits || 8; const steps = Math.pow(2, bits);
-      const ws = ctx.createWaveShaper(); const N = 44100; const c = new Float32Array(N);
-      for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = Math.round(x*steps)/steps; }
-      ws.curve = c;
-      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 8000-(fx.loFiCrusher.downsample||0.5)*4000;
-      nodes.push(ws, lp);
-    }
-    if (fx.vocalSaturator?.enabled) {
-      const amt = fx.vocalSaturator.amount || 0.4; const presence = fx.vocalSaturator.presence || 0.5;
-      const ws = ctx.createWaveShaper(); const N = 44100; const c = new Float32Array(N);
-      for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = (1+amt)*x/(1+amt*Math.abs(x)); }
-      ws.curve = c; ws.oversample = "2x";
-      const pres = ctx.createBiquadFilter(); pres.type = "peaking"; pres.frequency.value = 3500; pres.Q.value = 1.2; pres.gain.value = presence*5;
-      nodes.push(ws, pres);
-    }
-    if (fx.multibandSat?.enabled) {
-      const lo = fx.multibandSat.low || 0.3; const mid = fx.multibandSat.mid || 0.4; const hi = fx.multibandSat.high || 0.2;
-      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 300;
-      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 3000;
-      const ws1 = ctx.createWaveShaper(); const ws2 = ctx.createWaveShaper(); const ws3 = ctx.createWaveShaper();
-      const mk = (a) => { const N=44100; const c=new Float32Array(N); for(let i=0;i<N;i++){const x=(i*2)/N-1; c[i]=Math.tanh(x*(1+a*3));} return c; };
-      ws1.curve = mk(lo); ws2.curve = mk(mid); ws3.curve = mk(hi);
-      nodes.push(lp, ws1, ws2, ws3, hp);
-    }
-    if (fx.cabinetSim?.enabled) {
-      const type = fx.cabinetSim.type || 0;
-      const lo = ctx.createBiquadFilter(); lo.type = "highpass"; lo.frequency.value = 80;
-      const mid = ctx.createBiquadFilter(); mid.type = "peaking"; mid.frequency.value = 800+(type*200); mid.Q.value = 0.8; mid.gain.value = 3;
-      const hi = ctx.createBiquadFilter(); hi.type = "lowpass"; hi.frequency.value = 6000+(type*2000);
-      const body = ctx.createBiquadFilter(); body.type = "peaking"; body.frequency.value = 200; body.Q.value = 1; body.gain.value = 2;
-      nodes.push(lo, body, mid, hi);
-    }
+    if (fx.tapeForge?.enabled) install("tapeForge", (p) => {
+      const ws = ctx.createWaveShaper(); ws.oversample = "4x";
+      const buildCurve = (drv, sat) => {
+        const N = 2048; const c = new Float32Array(N);
+        const dr = safe(drv, 0.5, 0, 1), st = safe(sat, 0.6, 0, 1);
+        for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = Math.tanh(x*(1+dr*4))/(1+st*0.5); }
+        return c;
+      };
+      ws.curve = buildCurve(p.drive ?? 0, p.saturation ?? 0);
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; setFreq(lp.frequency, 18000 - ((p.hfLoss ?? 0) * 10000));
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; setFreq(hp.frequency, 20 + ((p.bias ?? 0.5) * 30));
+      ws.connect(lp); lp.connect(hp);
+      let drv = p.drive ?? 0, sat = p.saturation ?? 0;
+      return {
+        inputNode: ws, outputNode: hp,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "drive":      drv = safe(v, 0.5, 0, 1); ws.curve = buildCurve(drv, sat); break;
+          case "saturation": sat = safe(v, 0.6, 0, 1); ws.curve = buildCurve(drv, sat); break;
+          case "hfLoss":     lp.frequency.setTargetAtTime(safe(18000 - safe(v, 0.3, 0, 1) * 10000, 18000, 20, 20000), t, TAU); break;
+          case "bias":       hp.frequency.setTargetAtTime(safe(20 + safe(v, 0.5, 0, 1) * 30, 20, 20, 20000), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(ws, lp, hp); },
+      };
+    });
+    if (fx.valveGlow?.enabled) install("valveGlow", (p) => {
+      const ws = ctx.createWaveShaper(); ws.oversample = "2x";
+      const buildCurve = (drive) => {
+        const N = 2048; const c = new Float32Array(N); const k = safe(drive, 0.4, 0, 1) * 10;
+        for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = (1+k/2)*x/(1+k*Math.abs(x)); }
+        return c;
+      };
+      ws.curve = buildCurve(p.drive ?? 0);
+      const lo = ctx.createBiquadFilter(); lo.type = "lowshelf"; setFreq(lo.frequency, 250); setGainDb(lo.gain, (p.warmth ?? 0) * 3);
+      lo.connect(ws);
+      return {
+        inputNode: lo, outputNode: ws,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "drive":  ws.curve = buildCurve(v); break;
+          case "warmth": lo.gain.setTargetAtTime(safe(safe(v, 0.5, 0, 1) * 3, 0, -60, 24), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(lo, ws); },
+      };
+    });
+    if (fx.ironCore?.enabled) install("ironCore", (p) => {
+      const ws = ctx.createWaveShaper(); ws.oversample = "4x";
+      // UI param aliases: slewRate→sat, coreSize→punch, dcMag→xfmr.gain,
+      // resonance→xfmr.Q, outputGain→og (new gain stage).
+      const buildCurve = (sat, punch) => {
+        const N = 2048; const c = new Float32Array(N);
+        const s = safe(sat, 0.5, 0, 1), pn = safe(punch, 0.5, 0, 1);
+        for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = x*Math.pow(1-Math.abs(x)*s, pn*2); }
+        return c;
+      };
+      const initSat   = (p.slewRate != null ? p.slewRate : (p.saturation != null ? p.saturation : 0));
+      const initPunch = (p.coreSize != null ? p.coreSize : (p.punch != null ? p.punch : 0));
+      ws.curve = buildCurve(initSat, initPunch);
+      const xfmr = ctx.createBiquadFilter(); xfmr.type = "peaking"; setFreq(xfmr.frequency, 80);
+      setQ(xfmr.Q, 0.5 + safe(p.resonance != null ? p.resonance : 0, 0, 0, 1) * 4);
+      setGainDb(xfmr.gain, safe((p.dcMag != null ? p.dcMag : 0), 0, 0, 1) * 8);
+      const og = ctx.createGain(); setGainLinear(og.gain, Math.pow(10, (p.outputGain || 0) / 20));
+      ws.connect(xfmr); xfmr.connect(og);
+      let sat = initSat, punch = initPunch;
+      return {
+        inputNode: ws, outputNode: og,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "slewRate":
+          case "saturation": sat = safe(v, 0.5, 0, 1); ws.curve = buildCurve(sat, punch); break;
+          case "coreSize":
+          case "punch":      punch = safe(v, 0.5, 0, 1); ws.curve = buildCurve(sat, punch); break;
+          case "dcMag":      xfmr.gain.setTargetAtTime(safe(safe(v, 0.2, 0, 1) * 8, 0, -60, 24), t, TAU); break;
+          case "resonance":  xfmr.Q.setTargetAtTime(safe(0.5 + safe(v, 0.3, 0, 1) * 4, 1, 0.0001, 1000), t, TAU); break;
+          case "outputGain": og.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -60, 24) / 20), 1, 0, 4), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(ws, xfmr, og); },
+      };
+    });
+    if (fx.consoleSoul?.enabled) install("consoleSoul", (p) => {
+      const ws = ctx.createWaveShaper(); ws.oversample = "2x";
+      // UI param aliases: channelColor→color, sumSaturation augments curve sat,
+      // crosstalk→hi.gain (high-shelf air emulating crosstalk artifacts).
+      // noiseFloor, tolerance: no audio node available — accepted as no-ops.
+      const buildCurve = (color, sumSat) => {
+        const N = 2048; const c = new Float32Array(N);
+        const co = safe(color, 0.5, 0, 1), ss = safe(sumSat, 0, 0, 1);
+        const k = 1 + co * 2 + ss * 2;
+        for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = Math.tanh(x*k)/(1+co*0.3+ss*0.2); }
+        return c;
+      };
+      const initColor  = (p.channelColor != null ? p.channelColor : (p.color != null ? p.color : 0));
+      const initSumSat = (p.sumSaturation != null ? p.sumSaturation : 0);
+      ws.curve = buildCurve(initColor, initSumSat);
+      const hi = ctx.createBiquadFilter(); hi.type = "highshelf"; setFreq(hi.frequency, 12000);
+      const initAir = (p.crosstalk != null ? p.crosstalk : (p.air != null ? p.air : 0));
+      setGainDb(hi.gain, safe(initAir, 0, 0, 1) * 4);
+      ws.connect(hi);
+      let curColor = initColor, curSumSat = initSumSat;
+      return {
+        inputNode: ws, outputNode: hi,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "channelColor":
+          case "color":         curColor = safe(v, 0.5, 0, 1); ws.curve = buildCurve(curColor, curSumSat); break;
+          case "sumSaturation": curSumSat = safe(v, 0, 0, 1); ws.curve = buildCurve(curColor, curSumSat); break;
+          case "crosstalk":
+          case "air":           hi.gain.setTargetAtTime(safe(safe(v, 0.3, 0, 1) * 4, 0, -60, 24), t, TAU); break;
+          case "noiseFloor":    /* no noise generator node — accepted no-op */ break;
+          case "tolerance":     /* no component-variance node — accepted no-op */ break;
+          default: break;
+        } },
+        dispose() { disposeNodes(ws, hi); },
+      };
+    });
+    if (fx.harmonicExcite?.enabled) install("harmonicExcite", (p) => {
+      // UI param aliases: freq→frequency, drive+even+odd→ws curve harmonics,
+      // mix→g.gain (UI %→0..1), airBoost→new high-shelf at 10 kHz.
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass";
+      setFreq(hp.frequency, (p.freq != null ? p.freq : (p.frequency != null ? p.frequency : 3000)));
+      const ws = ctx.createWaveShaper();
+      const buildCurve = (drive, even, odd) => {
+        const N = 2048; const c = new Float32Array(N);
+        const d = safe(drive, 0.5, 0, 1), e = safe(even, 0.6, 0, 1), o = safe(odd, 0.3, 0, 1);
+        for (let i = 0; i < N; i++) {
+          const x = (i*2)/N-1;
+          c[i] = x + d * (e * 0.3 * Math.sin(x*Math.PI*2) + o * 0.2 * Math.sin(x*Math.PI*3));
+        }
+        return c;
+      };
+      const initDrive = (p.drive != null ? p.drive : (p.amount != null ? p.amount : 0));
+      const initEven  = (p.even != null ? p.even : 0);
+      const initOdd   = (p.odd != null ? p.odd : 0);
+      ws.curve = buildCurve(initDrive, initEven, initOdd);
+      const air = ctx.createBiquadFilter(); air.type = "highshelf"; setFreq(air.frequency, 10000);
+      setGainDb(air.gain, safe(p.airBoost != null ? p.airBoost : 0, 0, -6, 12));
+      const initMixPct = (p.mix != null ? p.mix : 0);
+      const g = ctx.createGain(); setGainLinear(g.gain, safe(initMixPct / 100, 0, 0, 1));
+      hp.connect(ws); ws.connect(air); air.connect(g);
+      let dr = initDrive, ev = initEven, od = initOdd;
+      return {
+        inputNode: hp, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "freq":
+          case "frequency": hp.frequency.setTargetAtTime(safe(v, 3000, 20, 20000), t, TAU); break;
+          case "drive":     dr = safe(v, 0.5, 0, 1); ws.curve = buildCurve(dr, ev, od); break;
+          case "even":      ev = safe(v, 0.6, 0, 1); ws.curve = buildCurve(dr, ev, od); break;
+          case "odd":       od = safe(v, 0.3, 0, 1); ws.curve = buildCurve(dr, ev, od); break;
+          case "amount":    dr = safe(v, 0.5, 0, 1); ws.curve = buildCurve(dr, ev, od); break;
+          case "airBoost":  air.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          case "mix":       g.gain.setTargetAtTime(safe(safe(v, 30, 0, 100) / 100, 0.3, 0, 1), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(hp, ws, air, g); },
+      };
+    });
+    if (fx.vinylPress?.enabled) install("vinylPress", (p) => {
+      const ws = ctx.createWaveShaper();
+      const buildCurve = (warmth) => {
+        const N = 2048; const c = new Float32Array(N); const w = safe(warmth, 0.5, 0, 1);
+        for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = Math.tanh(x*(1+w)); }
+        return c;
+      };
+      ws.curve = buildCurve(p.warmth || 0);
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; setFreq(lp.frequency, 14000 - ((p.warmth || 0) * 4000));
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; setFreq(hp.frequency, 30 + ((p.crackle || 0) * 20));
+      ws.connect(lp); lp.connect(hp);
+      return {
+        inputNode: ws, outputNode: hp,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "warmth":  ws.curve = buildCurve(v); lp.frequency.setTargetAtTime(safe(14000 - safe(v, 0.5, 0, 1) * 4000, 14000, 20, 20000), t, TAU); break;
+          case "crackle": hp.frequency.setTargetAtTime(safe(30 + safe(v, 0.1, 0, 1) * 20, 30, 20, 20000), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(ws, lp, hp); },
+      };
+    });
+    if (fx.loFiCrusher?.enabled) install("loFiCrusher", (p) => {
+      // UI emits bits, rate (0.1–1), filter (0–1), noise, wobble, mix.
+      // Topology: input → ws (bits) → lp (rate/filter) → out
+      //                                 (LFO modulates lp.frequency for wobble)
+      //           noise generator → noiseGain → out
+      const ws = ctx.createWaveShaper();
+      ws.curve = makeBitcrushCurve(p.bits || 24);
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass";
+      const rateToFreq = (r) => 2000 + safe(r, 1, 0.1, 1) * 18000;
+      const lpInitFreq = rateToFreq(p.rate != null ? p.rate : 1);
+      setFreq(lp.frequency, lpInitFreq);
+      ws.connect(lp);
+
+      // Noise source — short noise buffer, looped.
+      const noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const nd = noiseBuf.getChannelData(0);
+      for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+      const noise = ctx.createBufferSource(); noise.buffer = noiseBuf; noise.loop = true;
+      const noiseGain = ctx.createGain(); noiseGain.gain.value = safe(p.noise != null ? p.noise : 0, 0, 0, 1) * 0.1;
+      noise.connect(noiseGain); noiseGain.connect(lp);
+      try { noise.start(); } catch (e) {}
+
+      // Wobble: LFO oscillator (sine) modulating lp.frequency.
+      const wobLfo = ctx.createOscillator(); wobLfo.type = "sine"; wobLfo.frequency.value = 4; // 4 Hz wobble
+      const wobDepth = ctx.createGain(); wobDepth.gain.value = safe(p.wobble != null ? p.wobble : 0, 0, 0, 1) * lpInitFreq * 0.4;
+      wobLfo.connect(wobDepth); wobDepth.connect(lp.frequency);
+      try { wobLfo.start(); } catch (e) {}
+
+      let curLpBase = lpInitFreq;
+      const updateWobbleDepth = (w) => { wobDepth.gain.setTargetAtTime(safe(w, 0, 0, 1) * curLpBase * 0.4, ctx.currentTime, TAU); };
+
+      return {
+        inputNode: ws, outputNode: lp,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "bits":       ws.curve = makeBitcrushCurve(safe(v, 12, 4, 24)); break;
+          case "rate":       curLpBase = rateToFreq(v); lp.frequency.setTargetAtTime(safe(curLpBase, 12000, 20, 20000), t, TAU); break;
+          case "filter":     curLpBase = 2000 + safe(v, 0.5, 0, 1) * 18000; lp.frequency.setTargetAtTime(safe(curLpBase, 12000, 20, 20000), t, TAU); break;
+          case "downsample": curLpBase = 8000 - safe(v, 0.5, 0, 1) * 4000;  lp.frequency.setTargetAtTime(safe(curLpBase, 8000, 20, 20000), t, TAU); break;
+          case "noise":      noiseGain.gain.setTargetAtTime(safe(v, 0, 0, 1) * 0.1, t, TAU); break;
+          case "wobble":     updateWobbleDepth(v); break;
+          // Phase C: mix needs proper dry/wet split (current chain is wet-only).
+          case "mix": break;
+          default: break;
+        } },
+        dispose() {
+          try { noise.stop(); } catch (e) {}
+          try { wobLfo.stop(); } catch (e) {}
+          disposeNodes(ws, lp, noise, noiseGain, wobLfo, wobDepth);
+        },
+      };
+    });
+    if (fx.vocalSaturator?.enabled) install("vocalSaturator", (p) => {
+      // Topology: input → dry → out, input → ws → warmth(lowshelf) → air(highshelf) → presence → outputGain → wet → out.
+      const inBus = ctx.createGain();
+      const outBus = ctx.createGain();
+      const dry = ctx.createGain();
+      const wet = ctx.createGain();
+      const ws = ctx.createWaveShaper(); ws.oversample = "2x";
+      const buildCurve = (amt) => {
+        const N = 2048; const c = new Float32Array(N); const a = safe(amt, 0.4, 0, 1);
+        for (let i = 0; i < N; i++) { const x = (i*2)/N-1; c[i] = (1+a)*x/(1+a*Math.abs(x)); }
+        return c;
+      };
+      ws.curve = buildCurve((p.amount != null ? p.amount : (p.drive != null ? p.drive : 0)));
+      const warmth = ctx.createBiquadFilter(); warmth.type = "lowshelf"; setFreq(warmth.frequency, 200); setGainDb(warmth.gain, (p.warmth ?? 0) * 6);
+      const air    = ctx.createBiquadFilter(); air.type    = "highshelf"; setFreq(air.frequency, 8000); setGainDb(air.gain, (p.air ?? 0) * 6);
+      const pres = ctx.createBiquadFilter(); pres.type = "peaking"; setFreq(pres.frequency, 3500); setQ(pres.Q, 1.2); setGainDb(pres.gain, (p.presence ?? 0) * 5);
+      const outG = ctx.createGain(); setGainLinear(outG.gain, Math.pow(10, (p.outputGain ?? 0) / 20));
+      const initMix = (p.mix != null) ? safe(p.mix > 1 ? p.mix / 100 : p.mix, 0.5, 0, 1) : 1;
+      setMix(wet.gain, initMix); setMix(dry.gain, 1 - initMix);
+      inBus.connect(dry); dry.connect(outBus);
+      inBus.connect(ws); ws.connect(warmth); warmth.connect(air); air.connect(pres); pres.connect(outG); outG.connect(wet); wet.connect(outBus);
+      return {
+        inputNode: inBus, outputNode: outBus,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "amount":   ws.curve = buildCurve(v); break;
+          case "drive":    ws.curve = buildCurve(safe(v, 0.4, 0, 1)); break;
+          case "presence": pres.gain.setTargetAtTime(safe(safe(v, 0.5, 0, 1) * 5, 0, -60, 24), t, TAU); break;
+          case "warmth":   warmth.gain.setTargetAtTime(safe(safe(v, 0, 0, 1) * 6, 0, -60, 24), t, TAU); break;
+          case "air":      air.gain.setTargetAtTime(safe(safe(v, 0, 0, 1) * 6, 0, -60, 24), t, TAU); break;
+          case "mix": {
+            const m = safe(v > 1 ? v / 100 : v, 0.5, 0, 1);
+            wet.gain.setTargetAtTime(m, t, TAU);
+            dry.gain.setTargetAtTime(1 - m, t, TAU);
+            break;
+          }
+          case "outputGain": outG.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -60, 24) / 20), 1, 0, 4), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(inBus, dry, ws, warmth, air, pres, outG, wet, outBus); },
+      };
+    });
+    if (fx.multibandSat?.enabled) install("multibandSat", (p) => {
+      // Phase C2.1: 4-band parallel saturation. Linkwitz-Riley-style xover via
+      // cascaded biquad LP/HP pairs at xover1/xover2/xover3. Each band drives
+      // its own WaveShaper (tanh curve scaled by drive%), summed back via a
+      // gain bus. UI keys: xover1, xover2, xover3, drive1..drive4, mix.
+      const buildCurve = (a) => {
+        const N = 2048; const c = new Float32Array(N);
+        const k = 1 + safe(a, 0.3, 0, 1) * 9; // 0 → ~unity, 1 → hard clip
+        for (let i = 0; i < N; i++) { const x = (i*2)/N - 1; c[i] = Math.tanh(x * k) / Math.tanh(k); }
+        return c;
+      };
+      const x1 = safe(p.xover1 != null ? p.xover1 : 200,  200,  20, 20000);
+      const x2 = safe(p.xover2 != null ? p.xover2 : 2000, 2000, 20, 20000);
+      const x3 = safe(p.xover3 != null ? p.xover3 : 8000, 8000, 20, 20000);
+      // Input split-bus (single source, fan out to 4 bands).
+      const inBus = ctx.createGain();
+      // Band 1 (sub/low): LP at x1 (cascade 2 LPs for steeper LR-style slope).
+      const b1lp1 = ctx.createBiquadFilter(); b1lp1.type = "lowpass"; setFreq(b1lp1.frequency, x1); setQ(b1lp1.Q, 0.707);
+      const b1lp2 = ctx.createBiquadFilter(); b1lp2.type = "lowpass"; setFreq(b1lp2.frequency, x1); setQ(b1lp2.Q, 0.707);
+      // Band 2 (low-mid): HP at x1, LP at x2.
+      const b2hp1 = ctx.createBiquadFilter(); b2hp1.type = "highpass"; setFreq(b2hp1.frequency, x1); setQ(b2hp1.Q, 0.707);
+      const b2hp2 = ctx.createBiquadFilter(); b2hp2.type = "highpass"; setFreq(b2hp2.frequency, x1); setQ(b2hp2.Q, 0.707);
+      const b2lp1 = ctx.createBiquadFilter(); b2lp1.type = "lowpass"; setFreq(b2lp1.frequency, x2); setQ(b2lp1.Q, 0.707);
+      const b2lp2 = ctx.createBiquadFilter(); b2lp2.type = "lowpass"; setFreq(b2lp2.frequency, x2); setQ(b2lp2.Q, 0.707);
+      // Band 3 (high-mid): HP at x2, LP at x3.
+      const b3hp1 = ctx.createBiquadFilter(); b3hp1.type = "highpass"; setFreq(b3hp1.frequency, x2); setQ(b3hp1.Q, 0.707);
+      const b3hp2 = ctx.createBiquadFilter(); b3hp2.type = "highpass"; setFreq(b3hp2.frequency, x2); setQ(b3hp2.Q, 0.707);
+      const b3lp1 = ctx.createBiquadFilter(); b3lp1.type = "lowpass"; setFreq(b3lp1.frequency, x3); setQ(b3lp1.Q, 0.707);
+      const b3lp2 = ctx.createBiquadFilter(); b3lp2.type = "lowpass"; setFreq(b3lp2.frequency, x3); setQ(b3lp2.Q, 0.707);
+      // Band 4 (air): HP at x3.
+      const b4hp1 = ctx.createBiquadFilter(); b4hp1.type = "highpass"; setFreq(b4hp1.frequency, x3); setQ(b4hp1.Q, 0.707);
+      const b4hp2 = ctx.createBiquadFilter(); b4hp2.type = "highpass"; setFreq(b4hp2.frequency, x3); setQ(b4hp2.Q, 0.707);
+      // Per-band waveshapers.
+      const ws1 = ctx.createWaveShaper(); ws1.oversample = "2x"; ws1.curve = buildCurve(safe(p.drive1 != null ? p.drive1 : 0, 0, 0, 1));
+      const ws2 = ctx.createWaveShaper(); ws2.oversample = "2x"; ws2.curve = buildCurve(safe(p.drive2 != null ? p.drive2 : 0, 0, 0, 1));
+      const ws3 = ctx.createWaveShaper(); ws3.oversample = "2x"; ws3.curve = buildCurve(safe(p.drive3 != null ? p.drive3 : 0, 0, 0, 1));
+      const ws4 = ctx.createWaveShaper(); ws4.oversample = "2x"; ws4.curve = buildCurve(safe(p.drive4 != null ? p.drive4 : 0, 0, 0, 1));
+      // Output sum + dry/wet mix.
+      const wetSum = ctx.createGain(); setGainLinear(wetSum.gain, 0.7); // -3 dB headroom
+      const dry = ctx.createGain(); setGainLinear(dry.gain, 1 - safe(p.mix != null ? p.mix : 0, 0, 0, 1));
+      const wet = ctx.createGain(); setGainLinear(wet.gain, safe(p.mix != null ? p.mix : 0, 0, 0, 1));
+      const out = ctx.createGain();
+      // Wire: inBus fans out to all 4 band chains, plus dry path.
+      inBus.connect(b1lp1); b1lp1.connect(b1lp2); b1lp2.connect(ws1); ws1.connect(wetSum);
+      inBus.connect(b2hp1); b2hp1.connect(b2hp2); b2hp2.connect(b2lp1); b2lp1.connect(b2lp2); b2lp2.connect(ws2); ws2.connect(wetSum);
+      inBus.connect(b3hp1); b3hp1.connect(b3hp2); b3hp2.connect(b3lp1); b3lp1.connect(b3lp2); b3lp2.connect(ws3); ws3.connect(wetSum);
+      inBus.connect(b4hp1); b4hp1.connect(b4hp2); b4hp2.connect(ws4); ws4.connect(wetSum);
+      wetSum.connect(wet); wet.connect(out);
+      inBus.connect(dry); dry.connect(out);
+      return {
+        inputNode: inBus, outputNode: out,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "xover1": {
+            const f = safe(v, 200, 20, 20000);
+            b1lp1.frequency.setTargetAtTime(f, t, TAU); b1lp2.frequency.setTargetAtTime(f, t, TAU);
+            b2hp1.frequency.setTargetAtTime(f, t, TAU); b2hp2.frequency.setTargetAtTime(f, t, TAU);
+            break;
+          }
+          case "xover2": {
+            const f = safe(v, 2000, 20, 20000);
+            b2lp1.frequency.setTargetAtTime(f, t, TAU); b2lp2.frequency.setTargetAtTime(f, t, TAU);
+            b3hp1.frequency.setTargetAtTime(f, t, TAU); b3hp2.frequency.setTargetAtTime(f, t, TAU);
+            break;
+          }
+          case "xover3": {
+            const f = safe(v, 8000, 20, 20000);
+            b3lp1.frequency.setTargetAtTime(f, t, TAU); b3lp2.frequency.setTargetAtTime(f, t, TAU);
+            b4hp1.frequency.setTargetAtTime(f, t, TAU); b4hp2.frequency.setTargetAtTime(f, t, TAU);
+            break;
+          }
+          case "drive1": ws1.curve = buildCurve(safe(v, 0.3, 0, 1)); break;
+          case "drive2": ws2.curve = buildCurve(safe(v, 0.3, 0, 1)); break;
+          case "drive3": ws3.curve = buildCurve(safe(v, 0.2, 0, 1)); break;
+          case "drive4": ws4.curve = buildCurve(safe(v, 0.1, 0, 1)); break;
+          case "mix": {
+            const m = safe(v, 0.5, 0, 1);
+            wet.gain.setTargetAtTime(m, t, TAU);
+            dry.gain.setTargetAtTime(1 - m, t, TAU);
+            break;
+          }
+          // Legacy aliases (back-compat).
+          case "low":  ws1.curve = buildCurve(safe(v, 0.3, 0, 1)); break;
+          case "mid":  ws2.curve = buildCurve(safe(v, 0.3, 0, 1)); break;
+          case "high": ws3.curve = buildCurve(safe(v, 0.2, 0, 1)); break;
+          default: break;
+        } },
+        dispose() {
+          disposeNodes(inBus, b1lp1, b1lp2, b2hp1, b2hp2, b2lp1, b2lp2,
+            b3hp1, b3hp2, b3lp1, b3lp2, b4hp1, b4hp2, ws1, ws2, ws3, ws4,
+            wetSum, dry, wet, out);
+        },
+      };
+    });
+    if (fx.cabinetSim?.enabled) install("cabinetSim", (p) => {
+      // True cabinet sim needs convolution / IRs. We approximate with a
+      // shaped HP+peak+peak+LP. UI knobs:
+      //   cabinet (0–5 button) → varies mid center + LP cutoff (different cabs sound different)
+      //   distance (0–1) → darkens LP (more distance = less HF)
+      //   angle (0–90°) → off-axis cut on mid presence
+      //   mic, mix — Phase C (mic needs separate presence node; mix needs dry/wet split).
+      const cabToMidF = (c) => 800 + safe(c, 0, 0, 5) * 200;
+      const cabToHiF  = (c) => 6000 + safe(c, 0, 0, 5) * 2000;
+      const distToHi  = (d) => -safe(d, 0, 0, 1) * 2000; // up to 2k cut at full distance
+      const angleToMidGain = (a) => 3 - safe(a, 0, 0, 90) / 30; // 3 dB at 0°, 0 dB at 90°
+      const initCab = p.cabinet != null ? p.cabinet : 0;
+      const initDist = p.distance != null ? p.distance : 0;
+      const initAng = p.angle != null ? p.angle : 0;
+      const lo = ctx.createBiquadFilter(); lo.type = "highpass"; setFreq(lo.frequency, 80);
+      const body = ctx.createBiquadFilter(); body.type = "peaking"; setFreq(body.frequency, 200); setQ(body.Q, 1); setGainDb(body.gain, 2);
+      const mid = ctx.createBiquadFilter(); mid.type = "peaking"; setFreq(mid.frequency, cabToMidF(initCab)); setQ(mid.Q, 0.8); setGainDb(mid.gain, angleToMidGain(initAng));
+      const hi = ctx.createBiquadFilter(); hi.type = "lowpass"; setFreq(hi.frequency, cabToHiF(initCab) + distToHi(initDist));
+      lo.connect(body); body.connect(mid); mid.connect(hi);
+      // Track current cabinet so distance/angle can recompute against it.
+      let curCab = safe(initCab, 0, 0, 5);
+      let curDist = safe(initDist, 0.5, 0, 1);
+      return {
+        inputNode: lo, outputNode: hi,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "cabinet": {
+            curCab = safe(v, 0, 0, 5);
+            mid.frequency.setTargetAtTime(safe(cabToMidF(curCab), 800, 20, 20000), t, TAU);
+            hi.frequency.setTargetAtTime(safe(cabToHiF(curCab) + distToHi(curDist), 6000, 20, 20000), t, TAU);
+            break;
+          }
+          case "distance": {
+            curDist = safe(v, 0, 0, 1);
+            hi.frequency.setTargetAtTime(safe(cabToHiF(curCab) + distToHi(curDist), 6000, 20, 20000), t, TAU);
+            break;
+          }
+          case "angle":
+            mid.gain.setTargetAtTime(safe(angleToMidGain(v), 0, -60, 24), t, TAU);
+            break;
+          case "type": {
+            // Legacy alias — UI never sends, but kept for back-compat.
+            const ty = safe(v, 0, 0, 10);
+            mid.frequency.setTargetAtTime(safe(800 + ty * 200, 800, 20, 20000), t, TAU);
+            hi.frequency.setTargetAtTime(safe(6000 + ty * 2000, 6000, 20, 20000), t, TAU);
+            break;
+          }
+          // Phase C: mic (needs additional mic-emulation peak node), mix (dry/wet split).
+          case "mic": case "mix": break;
+          default: break;
+        } },
+        dispose() { disposeNodes(lo, body, mid, hi); },
+      };
+    });
 
     // ── SPX DYNAMICS ──
-    if (fx.warmPress?.enabled) {
+    if (fx.warmPress?.enabled) install("warmPress", (p) => {
+      // Phase F4-A.5 Batch 4: model selector now swaps engine, plus parallel dry/wet mix.
+      // Topology:
+      //   in (split) → comp (DynComp) → ws (WaveShaper, model-dependent) → makeup (mk)
+      //                                                                  ╲
+      //                                                                   wetGain ─╮
+      //   in ──────────────────────────────────────── dryGain ──────────────────────┤── out
+      //
+      // model:
+      //   "optical": knee=12, attack=20 ms, release=300 ms, soft tanh sat (k=1.3)
+      //   "vca":     knee=2,  attack=1 ms,  release=80 ms,  no sat (clean curve y=x)
+      //   "vari-mu": knee=15, attack=30 ms, release=400 ms, asym tanh sat (even harmonics)
+      //
+      // mix (0..100): 100 → wet only; 0 → dry only. Implemented as crossfade between
+      // input (dry) and post-makeup wet path via two summing GainNodes.
+      const inNode  = ctx.createGain(); setGainLinear(inNode.gain, 1);
+      const outNode = ctx.createGain(); setGainLinear(outNode.gain, 1);
+      const c  = ctx.createDynamicsCompressor();
+      const ws = ctx.createWaveShaper(); ws.oversample = "2x";
+      const mk = ctx.createGain();
+      setGainLinear(mk.gain, Math.pow(10, safe(p.makeupGain != null ? p.makeupGain : (p.makeup != null ? p.makeup : 0), 0, -60, 24) / 20));
+      const wetGain = ctx.createGain();
+      const dryGain = ctx.createGain();
+
+      // Curve builders for each model.
+      const N = 2048;
+      const buildOpticalCurve = () => {
+        const cv = new Float32Array(N);
+        for (let i = 0; i < N; i++) { const x = (i*2)/N-1; cv[i] = Math.tanh(x*1.3); }
+        return cv;
+      };
+      const buildVcaCurve = () => {
+        // Linear identity — no saturation for clean VCA character.
+        const cv = new Float32Array(N);
+        for (let i = 0; i < N; i++) { const x = (i*2)/N-1; cv[i] = x; }
+        return cv;
+      };
+      const buildVariMuCurve = () => {
+        // Asymmetric tanh — even harmonics, like tubeComp.
+        const cv = new Float32Array(N);
+        const k = 1.5;
+        for (let i = 0; i < N; i++) {
+          const x = (i*2)/N - 1;
+          const xk = x * k;
+          let y = Math.tanh(xk) + 0.1 * Math.tanh(xk * xk) * Math.sign(x);
+          if (y > 1) y = 1; if (y < -1) y = -1;
+          cv[i] = y;
+        }
+        return cv;
+      };
+
+      // Apply mode: updates DynComp ballistics + WaveShaper curve.
+      const setMode = (modeName) => {
+        const t = ctx.currentTime;
+        switch (modeName) {
+          case "vca":
+            c.knee.setTargetAtTime(2, t, TAU);
+            c.attack.setTargetAtTime(safe(0.001, 0.001, 0, 1), t, TAU);
+            c.release.setTargetAtTime(safe(0.080, 0.08, 0, 1), t, TAU);
+            ws.curve = buildVcaCurve();
+            break;
+          case "vari-mu":
+            c.knee.setTargetAtTime(15, t, TAU);
+            c.attack.setTargetAtTime(safe(0.030, 0.03, 0, 1), t, TAU);
+            c.release.setTargetAtTime(safe(0.400, 0.4, 0, 1), t, TAU);
+            ws.curve = buildVariMuCurve();
+            break;
+          case "optical":
+          default:
+            c.knee.setTargetAtTime(12, t, TAU);
+            c.attack.setTargetAtTime(safe(0.020, 0.02, 0, 1), t, TAU);
+            c.release.setTargetAtTime(safe(0.300, 0.3, 0, 1), t, TAU);
+            ws.curve = buildOpticalCurve();
+            break;
+        }
+      };
+
+      // Initialise threshold/ratio/knee from params, then apply mode (overrides knee/attack/release).
+      setCompThresh(c.threshold, p.threshold != null ? p.threshold : -10);
+      setCompRatio(c.ratio, p.ratio != null ? p.ratio : 2);
+      // attack/release/knee defaults written below by setMode; if user-provided params exist,
+      // they win after setMode applies the mode preset.
+      setCompKnee(c.knee, p.knee != null ? p.knee : 6);
+      setCompAttack(c.attack, (p.attack != null ? p.attack : 10) / 1000);
+      setCompRelease(c.release, (p.release != null ? p.release : 100) / 1000);
+      const initModel = (typeof p.model === "string" && p.model) ? p.model : "optical";
+      setMode(initModel);
+      // Re-apply user attack/release after mode preset if user supplied explicit values.
+      if (p.attack != null) c.attack.value = safe(p.attack / 1000, 0.01, 0, 1);
+      if (p.release != null) c.release.value = safe(p.release / 1000, 0.1, 0, 1);
+
+      // Mix init.
+      const initMix = safe((p.mix != null ? p.mix : 100) / 100, 1, 0, 1);
+      setGainLinear(wetGain.gain, initMix);
+      setGainLinear(dryGain.gain, 1 - initMix);
+
+      // Wire: dry path inNode → dryGain → outNode; wet path inNode → c → ws → mk → wetGain → outNode.
+      inNode.connect(c); c.connect(ws); ws.connect(mk); mk.connect(wetGain); wetGain.connect(outNode);
+      inNode.connect(dryGain); dryGain.connect(outNode);
+
+      return {
+        inputNode: inNode, outputNode: outNode,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "threshold": c.threshold.setTargetAtTime(safe(v, -18, -100, 0), t, TAU); break;
+          case "ratio":     c.ratio.setTargetAtTime(safe(v, 3, 1, 20), t, TAU); break;
+          case "attack":    c.attack.setTargetAtTime(safe((v != null ? v : 10) / 1000, 0.01, 0, 1), t, TAU); break;
+          case "release":   c.release.setTargetAtTime(safe((v != null ? v : 100) / 1000, 0.1, 0, 1), t, TAU); break;
+          case "knee":      c.knee.setTargetAtTime(safe(v, 6, 0, 40), t, TAU); break;
+          case "makeup":
+          case "makeupGain": mk.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -60, 24) / 20), 1, 0, 16), t, TAU); break;
+          case "model":     setMode(typeof v === "string" ? v : "optical"); break;
+          case "mix": {
+            const m = safe((v != null ? v : 100) / 100, 1, 0, 1);
+            wetGain.gain.setTargetAtTime(m, t, TAU);
+            dryGain.gain.setTargetAtTime(1 - m, t, TAU);
+            break;
+          }
+          default: break;
+        } },
+        dispose() { disposeNodes(inNode, c, ws, mk, wetGain, dryGain, outNode); },
+      };
+    });
+    if (fx.glueBus?.enabled) install("glueBus", (p) => {
+      // SSL G-Bus character:
+      //   in → 1ms lookahead delay → DynComp(knee:6) → +0.5 dB peaking @ 12 kHz → makeup → out
+      // - 1ms delay slightly anticipates transients (subtle slew-rate "softening").
+      // - 12 kHz peaking (Q=1, +0.5 dB) is the always-on "air" lift after compression.
+      // - autoGain: when true, makeup is recomputed from threshold movement
+      //     extraDb = -threshold/10 * 0.5  (gives +0.5 dB per -10 dB threshold drop)
+      //   The user's manual `makeupGain` knob is summed on top.
+      const lookahead = ctx.createDelay(0.005);
+      lookahead.delayTime.value = 0.001;
       const c = ctx.createDynamicsCompressor();
-      c.threshold.value = fx.warmPress.threshold || -18; c.ratio.value = fx.warmPress.ratio || 3;
-      c.attack.value = (fx.warmPress.attack || 30)/1000; c.release.value = (fx.warmPress.release || 150)/1000; c.knee.value = 12;
-      const ws = ctx.createWaveShaper(); const N=44100; const cv=new Float32Array(N);
-      for(let i=0;i<N;i++){const x=(i*2)/N-1; cv[i]=Math.tanh(x*1.3);}
-      ws.curve = cv; ws.oversample = "2x";
-      nodes.push(c, ws);
-    }
-    if (fx.glueBus?.enabled) {
+      const initThresh = (p.threshold != null ? p.threshold : -10);
+      setCompThresh(c.threshold, initThresh);
+      setCompRatio(c.ratio, p.ratio != null ? p.ratio : 2);
+      setCompAttack(c.attack, (p.attack != null ? p.attack : 10) / 1000);
+      setCompRelease(c.release, (p.release != null ? p.release : 100) / 1000);
+      setCompKnee(c.knee, 6);
+      const air = ctx.createBiquadFilter();
+      air.type = "peaking"; setFreq(air.frequency, 12000); setQ(air.Q, 1); setGainDb(air.gain, 0.5);
+      const g = ctx.createGain();
+      // Track autoGain state and last threshold so we can recompute makeup on changes.
+      let autoGain = !!(p.autoGain != null ? p.autoGain : true);
+      let lastThresh = initThresh;
+      let baseMakeupDb = (p.makeupGain != null ? p.makeupGain : (p.makeup != null ? p.makeup : 0));
+      const computeMakeupLinear = () => {
+        const auto = autoGain ? (-lastThresh / 10) * 0.5 : 0;
+        const totalDb = baseMakeupDb + auto;
+        return Math.pow(10, safe(totalDb, 0, -60, 24) / 20);
+      };
+      setGainLinear(g.gain, computeMakeupLinear());
+      lookahead.connect(c); c.connect(air); air.connect(g);
+      return {
+        inputNode: lookahead, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "threshold":
+            lastThresh = safe(v, -12, -100, 0);
+            c.threshold.setTargetAtTime(lastThresh, t, TAU);
+            // If autoGain is on, recompute makeup so loudness stays roughly matched.
+            if (autoGain) g.gain.setTargetAtTime(computeMakeupLinear(), t, TAU);
+            break;
+          case "ratio":     c.ratio.setTargetAtTime(safe(v, 4, 1, 20), t, TAU); break;
+          case "attack":    c.attack.setTargetAtTime(safe((v || 10) / 1000, 0.01, 0, 1), t, TAU); break;
+          case "release":   c.release.setTargetAtTime(safe((v || 100) / 1000, 0.1, 0, 1), t, TAU); break;
+          case "makeup":
+          case "makeupGain":
+            baseMakeupDb = safe(v, 0, -60, 24);
+            g.gain.setTargetAtTime(computeMakeupLinear(), t, TAU);
+            break;
+          case "autoGain":
+            autoGain = !!v;
+            g.gain.setTargetAtTime(computeMakeupLinear(), t, TAU);
+            break;
+          default: break;
+        } },
+        dispose() { disposeNodes(lookahead, c, air, g); },
+      };
+    });
+    if (fx.fetStrike?.enabled) install("fetStrike", (p) => {
+      // 1176-style FET: DynComp(hard knee) → WaveShaper(FET curve) → makeup
+      // FET curve replicates PluginHost's createFETCompPlugin character.
       const c = ctx.createDynamicsCompressor();
-      c.threshold.value = fx.glueBus.threshold || -12; c.ratio.value = fx.glueBus.ratio || 4;
-      c.attack.value = (fx.glueBus.attack || 10)/1000; c.release.value = (fx.glueBus.release || 100)/1000; c.knee.value = 6;
-      const g = ctx.createGain(); g.gain.value = Math.pow(10,(fx.glueBus.makeup||2)/20);
-      nodes.push(c, g);
-    }
-    if (fx.fetStrike?.enabled) {
+      setCompThresh(c.threshold, p.threshold != null ? p.threshold : -10);
+      setCompRatio(c.ratio, p.ratio != null ? p.ratio : 2);
+      setCompAttack(c.attack, (p.attack != null ? p.attack : 10) / 1000);
+      setCompRelease(c.release, (p.release != null ? p.release : 100) / 1000);
+      setCompKnee(c.knee, 2); // hard knee — FET character
+      const ws = ctx.createWaveShaper(); ws.oversample = "2x";
+      const buildFETCurve = (drive) => {
+        const N = 2048; const cv = new Float32Array(N);
+        const k = 1 + safe(drive, 0, 0, 1) * 4;
+        for (let i = 0; i < N; i++) {
+          const x = (i*2)/N - 1;
+          cv[i] = ((Math.PI + 2) * x) / (Math.PI + k * Math.abs(x));
+        }
+        return cv;
+      };
+      // Track saturation/allButton state so allButtonRatio can boost saturation dynamically.
+      let satState = safe(p.saturation != null ? p.saturation : 0, 0, 0, 1);
+      let allButton = !!p.allButtonRatio;
+      ws.curve = buildFETCurve(allButton ? Math.min(1, satState + 0.3) : satState);
+      const g = ctx.createGain(); setGainLinear(g.gain, Math.pow(10, (p.makeup || 0) / 20));
+      // If init has allButtonRatio, lock ratio to 20.
+      if (allButton) c.ratio.value = 20;
+      c.connect(ws); ws.connect(g);
+      return {
+        inputNode: c, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "threshold": c.threshold.setTargetAtTime(safe(v, -15, -100, 0), t, TAU); break;
+          case "ratio":
+            // If allButton is engaged, ratio is locked to 20 and ignores knob.
+            if (!allButton) c.ratio.setTargetAtTime(safe(v, 6, 1, 20), t, TAU);
+            break;
+          case "attack":    c.attack.setTargetAtTime(safe((v || 1) / 1000, 0.001, 0, 1), t, TAU); break;
+          case "release":   c.release.setTargetAtTime(safe((v || 50) / 1000, 0.05, 0, 1), t, TAU); break;
+          case "makeup":    g.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 4, -60, 24) / 20), 1, 0, 4), t, TAU); break;
+          case "saturation": {
+            satState = safe(v, 0, 0, 1);
+            const eff = allButton ? Math.min(1, satState + 0.3) : satState;
+            ws.curve = buildFETCurve(eff);
+            break;
+          }
+          case "allButtonRatio": {
+            allButton = !!v;
+            if (allButton) {
+              c.ratio.setTargetAtTime(20, t, TAU);
+              ws.curve = buildFETCurve(Math.min(1, satState + 0.3));
+            } else {
+              // Restore base saturation curve; ratio stays where it is until next ratio change.
+              ws.curve = buildFETCurve(satState);
+            }
+            break;
+          }
+          default: break;
+        } },
+        dispose() { disposeNodes(c, ws, g); },
+      };
+    });
+    if (fx.optoPress?.enabled) install("optoPress", (p) => {
+      // LA-2A character: HF pre-emph → transformer pre-sat → DynComp(soft knee, slow attack/release)
+      //                  → tube post-sat → makeup → output gain.
+      // Program-dependent release: AnalyserNode polled at 30 Hz tracks an envelope and modulates
+      // c.release between fast (~150 ms) on transients and slow (~600 ms) on sustained signals.
+      // UI aliases: peakReduction → c.threshold, gainControl → mk gain, hfEmphasis → hf,
+      // tubeSaturation → ws (post), outputGain → og.
+      const hf = ctx.createBiquadFilter(); hf.type = "highshelf"; setFreq(hf.frequency, 5000);
+      setGainDb(hf.gain, safe(p.hfEmphasis != null ? p.hfEmphasis : 0, 0, 0, 1) * 6);
+      // Transformer saturation pre-stage: gentle warmth via tanh(x * 1.2).
+      const xfmr = ctx.createWaveShaper(); xfmr.oversample = "2x";
+      {
+        const N = 1024; const cv = new Float32Array(N);
+        for (let i = 0; i < N; i++) { const x = (i*2)/N - 1; cv[i] = Math.tanh(x * 1.2); }
+        xfmr.curve = cv;
+      }
       const c = ctx.createDynamicsCompressor();
-      c.threshold.value = fx.fetStrike.threshold || -15; c.ratio.value = fx.fetStrike.ratio || 6;
-      c.attack.value = (fx.fetStrike.attack || 1)/1000; c.release.value = (fx.fetStrike.release || 50)/1000; c.knee.value = 2;
-      const g = ctx.createGain(); g.gain.value = Math.pow(10,(fx.fetStrike.makeup||4)/20);
-      nodes.push(c, g);
-    }
-    if (fx.optoPress?.enabled) {
+      const initThresh = (p.peakReduction != null
+        ? -safe(p.peakReduction, 17, 0, 100) * 0.6
+        : (p.threshold != null ? p.threshold : -10));
+      setCompThresh(c.threshold, initThresh);
+      setCompRatio(c.ratio, p.ratio || 2);
+      // Slightly slower attack baseline for opto VOX color (150 µs floor).
+      setCompAttack(c.attack, (p.attack != null ? p.attack : 50) / 1000);
+      // Base release — program-dependent envelope tracker will modulate this.
+      setCompRelease(c.release, (p.release != null ? p.release : 300) / 1000);
+      setCompKnee(c.knee, 15);
+      const ws = ctx.createWaveShaper(); ws.oversample = "2x";
+      const buildSatCurve = (sat) => {
+        const N = 1024; const cv = new Float32Array(N); const s = safe(sat, 0.4, 0, 1);
+        const k = 1 + s * 3;
+        for (let i = 0; i < N; i++) { const x = (i*2)/N-1; cv[i] = Math.tanh(x*k)/Math.tanh(k); }
+        return cv;
+      };
+      ws.curve = buildSatCurve(p.tubeSaturation != null ? p.tubeSaturation : 0);
+      const mk = ctx.createGain();
+      setGainLinear(mk.gain, Math.pow(10, safe(p.gainControl != null ? p.gainControl : 0, 0, 0, 40) / 20));
+      const og = ctx.createGain();
+      setGainLinear(og.gain, Math.pow(10, (p.outputGain || 0) / 20));
+      // Program-dependent release tracker.
+      const an = ctx.createAnalyser(); an.fftSize = 256; an.smoothingTimeConstant = 0.85;
+      const buf = new Uint8Array(an.fftSize);
+      let envEMA = 0;       // long-term moving average of |x|
+      const emaAlpha = 0.15; // smoothing for envelope
+      const minRelease = 0.15; // 150 ms — fast (transients)
+      const maxRelease = 0.60; // 600 ms — slow (sustained)
+      let releaseTimer = null;
+      try {
+        releaseTimer = setInterval(() => {
+          try {
+            an.getByteTimeDomainData(buf);
+            // Compute RMS-ish magnitude around 128 (zero).
+            let acc = 0;
+            for (let i = 0; i < buf.length; i++) {
+              const x = (buf[i] - 128) / 128;
+              acc += x * x;
+            }
+            const rms = Math.sqrt(acc / buf.length); // 0..~1
+            envEMA = envEMA * (1 - emaAlpha) + rms * emaAlpha;
+            // Map envEMA (≈0..0.5) to release time.
+            // Sustained signal → high envEMA → longer release.
+            const rel = minRelease + (maxRelease - minRelease) * Math.min(1, envEMA * 4);
+            c.release.setTargetAtTime(rel, ctx.currentTime, 0.05);
+          } catch (e) { /* noop */ }
+        }, 33); // ~30 Hz
+      } catch (e) { /* environment may not support setInterval — fall back to fixed release */ }
+      // Topology: hf → xfmr → c → ws → mk → og.
+      // Tap analyser off the post-comp signal so envelope reflects compressed level.
+      hf.connect(xfmr); xfmr.connect(c); c.connect(ws); ws.connect(mk); mk.connect(og);
+      c.connect(an); // analyser is a sink, doesn't affect audio path.
+      return {
+        inputNode: hf, outputNode: og,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "peakReduction": c.threshold.setTargetAtTime(safe(-safe(v, 50, 0, 100) * 0.6, -30, -100, 0), t, TAU); break;
+          case "threshold":     c.threshold.setTargetAtTime(safe(v, -20, -100, 0), t, TAU); break;
+          case "ratio":         c.ratio.setTargetAtTime(safe(v, 3, 1, 20), t, TAU); break;
+          case "attack":        c.attack.setTargetAtTime(safe((v || 50) / 1000, 0.05, 0, 1), t, TAU); break;
+          // Note: release is auto-modulated by the program-dependent tracker; setting it
+          // here defines the *base* but the tracker will continue to override every 33 ms.
+          case "release":       c.release.setTargetAtTime(safe((v || 300) / 1000, 0.3, 0, 1), t, TAU); break;
+          case "hfEmphasis":    hf.gain.setTargetAtTime(safe(safe(v, 0, 0, 1) * 6, 0, -60, 24), t, TAU); break;
+          case "tubeSaturation":ws.curve = buildSatCurve(v); break;
+          case "gainControl":   mk.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, 0, 40) / 20), 1, 0, 100), t, TAU); break;
+          case "outputGain":    og.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -60, 24) / 20), 1, 0, 4), t, TAU); break;
+          default: break;
+        } },
+        dispose() {
+          if (releaseTimer != null) { try { clearInterval(releaseTimer); } catch (e) { /* noop */ } }
+          disposeNodes(hf, xfmr, c, ws, mk, og, an);
+        },
+      };
+    });
+    if (fx.parallelCrush?.enabled) install("parallelCrush", (p) => {
+      // Phase C2.3 rebuild: proper parallel routing.
+      //   in → dryGain → output
+      //   in → comp (heavy) → WaveShaper (crush curve) → wetGain → output
+      // mix (0..100 %) crossfades dry vs wet; wetGain/dryGain are dB trims.
+      const inNode  = ctx.createGain(); setGainLinear(inNode.gain, 1);
+      const outNode = ctx.createGain(); setGainLinear(outNode.gain, 1);
+      const comp = ctx.createDynamicsCompressor();
+      setCompThresh(comp.threshold, p.threshold != null ? p.threshold : -10);
+      setCompRatio(comp.ratio, p.ratio != null ? p.ratio : 2);
+      setCompAttack(comp.attack, safe((p.attack != null ? p.attack : 10) / 1000, 0.01, 0, 1));
+      setCompRelease(comp.release, safe((p.release != null ? p.release : 100) / 1000, 0.1, 0, 1));
+      setCompKnee(comp.knee, 2);
+      const ws = ctx.createWaveShaper();
+      const N = 2048;
+      const buildCrushCurve = (amt) => {
+        const c = new Float32Array(N);
+        const k = 1 + safe(amt, 0.7, 0, 1) * 30;
+        for (let i = 0; i < N; i++) {
+          const x = (i * 2) / N - 1;
+          // tanh + asymmetric clip → aggressive crush
+          let y = Math.tanh(x * k) * 0.8 + Math.sign(x) * 0.2 * Math.min(1, Math.abs(x) * k);
+          if (y > 1) y = 1; if (y < -1) y = -1;
+          c[i] = y;
+        }
+        return c;
+      };
+      ws.curve = buildCrushCurve(p.crush != null ? p.crush : 0);
+      ws.oversample = '2x';
+      const wetGain = ctx.createGain();
+      const dryGain = ctx.createGain();
+      const wetTrim = ctx.createGain(); // wetGain knob (dB)
+      const dryTrim = ctx.createGain(); // dryGain knob (dB)
+      setGainLinear(wetTrim.gain, Math.pow(10, safe(p.wetGain != null ? p.wetGain : 0, 0, -12, 12) / 20));
+      setGainLinear(dryTrim.gain, Math.pow(10, safe(p.dryGain != null ? p.dryGain : 0, 0, -12, 12) / 20));
+      const initMix = safe((p.mix != null ? p.mix : 100) / 100, 1, 0, 1);
+      setGainLinear(wetGain.gain, initMix);
+      setGainLinear(dryGain.gain, 1 - initMix);
+      // Wet path
+      inNode.connect(comp); comp.connect(ws); ws.connect(wetTrim); wetTrim.connect(wetGain); wetGain.connect(outNode);
+      // Dry path
+      inNode.connect(dryTrim); dryTrim.connect(dryGain); dryGain.connect(outNode);
+      return {
+        inputNode: inNode, outputNode: outNode,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "threshold": comp.threshold.setTargetAtTime(safe(v, -25, -100, 0), t, TAU); break;
+          case "ratio":     comp.ratio.setTargetAtTime(safe(v, 10, 1, 20), t, TAU); break;
+          case "attack":    comp.attack.setTargetAtTime(safe((v || 5) / 1000, 0.005, 0, 1), t, TAU); break;
+          case "release":   comp.release.setTargetAtTime(safe((v || 80) / 1000, 0.08, 0, 1), t, TAU); break;
+          case "crush":     ws.curve = buildCrushCurve(v); break;
+          case "wetGain":   wetTrim.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -12, 12) / 20), 1, 0, 4), t, TAU); break;
+          case "dryGain":   dryTrim.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -12, 12) / 20), 1, 0, 4), t, TAU); break;
+          case "mix": {
+            const m = safe((v != null ? v : 50) / 100, 0.5, 0, 1);
+            wetGain.gain.setTargetAtTime(m, t, TAU);
+            dryGain.gain.setTargetAtTime(1 - m, t, TAU);
+            break;
+          }
+          default: break;
+        } },
+        dispose() { disposeNodes(inNode, comp, ws, wetTrim, dryTrim, wetGain, dryGain, outNode); },
+      };
+    });
+    if (fx.tubeComp?.enabled) install("tubeComp", (p) => {
+      // Tube-style compressor — port of PluginHost createTubeCompPlugin with
+      // even-harmonic asymmetric tanh saturation (2nd-harmonic "tube" color, vs
+      // the 3rd-harmonic FET curve in fetStrike).
+      // Topology:
+      //   in → DynComp(very soft knee 12) → tube WaveShaper (asym tanh, 4× OS)
+      //      → 200 Hz lowshelf (warmth) → makeup Gain → out
+      // Slow release (300 ms default) for smooth sustained character.
+      // NOTE: stereoLink is UI-only / informational — Web Audio's
+      // DynamicsCompressorNode is already a single-instance summed-side detector
+      // (effectively linked) when fed a stereo signal. Toggle is preserved in
+      // PLUGIN_DEFAULTS but does not alter inline DSP.
       const c = ctx.createDynamicsCompressor();
-      c.threshold.value = fx.optoPress.threshold || -20; c.ratio.value = fx.optoPress.ratio || 3;
-      c.attack.value = (fx.optoPress.attack || 50)/1000; c.release.value = (fx.optoPress.release || 300)/1000; c.knee.value = 15;
-      nodes.push(c);
+      setCompThresh(c.threshold, p.threshold != null ? p.threshold : -14);
+      setCompRatio(c.ratio, p.ratio != null ? p.ratio : 3);
+      setCompAttack(c.attack, (p.attack != null ? p.attack : 20) / 1000);
+      setCompRelease(c.release, (p.release != null ? p.release : 300) / 1000);
+      setCompKnee(c.knee, 12); // very soft knee — tube character
+      const ws = ctx.createWaveShaper(); ws.oversample = "4x";
+      const buildTubeCurve = (drive) => {
+        const N = 2048; const cv = new Float32Array(N);
+        const d = safe(drive, 0.4, 0, 1);
+        const k = 1 + d * 4;
+        for (let i = 0; i < N; i++) {
+          const x = (i*2)/N - 1;
+          const xk = x * k;
+          // Asymmetric tanh: primary tanh + 0.1 * tanh(xk^2) * sign(x)
+          // injects 2nd-harmonic content for tube color.
+          let y = Math.tanh(xk) + 0.1 * Math.tanh(xk * xk) * Math.sign(x);
+          if (y > 1) y = 1; if (y < -1) y = -1;
+          cv[i] = y;
+        }
+        return cv;
+      };
+      ws.curve = buildTubeCurve(p.drive != null ? p.drive : 0.4);
+      const warmth = ctx.createBiquadFilter();
+      warmth.type = "lowshelf"; setFreq(warmth.frequency, 200);
+      // Map warmth knob (0..1) to ~0..6 dB lift for body without mud.
+      setGainDb(warmth.gain, safe(p.warmth != null ? p.warmth : 0.5, 0.5, 0, 1) * 6);
+      const mk = ctx.createGain();
+      setGainLinear(mk.gain, Math.pow(10, safe(p.makeup != null ? p.makeup : 0, 0, -60, 24) / 20));
+      c.connect(ws); ws.connect(warmth); warmth.connect(mk);
+      return {
+        inputNode: c, outputNode: mk,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "threshold":  c.threshold.setTargetAtTime(safe(v, -14, -100, 0), t, TAU); break;
+          case "ratio":      c.ratio.setTargetAtTime(safe(v, 3, 1, 20), t, TAU); break;
+          case "attack":     c.attack.setTargetAtTime(safe((v != null ? v : 20) / 1000, 0.02, 0, 1), t, TAU); break;
+          case "release":    c.release.setTargetAtTime(safe((v != null ? v : 300) / 1000, 0.3, 0, 1), t, TAU); break;
+          case "drive":      ws.curve = buildTubeCurve(v); break;
+          case "warmth":     warmth.gain.setTargetAtTime(safe(safe(v, 0.5, 0, 1) * 6, 3, -24, 24), t, TAU); break;
+          case "makeup":     mk.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -60, 24) / 20), 1, 0, 16), t, TAU); break;
+          case "stereoLink": /* UI-only — see comment above */ break;
+          default: break;
+        } },
+        dispose() { disposeNodes(c, ws, warmth, mk); },
+      };
+    });
+    if (fx.vocalComp?.enabled) install("vocalComp", (p) => {
+      // Vocal-focused compressor with tilt EQ pre, simplified de-esser, main DynComp,
+      // presence boost, and parallel dry/wet mix.
+      //
+      // Topology:
+      //   in (split) → tiltHpf (low cut HPF ~80 Hz)
+      //              → airShelf (high shelf @ 12 kHz, gain ∝ air * 8 dB)
+      //              → deEss (peaking @ 7 kHz, Q=3, gain = -deEss * 8 dB) [FALLBACK — see notes]
+      //              → mainComp (DynComp, vocal-tuned)
+      //              → presence (peaking @ 3 kHz, Q=1, gain = presence * 6 dB)
+      //              → wetGain ─╮
+      //   in ────────── dryGain ┤── outNode
+      //
+      // FALLBACK NOTE: True frequency-selective de-essing requires a sidechain into
+      // DynamicsCompressorNode, which Web Audio's standard node does not expose. We
+      // approximate by placing a static peaking notch at 7 kHz pre-comp; the deEss
+      // knob simply controls notch depth (linear in dB). For program-dependent
+      // de-essing we'd need an AudioWorklet — out of scope for this batch.
+      const inNode  = ctx.createGain(); setGainLinear(inNode.gain, 1);
+      const outNode = ctx.createGain(); setGainLinear(outNode.gain, 1);
+
+      // Tilt EQ pre-stage: low cut + air shelf.
+      const tiltHpf = ctx.createBiquadFilter();
+      tiltHpf.type = "highpass"; setFreq(tiltHpf.frequency, 80); setQ(tiltHpf.Q, 0.707);
+      const airShelf = ctx.createBiquadFilter();
+      airShelf.type = "highshelf"; setFreq(airShelf.frequency, 12000);
+      setGainDb(airShelf.gain, safe(p.air != null ? p.air : 0.2, 0.2, 0, 1) * 8);
+
+      // De-esser fallback: static peaking notch.
+      const deEss = ctx.createBiquadFilter();
+      deEss.type = "peaking"; setFreq(deEss.frequency, 7000); setQ(deEss.Q, 3);
+      setGainDb(deEss.gain, -safe(p.deEss != null ? p.deEss : 0.4, 0.4, 0, 1) * 8);
+
+      // Main vocal compressor.
+      const mainComp = ctx.createDynamicsCompressor();
+      setCompThresh(mainComp.threshold, p.threshold != null ? p.threshold : -16);
+      setCompRatio(mainComp.ratio, p.ratio != null ? p.ratio : 3);
+      setCompAttack(mainComp.attack, (p.attack != null ? p.attack : 5) / 1000);
+      setCompRelease(mainComp.release, (p.release != null ? p.release : 80) / 1000);
+      setCompKnee(mainComp.knee, 6);
+
+      // Presence boost.
+      const presence = ctx.createBiquadFilter();
+      presence.type = "peaking"; setFreq(presence.frequency, 3000); setQ(presence.Q, 1);
+      setGainDb(presence.gain, safe(p.presence != null ? p.presence : 0.3, 0.3, 0, 1) * 6);
+
+      // Parallel mix.
+      const wetGain = ctx.createGain();
+      const dryGain = ctx.createGain();
+      const initMix = safe((p.mix != null ? p.mix : 100) / 100, 1, 0, 1);
+      setGainLinear(wetGain.gain, initMix);
+      setGainLinear(dryGain.gain, 1 - initMix);
+
+      // Wet path: in → tiltHpf → airShelf → deEss → mainComp → presence → wetGain → out.
+      inNode.connect(tiltHpf); tiltHpf.connect(airShelf); airShelf.connect(deEss);
+      deEss.connect(mainComp); mainComp.connect(presence); presence.connect(wetGain);
+      wetGain.connect(outNode);
+      // Dry path: in → dryGain → out.
+      inNode.connect(dryGain); dryGain.connect(outNode);
+
+      return {
+        inputNode: inNode, outputNode: outNode,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "threshold": mainComp.threshold.setTargetAtTime(safe(v, -16, -100, 0), t, TAU); break;
+          case "ratio":     mainComp.ratio.setTargetAtTime(safe(v, 3, 1, 20), t, TAU); break;
+          case "attack":    mainComp.attack.setTargetAtTime(safe((v != null ? v : 5) / 1000, 0.005, 0, 1), t, TAU); break;
+          case "release":   mainComp.release.setTargetAtTime(safe((v != null ? v : 80) / 1000, 0.08, 0, 1), t, TAU); break;
+          case "deEss":     deEss.gain.setTargetAtTime(safe(-safe(v, 0.4, 0, 1) * 8, -3, -24, 24), t, TAU); break;
+          case "presence":  presence.gain.setTargetAtTime(safe(safe(v, 0.3, 0, 1) * 6, 2, -24, 24), t, TAU); break;
+          case "air":       airShelf.gain.setTargetAtTime(safe(safe(v, 0.2, 0, 1) * 8, 1.6, -24, 24), t, TAU); break;
+          case "mix": {
+            const m = safe((v != null ? v : 100) / 100, 1, 0, 1);
+            wetGain.gain.setTargetAtTime(m, t, TAU);
+            dryGain.gain.setTargetAtTime(1 - m, t, TAU);
+            break;
+          }
+          default: break;
+        } },
+        dispose() { disposeNodes(inNode, tiltHpf, airShelf, deEss, mainComp, presence, wetGain, dryGain, outNode); },
+      };
+    });
+    if (fx.multiPress?.enabled) install("multiPress", (p) => {
+      // Phase C2.1: 4-band parallel multiband compressor.
+      // Topology: inBus → 4 parallel xover chains (LR-style cascaded LP/HP at
+      // xover1/xover2/xover3) → 4 × DynamicsCompressor → 4 × makeup Gain → out.
+      // UI keys: xover1/2/3, b1Thresh/b1Ratio/b1Gain ... b4Thresh/b4Ratio/b4Gain.
+      const x1 = safe(p.xover1 != null ? p.xover1 : 100,  100,  20, 20000);
+      const x2 = safe(p.xover2 != null ? p.xover2 : 1000, 1000, 20, 20000);
+      const x3 = safe(p.xover3 != null ? p.xover3 : 8000, 8000, 20, 20000);
+      const inBus = ctx.createGain();
+      // Band 1 (sub/low): LP at x1.
+      const b1lp1 = ctx.createBiquadFilter(); b1lp1.type = "lowpass"; setFreq(b1lp1.frequency, x1); setQ(b1lp1.Q, 0.707);
+      const b1lp2 = ctx.createBiquadFilter(); b1lp2.type = "lowpass"; setFreq(b1lp2.frequency, x1); setQ(b1lp2.Q, 0.707);
+      // Band 2 (low-mid): HP at x1, LP at x2.
+      const b2hp1 = ctx.createBiquadFilter(); b2hp1.type = "highpass"; setFreq(b2hp1.frequency, x1); setQ(b2hp1.Q, 0.707);
+      const b2hp2 = ctx.createBiquadFilter(); b2hp2.type = "highpass"; setFreq(b2hp2.frequency, x1); setQ(b2hp2.Q, 0.707);
+      const b2lp1 = ctx.createBiquadFilter(); b2lp1.type = "lowpass"; setFreq(b2lp1.frequency, x2); setQ(b2lp1.Q, 0.707);
+      const b2lp2 = ctx.createBiquadFilter(); b2lp2.type = "lowpass"; setFreq(b2lp2.frequency, x2); setQ(b2lp2.Q, 0.707);
+      // Band 3 (high-mid): HP at x2, LP at x3.
+      const b3hp1 = ctx.createBiquadFilter(); b3hp1.type = "highpass"; setFreq(b3hp1.frequency, x2); setQ(b3hp1.Q, 0.707);
+      const b3hp2 = ctx.createBiquadFilter(); b3hp2.type = "highpass"; setFreq(b3hp2.frequency, x2); setQ(b3hp2.Q, 0.707);
+      const b3lp1 = ctx.createBiquadFilter(); b3lp1.type = "lowpass"; setFreq(b3lp1.frequency, x3); setQ(b3lp1.Q, 0.707);
+      const b3lp2 = ctx.createBiquadFilter(); b3lp2.type = "lowpass"; setFreq(b3lp2.frequency, x3); setQ(b3lp2.Q, 0.707);
+      // Band 4 (air): HP at x3.
+      const b4hp1 = ctx.createBiquadFilter(); b4hp1.type = "highpass"; setFreq(b4hp1.frequency, x3); setQ(b4hp1.Q, 0.707);
+      const b4hp2 = ctx.createBiquadFilter(); b4hp2.type = "highpass"; setFreq(b4hp2.frequency, x3); setQ(b4hp2.Q, 0.707);
+      // Per-band compressors.
+      const c1 = ctx.createDynamicsCompressor();
+      setCompThresh(c1.threshold, p.b1Thresh != null ? p.b1Thresh : -10);
+      setCompRatio(c1.ratio, p.b1Ratio != null ? p.b1Ratio : 2);
+      setCompAttack(c1.attack, 0.01); setCompRelease(c1.release, 0.1);
+      const c2 = ctx.createDynamicsCompressor();
+      setCompThresh(c2.threshold, p.b2Thresh != null ? p.b2Thresh : -10);
+      setCompRatio(c2.ratio, p.b2Ratio != null ? p.b2Ratio : 2);
+      setCompAttack(c2.attack, 0.01); setCompRelease(c2.release, 0.1);
+      const c3 = ctx.createDynamicsCompressor();
+      setCompThresh(c3.threshold, p.b3Thresh != null ? p.b3Thresh : -10);
+      setCompRatio(c3.ratio, p.b3Ratio != null ? p.b3Ratio : 2);
+      setCompAttack(c3.attack, 0.01); setCompRelease(c3.release, 0.1);
+      const c4 = ctx.createDynamicsCompressor();
+      setCompThresh(c4.threshold, p.b4Thresh != null ? p.b4Thresh : -10);
+      setCompRatio(c4.ratio, p.b4Ratio != null ? p.b4Ratio : 2);
+      setCompAttack(c4.attack, 0.01); setCompRelease(c4.release, 0.1);
+      // Per-band makeup gain.
+      const g1 = ctx.createGain(); setGainLinear(g1.gain, Math.pow(10, safe(p.b1Gain != null ? p.b1Gain : 0, 0, -24, 24) / 20));
+      const g2 = ctx.createGain(); setGainLinear(g2.gain, Math.pow(10, safe(p.b2Gain != null ? p.b2Gain : 0, 0, -24, 24) / 20));
+      const g3 = ctx.createGain(); setGainLinear(g3.gain, Math.pow(10, safe(p.b3Gain != null ? p.b3Gain : 0, 0, -24, 24) / 20));
+      const g4 = ctx.createGain(); setGainLinear(g4.gain, Math.pow(10, safe(p.b4Gain != null ? p.b4Gain : 0, 0, -24, 24) / 20));
+      const out = ctx.createGain();
+      // Wire fan-out: inBus → 4 parallel band chains → out summer.
+      inBus.connect(b1lp1); b1lp1.connect(b1lp2); b1lp2.connect(c1); c1.connect(g1); g1.connect(out);
+      inBus.connect(b2hp1); b2hp1.connect(b2hp2); b2hp2.connect(b2lp1); b2lp1.connect(b2lp2); b2lp2.connect(c2); c2.connect(g2); g2.connect(out);
+      inBus.connect(b3hp1); b3hp1.connect(b3hp2); b3hp2.connect(b3lp1); b3lp1.connect(b3lp2); b3lp2.connect(c3); c3.connect(g3); g3.connect(out);
+      inBus.connect(b4hp1); b4hp1.connect(b4hp2); b4hp2.connect(c4); c4.connect(g4); g4.connect(out);
+      return {
+        inputNode: inBus, outputNode: out,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "xover1": {
+            const f = safe(v, 100, 20, 20000);
+            b1lp1.frequency.setTargetAtTime(f, t, TAU); b1lp2.frequency.setTargetAtTime(f, t, TAU);
+            b2hp1.frequency.setTargetAtTime(f, t, TAU); b2hp2.frequency.setTargetAtTime(f, t, TAU);
+            break;
+          }
+          case "xover2": {
+            const f = safe(v, 1000, 20, 20000);
+            b2lp1.frequency.setTargetAtTime(f, t, TAU); b2lp2.frequency.setTargetAtTime(f, t, TAU);
+            b3hp1.frequency.setTargetAtTime(f, t, TAU); b3hp2.frequency.setTargetAtTime(f, t, TAU);
+            break;
+          }
+          case "xover3": {
+            const f = safe(v, 8000, 20, 20000);
+            b3lp1.frequency.setTargetAtTime(f, t, TAU); b3lp2.frequency.setTargetAtTime(f, t, TAU);
+            b4hp1.frequency.setTargetAtTime(f, t, TAU); b4hp2.frequency.setTargetAtTime(f, t, TAU);
+            break;
+          }
+          case "b1Thresh": c1.threshold.setTargetAtTime(safe(v, -20, -100, 0), t, TAU); break;
+          case "b2Thresh": c2.threshold.setTargetAtTime(safe(v, -18, -100, 0), t, TAU); break;
+          case "b3Thresh": c3.threshold.setTargetAtTime(safe(v, -16, -100, 0), t, TAU); break;
+          case "b4Thresh": c4.threshold.setTargetAtTime(safe(v, -14, -100, 0), t, TAU); break;
+          case "b1Ratio":  c1.ratio.setTargetAtTime(safe(v, 3, 1, 20), t, TAU); break;
+          case "b2Ratio":  c2.ratio.setTargetAtTime(safe(v, 3, 1, 20), t, TAU); break;
+          case "b3Ratio":  c3.ratio.setTargetAtTime(safe(v, 4, 1, 20), t, TAU); break;
+          case "b4Ratio":  c4.ratio.setTargetAtTime(safe(v, 4, 1, 20), t, TAU); break;
+          case "b1Gain":   g1.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -24, 24) / 20), 1, 0, 16), t, TAU); break;
+          case "b2Gain":   g2.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -24, 24) / 20), 1, 0, 16), t, TAU); break;
+          case "b3Gain":   g3.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -24, 24) / 20), 1, 0, 16), t, TAU); break;
+          case "b4Gain":   g4.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -24, 24) / 20), 1, 0, 16), t, TAU); break;
+          // Legacy aliases.
+          case "lowThreshold":  c1.threshold.setTargetAtTime(safe(v, -20, -100, 0), t, TAU); break;
+          case "highThreshold": c4.threshold.setTargetAtTime(safe(v, -14, -100, 0), t, TAU); break;
+          default: break;
+        } },
+        dispose() {
+          disposeNodes(inBus, b1lp1, b1lp2, b2hp1, b2hp2, b2lp1, b2lp2,
+            b3hp1, b3hp2, b3lp1, b3lp2, b4hp1, b4hp2, c1, c2, c3, c4, g1, g2, g3, g4, out);
+        },
+      };
+    });
+    if (fx.transGate?.enabled) install("transGate", (p) => {
+      // Phase C2.3 rebuild: downward gate with sidechain-style HPF/LPF and lookahead.
+      // Topology:
+      //   in → lookaheadDelay → scHPF → scLPF → comp (high ratio) → out
+      // True sidechain (separate detector path) needs an AudioWorklet — flagged
+      // for Phase C5. For C2 we approximate by filtering the main path so the
+      // comp gates on filtered energy. Knee acts as hysteresis. hold is folded
+      // into release (proxy). range / flip flagged C5 (DynamicsCompressor cannot
+      // implement true range floor or inverted ducker without a worklet).
+      const inNode  = ctx.createGain(); setGainLinear(inNode.gain, 1);
+      const outNode = ctx.createGain(); setGainLinear(outNode.gain, 1);
+      const lookahead = ctx.createDelay(0.05);
+      setTime(lookahead.delayTime, safe((p.lookahead != null ? p.lookahead : 1) / 1000, 0.001, 0, 0.05));
+      const scHPF = ctx.createBiquadFilter(); scHPF.type = 'highpass';
+      setFreq(scHPF.frequency, safe(p.scHPF != null ? p.scHPF : 80, 80, 20, 20000));
+      setQ(scHPF.Q, 0.707);
+      const scLPF = ctx.createBiquadFilter(); scLPF.type = 'lowpass';
+      setFreq(scLPF.frequency, safe(p.scLPF != null ? p.scLPF : 8000, 8000, 20, 20000));
+      setQ(scLPF.Q, 0.707);
+      const comp = ctx.createDynamicsCompressor();
+      setCompThresh(comp.threshold, p.threshold != null ? p.threshold : -40);
+      setCompRatio(comp.ratio, 20);
+      setCompKnee(comp.knee, safe(p.hysteresis != null ? p.hysteresis : 3, 3, 0, 40));
+      setCompAttack(comp.attack, safe((p.attack != null ? p.attack : 1) / 1000, 0.001, 0, 1));
+      const initHoldRel = ((p.hold != null ? p.hold : 50) + (p.release != null ? p.release : 100)) / 1000;
+      setCompRelease(comp.release, safe(initHoldRel, 0.15, 0, 1));
+      // Track current hold/release ms separately so we can recombine on knob change.
+      let holdMs = p.hold != null ? p.hold : 50;
+      let releaseMs = p.release != null ? p.release : 100;
+      let flipMode = !!p.flip;
+      inNode.connect(lookahead);
+      lookahead.connect(scHPF);
+      scHPF.connect(scLPF);
+      scLPF.connect(comp);
+      comp.connect(outNode);
+      return {
+        inputNode: inNode, outputNode: outNode,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "threshold":  comp.threshold.setTargetAtTime(safe(v, -40, -100, 0), t, TAU); break;
+          case "attack":     comp.attack.setTargetAtTime(safe((v || 1) / 1000, 0.001, 0, 1), t, TAU); break;
+          case "hold":
+            holdMs = safe(v, 50, 0, 2000);
+            comp.release.setTargetAtTime(safe((holdMs + releaseMs) / 1000, 0.25, 0, 1), t, TAU);
+            break;
+          case "release":
+            releaseMs = safe(v, 200, 10, 4000);
+            comp.release.setTargetAtTime(safe((holdMs + releaseMs) / 1000, 0.25, 0, 1), t, TAU);
+            break;
+          case "range":
+            // Phase C5: needs worklet for proper floor attenuation.
+            break;
+          case "hysteresis": comp.knee.setTargetAtTime(safe(v, 3, 0, 40), t, TAU); break;
+          case "scHPF":      scHPF.frequency.setTargetAtTime(safe(v, 80, 20, 20000), t, TAU); break;
+          case "scLPF":      scLPF.frequency.setTargetAtTime(safe(v, 8000, 20, 20000), t, TAU); break;
+          case "lookahead":  lookahead.delayTime.setTargetAtTime(safe((v || 1) / 1000, 0.001, 0, 0.05), t, TAU); break;
+          case "flip":
+            // Phase C5: ducker (inverted gate) needs worklet.
+            flipMode = !!v;
+            break;
+          default: break;
+        } },
+        dispose() { disposeNodes(inNode, lookahead, scHPF, scLPF, comp, outNode); },
+      };
+    });
+    if (fx.brickWall?.enabled) install("brickWall", (p) => {
+      const lim = ctx.createDynamicsCompressor();
+      setCompThresh(lim.threshold, p.ceiling || -0.3); setCompRatio(lim.ratio, 20); setCompKnee(lim.knee, 0);
+      setCompAttack(lim.attack, 0.001); setCompRelease(lim.release, 0.01);
+      return {
+        inputNode: lim, outputNode: lim,
+        setParam(n, v) { if (n === "ceiling") lim.threshold.setTargetAtTime(safe(v, -0.3, -100, 0), ctx.currentTime, TAU); },
+        dispose() { disposeNodes(lim); },
+      };
+    });
+    if (fx.masterWall?.enabled) install("masterWall", (p) => {
+      // Phase C5: proper lookahead brick-wall limiter via AudioWorklet.
+      // Worklet does sample-accurate peak detection over a 5 ms ring buffer,
+      // ducks gain BEFORE the peak hits, with 2× linear-interpolation oversampling
+      // for inter-sample-peak (true peak) approximation. Final hard ceiling at
+      // (ceiling + clipMargin) so output never exceeds.
+      // Falls back to the C2.4 DelayNode + DynamicsCompressor topology if the
+      // worklet fails to load.
+      // Quality tag: ACCEPTABLE — 2× oversampling, no noise-shaped dither.
+      // UI keys: ceiling (dB), lookahead (ms), release (ms), threshold (dB),
+      //   clipMargin (dB headroom), truePeak (bool), dither (string — no-op),
+      //   outputGain (dB).
+      const initCeiling   = safe(p.ceiling   != null ? p.ceiling   : -0.3,  -0.3, -12, 0);
+      const initThreshold = safe(p.threshold != null ? p.threshold : -1,    -1,   -24, 0);
+      const initRelease   = safe(p.release   != null ? p.release   : 100,   100,  10, 1000);
+      const initLookahead = safe(p.lookahead != null ? p.lookahead : 5,     5,    0, 10);
+      const initClipMargin= safe(p.clipMargin!= null ? p.clipMargin: 0.3,   0.3,  0, 6);
+      const initOutputGain= safe(p.outputGain!= null ? p.outputGain: 0,     0,    -12, 12);
+      const initTruePeak  = (p.truePeak != null) ? (p.truePeak ? 1 : 0) : 1;
+
+      const input  = ctx.createGain();
+      const output = ctx.createGain();
+      setGainLinear(output.gain, Math.pow(10, initOutputGain / 20));
+
+      // ── Fallback path (Web Audio nodes, C2.4 topology) ─────────────────────
+      const fbDelay = ctx.createDelay(0.05);
+      setTime(fbDelay.delayTime, initLookahead / 1000);
+      const fbLim = ctx.createDynamicsCompressor();
+      setCompThresh(fbLim.threshold, initCeiling);
+      setCompRatio(fbLim.ratio, 20); setCompKnee(fbLim.knee, 0);
+      setCompAttack(fbLim.attack, 0.001);
+      setCompRelease(fbLim.release, initRelease / 1000);
+      const connectFallback = () => {
+        try { input.disconnect(); } catch {}
+        try { fbDelay.disconnect(); } catch {}
+        try { fbLim.disconnect(); } catch {}
+        input.connect(fbDelay); fbDelay.connect(fbLim); fbLim.connect(output);
+      };
+      connectFallback();
+
+      // ── Worklet path ────────────────────────────────────────────────────────
+      const WORKLET_NAME = 'spx-masterwall-limiter';
+      let workletNode = null;
+      const ensureWorklet = (() => {
+        if (!ctx._spxWorkletPromises) ctx._spxWorkletPromises = new Map();
+        if (ctx._spxWorkletPromises.has(WORKLET_NAME)) {
+          return ctx._spxWorkletPromises.get(WORKLET_NAME);
+        }
+        const src = `
+class SPXMasterWallProcessor extends AudioWorkletProcessor {
+  static get parameterDescriptors() {
+    return [
+      { name: 'ceiling',    defaultValue: -0.3, minValue: -12,  maxValue: 0,    automationRate: 'k-rate' },
+      { name: 'threshold',  defaultValue: -1,   minValue: -24,  maxValue: 0,    automationRate: 'k-rate' },
+      { name: 'release',    defaultValue: 100,  minValue: 10,   maxValue: 1000, automationRate: 'k-rate' },
+      { name: 'lookahead',  defaultValue: 5,    minValue: 0,    maxValue: 10,   automationRate: 'k-rate' },
+      { name: 'clipMargin', defaultValue: 0.3,  minValue: 0,    maxValue: 6,    automationRate: 'k-rate' },
+      { name: 'outputGain', defaultValue: 0,    minValue: -12,  maxValue: 12,   automationRate: 'k-rate' },
+      { name: 'truePeak',   defaultValue: 1,    minValue: 0,    maxValue: 1,    automationRate: 'k-rate' },
+    ];
+  }
+  constructor() {
+    super();
+    // Max 10 ms lookahead; 64-sample headroom for FIR/oversample slack
+    this._maxLA = Math.ceil(0.010 * sampleRate) + 64;
+    this._chBufs = [
+      new Float32Array(this._maxLA),
+      new Float32Array(this._maxLA),
+    ];
+    this._head = 0;
+    // Peak envelope for lookahead (per-frame max of |sample|)
+    this._peakBuf = new Float32Array(this._maxLA);
+    this._gain = 1;       // current applied gain
+    this._targetGain = 1; // target derived from upcoming peak
+    this._prevSample = [0, 0]; // for 2× linear-interp oversample inter-sample peak
+  }
+  process(inputs, outputs, parameters) {
+    const inp = inputs[0];
+    const out = outputs[0];
+    if (!out || !out[0]) return true;
+    const inpL = inp && inp[0] ? inp[0] : null;
+    const inpR = inp && inp[1] ? inp[1] : (inpL || null);
+    const outL = out[0];
+    const outR = out[1] || null;
+    const N = outL.length;
+
+    const ceilDb     = parameters.ceiling[0];
+    const threshDb   = parameters.threshold[0];
+    const relMs      = parameters.release[0];
+    const laMs       = parameters.lookahead[0];
+    const clipMargin = parameters.clipMargin[0];
+    const outGainDb  = parameters.outputGain[0];
+    const truePeak   = parameters.truePeak[0] >= 0.5;
+
+    const ceilLin = Math.pow(10, ceilDb / 20);
+    const threshLin = Math.pow(10, threshDb / 20);
+    const hardClip = Math.pow(10, (ceilDb + clipMargin) / 20);
+    const outGainLin = Math.pow(10, outGainDb / 20);
+    const la = Math.max(1, Math.min(this._maxLA - 1, Math.ceil(laMs / 1000 * sampleRate)));
+    // Release coefficient: per-sample exponential approach back to unity
+    const relCoef = Math.exp(-1 / (Math.max(1, relMs) * 0.001 * sampleRate));
+    // Attack: instant duck (limiter style)
+
+    for (let i = 0; i < N; i++) {
+      const sL = inpL ? inpL[i] : 0;
+      const sR = inpR ? inpR[i] : sL;
+
+      // Capture into per-channel ring buffers + peak buffer (max of |L|,|R|
+      // plus 2× linear-interpolated halfway sample for inter-sample peak).
+      this._chBufs[0][this._head] = sL;
+      this._chBufs[1][this._head] = sR;
+
+      let pk = Math.max(Math.abs(sL), Math.abs(sR));
+      if (truePeak) {
+        // Cheap 2× oversample: midpoint between previous sample and current.
+        const midL = 0.5 * (this._prevSample[0] + sL);
+        const midR = 0.5 * (this._prevSample[1] + sR);
+        pk = Math.max(pk, Math.abs(midL), Math.abs(midR));
+      }
+      this._prevSample[0] = sL;
+      this._prevSample[1] = sR;
+      this._peakBuf[this._head] = pk;
+
+      // Look ahead 'la' samples to find the maximum upcoming peak.
+      let maxPk = 0;
+      for (let k = 0; k < la; k++) {
+        const idx = (this._head - k + this._maxLA) % this._maxLA;
+        const v = this._peakBuf[idx];
+        if (v > maxPk) maxPk = v;
+      }
+      // Required gain so maxPk * g <= ceilLin, but only attenuate when above
+      // threshold (knee-less: once peaks exceed threshLin we duck).
+      let needed = 1;
+      if (maxPk > threshLin) {
+        needed = ceilLin / Math.max(maxPk, 1e-9);
+        if (needed > 1) needed = 1;
+      }
+      // Attack: instantaneous on duck-down.
+      if (needed < this._gain) {
+        this._gain = needed;
+      } else {
+        // Release: exponential approach to 1.0 (or current 'needed' if >gain).
+        this._gain = relCoef * this._gain + (1 - relCoef) * Math.min(needed, 1);
+      }
+
+      // Read the delayed sample (at head - la), apply gain, hard-clip at margin.
+      const rh = (this._head - la + this._maxLA) % this._maxLA;
+      let yL = this._chBufs[0][rh] * this._gain * outGainLin;
+      let yR = this._chBufs[1][rh] * this._gain * outGainLin;
+      if (yL > hardClip) yL = hardClip; else if (yL < -hardClip) yL = -hardClip;
+      if (yR > hardClip) yR = hardClip; else if (yR < -hardClip) yR = -hardClip;
+      outL[i] = yL;
+      if (outR) outR[i] = yR;
+
+      this._head = (this._head + 1) % this._maxLA;
     }
-    if (fx.parallelCrush?.enabled) {
+    // Mirror to additional channels if present
+    for (let c = 2; c < out.length; c++) out[c].set(outL);
+    return true;
+  }
+}
+registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
+`;
+        const promise = (async () => {
+          try {
+            const blob = new Blob([src], { type: 'application/javascript' });
+            const url = URL.createObjectURL(blob);
+            try { await ctx.audioWorklet.addModule(url); }
+            finally { URL.revokeObjectURL(url); }
+            return true;
+          } catch (e) {
+            if (String(e && e.message || e).includes('already')) return true;
+            console.warn('[MasterWall] worklet load failed, using fallback:', e);
+            return false;
+          }
+        })();
+        ctx._spxWorkletPromises.set(WORKLET_NAME, promise);
+        return promise;
+      })();
+
+      ensureWorklet.then((ok) => {
+        if (!ok) return;
+        try {
+          const node = new AudioWorkletNode(ctx, WORKLET_NAME, {
+            numberOfInputs: 1, numberOfOutputs: 1,
+            outputChannelCount: [2],
+          });
+          const ap = (n, v) => { const par = node.parameters.get(n); if (par) par.setTargetAtTime(v, ctx.currentTime, 0.01); };
+          ap('ceiling', initCeiling);
+          ap('threshold', initThreshold);
+          ap('release', initRelease);
+          ap('lookahead', initLookahead);
+          ap('clipMargin', initClipMargin);
+          ap('outputGain', initOutputGain);
+          ap('truePeak', initTruePeak);
+          // Swap fallback path for worklet.
+          try { input.disconnect(); } catch {}
+          try { fbDelay.disconnect(); } catch {}
+          try { fbLim.disconnect(); } catch {}
+          input.connect(node); node.connect(output);
+          // Reset output gain to 1 since worklet does outputGain internally.
+          setGainLinear(output.gain, 1);
+          workletNode = node;
+        } catch (e) {
+          console.warn('[MasterWall] worklet instantiation failed, staying on fallback:', e);
+        }
+      }).catch(() => {});
+
+      const setAP = (name, value) => {
+        if (!workletNode) return;
+        const par = workletNode.parameters.get(name);
+        if (par) par.setTargetAtTime(value, ctx.currentTime, 0.01);
+      };
+
+      return {
+        inputNode: input, outputNode: output,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "ceiling": {
+            const cv = safe(v, -0.3, -12, 0);
+            setAP('ceiling', cv);
+            fbLim.threshold.setTargetAtTime(cv, t, TAU);
+            break;
+          }
+          case "threshold": {
+            const tv = safe(v, -6, -24, 0);
+            setAP('threshold', tv);
+            // Fallback compressor uses single threshold; honor whichever moved last.
+            fbLim.threshold.setTargetAtTime(tv, t, TAU);
+            break;
+          }
+          case "release": {
+            const rv = safe(v, 100, 10, 1000);
+            setAP('release', rv);
+            fbLim.release.setTargetAtTime(rv / 1000, t, TAU);
+            break;
+          }
+          case "lookahead": {
+            const lv = safe(v, 5, 0, 10);
+            setAP('lookahead', lv);
+            fbDelay.delayTime.setTargetAtTime(lv / 1000, t, TAU);
+            break;
+          }
+          case "clipMargin": setAP('clipMargin', safe(v, 0.3, 0, 6)); break;
+          case "outputGain":
+          case "gain": {
+            const gv = safe(v, 0, -12, 12);
+            setAP('outputGain', gv);
+            if (!workletNode) {
+              output.gain.setTargetAtTime(Math.pow(10, gv / 20), t, TAU);
+            }
+            break;
+          }
+          case "truePeak": setAP('truePeak', v ? 1 : 0); break;
+          case "dither":   /* APPROXIMATE: noise-shaped dither not implemented */ break;
+          default: break;
+        } },
+        dispose() {
+          try { if (workletNode) workletNode.disconnect(); } catch {}
+          disposeNodes(input, fbDelay, fbLim, output);
+          workletNode = null;
+        },
+      };
+    });
+    if (fx.gainRider?.enabled) install("gainRider", (p) => {
+      // UI param aliases: targetLevel→c.threshold, speed (0..1) → c.attack
+      // (faster) + c.release (faster), smooth (0..1) → c.knee.
+      // maxGain/minGain/lookahead/gateThresh: no available node — accepted as
+      // no-ops so knobs do not crash.
       const c = ctx.createDynamicsCompressor();
-      c.threshold.value = fx.parallelCrush.threshold || -30; c.ratio.value = fx.parallelCrush.ratio || 10;
-      c.attack.value = 0.001; c.release.value = 0.05;
-      const g = ctx.createGain(); g.gain.value = fx.parallelCrush.mix || 0.5;
-      nodes.push(c, g);
-    }
-    if (fx.multiPress?.enabled) {
-      const lo = ctx.createDynamicsCompressor(); lo.threshold.value = fx.multiPress.lowThreshold||-18; lo.ratio.value = 3; lo.attack.value = 0.01; lo.release.value = 0.1;
-      const hi = ctx.createDynamicsCompressor(); hi.threshold.value = fx.multiPress.highThreshold||-12; hi.ratio.value = 4; hi.attack.value = 0.005; hi.release.value = 0.05;
-      nodes.push(lo, hi);
-    }
-    if (fx.transGate?.enabled) {
-      const g = ctx.createDynamicsCompressor(); g.threshold.value = fx.transGate.threshold||-40; g.ratio.value = 20; g.knee.value = 0;
-      g.attack.value = (fx.transGate.attack||1)/1000; g.release.value = (fx.transGate.release||100)/1000;
-      nodes.push(g);
-    }
-    if (fx.brickWall?.enabled) {
-      const lim = ctx.createDynamicsCompressor(); lim.threshold.value = fx.brickWall.ceiling||-0.3; lim.ratio.value = 20; lim.knee.value = 0; lim.attack.value = 0.001; lim.release.value = 0.01;
-      nodes.push(lim);
-    }
-    if (fx.masterWall?.enabled) {
-      const lim = ctx.createDynamicsCompressor(); lim.threshold.value = fx.masterWall.ceiling||-0.1; lim.ratio.value = 20; lim.knee.value = 0; lim.attack.value = 0.0001; lim.release.value = 0.005;
-      const g = ctx.createGain(); g.gain.value = Math.pow(10,(fx.masterWall.gain||0)/20);
-      nodes.push(lim, g);
-    }
-    if (fx.gainRider?.enabled) {
-      const c = ctx.createDynamicsCompressor(); c.threshold.value = fx.gainRider.target||-18; c.ratio.value = 2; c.attack.value = 0.1; c.release.value = 0.5; c.knee.value = 20;
-      nodes.push(c);
-    }
-    if (fx.transientShaper?.enabled) {
-      const att = fx.transientShaper.attack || 0.5; const sus = fx.transientShaper.sustain || 0.5;
-      const c = ctx.createDynamicsCompressor(); c.threshold.value = -20; c.ratio.value = 2+att*4; c.attack.value = 0.001; c.release.value = 0.05+sus*0.2;
-      const g = ctx.createGain(); g.gain.value = Math.pow(10,(att-0.5)*6/20);
-      nodes.push(c, g);
-    }
-    if (fx.breathGate?.enabled) {
-      const g = ctx.createDynamicsCompressor(); g.threshold.value = fx.breathGate.threshold||-45; g.ratio.value = 20; g.knee.value = 0; g.attack.value = 0.002; g.release.value = 0.15;
-      nodes.push(g);
-    }
-    if (fx.sibilantCut?.enabled) {
-      const freq = fx.sibilantCut.frequency || 7000; const amt = fx.sibilantCut.amount || 6;
-      const ds = ctx.createBiquadFilter(); ds.type = "peaking"; ds.frequency.value = freq; ds.Q.value = 3; ds.gain.value = -amt;
-      nodes.push(ds);
-    }
-    if (fx.drumEnhancer?.enabled) {
-      const punch = fx.drumEnhancer.punch || 0.5; const snap = fx.drumEnhancer.snap || 0.5;
-      const c = ctx.createDynamicsCompressor(); c.threshold.value = -20; c.ratio.value = 4; c.attack.value = 0.001; c.release.value = 0.05;
-      const lo = ctx.createBiquadFilter(); lo.type = "peaking"; lo.frequency.value = 80; lo.Q.value = 0.8; lo.gain.value = punch*6;
-      const hi = ctx.createBiquadFilter(); hi.type = "peaking"; hi.frequency.value = 6000; hi.Q.value = 1; hi.gain.value = snap*4;
-      nodes.push(c, lo, hi);
-    }
-    if (fx.midSideComp?.enabled) {
-      const c = ctx.createDynamicsCompressor(); c.threshold.value = fx.midSideComp.threshold||-15; c.ratio.value = fx.midSideComp.ratio||3; c.attack.value = 0.005; c.release.value = 0.1;
-      nodes.push(c);
-    }
-    if (fx.multibandLimiter?.enabled) {
-      const l1 = ctx.createDynamicsCompressor(); l1.threshold.value = -0.5; l1.ratio.value = 20; l1.attack.value = 0.001; l1.release.value = 0.01;
-      const l2 = ctx.createDynamicsCompressor(); l2.threshold.value = -0.3; l2.ratio.value = 20; l2.attack.value = 0.0005; l2.release.value = 0.005;
-      nodes.push(l1, l2);
-    }
+      const initThresh = (p.targetLevel != null ? p.targetLevel : (p.target != null ? p.target : -10));
+      setCompThresh(c.threshold, initThresh); setCompRatio(c.ratio, 2);
+      const initSpeed = safe(p.speed != null ? p.speed : 0.95, 0.95, 0, 1);
+      // speed=0 → slow (attack 200 ms, release 1000 ms); speed=1 → fast (10 ms, 100 ms)
+      setCompAttack(c.attack, 0.2 - initSpeed * 0.19);
+      setCompRelease(c.release, 1.0 - initSpeed * 0.9);
+      setCompKnee(c.knee, safe(p.smooth != null ? p.smooth : 0.2, 0.2, 0, 1) * 30);
+      return {
+        inputNode: c, outputNode: c,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "targetLevel":
+          case "target":     c.threshold.setTargetAtTime(safe(v, -18, -100, 0), t, TAU); break;
+          case "speed": {
+            const s = safe(v, 0.5, 0, 1);
+            c.attack.setTargetAtTime(safe(0.2 - s * 0.19, 0.1, 0, 1), t, TAU);
+            c.release.setTargetAtTime(safe(1.0 - s * 0.9, 0.5, 0, 1), t, TAU);
+            break;
+          }
+          case "smooth":     c.knee.setTargetAtTime(safe(safe(v, 0.7, 0, 1) * 30, 20, 0, 40), t, TAU); break;
+          case "maxGain":    /* no makeup-gain node — accepted no-op */ break;
+          case "minGain":    /* no min-gain node — accepted no-op */ break;
+          case "lookahead":  /* no delay-line node — accepted no-op */ break;
+          case "gateThresh": /* no gate node — accepted no-op */ break;
+          default: break;
+        } },
+        dispose() { disposeNodes(c); },
+      };
+    });
+    if (fx.transientShaper?.enabled) install("transientShaper", (p) => {
+      // Phase C2 envelope-difference fake using two parallel DynamicsCompressors:
+      //   fast comp (attack 1 ms, release 30 ms)  → emphasises transient envelope.
+      //   slow comp (attack 30 ms, release 300 ms) → emphasises sustain envelope.
+      // Topology:
+      //   input ─┬─→ fastComp → fastGain  ──┐
+      //          └─→ slowComp → slowGain  ──┴→ outGain
+      // attack knob (-1..+1) rides fastGain (positive boosts attacks, negative cuts).
+      // sustain knob (-1..+1) rides slowGain. speed (0..1) rescales both comps' attack/release.
+      // Honest-fake limitation: without a worklet we cannot subtract the two envelope
+      // signals, so this is parallel-blend rather than true difference shaping. The
+      // perceptual outcome (more punch / more sustain) still matches user intent.
+      // UI keys: attack (-1..+1), sustain (-1..+1), speed (0..1), outputGain (linear).
+      const att0 = safe(p.attack != null ? p.attack : 0, 0, -1, 1);
+      const sus0 = safe(p.sustain != null ? p.sustain : 0, 0, -1, 1);
+      const spd0 = safe(p.speed != null ? p.speed : 0.5, 0.5, 0, 1);
+      const fastAttack = (cur) => 0.001 + (1 - cur) * 0.005;   // 1..6 ms
+      const fastRelease = (cur) => 0.02 + (1 - cur) * 0.05;    // 20..70 ms
+      const slowAttack = (cur) => 0.02 + (1 - cur) * 0.05;     // 20..70 ms
+      const slowRelease = (cur) => 0.2 + (1 - cur) * 0.4;      // 200..600 ms
+
+      const fastC = ctx.createDynamicsCompressor();
+      setCompThresh(fastC.threshold, -24); setCompRatio(fastC.ratio, 4); setCompKnee(fastC.knee, 6);
+      setCompAttack(fastC.attack, fastAttack(spd0)); setCompRelease(fastC.release, fastRelease(spd0));
+      const slowC = ctx.createDynamicsCompressor();
+      setCompThresh(slowC.threshold, -24); setCompRatio(slowC.ratio, 2); setCompKnee(slowC.knee, 12);
+      setCompAttack(slowC.attack, slowAttack(spd0)); setCompRelease(slowC.release, slowRelease(spd0));
+
+      // Map knob (-1..+1) to gain ride: -1 → -6 dB, 0 → 0 dB, +1 → +6 dB.
+      const dbFromKnob = (k) => k * 6;
+      const fastG = ctx.createGain(); setGainLinear(fastG.gain, Math.pow(10, dbFromKnob(att0) / 20));
+      const slowG = ctx.createGain(); setGainLinear(slowG.gain, Math.pow(10, dbFromKnob(sus0) / 20));
+      const inBus = ctx.createGain(); setGainLinear(inBus.gain, 0.5); // -6 dB to keep parallel sum at unity headroom.
+      const out = ctx.createGain();
+      setGainLinear(out.gain, safe(p.outputGain != null ? p.outputGain : 1, 1, 0, 4));
+      inBus.connect(fastC); fastC.connect(fastG); fastG.connect(out);
+      inBus.connect(slowC); slowC.connect(slowG); slowG.connect(out);
+      return {
+        inputNode: inBus, outputNode: out,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "attack":  fastG.gain.setTargetAtTime(safe(Math.pow(10, dbFromKnob(safe(v, 0, -1, 1)) / 20), 1, 0, 4), t, TAU); break;
+          case "sustain": slowG.gain.setTargetAtTime(safe(Math.pow(10, dbFromKnob(safe(v, 0, -1, 1)) / 20), 1, 0, 4), t, TAU); break;
+          case "speed": {
+            const s = safe(v, 0.5, 0, 1);
+            fastC.attack.setTargetAtTime(safe(fastAttack(s), 0.001, 0, 1), t, TAU);
+            fastC.release.setTargetAtTime(safe(fastRelease(s), 0.05, 0, 1), t, TAU);
+            slowC.attack.setTargetAtTime(safe(slowAttack(s), 0.05, 0, 1), t, TAU);
+            slowC.release.setTargetAtTime(safe(slowRelease(s), 0.4, 0, 1), t, TAU);
+            break;
+          }
+          case "outputGain": out.gain.setTargetAtTime(safe(v, 1, 0, 4), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(inBus, fastC, fastG, slowC, slowG, out); },
+      };
+    });
+    if (fx.breathGate?.enabled) install("breathGate", (p) => {
+      const g = ctx.createDynamicsCompressor();
+      setCompThresh(g.threshold, p.threshold || -40); setCompRatio(g.ratio, 20); setCompKnee(g.knee, 0);
+      setCompAttack(g.attack, 0.002); setCompRelease(g.release, 0.1);
+      return {
+        inputNode: g, outputNode: g,
+        setParam(n, v) { if (n === "threshold") g.threshold.setTargetAtTime(safe(v, -45, -100, 0), ctx.currentTime, TAU); },
+        dispose() { disposeNodes(g); },
+      };
+    });
+    if (fx.sibilantCut?.enabled) install("sibilantCut", (p) => {
+      // UI param aliases: freq→ds.frequency, bandwidth (0..1) → ds.Q
+      // (narrow→wide), ratio (1..20) → static peak attenuation depth.
+      // threshold/attackSpeed/mode/listenSC: no dynamic SC available — accepted
+      // no-ops (static notch only; true dynamic de-ess would need new SC tree).
+      const ds = ctx.createBiquadFilter(); ds.type = "peaking";
+      setFreq(ds.frequency, (p.freq != null ? p.freq : (p.frequency != null ? p.frequency : 7000)));
+      // bandwidth 0=narrow→Q≈10, 1=wide→Q≈0.5
+      const initQ = 10 - safe(p.bandwidth != null ? p.bandwidth : 0.5, 0.5, 0, 1) * 9.5;
+      setQ(ds.Q, initQ);
+      // ratio→cut depth: ratio 1 → -1 dB, ratio 20 → -12 dB
+      const initRatio = safe(p.ratio != null ? p.ratio : 3, 3, 1, 20);
+      const initDepth = -((initRatio - 1) / 19) * 11 - 1;
+      const initGainDb = (p.amount != null) ? -Math.abs(p.amount) : initDepth;
+      setGainDb(ds.gain, initGainDb);
+      return {
+        inputNode: ds, outputNode: ds,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "freq":
+          case "frequency":   ds.frequency.setTargetAtTime(safe(v, 7000, 20, 20000), t, TAU); break;
+          case "bandwidth":   ds.Q.setTargetAtTime(safe(10 - safe(v, 0.5, 0, 1) * 9.5, 5, 0.0001, 1000), t, TAU); break;
+          case "ratio": {
+            const r = safe(v, 6, 1, 20);
+            ds.gain.setTargetAtTime(safe(-((r - 1) / 19) * 11 - 1, -6, -60, 0), t, TAU);
+            break;
+          }
+          case "amount":      ds.gain.setTargetAtTime(safe(-Math.abs(v ?? 6), -6, -60, 0), t, TAU); break;
+          case "threshold":   /* no dynamic SC node — accepted no-op */ break;
+          case "attackSpeed": /* no envelope follower — accepted no-op */ break;
+          case "mode":        /* dynamic/broadband/split — needs SC tree (Phase C) */ break;
+          case "listenSC":    /* SC monitor needs split — accepted no-op */ break;
+          default: break;
+        } },
+        dispose() { disposeNodes(ds); },
+      };
+    });
+    if (fx.drumEnhancer?.enabled) install("drumEnhancer", (p) => {
+      // Phase C2: punch peak (80Hz), snap peak (6kHz), glue compressor threshold,
+      // sub lowshelf (60Hz), air highshelf (10kHz), outputGain.
+      const c = ctx.createDynamicsCompressor();
+      // glue 0..1 → threshold -8..-30 dB (more glue = lower threshold = more comp).
+      const glueThresh = (v) => -8 - safe(v, 0, 0, 1) * 22;
+      setCompThresh(c.threshold, glueThresh(p.glue));
+      setCompRatio(c.ratio, 4); setCompAttack(c.attack, 0.001); setCompRelease(c.release, 0.05);
+      const sub = ctx.createBiquadFilter(); sub.type = "lowshelf"; setFreq(sub.frequency, 60); setGainDb(sub.gain, safe(p.sub, 0, 0, 1) * 9);
+      const lo = ctx.createBiquadFilter(); lo.type = "peaking"; setFreq(lo.frequency, 80); setQ(lo.Q, 0.8); setGainDb(lo.gain, safe(p.punch, 0, 0, 1) * 6);
+      const hi = ctx.createBiquadFilter(); hi.type = "peaking"; setFreq(hi.frequency, 6000); setQ(hi.Q, 1); setGainDb(hi.gain, safe(p.snap, 0, 0, 1) * 4);
+      const air = ctx.createBiquadFilter(); air.type = "highshelf"; setFreq(air.frequency, 10000); setGainDb(air.gain, safe(p.air, 0, 0, 1) * 6);
+      const og = ctx.createGain(); setGainLinear(og.gain, safe(p.outputGain, 1, 0, 4));
+      c.connect(sub); sub.connect(lo); lo.connect(hi); hi.connect(air); air.connect(og);
+      return {
+        inputNode: c, outputNode: og,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "punch":      lo.gain.setTargetAtTime(safe(safe(v, 0.5, 0, 1) * 6, 3, -60, 24), t, TAU); break;
+          case "snap":       hi.gain.setTargetAtTime(safe(safe(v, 0.4, 0, 1) * 4, 1.6, -60, 24), t, TAU); break;
+          case "glue":       c.threshold.setTargetAtTime(safe(glueThresh(v), -16, -100, 0), t, TAU); break;
+          case "sub":        sub.gain.setTargetAtTime(safe(safe(v, 0.3, 0, 1) * 9, 2.7, -60, 24), t, TAU); break;
+          case "air":        air.gain.setTargetAtTime(safe(safe(v, 0.3, 0, 1) * 6, 1.8, -60, 24), t, TAU); break;
+          case "outputGain": og.gain.setTargetAtTime(safe(v, 1, 0, 4), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(c, sub, lo, hi, air, og); },
+      };
+    });
+    if (fx.midSideComp?.enabled) install("midSideComp", (p) => {
+      // Approximation: UI promises true M/S split, engine is a single
+      // compressor driven by the MID-channel knobs only. side*/makeup require
+      // a real M/S decode (channelSplitter + matrix) — Phase C.
+      const c = ctx.createDynamicsCompressor();
+      setCompThresh(c.threshold, p.midThresh != null ? p.midThresh : -10);
+      setCompRatio(c.ratio, p.midRatio != null ? p.midRatio : 2);
+      setCompAttack(c.attack, safe((p.attack != null ? p.attack : 10) / 1000, 0.01, 0, 1));
+      setCompRelease(c.release, safe((p.release != null ? p.release : 100) / 1000, 0.1, 0, 1));
+      return {
+        inputNode: c, outputNode: c,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "midThresh": c.threshold.setTargetAtTime(safe(v, -18, -100, 0), t, TAU); break;
+          case "midRatio":  c.ratio.setTargetAtTime(safe(v, 3, 1, 20), t, TAU); break;
+          case "attack":    c.attack.setTargetAtTime(safe((v || 0) / 1000, 0.005, 0, 1), t, TAU); break;
+          case "release":   c.release.setTargetAtTime(safe((v || 0) / 1000, 0.1, 0, 1), t, TAU); break;
+          // Phase C: sideThresh, sideRatio, makeup require true M/S split.
+          case "sideThresh": case "sideRatio": case "makeup": break;
+          default: break;
+        } },
+        dispose() { disposeNodes(c); },
+      };
+    });
+    if (fx.multibandLimiter?.enabled) install("multibandLimiter", (p) => {
+      // Phase C2.1: 4-band limiter with simple delay-line "lookahead".
+      // True sample-accurate lookahead requires an AudioWorklet (Phase C5);
+      // here we use a fixed DelayNode (lookahead ms) on the band chains so
+      // the limiter sees a delayed signal, plus DynamicsCompressor with
+      // ratio 20 + ~0 ms attack to act as a brick-wall limiter per band.
+      // UI keys: ceiling (-6..0 dB), xover1/2/3, lookahead (ms; cosmetic — fixed delay).
+      const initLookaheadMs = safe(p.lookahead != null ? p.lookahead : 3, 3, 0, 10);
+      const initLookaheadS = initLookaheadMs / 1000;
+      const x1 = safe(p.xover1 != null ? p.xover1 : 200,  200,  20, 20000);
+      const x2 = safe(p.xover2 != null ? p.xover2 : 2000, 2000, 20, 20000);
+      const x3 = safe(p.xover3 != null ? p.xover3 : 8000, 8000, 20, 20000);
+      const initCeiling = safe(p.ceiling != null ? p.ceiling : -0.3, -0.3, -6, 0);
+      const inBus = ctx.createGain();
+      // Lookahead delay applied before the split.
+      const dly = ctx.createDelay(0.05); setTime(dly.delayTime, initLookaheadS);
+      // Band 1: LP at x1.
+      const b1lp1 = ctx.createBiquadFilter(); b1lp1.type = "lowpass"; setFreq(b1lp1.frequency, x1); setQ(b1lp1.Q, 0.707);
+      const b1lp2 = ctx.createBiquadFilter(); b1lp2.type = "lowpass"; setFreq(b1lp2.frequency, x1); setQ(b1lp2.Q, 0.707);
+      // Band 2: HP at x1, LP at x2.
+      const b2hp1 = ctx.createBiquadFilter(); b2hp1.type = "highpass"; setFreq(b2hp1.frequency, x1); setQ(b2hp1.Q, 0.707);
+      const b2hp2 = ctx.createBiquadFilter(); b2hp2.type = "highpass"; setFreq(b2hp2.frequency, x1); setQ(b2hp2.Q, 0.707);
+      const b2lp1 = ctx.createBiquadFilter(); b2lp1.type = "lowpass"; setFreq(b2lp1.frequency, x2); setQ(b2lp1.Q, 0.707);
+      const b2lp2 = ctx.createBiquadFilter(); b2lp2.type = "lowpass"; setFreq(b2lp2.frequency, x2); setQ(b2lp2.Q, 0.707);
+      // Band 3: HP at x2, LP at x3.
+      const b3hp1 = ctx.createBiquadFilter(); b3hp1.type = "highpass"; setFreq(b3hp1.frequency, x2); setQ(b3hp1.Q, 0.707);
+      const b3hp2 = ctx.createBiquadFilter(); b3hp2.type = "highpass"; setFreq(b3hp2.frequency, x2); setQ(b3hp2.Q, 0.707);
+      const b3lp1 = ctx.createBiquadFilter(); b3lp1.type = "lowpass"; setFreq(b3lp1.frequency, x3); setQ(b3lp1.Q, 0.707);
+      const b3lp2 = ctx.createBiquadFilter(); b3lp2.type = "lowpass"; setFreq(b3lp2.frequency, x3); setQ(b3lp2.Q, 0.707);
+      // Band 4: HP at x3.
+      const b4hp1 = ctx.createBiquadFilter(); b4hp1.type = "highpass"; setFreq(b4hp1.frequency, x3); setQ(b4hp1.Q, 0.707);
+      const b4hp2 = ctx.createBiquadFilter(); b4hp2.type = "highpass"; setFreq(b4hp2.frequency, x3); setQ(b4hp2.Q, 0.707);
+      // Per-band brick-wall limiters.
+      const mkLim = () => {
+        const c = ctx.createDynamicsCompressor();
+        setCompThresh(c.threshold, initCeiling);
+        setCompRatio(c.ratio, 20); setCompKnee(c.knee, 0);
+        setCompAttack(c.attack, 0.0005); setCompRelease(c.release, 0.1);
+        return c;
+      };
+      const l1 = mkLim(); const l2 = mkLim(); const l3 = mkLim(); const l4 = mkLim();
+      const out = ctx.createGain();
+      // Wire: inBus → dly → 4 parallel band chains → out.
+      inBus.connect(dly);
+      dly.connect(b1lp1); b1lp1.connect(b1lp2); b1lp2.connect(l1); l1.connect(out);
+      dly.connect(b2hp1); b2hp1.connect(b2hp2); b2hp2.connect(b2lp1); b2lp1.connect(b2lp2); b2lp2.connect(l2); l2.connect(out);
+      dly.connect(b3hp1); b3hp1.connect(b3hp2); b3hp2.connect(b3lp1); b3lp1.connect(b3lp2); b3lp2.connect(l3); l3.connect(out);
+      dly.connect(b4hp1); b4hp1.connect(b4hp2); b4hp2.connect(l4); l4.connect(out);
+      return {
+        inputNode: inBus, outputNode: out,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "ceiling": {
+            const c = safe(v, -0.3, -6, 0);
+            l1.threshold.setTargetAtTime(c, t, TAU);
+            l2.threshold.setTargetAtTime(c, t, TAU);
+            l3.threshold.setTargetAtTime(c, t, TAU);
+            l4.threshold.setTargetAtTime(c, t, TAU);
+            break;
+          }
+          case "lookahead": {
+            // 0..10 ms → 0..0.01 s. Note: this is a pre-split delay, not true
+            // sample-accurate lookahead (which would need a worklet sidechain).
+            dly.delayTime.setTargetAtTime(safe(safe(v, 3, 0, 10) / 1000, 0.003, 0, 0.05), t, TAU);
+            break;
+          }
+          case "xover1": {
+            const f = safe(v, 200, 20, 20000);
+            b1lp1.frequency.setTargetAtTime(f, t, TAU); b1lp2.frequency.setTargetAtTime(f, t, TAU);
+            b2hp1.frequency.setTargetAtTime(f, t, TAU); b2hp2.frequency.setTargetAtTime(f, t, TAU);
+            break;
+          }
+          case "xover2": {
+            const f = safe(v, 2000, 20, 20000);
+            b2lp1.frequency.setTargetAtTime(f, t, TAU); b2lp2.frequency.setTargetAtTime(f, t, TAU);
+            b3hp1.frequency.setTargetAtTime(f, t, TAU); b3hp2.frequency.setTargetAtTime(f, t, TAU);
+            break;
+          }
+          case "xover3": {
+            const f = safe(v, 8000, 20, 20000);
+            b3lp1.frequency.setTargetAtTime(f, t, TAU); b3lp2.frequency.setTargetAtTime(f, t, TAU);
+            b4hp1.frequency.setTargetAtTime(f, t, TAU); b4hp2.frequency.setTargetAtTime(f, t, TAU);
+            break;
+          }
+          default: break;
+        } },
+        dispose() {
+          disposeNodes(inBus, dly, b1lp1, b1lp2, b2hp1, b2hp2, b2lp1, b2lp2,
+            b3hp1, b3hp2, b3lp1, b3lp2, b4hp1, b4hp2, l1, l2, l3, l4, out);
+        },
+      };
+    });
 
     // ── SPX EQ ──
-    if (fx.ironBand?.enabled) {
-      const p = fx.ironBand; const bands = p.bands || [];
-      bands.forEach(b => { const f = ctx.createBiquadFilter(); f.type = b.type||"peaking"; f.frequency.value = b.freq||1000; f.Q.value = b.q||1; f.gain.value = b.gain||0; nodes.push(f); });
-    }
-    if (fx.spectraCurve?.enabled) {
-      const p = fx.spectraCurve;
-      const lo = ctx.createBiquadFilter(); lo.type="lowshelf"; lo.frequency.value=100; lo.gain.value=p.low||0;
-      const lm = ctx.createBiquadFilter(); lm.type="peaking"; lm.frequency.value=300; lm.Q.value=1; lm.gain.value=p.lowMid||0;
-      const m  = ctx.createBiquadFilter(); m.type="peaking";  m.frequency.value=1000; m.Q.value=1; m.gain.value=p.mid||0;
-      const hm = ctx.createBiquadFilter(); hm.type="peaking"; hm.frequency.value=5000; hm.Q.value=1; hm.gain.value=p.highMid||0;
-      const hi = ctx.createBiquadFilter(); hi.type="highshelf"; hi.frequency.value=10000; hi.gain.value=p.high||0;
-      nodes.push(lo, lm, m, hm, hi);
-    }
-    if (fx.stereoForge?.enabled) {
-      const width = fx.stereoForge.width || 1; const g = ctx.createGain(); g.gain.value = width; nodes.push(g);
-    }
-    if (fx.gainStager?.enabled) {
-      const g = ctx.createGain(); g.gain.value = Math.pow(10,(fx.gainStager.gain||0)/20); nodes.push(g);
-    }
-    if (fx.dynamicEQ?.enabled) {
-      const f1 = ctx.createBiquadFilter(); f1.type="peaking"; f1.frequency.value=fx.dynamicEQ.frequency||1000; f1.Q.value=fx.dynamicEQ.q||1; f1.gain.value=fx.dynamicEQ.gain||0;
-      const c = ctx.createDynamicsCompressor(); c.threshold.value=fx.dynamicEQ.threshold||-20; c.ratio.value=2; c.attack.value=0.01; c.release.value=0.1;
-      nodes.push(c, f1);
-    }
-    if (fx.midSideEQ?.enabled) {
-      const mf = ctx.createBiquadFilter(); mf.type="peaking"; mf.frequency.value=fx.midSideEQ.midFreq||1000; mf.Q.value=1; mf.gain.value=fx.midSideEQ.midGain||0;
-      const sf = ctx.createBiquadFilter(); sf.type="peaking"; sf.frequency.value=fx.midSideEQ.sideFreq||5000; sf.Q.value=1; sf.gain.value=fx.midSideEQ.sideGain||0;
-      nodes.push(mf, sf);
-    }
+    if (fx.ironBand?.enabled) install("ironBand", makeIronBand);
+    if (fx.spectraCurve?.enabled) install("spectraCurve", (p) => {
+      // Variable-band parametric EQ. Live param updates ramp the biquad params
+      // of each band keyed by index — UI emits onChange("bands", newArray) on
+      // any band edit, so we re-derive node state on bands changes. Adding/
+      // removing bands at runtime requires a chain rebuild (toggle-equivalent).
+      const bands = Array.isArray(p.bands) ? p.bands : [];
+      const filters = bands.map(b => {
+        const ty = b.type === "peak" ? "peaking" : (b.type || "peaking");
+        const f = ctx.createBiquadFilter(); f.type = ty;
+        setFreq(f.frequency, b.freq || 1000); setQ(f.Q, b.q || 1);
+        if (ty === "peaking" || ty === "lowshelf" || ty === "highshelf") setGainDb(f.gain, b.gain || 0);
+        return f;
+      });
+      // Wire serial chain (or use a passthrough if empty so the chain stays connected).
+      const head = ctx.createGain(); setGainLinear(head.gain, 1);
+      const tail = ctx.createGain(); setGainLinear(tail.gain, 1);
+      let prev = head;
+      for (const f of filters) { prev.connect(f); prev = f; }
+      prev.connect(tail);
+      return {
+        inputNode: head, outputNode: tail,
+        setParam(n, v) {
+          const t = ctx.currentTime;
+          if (n === "bands" && Array.isArray(v)) {
+            v.forEach((b, i) => {
+              const f = filters[i]; if (!f) return;
+              if (Number.isFinite(b.freq))  f.frequency.setTargetAtTime(safe(b.freq, 1000, 20, 20000), t, TAU);
+              if (Number.isFinite(b.q))     f.Q.setTargetAtTime(safe(b.q, 1, 0.0001, 1000), t, TAU);
+              if (Number.isFinite(b.gain) && (f.type === "peaking" || f.type === "lowshelf" || f.type === "highshelf")) {
+                f.gain.setTargetAtTime(safe(b.gain, 0, -60, 24), t, TAU);
+              }
+            });
+          }
+        },
+        dispose() { disposeNodes(head, tail, ...filters); },
+      };
+    });
+    if (fx.stereoForge?.enabled) install("stereoForge", (p) => {
+      // UI emits width on 0-200 scale (50=mono, 100=passthrough, 200=2x). Divide by 100.
+      const g = ctx.createGain(); setGainLinear(g.gain, (p.width != null ? p.width : 100) / 100);
+      return {
+        inputNode: g, outputNode: g,
+        setParam(n, v) { if (n === "width") g.gain.setTargetAtTime(safe((v != null ? v : 100) / 100, 1, 0, 4), ctx.currentTime, TAU); },
+        dispose() { disposeNodes(g); },
+      };
+    });
+    if (fx.gainStager?.enabled) install("gainStager", (p) => {
+      // UI emits linear `gain` (0..4, 1=unity) and `trim` in dB (-24..+24).
+      // Combined factor = gain * 10^(trim/20). Other UI keys (targetDb, phase,
+      // rmsDb, peakDb) are meter/state — left as dead cases.
+      const initGain = safe(p.gain != null ? p.gain : 1, 1, 0, 4);
+      const initTrim = Math.pow(10, safe(p.trim || 0, 0, -24, 24) / 20);
+      const g = ctx.createGain(); setGainLinear(g.gain, initGain * initTrim);
+      let curGain = initGain, curTrim = initTrim;
+      return {
+        inputNode: g, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "gain": curGain = safe(v, 1, 0, 4); g.gain.setTargetAtTime(safe(curGain * curTrim, 1, 0, 16), t, TAU); break;
+          case "trim": curTrim = Math.pow(10, safe(v, 0, -24, 24) / 20); g.gain.setTargetAtTime(safe(curGain * curTrim, 1, 0, 16), t, TAU); break;
+          // Meter/state knobs — not driven into the audio graph.
+          case "targetDb": case "phase": case "rmsDb": case "peakDb": break;
+          default: break;
+        } },
+        dispose() { disposeNodes(g); },
+      };
+    });
+    if (fx.dynamicEQ?.enabled) install("dynamicEQ", (p) => {
+      // UI promises 5 bands (each with freq/gain/q/threshold/ratio/attack/release/dynamic/type).
+      // Engine here is a single compressor → peaking filter (one band only).
+      // Compromise: bind the UI's currently-selected band to this single engine
+      // band. Switching bands re-points the engine at the newly-selected band.
+      // Phase C: build a real 5-band parallel topology (5x compressor+filter
+      // with channel-merger output) when this becomes a release blocker.
+      const c = ctx.createDynamicsCompressor();
+      const f1 = ctx.createBiquadFilter(); f1.type = "peaking";
+      // Track the currently-selected band index so `bands` array updates know
+      // which entry to apply.
+      let curBand = (p.selectedBand != null) ? safe(p.selectedBand, 0, 0, 4) : 0;
+      const initBands = Array.isArray(p.bands) ? p.bands : null;
+      const seedBand = initBands && initBands[curBand] ? initBands[curBand] : { freq: 1000, q: 1, gain: 0, threshold: -20, ratio: 2, attack: 10, release: 100 };
+      setCompThresh(c.threshold, seedBand.threshold != null ? seedBand.threshold : (p.threshold || -20));
+      setCompRatio(c.ratio, safe(seedBand.ratio || 2, 2, 1, 20));
+      setCompAttack(c.attack, safe((seedBand.attack || 10) / 1000, 0.01, 0, 1));
+      setCompRelease(c.release, safe((seedBand.release || 100) / 1000, 0.1, 0, 1));
+      setFreq(f1.frequency, seedBand.freq || p.frequency || 1000);
+      setQ(f1.Q, seedBand.q || p.q || 1);
+      setGainDb(f1.gain, seedBand.gain != null ? seedBand.gain : (p.gain || 0));
+      c.connect(f1);
+      const applyBand = (b) => {
+        if (!b) return;
+        const t = ctx.currentTime;
+        f1.frequency.setTargetAtTime(safe(b.freq, 1000, 20, 20000), t, TAU);
+        f1.Q.setTargetAtTime(safe(b.q, 1, 0.0001, 1000), t, TAU);
+        f1.gain.setTargetAtTime(safe(b.gain, 0, -60, 24), t, TAU);
+        c.threshold.setTargetAtTime(safe(b.threshold, -20, -100, 0), t, TAU);
+        c.ratio.setTargetAtTime(safe(b.ratio, 2, 1, 20), t, TAU);
+        c.attack.setTargetAtTime(safe((b.attack != null ? b.attack : 10) / 1000, 0.01, 0, 1), t, TAU);
+        c.release.setTargetAtTime(safe((b.release != null ? b.release : 100) / 1000, 0.1, 0, 1), t, TAU);
+      };
+      return {
+        inputNode: c, outputNode: f1,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "selectedBand": {
+            curBand = safe(v, 0, 0, 4);
+            // No bands array reference here — wait for the next `bands` push.
+            break;
+          }
+          case "bands": {
+            if (Array.isArray(v) && v[curBand]) applyBand(v[curBand]);
+            break;
+          }
+          // Legacy single-value cases (kept so old presets still work).
+          case "frequency": f1.frequency.setTargetAtTime(safe(v, 1000, 20, 20000), t, TAU); break;
+          case "q":         f1.Q.setTargetAtTime(safe(v, 1, 0.0001, 1000), t, TAU); break;
+          case "gain":      f1.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          case "threshold": c.threshold.setTargetAtTime(safe(v, -20, -100, 0), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(c, f1); },
+      };
+    });
+    if (fx.midSideEQ?.enabled) install("midSideEQ", (p) => {
+      // Phase C2.1: real M/S encode → 4-band peaking EQ on Mid + 4-band peaking
+      // EQ on Side → M/S decode.
+      // Mid bands: midLowGain (100 Hz), midLowMidGain (400 Hz), midHiMidGain (3 kHz), midHiGain (10 kHz).
+      // Side bands: sideLowGain, sideLowMidGain, sideHiMidGain, sideHiGain (same freqs).
+      const inSplitter = ctx.createChannelSplitter(2);
+      const outMerger  = ctx.createChannelMerger(2);
+      // Encode M=(L+R)*0.5
+      const midSum = ctx.createGain(); midSum.gain.value = 0.5;
+      inSplitter.connect(midSum, 0); inSplitter.connect(midSum, 1);
+      // Encode S=(L-R)*0.5
+      const rInvert = ctx.createGain(); rInvert.gain.value = -1;
+      const sideSum = ctx.createGain(); sideSum.gain.value = 0.5;
+      inSplitter.connect(sideSum, 0);
+      inSplitter.connect(rInvert, 1); rInvert.connect(sideSum);
+      // Mid 4-band peaking EQ.
+      const mLo  = ctx.createBiquadFilter(); mLo.type  = "peaking"; setFreq(mLo.frequency, 100);  setQ(mLo.Q, 1.0); setGainDb(mLo.gain, safe(p.midLowGain    != null ? p.midLowGain    : (p.midGain || 0), 0, -24, 24));
+      const mLM  = ctx.createBiquadFilter(); mLM.type  = "peaking"; setFreq(mLM.frequency, 400);  setQ(mLM.Q, 1.0); setGainDb(mLM.gain, safe(p.midLowMidGain != null ? p.midLowMidGain : 0, 0, -24, 24));
+      const mHM  = ctx.createBiquadFilter(); mHM.type  = "peaking"; setFreq(mHM.frequency, 3000); setQ(mHM.Q, 1.0); setGainDb(mHM.gain, safe(p.midHiMidGain  != null ? p.midHiMidGain  : 0, 0, -24, 24));
+      const mHi  = ctx.createBiquadFilter(); mHi.type  = "peaking"; setFreq(mHi.frequency, 10000);setQ(mHi.Q, 1.0); setGainDb(mHi.gain, safe(p.midHiGain     != null ? p.midHiGain     : 0, 0, -24, 24));
+      midSum.connect(mLo); mLo.connect(mLM); mLM.connect(mHM); mHM.connect(mHi);
+      // Side 4-band peaking EQ.
+      const sLo  = ctx.createBiquadFilter(); sLo.type  = "peaking"; setFreq(sLo.frequency, 100);  setQ(sLo.Q, 1.0); setGainDb(sLo.gain, safe(p.sideLowGain    != null ? p.sideLowGain    : (p.sideGain || 0), 0, -24, 24));
+      const sLM  = ctx.createBiquadFilter(); sLM.type  = "peaking"; setFreq(sLM.frequency, 400);  setQ(sLM.Q, 1.0); setGainDb(sLM.gain, safe(p.sideLowMidGain != null ? p.sideLowMidGain : 0, 0, -24, 24));
+      const sHM  = ctx.createBiquadFilter(); sHM.type  = "peaking"; setFreq(sHM.frequency, 3000); setQ(sHM.Q, 1.0); setGainDb(sHM.gain, safe(p.sideHiMidGain  != null ? p.sideHiMidGain  : 0, 0, -24, 24));
+      const sHi  = ctx.createBiquadFilter(); sHi.type  = "peaking"; setFreq(sHi.frequency, 10000);setQ(sHi.Q, 1.0); setGainDb(sHi.gain, safe(p.sideHiGain     != null ? p.sideHiGain     : 0, 0, -24, 24));
+      sideSum.connect(sLo); sLo.connect(sLM); sLM.connect(sHM); sHM.connect(sHi);
+      // Decode: L = M + S, R = M - S.
+      const sInvOut = ctx.createGain(); sInvOut.gain.value = -1;
+      sHi.connect(sInvOut);
+      const lOut = ctx.createGain();
+      const rOut = ctx.createGain();
+      mHi.connect(lOut); sHi.connect(lOut);
+      mHi.connect(rOut); sInvOut.connect(rOut);
+      lOut.connect(outMerger, 0, 0);
+      rOut.connect(outMerger, 0, 1);
+      // Optional center-freq adjustments via legacy keys.
+      return {
+        inputNode: inSplitter, outputNode: outMerger,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "midLowGain":     mLo.gain.setTargetAtTime(safe(v, 0, -24, 24), t, TAU); break;
+          case "midLowMidGain":  mLM.gain.setTargetAtTime(safe(v, 0, -24, 24), t, TAU); break;
+          case "midHiMidGain":   mHM.gain.setTargetAtTime(safe(v, 0, -24, 24), t, TAU); break;
+          case "midHiGain":      mHi.gain.setTargetAtTime(safe(v, 0, -24, 24), t, TAU); break;
+          case "sideLowGain":    sLo.gain.setTargetAtTime(safe(v, 0, -24, 24), t, TAU); break;
+          case "sideLowMidGain": sLM.gain.setTargetAtTime(safe(v, 0, -24, 24), t, TAU); break;
+          case "sideHiMidGain":  sHM.gain.setTargetAtTime(safe(v, 0, -24, 24), t, TAU); break;
+          case "sideHiGain":     sHi.gain.setTargetAtTime(safe(v, 0, -24, 24), t, TAU); break;
+          // Legacy single-band aliases.
+          case "midFreq":  mLM.frequency.setTargetAtTime(safe(v, 400, 20, 20000), t, TAU); break;
+          case "midGain":  mLM.gain.setTargetAtTime(safe(v, 0, -24, 24), t, TAU); break;
+          case "sideFreq": sLM.frequency.setTargetAtTime(safe(v, 400, 20, 20000), t, TAU); break;
+          case "sideGain": sLM.gain.setTargetAtTime(safe(v, 0, -24, 24), t, TAU); break;
+          default: break;
+        } },
+        dispose() {
+          disposeNodes(inSplitter, midSum, rInvert, sideSum,
+            mLo, mLM, mHM, mHi, sLo, sLM, sHM, sHi,
+            sInvOut, lOut, rOut, outMerger);
+        },
+      };
+    });
 
     // ── SPX REVERB ──
-    if (fx.hallForgeS?.enabled) {
-      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.hallForgeS.decay||1.2);
-      const g = ctx.createGain(); g.gain.value = fx.hallForgeS.mix||0.25;
-      const pre = ctx.createDelay(0.1); pre.delayTime.value = fx.hallForgeS.preDelay||0.02;
-      nodes.push(pre, conv, g);
-    }
-    if (fx.hallForgeL?.enabled) {
-      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.hallForgeL.decay||2.5);
-      const g = ctx.createGain(); g.gain.value = fx.hallForgeL.mix||0.3;
-      const pre = ctx.createDelay(0.1); pre.delayTime.value = fx.hallForgeL.preDelay||0.04;
-      nodes.push(pre, conv, g);
-    }
-    if (fx.gateVerb?.enabled) {
-      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, 0.3);
-      const gate = ctx.createDynamicsCompressor(); gate.threshold.value=-20; gate.ratio.value=20; gate.attack.value=0.001; gate.release.value=0.05;
-      const g = ctx.createGain(); g.gain.value = fx.gateVerb.mix||0.4;
-      nodes.push(conv, gate, g);
-    }
-    if (fx.vintageAir?.enabled) {
-      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.vintageAir.decay||1.8);
-      const air = ctx.createBiquadFilter(); air.type="highshelf"; air.frequency.value=8000; air.gain.value=fx.vintageAir.air||3;
-      const g = ctx.createGain(); g.gain.value = fx.vintageAir.mix||0.2;
-      nodes.push(conv, air, g);
-    }
-    if (fx.stochasticHall?.enabled) {
-      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.stochasticHall.decay||2.0);
-      const g = ctx.createGain(); g.gain.value = fx.stochasticHall.mix||0.25;
-      nodes.push(conv, g);
-    }
-    if (fx.greatHall?.enabled) {
-      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.greatHall.decay||3.5);
-      const g = ctx.createGain(); g.gain.value = fx.greatHall.mix||0.3;
-      const pre = ctx.createDelay(0.1); pre.delayTime.value = 0.06;
-      nodes.push(pre, conv, g);
-    }
-    if (fx.plateForge?.enabled) {
-      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.plateForge.decay||1.5);
-      const bri = ctx.createBiquadFilter(); bri.type="highshelf"; bri.frequency.value=6000; bri.gain.value=fx.plateForge.brightness||2;
-      const g = ctx.createGain(); g.gain.value = fx.plateForge.mix||0.25;
-      nodes.push(conv, bri, g);
-    }
-    if (fx.springBox?.enabled) {
+    // Convolver-based factory helper: pre→conv→[extras]→mix-gain in serial,
+    // matching the legacy chain shape. decay knob regens IR (audible click —
+    // mirrors PluginHost ReverbPlugin); mix/preDelay/extras ramp smoothly.
+    if (fx.hallForgeS?.enabled) install("hallForgeS", (p) => {
+      const pre = ctx.createDelay(0.1); setTime(pre.delayTime, p.preDelay || 0.02);
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, p.decay || 2.0);
+      const g = ctx.createGain(); g.gain.value = normalizeMix(p.mix, 0);
+      pre.connect(conv); conv.connect(g);
+      return {
+        inputNode: pre, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "decay":    conv.buffer = getReverbBuf(ctx, safe(v, 2.0, 0.05, 20)); break;
+          case "preDelay": pre.delayTime.setTargetAtTime(safe(v, 0.02, 0, 0.1), t, TAU); break;
+          case "mix":      setReverbMix(g.gain, v); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(pre, conv, g); },
+      };
+    });
+    if (fx.hallForgeL?.enabled) install("hallForgeL", (p) => {
+      const pre = ctx.createDelay(0.1); setTime(pre.delayTime, p.preDelay || 0.04);
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, p.decay || 2.0);
+      const g = ctx.createGain(); g.gain.value = normalizeMix(p.mix, 0);
+      pre.connect(conv); conv.connect(g);
+      return {
+        inputNode: pre, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "decay":    conv.buffer = getReverbBuf(ctx, safe(v, 2.0, 0.05, 20)); break;
+          case "preDelay": pre.delayTime.setTargetAtTime(safe(v, 0.04, 0, 0.1), t, TAU); break;
+          case "mix":      setReverbMix(g.gain, v); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(pre, conv, g); },
+      };
+    });
+    if (fx.gateVerb?.enabled) install("gateVerb", (p) => {
+      // Phase F4-A.5 Batch 2 — gateVerb REBUILD.
+      // Old factory placed gate AFTER convolver, so the gate sat on the wet signal and
+      // never closed cleanly (the long convolver tail kept the gate input above
+      // threshold). New topology: dry-side gate BEFORE the convolver — when the input
+      // (the source) drops below threshold, the gate clamps the convolver's input to
+      // silence so the reverb tail decays naturally and no further wet energy is
+      // produced. This is the "honest fallback" approach (DynamicsCompressorNode with
+      // ratio=20, knee=0, attack=1ms, release=gateDecay/1000) noted in the spec.
+      // Gate sits dry-side on the convolver input only; the wet output has its own
+      // mix gain (this is a wet-only insert — input → conv → wet).
+      const gateThreshInit = safe(p.gateThresh, -40, -100, 0);    // dB
+      const gateDecayInit  = safe(p.gateDecay, 100, 1, 1000);     // ms
+      const decayInit      = safe(p.decay, 0.4, 0.05, 2.0);       // s — short IR (~0.4 s)
+      const preInit        = safe((p.preDelay != null ? p.preDelay : 0) / 1000, 0, 0, 0.1);
+      const dampInit       = safe(p.damping, 0.5, 0, 1);
+
+      const pre  = ctx.createDelay(0.1); pre.delayTime.value = preInit;
+      const gate = ctx.createDynamicsCompressor();
+      // ratio=20, knee=0 → near-brickwall gate above threshold; release = gateDecay (ms→s).
+      setCompThresh(gate.threshold, gateThreshInit);
+      setCompRatio(gate.ratio, 20);
+      try { gate.knee.value = 0; } catch (e) { /* noop */ }
+      setCompAttack(gate.attack, 0.001);
+      setCompRelease(gate.release, gateDecayInit / 1000);
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, decayInit);
+      const damp = ctx.createBiquadFilter(); damp.type = "lowpass";
+      setFreq(damp.frequency, 800 + (1 - dampInit) * 11200);
+      setQ(damp.Q, 0.707);
+      const g    = ctx.createGain(); g.gain.value = normalizeMix(p.mix, 0);
+      // pre → gate → conv → damp → wet
+      pre.connect(gate); gate.connect(conv); conv.connect(damp); damp.connect(g);
+      return {
+        inputNode: pre, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "decay":      conv.buffer = getReverbBuf(ctx, safe(v, 0.4, 0.05, 2.0)); break;
+          case "preDelay":   pre.delayTime.setTargetAtTime(safe(v / 1000, 0, 0, 0.1), t, TAU); break;
+          case "gateThresh": gate.threshold.setTargetAtTime(safe(v, -40, -100, 0), t, TAU); break;
+          case "gateDecay":  gate.release.setTargetAtTime(safe(v, 100, 1, 1000) / 1000, t, TAU); break;
+          case "damping":    damp.frequency.setTargetAtTime(800 + (1 - safe(v, 0.5, 0, 1)) * 11200, t, TAU); break;
+          case "mix":        setReverbMix(g.gain, v); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(pre, gate, conv, damp, g); },
+      };
+    });
+    if (fx.vintageAir?.enabled) install("vintageAir", (p) => {
+      // Phase F4-A.5 Batch 2 — vintageAir UPGRADE.
+      // Old: plate-conv + 8 kHz +3 dB shelf only (no analog character).
+      // New: plate-conv → tape-saturation WaveShaper (tanh, bias-controlled) →
+      //      wow-modulated short delay (1.6 ms swing @ 0.3 Hz LFO) →
+      //      flutter-modulated short delay (0.7 ms swing @ 7 Hz LFO) →
+      //      8 kHz highshelf "air" → wet gain.
+      // Wow + flutter use small DelayNode + LFO via gain (the same pattern as
+      // chorus/spring "boing"). Bias shifts the tanh curve density so saturation
+      // gets denser as it pushes more low-order harmonics — cheap analog model.
+      const decayInit   = safe(p.decay, 1.8, 0.05, 20);
+      const wowInit     = safe(p.tapeWow, 0.3, 0, 1);
+      const flutInit    = safe(p.flutter, 0.2, 0, 1);
+      const biasInit    = safe(p.bias, 0.5, 0, 1);
+
+      // Tape-saturation WaveShaper: y = tanh(x * (1 + bias*2)). Higher bias = denser sat.
+      const buildSatCurve = (bias) => {
+        const N = 4096;
+        const c = new Float32Array(N);
+        const k = 1 + safe(bias, 0.5, 0, 1) * 2; // 1..3 drive
+        for (let i = 0; i < N; i++) {
+          const x = (i / (N - 1)) * 2 - 1;
+          c[i] = Math.tanh(x * k);
+        }
+        return c;
+      };
+
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, decayInit);
+      const sat  = ctx.createWaveShaper(); sat.curve = buildSatCurve(biasInit); sat.oversample = "2x";
+      // Wow: ~0.3 Hz LFO modulating ~2 ms base delay, depth ∝ tapeWow (up to ~1.6 ms swing).
+      const wowDelay = ctx.createDelay(0.02); wowDelay.delayTime.value = 0.002;
+      const wowLFO   = ctx.createOscillator(); wowLFO.type = "sine"; wowLFO.frequency.value = 0.3;
+      const wowGain  = ctx.createGain(); wowGain.gain.value = wowInit * 0.0016;
+      wowLFO.connect(wowGain); wowGain.connect(wowDelay.delayTime); wowLFO.start();
+      // Flutter: ~7 Hz LFO modulating ~1.5 ms base delay, depth ∝ flutter (up to ~0.7 ms swing).
+      const flutDelay = ctx.createDelay(0.02); flutDelay.delayTime.value = 0.0015;
+      const flutLFO   = ctx.createOscillator(); flutLFO.type = "sine"; flutLFO.frequency.value = 7.0;
+      const flutGain  = ctx.createGain(); flutGain.gain.value = flutInit * 0.0007;
+      flutLFO.connect(flutGain); flutGain.connect(flutDelay.delayTime); flutLFO.start();
+      // 8 kHz +3 dB highshelf "air" — preserved from prior factory.
+      const air = ctx.createBiquadFilter(); air.type = "highshelf"; setFreq(air.frequency, 8000); setGainDb(air.gain, p.air || 3);
+      const g = ctx.createGain(); g.gain.value = normalizeMix(p.mix, 0);
+      // conv → sat → wowDelay → flutDelay → air → wet
+      conv.connect(sat); sat.connect(wowDelay); wowDelay.connect(flutDelay);
+      flutDelay.connect(air); air.connect(g);
+      return {
+        inputNode: conv, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "decay":   conv.buffer = getReverbBuf(ctx, safe(v, 1.8, 0.05, 20)); break;
+          case "air":     air.gain.setTargetAtTime(safe(v, 3, -60, 24), t, TAU); break;
+          case "tapeWow": wowGain.gain.setTargetAtTime(safe(v, 0.3, 0, 1) * 0.0016, t, TAU); break;
+          case "flutter": flutGain.gain.setTargetAtTime(safe(v, 0.2, 0, 1) * 0.0007, t, TAU); break;
+          case "bias":    sat.curve = buildSatCurve(safe(v, 0.5, 0, 1)); break;
+          case "mix":     setReverbMix(g.gain, v); break;
+          default: break;
+        } },
+        dispose() {
+          stopOscs(wowLFO, flutLFO);
+          disposeNodes(conv, sat, wowDelay, flutDelay, wowGain, flutGain, air, g);
+        },
+      };
+    });
+    if (fx.stochasticHall?.enabled) install("stochasticHall", (p) => {
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, p.decay || 2.0);
+      const g = ctx.createGain(); g.gain.value = normalizeMix(p.mix, 0);
+      conv.connect(g);
+      return {
+        inputNode: conv, outputNode: g,
+        setParam(n, v) { switch (n) {
+          case "decay": conv.buffer = getReverbBuf(ctx, safe(v, 2.0, 0.05, 20)); break;
+          case "mix":   setReverbMix(g.gain, v); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(conv, g); },
+      };
+    });
+    if (fx.greatHall?.enabled) install("greatHall", (p) => {
+      const pre = ctx.createDelay(0.1); setTime(pre.delayTime, 0.06);
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, p.decay || 2.0);
+      const g = ctx.createGain(); g.gain.value = normalizeMix(p.mix, 0);
+      pre.connect(conv); conv.connect(g);
+      return {
+        inputNode: pre, outputNode: g,
+        setParam(n, v) { switch (n) {
+          case "decay": conv.buffer = getReverbBuf(ctx, safe(v, 2.0, 0.05, 20)); break;
+          case "mix":   setReverbMix(g.gain, v); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(pre, conv, g); },
+      };
+    });
+    if (fx.plateForge?.enabled) install("plateForge", (p) => {
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, p.decay || 2.0);
+      const bri = ctx.createBiquadFilter(); bri.type = "highshelf"; setFreq(bri.frequency, 6000); setGainDb(bri.gain, p.brightness || 2);
+      const g = ctx.createGain(); g.gain.value = normalizeMix(p.mix, 0.1);
+      conv.connect(bri); bri.connect(g);
+      return {
+        inputNode: conv, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "decay":      conv.buffer = getReverbBuf(ctx, safe(v, 2.0, 0.05, 20)); break;
+          case "brightness": bri.gain.setTargetAtTime(safe(v, 2, -60, 24), t, TAU); break;
+          case "mix":        setReverbMix(g.gain, v); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(conv, bri, g); },
+      };
+    });
+    if (fx.springBox?.enabled) install("springBox", (p) => {
       const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, 0.8);
-      const mid = ctx.createBiquadFilter(); mid.type="peaking"; mid.frequency.value=1200; mid.Q.value=0.5; mid.gain.value=3;
-      const g = ctx.createGain(); g.gain.value = fx.springBox.mix||0.3;
-      nodes.push(conv, mid, g);
-    }
-    if (fx.phantomDouble?.enabled) {
-      const d = ctx.createDelay(0.05); d.delayTime.value = fx.phantomDouble.time||0.023;
-      const g = ctx.createGain(); g.gain.value = fx.phantomDouble.mix||0.4;
-      nodes.push(d, g);
-    }
-    if (fx.vocalSpace?.enabled) {
-      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, 0.4);
-      const pres = ctx.createBiquadFilter(); pres.type="peaking"; pres.frequency.value=3000; pres.Q.value=1; pres.gain.value=2;
-      const g = ctx.createGain(); g.gain.value = fx.vocalSpace.mix||0.2;
-      nodes.push(conv, pres, g);
-    }
-    if (fx.infiniteReverb?.enabled) {
-      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, 8.0);
-      const g = ctx.createGain(); g.gain.value = fx.infiniteReverb.mix||0.4;
-      nodes.push(conv, g);
-    }
-    if (fx.spaceForge?.enabled) {
-      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.spaceForge.size||2.0);
-      const g = ctx.createGain(); g.gain.value = fx.spaceForge.mix||0.3;
-      nodes.push(conv, g);
-    }
-    if (fx.stereoBloom?.enabled) {
+      const mid = ctx.createBiquadFilter(); mid.type = "peaking"; setFreq(mid.frequency, 1200); setQ(mid.Q, 0.5); setGainDb(mid.gain, 3);
+      const g = ctx.createGain(); g.gain.value = normalizeMix(p.mix, 0.1);
+      conv.connect(mid); mid.connect(g);
+      return {
+        inputNode: conv, outputNode: g,
+        setParam(n, v) { if (n === "mix") setReverbMix(g.gain, v); },
+        dispose() { disposeNodes(conv, mid, g); },
+      };
+    });
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Phase F4-A.5: differentiated reverbs (hall, plate, spring, room) — distinct DSP engines
+    // ──────────────────────────────────────────────────────────────────────
+    // Wet-only insert pattern (matches hallForgeS / plateForge / springBox above):
+    // when `mix` knob is 0 the wetGain mutes this insert (silence through this FX),
+    // user dials `mix` up to taste. Each factory returns the standard PluginInstance
+    // contract { inputNode, outputNode, setParam(name, value), dispose() }.
+    //
+    // 1) hall — Schroeder-style hall: stereo-spread parallel comb bank (6 combs with
+    //    one-pole damping LP per comb feedback path) into 2 serial allpass diffusers.
+    //    Knobs: decay (s), preDelay (ms), damping (0..1, lowers comb-feedback HF roll),
+    //    hfDamping (0..1, second post-bank LP), width (0..1.5, L/R comb-time spread),
+    //    mix (0..100). preDelay + width are smooth ramps; decay/damping recompute
+    //    feedback gains in-place (no IR rebuild — true network so this is click-free).
+    if (fx.hall?.enabled) install("hall", (p) => {
+      const COMB_TIMES = [0.0297, 0.0371, 0.0411, 0.0437, 0.0050, 0.0079]; // Freeverb-ish base
+      const STEREO_SPREAD = 0.0023;
+      const decayInit = safe(p.decay, 2.4, 0.05, 20);
+      const preInit   = safe((p.preDelay != null ? p.preDelay : 20) / 1000, 0.02, 0, 0.1);
+      const dampInit  = safe(p.damping, 0.4, 0, 1);
+      const hfInit    = safe(p.hfDamping, 0.5, 0, 1);
+      const widthInit = safe(p.width, 1.0, 0, 1.5);
+      // Map decay (sec) → comb feedback gain so RT60 ≈ decay; gFb ≈ exp(-3*ln10*delay/decay).
+      const fbForDecay = (decay, delay) => {
+        const g = Math.exp(-3 * Math.LN10 * delay / Math.max(0.05, decay));
+        return Math.min(0.98, Math.max(0, g));
+      };
+      // Damping → feedback LP cutoff in Hz: 0 → 18 kHz (open), 1 → 800 Hz (dark).
+      const dampToFreq = (d) => 800 + (1 - safe(d, 0.4, 0, 1)) * 17200;
+
+      const pre = ctx.createDelay(0.2); pre.delayTime.value = preInit;
+      // Build 6 parallel combs, each = delay + LP filter + feedback gain.
+      const combs = COMB_TIMES.map((baseT) => {
+        const tL = baseT;
+        const tR = baseT + STEREO_SPREAD * widthInit;
+        // Mono comb (single-channel) — Web Audio nodes are stereo by default; we model the
+        // bank in summed mono into wetGain (full-stereo Schroeder bank would need 2x the nodes).
+        const t = (tL + tR) * 0.5;
+        const d = ctx.createDelay(0.5); d.delayTime.value = t;
+        const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; setFreq(lp.frequency, dampToFreq(dampInit)); setQ(lp.Q, 0.707);
+        const fb = ctx.createGain(); fb.gain.value = fbForDecay(decayInit, t);
+        d.connect(lp); lp.connect(fb); fb.connect(d);
+        return { d, lp, fb, t };
+      });
+      const sum = ctx.createGain(); sum.gain.value = 1 / COMB_TIMES.length;
+      // Parallel combs: pre → each comb.delay; each comb.delay → sum.
+      combs.forEach((c) => { pre.connect(c.d); c.d.connect(sum); });
+      // 2 serial allpass diffusers (typical Schroeder values).
+      const ap1 = ctx.createBiquadFilter(); ap1.type = "allpass"; setFreq(ap1.frequency, 480); setQ(ap1.Q, 0.5);
+      const ap2 = ctx.createBiquadFilter(); ap2.type = "allpass"; setFreq(ap2.frequency, 1200); setQ(ap2.Q, 0.5);
+      // Post-bank HF damping (2nd LP).
+      const hf = ctx.createBiquadFilter(); hf.type = "lowpass"; setFreq(hf.frequency, 800 + (1 - hfInit) * 17200); setQ(hf.Q, 0.707);
+      const wet = ctx.createGain(); wet.gain.value = normalizeMix(p.mix, 0);
+      sum.connect(ap1); ap1.connect(ap2); ap2.connect(hf); hf.connect(wet);
+      let curDecay = decayInit;
+      let curWidth = widthInit;
+      const recomputeFb = () => {
+        for (const c of combs) c.fb.gain.setTargetAtTime(fbForDecay(curDecay, c.t), ctx.currentTime, TAU);
+      };
+      const recomputeWidth = () => {
+        // Width modulates comb delay time slightly; tau-ramped to avoid clicks.
+        for (let i = 0; i < combs.length; i++) {
+          const baseT = COMB_TIMES[i];
+          const t = baseT + 0.5 * STEREO_SPREAD * curWidth;
+          combs[i].d.delayTime.setTargetAtTime(t, ctx.currentTime, TAU);
+          combs[i].t = t;
+        }
+        recomputeFb();
+      };
+      return {
+        inputNode: pre, outputNode: wet,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "decay":     curDecay = safe(v, 2.4, 0.05, 20); recomputeFb(); break;
+          case "preDelay":  pre.delayTime.setTargetAtTime(safe(v / 1000, 0.02, 0, 0.1), t, TAU); break;
+          case "damping":   { const f = dampToFreq(safe(v, 0.4, 0, 1)); for (const c of combs) c.lp.frequency.setTargetAtTime(f, t, TAU); } break;
+          case "hfDamping": hf.frequency.setTargetAtTime(800 + (1 - safe(v, 0.5, 0, 1)) * 17200, t, TAU); break;
+          case "width":     curWidth = safe(v, 1.0, 0, 1.5); recomputeWidth(); break;
+          case "mix":       setReverbMix(wet.gain, v); break;
+          default: break;
+        } },
+        dispose() {
+          disposeNodes(pre, sum, ap1, ap2, hf, wet);
+          for (const c of combs) disposeNodes(c.d, c.lp, c.fb);
+        },
+      };
+    });
+
+    // 2) plate — Simplified Dattorro plate: 4 serial allpass diffusers (prime-time
+    //    spaced) → 2 cross-fed delay lines (the "tank") with shared decay LP. This is
+    //    the simplified port: the full Dattorro figure-of-eight has bigger diffusers +
+    //    secondary modulated allpass; the simplification preserves the dense metallic
+    //    character (input diffusion + tank) while keeping the node count manageable
+    //    for live param ramps. Knobs: decay (s), preDelay (ms), diffusion (0..1 = AP gain),
+    //    damping (0..1 = tank LP), brightness (0..1, peaking-EQ tilt at 3 kHz), mix.
+    if (fx.plate?.enabled) install("plate", (p) => {
+      const sr = ctx.sampleRate || 48000;
+      // Prime-number sample counts at sr — convert to seconds (independent of sr).
+      // Use 48 kHz as the reference so the "primeness" is just a perceptual quirk.
+      const AP_TIMES = [149 / 48000, 211 / 48000, 263 / 48000, 311 / 48000]; // ~3..6.5 ms
+      const TANK_TIMES = [0.0832, 0.1187]; // tank delays — golden-ratio'd
+      const decayInit = safe(p.decay, 1.8, 0.05, 20);
+      const preInit   = safe((p.preDelay != null ? p.preDelay : 12) / 1000, 0.012, 0, 0.1);
+      const diffInit  = safe(p.diffusion, 0.85, 0, 0.95);
+      const dampInit  = safe(p.damping, 0.4, 0, 1);
+      const briInit   = safe(p.brightness, 0.6, 0, 1);
+      // Tank cross-feedback gain so RT60 ≈ decay against the average tank delay.
+      const tankFbForDecay = (decay) => {
+        const avg = (TANK_TIMES[0] + TANK_TIMES[1]) * 0.5;
+        return Math.min(0.95, Math.max(0, Math.exp(-3 * Math.LN10 * avg / Math.max(0.05, decay))));
+      };
+      const dampToFreq = (d) => 800 + (1 - safe(d, 0.4, 0, 1)) * 11200; // 800 Hz .. 12 kHz
+
+      const pre = ctx.createDelay(0.2); pre.delayTime.value = preInit;
+      // 4 serial allpass diffusers — biquad allpass with Q ≈ diffusion control.
+      const ap = AP_TIMES.map((t, i) => {
+        const f = ctx.createBiquadFilter(); f.type = "allpass";
+        // freq = 1 / (period); use sample-time as 1/freq → freq = 1/period
+        setFreq(f.frequency, 1 / t);
+        setQ(f.Q, 0.5 + diffInit * 5); // diffusion → Q resonance of allpass
+        return f;
+      });
+      ap.reduce((prev, cur) => { prev.connect(cur); return cur; });
+      pre.connect(ap[0]);
+      // Tank: 2 cross-fed delay lines with shared damping LP.
+      const tankSum = ctx.createGain(); tankSum.gain.value = 1.0;
+      ap[ap.length - 1].connect(tankSum);
+      const dA = ctx.createDelay(0.5); dA.delayTime.value = TANK_TIMES[0];
+      const dB = ctx.createDelay(0.5); dB.delayTime.value = TANK_TIMES[1];
+      const lpA = ctx.createBiquadFilter(); lpA.type = "lowpass"; setFreq(lpA.frequency, dampToFreq(dampInit)); setQ(lpA.Q, 0.707);
+      const lpB = ctx.createBiquadFilter(); lpB.type = "lowpass"; setFreq(lpB.frequency, dampToFreq(dampInit)); setQ(lpB.Q, 0.707);
+      const fbA = ctx.createGain(); fbA.gain.value = tankFbForDecay(decayInit);
+      const fbB = ctx.createGain(); fbB.gain.value = tankFbForDecay(decayInit);
+      // Cross-fed: tankSum + fbB → dA → lpA → fbA → (cross to dB)
+      //            tankSum + fbA → dB → lpB → fbB → (cross to dA)
+      tankSum.connect(dA); tankSum.connect(dB);
+      dA.connect(lpA); lpA.connect(fbA); fbA.connect(dB);
+      dB.connect(lpB); lpB.connect(fbB); fbB.connect(dA);
+      // Output: tap both tank LPs into a sum.
+      const merged = ctx.createGain(); merged.gain.value = 0.5;
+      lpA.connect(merged); lpB.connect(merged);
+      // Brightness: peaking EQ at 3 kHz (legacy plateForge style).
+      const bri = ctx.createBiquadFilter(); bri.type = "peaking"; setFreq(bri.frequency, 3000); setQ(bri.Q, 0.5); setGainDb(bri.gain, briInit * 12 - 6); // 0..1 → -6..+6 dB
+      const wet = ctx.createGain(); wet.gain.value = normalizeMix(p.mix, 0);
+      merged.connect(bri); bri.connect(wet);
+      return {
+        inputNode: pre, outputNode: wet,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "decay":      { const g = tankFbForDecay(safe(v, 1.8, 0.05, 20)); fbA.gain.setTargetAtTime(g, t, TAU); fbB.gain.setTargetAtTime(g, t, TAU); } break;
+          case "preDelay":   pre.delayTime.setTargetAtTime(safe(v / 1000, 0.012, 0, 0.1), t, TAU); break;
+          case "diffusion":  { const Q = 0.5 + safe(v, 0.85, 0, 0.95) * 5; for (const f of ap) f.Q.setTargetAtTime(Q, t, TAU); } break;
+          case "damping":    { const f = dampToFreq(safe(v, 0.4, 0, 1)); lpA.frequency.setTargetAtTime(f, t, TAU); lpB.frequency.setTargetAtTime(f, t, TAU); } break;
+          case "brightness": bri.gain.setTargetAtTime(safe(v, 0.6, 0, 1) * 12 - 6, t, TAU); break;
+          case "mix":        setReverbMix(wet.gain, v); break;
+          default: break;
+        } },
+        dispose() {
+          disposeNodes(pre, tankSum, dA, dB, lpA, lpB, fbA, fbB, merged, bri, wet);
+          for (const f of ap) disposeNodes(f);
+        },
+      };
+    });
+
+    // 3) spring — Spring tank: 1..3 parallel comb springs (each = delay+LP+feedback)
+    //    + cascaded allpass chain + LFO-modulated short delay for the metallic "boing"
+    //    twang. Knobs: decay (s, comb feedback gain), springs (1..3, gates extra combs
+    //    via their feedback gain), tone (0..1, tilt EQ across wet — low/dark .. bright),
+    //    boing (0..1, depth of LFO modulation on a chirped allpass), mix.
+    if (fx.spring?.enabled) install("spring", (p) => {
+      const SPRING_TIMES = [0.030, 0.034, 0.038]; // base spring tank delay periods (s)
+      const decayInit  = safe(p.decay, 1.4, 0.05, 10);
+      const springsInit = Math.round(safe(p.springs, 3, 1, 3));
+      const toneInit   = safe(p.tone, 0.55, 0, 1);
+      const boingInit  = safe(p.boing, 0.35, 0, 1);
+      // Map decay → spring feedback (avg time 0.034s → small base, scale to decay).
+      const fbForDecay = (decay, t) => {
+        const g = Math.exp(-3 * Math.LN10 * t / Math.max(0.05, decay));
+        return Math.min(0.95, Math.max(0, g));
+      };
+      // Springs knob gates each comb: spring i is "active" when springsInit > i.
+      const isActive = (i, springs) => springs > i ? 1 : 0;
+
+      const inGain = ctx.createGain(); inGain.gain.value = 1;
+      // 3 parallel comb-spring lines; gated by per-comb wet gain (active = 1, off = 0).
+      const springs = SPRING_TIMES.map((t, i) => {
+        const d = ctx.createDelay(0.1); d.delayTime.value = t;
+        const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; setFreq(lp.frequency, 2000); setQ(lp.Q, 0.707);
+        const fb = ctx.createGain(); fb.gain.value = fbForDecay(decayInit, t);
+        d.connect(lp); lp.connect(fb); fb.connect(d);
+        const gate = ctx.createGain(); gate.gain.value = isActive(i, springsInit);
+        inGain.connect(d); d.connect(gate);
+        return { d, lp, fb, gate, t };
+      });
+      const springSum = ctx.createGain(); springSum.gain.value = 1 / SPRING_TIMES.length;
+      springs.forEach((s) => s.gate.connect(springSum));
+      // Cascaded allpass chain (4 stages) → adds metallic dispersion on top of the comb bank.
+      const ap = [600, 1100, 1700, 2400].map((f) => {
+        const a = ctx.createBiquadFilter(); a.type = "allpass"; setFreq(a.frequency, f); setQ(a.Q, 4); return a;
+      });
+      ap.reduce((prev, cur) => { prev.connect(cur); return cur; });
+      springSum.connect(ap[0]);
+      // LFO-modulated short delay → "boing" twang. LFO 1.6 Hz, depth ∝ boing.
+      const modDelay = ctx.createDelay(0.05); modDelay.delayTime.value = 0.012;
+      const lfo = ctx.createOscillator(); lfo.type = "sine"; lfo.frequency.value = 1.6;
+      const lfoGain = ctx.createGain(); lfoGain.gain.value = boingInit * 0.008; // up to 8 ms swing
+      lfo.connect(lfoGain); lfoGain.connect(modDelay.delayTime);
+      lfo.start();
+      ap[ap.length - 1].connect(modDelay);
+      // Tone: tilt EQ — low shelf cut + high shelf boost as tone↑ (0=dark, 1=bright).
+      const lowShelf = ctx.createBiquadFilter(); lowShelf.type = "lowshelf"; setFreq(lowShelf.frequency, 400); setGainDb(lowShelf.gain, (toneInit - 0.5) * -10);
+      const hiShelf  = ctx.createBiquadFilter(); hiShelf.type  = "highshelf"; setFreq(hiShelf.frequency, 4000); setGainDb(hiShelf.gain, (toneInit - 0.5) * 10);
+      modDelay.connect(lowShelf); lowShelf.connect(hiShelf);
+      const wet = ctx.createGain(); wet.gain.value = normalizeMix(p.mix, 0);
+      hiShelf.connect(wet);
+      let curDecay = decayInit;
+      const recomputeFb = () => {
+        for (const s of springs) s.fb.gain.setTargetAtTime(fbForDecay(curDecay, s.t), ctx.currentTime, TAU);
+      };
+      return {
+        inputNode: inGain, outputNode: wet,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "decay":   curDecay = safe(v, 1.4, 0.05, 10); recomputeFb(); break;
+          case "springs": { const sn = Math.round(safe(v, 3, 1, 3)); for (let i = 0; i < springs.length; i++) springs[i].gate.gain.setTargetAtTime(isActive(i, sn), t, TAU); } break;
+          case "tone":    { const tv = safe(v, 0.55, 0, 1); lowShelf.gain.setTargetAtTime((tv - 0.5) * -10, t, TAU); hiShelf.gain.setTargetAtTime((tv - 0.5) * 10, t, TAU); } break;
+          case "boing":   lfoGain.gain.setTargetAtTime(safe(v, 0.35, 0, 1) * 0.008, t, TAU); break;
+          case "mix":     setReverbMix(wet.gain, v); break;
+          default: break;
+        } },
+        dispose() {
+          stopOscs(lfo);
+          disposeNodes(inGain, springSum, modDelay, lfoGain, lowShelf, hiShelf, wet);
+          for (const s of springs) disposeNodes(s.d, s.lp, s.fb, s.gate);
+          for (const a of ap) disposeNodes(a);
+        },
+      };
+    });
+
+    // 4) room — Short-decay convolver with synthesized IR and post-conv damping LP +
+    //    brightness highshelf. IR = white noise × (1 - i/len)^4 envelope, length = size×1.0s
+    //    (so size=0.45 → 450 ms IR). Knobs: size (0.2..0.8 → 200..800 ms IR length, see clamp),
+    //    damping (0..1 → 8 kHz cutoff at 0, 800 Hz at 1), brightness (0..1 → -6..+6 dB highshelf),
+    //    mix. Decay/size knob change rebuilds IR (audible click acceptable, mirrors existing).
+    if (fx.room?.enabled) install("room", (p) => {
+      const sizeInit = safe(p.size, 0.45, 0.2, 0.8);
+      const dampInit = safe(p.damping, 0.5, 0, 1);
+      const briInit  = safe(p.brightness, 0.6, 0, 1);
+      // Build short-room IR: noise × (1-i/len)^4 envelope.
+      const buildIR = (sizeSec) => {
+        const sr = ctx.sampleRate;
+        const len = Math.max(1, Math.floor(sr * safe(sizeSec, 0.45, 0.05, 1.5)));
+        const buf = ctx.createBuffer(2, len, sr);
+        for (let ch = 0; ch < 2; ch++) {
+          const d = buf.getChannelData(ch);
+          const phase = ch === 0 ? 1 : -1; // simple stereo decorrelation
+          for (let i = 0; i < len; i++) {
+            const t = i / len;
+            const env = Math.pow(1 - t, 4);
+            d[i] = (Math.random() * 2 - 1) * env * (i % 7 === 0 ? phase : 1);
+          }
+        }
+        return buf;
+      };
+      const dampToFreq = (dv) => 800 + (1 - safe(dv, 0.5, 0, 1)) * 7200; // 800 Hz .. 8 kHz
+      const conv = ctx.createConvolver(); conv.buffer = buildIR(sizeInit);
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; setFreq(lp.frequency, dampToFreq(dampInit)); setQ(lp.Q, 0.707);
+      const bri = ctx.createBiquadFilter(); bri.type = "highshelf"; setFreq(bri.frequency, 6000); setGainDb(bri.gain, (briInit - 0.5) * 12);
+      const wet = ctx.createGain(); wet.gain.value = normalizeMix(p.mix, 0);
+      conv.connect(lp); lp.connect(bri); bri.connect(wet);
+      return {
+        inputNode: conv, outputNode: wet,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "size":       conv.buffer = buildIR(safe(v, 0.45, 0.05, 1.5)); break;
+          case "damping":    lp.frequency.setTargetAtTime(dampToFreq(safe(v, 0.5, 0, 1)), t, TAU); break;
+          case "brightness": bri.gain.setTargetAtTime((safe(v, 0.6, 0, 1) - 0.5) * 12, t, TAU); break;
+          case "mix":        setReverbMix(wet.gain, v); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(conv, lp, bri, wet); },
+      };
+    });
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Phase F4-A.5 batch 2: chamber, shimmer + gateVerb rebuild + vintageAir upgrade + infiniteReverb refinement
+    // (gateVerb / vintageAir / infiniteReverb upgrades are in-place above; chamber + shimmer are new SPX keys
+    //  added here since the picker only checks `fx.<key>?.enabled` after PLUGIN_DEFAULTS provides the keys.)
+    // ──────────────────────────────────────────────────────────────────────
+
+    // 1) chamber — Mid-decay convolver with diffusion-modulated allpass before the convolver.
+    //    Topology:  in → preDelay → AP1 (modulated) → AP2 (modulated) → convolver
+    //               (decay-length IR) → damping LP → color tilt (peaking @ 1.5 kHz) → wet
+    //    Diffusion is provided by 2 LFO-modulated allpass biquads (slow LFO ~0.7 Hz on a
+    //    chirped frequency band — adds smear/movement that keeps the chamber from sounding
+    //    static like a plain conv-only path).
+    //    Knobs: decay (s, IR length), damping (0..1, post-conv LP), color (0..1 → -6..+6 dB
+    //    peaking @ 1.5 kHz: dark/wood vs bright/marble), mix.
+    if (fx.chamber?.enabled) install("chamber", (p) => {
+      const decayInit = safe(p.decay, 1.6, 0.05, 8);
+      const dampInit  = safe(p.damping, 0.45, 0, 1);
+      const colorInit = safe(p.color, 0.5, 0, 1);
+      const dampToFreq = (d) => 800 + (1 - safe(d, 0.45, 0, 1)) * 11200; // 800 Hz .. 12 kHz
+
+      const pre = ctx.createDelay(0.05); pre.delayTime.value = 0.012; // 12 ms preDelay
+      // Two diffusion allpass stages, each with a slow LFO modulating frequency.
+      const ap1 = ctx.createBiquadFilter(); ap1.type = "allpass"; setFreq(ap1.frequency, 600); setQ(ap1.Q, 1.0);
+      const ap2 = ctx.createBiquadFilter(); ap2.type = "allpass"; setFreq(ap2.frequency, 1700); setQ(ap2.Q, 1.0);
+      const lfo1 = ctx.createOscillator(); lfo1.type = "sine"; lfo1.frequency.value = 0.7;
+      const lfo2 = ctx.createOscillator(); lfo2.type = "sine"; lfo2.frequency.value = 0.4;
+      const lfo1Gain = ctx.createGain(); lfo1Gain.gain.value = 80;  // ±80 Hz around 600 Hz
+      const lfo2Gain = ctx.createGain(); lfo2Gain.gain.value = 220; // ±220 Hz around 1700 Hz
+      lfo1.connect(lfo1Gain); lfo1Gain.connect(ap1.frequency);
+      lfo2.connect(lfo2Gain); lfo2Gain.connect(ap2.frequency);
+      lfo1.start(); lfo2.start();
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, decayInit);
+      const damp = ctx.createBiquadFilter(); damp.type = "lowpass"; setFreq(damp.frequency, dampToFreq(dampInit)); setQ(damp.Q, 0.707);
+      // Color tilt: 0 → -6 dB peaking (warmer/darker), 1 → +6 dB peaking (brighter).
+      const color = ctx.createBiquadFilter(); color.type = "peaking"; setFreq(color.frequency, 1500); setQ(color.Q, 0.7); setGainDb(color.gain, (colorInit - 0.5) * 12);
+      const wet = ctx.createGain(); wet.gain.value = normalizeMix(p.mix, 0);
+      pre.connect(ap1); ap1.connect(ap2); ap2.connect(conv);
+      conv.connect(damp); damp.connect(color); color.connect(wet);
+      return {
+        inputNode: pre, outputNode: wet,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "decay":   conv.buffer = getReverbBuf(ctx, safe(v, 1.6, 0.05, 8)); break;
+          case "damping": damp.frequency.setTargetAtTime(dampToFreq(safe(v, 0.45, 0, 1)), t, TAU); break;
+          case "color":   color.gain.setTargetAtTime((safe(v, 0.5, 0, 1) - 0.5) * 12, t, TAU); break;
+          case "mix":     setReverbMix(wet.gain, v); break;
+          default: break;
+        } },
+        dispose() {
+          stopOscs(lfo1, lfo2);
+          disposeNodes(pre, ap1, ap2, lfo1Gain, lfo2Gain, conv, damp, color, wet);
+        },
+      };
+    });
+
+    // 2) shimmer — Hall convolver + pitch-shifted feedback (octave-up shimmer).
+    //    APPROACH: "poor man's shimmer" — there is no Web Audio inline pitch-shift
+    //    primitive. Honest fallback documented in spec: use a delay loop with a high
+    //    feedback gain feeding a comb-spaced grain of duplicated audio at half the
+    //    period, producing a perceptual octave-up "ghost" tail. We implement it as:
+    //
+    //      in → preDelay → conv (hall IR, decay-length) → dampingLP → splitter
+    //          ├→ wetGain → out
+    //          └→ shimmerLoop:  delayHi (feedback fast, half-period of base) →
+    //                           shimmerHS (highshelf accent for shimmer character) →
+    //                           shimmerGain (feedback) → conv input (re-injected)
+    //
+    //    The "delayHi" is a 30 ms delay with feedback ≈ 0.85 — at this short time it
+    //    sounds like a metallic shimmer/halo rather than a slap echo. The high-shelf
+    //    accent adds the bright "octave-up" perceptual character without true
+    //    re-pitching. `octave` knob (0..2) increases shimmer-loop highshelf and
+    //    shortens delayHi (24 ms / 18 ms / 12 ms for 0/1/2 octaves). Spec accepts
+    //    this as the documented honest fallback.
+    //
+    //    Knobs: decay (s), shimmer (0..1, shimmer-loop feedback gain), octave (0/1/2),
+    //    damping (0..1, post-conv LP), mix.
+    if (fx.shimmer?.enabled) install("shimmer", (p) => {
+      const decayInit   = safe(p.decay, 3.5, 0.05, 12);
+      const shimmerInit = safe(p.shimmer, 0.6, 0, 1);
+      const octaveInit  = Math.round(safe(p.octave, 1, 0, 2));
+      const dampInit    = safe(p.damping, 0.4, 0, 1);
+      // octave → shimmer delay time (shorter = brighter halo) and HS accent gain.
+      const octToTime = (o) => [0.024, 0.018, 0.012][Math.max(0, Math.min(2, o))];
+      const octToHsDb = (o) => [3, 9, 15][Math.max(0, Math.min(2, o))];
+      const dampToFreq = (d) => 800 + (1 - safe(d, 0.4, 0, 1)) * 11200; // 800 Hz .. 12 kHz
+
+      const pre = ctx.createDelay(0.1); pre.delayTime.value = 0.02;
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, decayInit);
+      const damp = ctx.createBiquadFilter(); damp.type = "lowpass"; setFreq(damp.frequency, dampToFreq(dampInit)); setQ(damp.Q, 0.707);
+      const wet = ctx.createGain(); wet.gain.value = normalizeMix(p.mix, 0);
+      // Shimmer feedback loop:
+      const shimmerInput = ctx.createGain(); shimmerInput.gain.value = 1; // sums into conv input
+      const delayHi = ctx.createDelay(0.05); delayHi.delayTime.value = octToTime(octaveInit);
+      const shimmerHS = ctx.createBiquadFilter(); shimmerHS.type = "highshelf";
+      setFreq(shimmerHS.frequency, 4000); setGainDb(shimmerHS.gain, octToHsDb(octaveInit));
+      const shimmerFb = ctx.createGain(); shimmerFb.gain.value = shimmerInit * 0.85;
+      // Wire: pre → conv → damp → wet
+      pre.connect(conv); conv.connect(damp); damp.connect(wet);
+      // Re-inject damped wet through delayHi+HS+shimmerFb back into conv.
+      damp.connect(delayHi); delayHi.connect(shimmerHS); shimmerHS.connect(shimmerFb);
+      shimmerFb.connect(shimmerInput); shimmerInput.connect(conv);
+      // Also feed input to shimmerInput so initial pre also flows into conv.
+      // (pre.connect(conv) above already handles dry-side feed — this just re-uses
+      // shimmerInput as the loop's sum point.)
+      return {
+        inputNode: pre, outputNode: wet,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "decay":   conv.buffer = getReverbBuf(ctx, safe(v, 3.5, 0.05, 12)); break;
+          case "shimmer": shimmerFb.gain.setTargetAtTime(safe(v, 0.6, 0, 1) * 0.85, t, TAU); break;
+          case "octave": {
+            const o = Math.round(safe(v, 1, 0, 2));
+            delayHi.delayTime.setTargetAtTime(octToTime(o), t, TAU);
+            shimmerHS.gain.setTargetAtTime(octToHsDb(o), t, TAU);
+            break;
+          }
+          case "damping": damp.frequency.setTargetAtTime(dampToFreq(safe(v, 0.4, 0, 1)), t, TAU); break;
+          case "mix":     setReverbMix(wet.gain, v); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(pre, conv, damp, wet, shimmerInput, delayHi, shimmerHS, shimmerFb); },
+      };
+    });
+
+    if (fx.phantomDouble?.enabled) install("phantomDouble", (p) => {
+      // Slap-doubler — single short delay + wet gain. No convolver.
+      // UI param aliases: delay (ms 5..50) ÷ 1000 → d.delayTime (s 0..0.05).
+      // spread/pitchVarL/pitchVarR/modRate/modDepth: need LFO + pitch-shift
+      // node tree — Phase C candidates; accepted as no-ops here.
+      const d = ctx.createDelay(0.05);
+      const initTime = (p.delay != null ? p.delay / 1000 : (p.time != null ? p.time : 0.023));
+      setTime(d.delayTime, initTime);
+      const g = ctx.createGain(); g.gain.value = normalizeMix(p.mix, 0.3);
+      d.connect(g);
+      return {
+        inputNode: d, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "delay":     d.delayTime.setTargetAtTime(safe(safe(v, 18, 5, 50) / 1000, 0.018, 0, 0.05), t, TAU); break;
+          case "time":      d.delayTime.setTargetAtTime(safe(v, 0.023, 0, 0.05), t, TAU); break;
+          case "mix":       setReverbMix(g.gain, v); break;
+          case "spread":    /* needs L/R split — Phase C */ break;
+          case "pitchVarL": /* needs pitch-shift node — Phase C */ break;
+          case "pitchVarR": /* needs pitch-shift node — Phase C */ break;
+          case "modRate":   /* needs LFO node — Phase C */ break;
+          case "modDepth":  /* needs LFO mod depth — Phase C */ break;
+          default: break;
+        } },
+        dispose() { disposeNodes(d, g); },
+      };
+    });
+    if (fx.vocalSpace?.enabled) install("vocalSpace", (p) => {
+      // Phase-3 / Fix 3: full param expansion.
+      // Topology: input → preDelay → warmth (lowshelf) → conv → brightness (highshelf) → wetGain
+      // TODO Phase 4 polish: dry/wet split + parallel early-reflections (earlyMix, lateMix
+      //   knobs are emitted by the UI but ignored here — single-conv path only).
+      const pre = ctx.createDelay(0.1);
+      setTime(pre.delayTime, ((p.preDelay != null ? p.preDelay : 15)) / 1000);  // UI ms → s
+      const warmth = ctx.createBiquadFilter(); warmth.type = "lowshelf";
+      setFreq(warmth.frequency, 250); setGainDb(warmth.gain, (p.warmth != null ? p.warmth : 0.5) * 4);
+      const conv = ctx.createConvolver();
+      // size scales the effective IR length: size=0 → 0.4× decay, size=1 → 1.6× decay
+      const irLen = (p.decay != null ? p.decay : 1.8) * (0.4 + (p.size != null ? p.size : 0.4) * 1.2);
+      conv.buffer = getReverbBuf(ctx, irLen);
+      const bri = ctx.createBiquadFilter(); bri.type = "highshelf";
+      setFreq(bri.frequency, 6000); setGainDb(bri.gain, (p.brightness != null ? p.brightness : 0.6) * 6);
+      const g = ctx.createGain(); g.gain.value = normalizeMix(p.mix, 0);
+      pre.connect(warmth); warmth.connect(conv); conv.connect(bri); bri.connect(g);
+      let curDecay = p.decay != null ? p.decay : 1.8;
+      let curSize  = p.size != null ? p.size : 0.4;
+      const recomputeIR = () => {
+        const len = safe(curDecay, 1.8, 0.05, 20) * (0.4 + safe(curSize, 0.4, 0, 1) * 1.2);
+        conv.buffer = getReverbBuf(ctx, safe(len, 1.8, 0.05, 24));
+      };
+      return {
+        inputNode: pre, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "preDelay":   pre.delayTime.setTargetAtTime(safe((v ?? 15) / 1000, 0.015, 0, 0.1), t, TAU); break;
+          case "decay":      curDecay = safe(v, 1.8, 0.05, 20); recomputeIR(); break;
+          case "size":       curSize  = safe(v, 0.4, 0, 1); recomputeIR(); break;
+          case "warmth":     warmth.gain.setTargetAtTime(safe(safe(v, 0.5, 0, 1) * 4, 2, -60, 24), t, TAU); break;
+          case "brightness": bri.gain.setTargetAtTime(safe(safe(v, 0.6, 0, 1) * 6, 3.6, -60, 24), t, TAU); break;
+          case "mix":        setReverbMix(g.gain, v); break;
+          case "earlyMix": case "lateMix": break;  // TODO: parallel early/late path
+          default: break;
+        } },
+        dispose() { disposeNodes(pre, warmth, conv, bri, g); },
+      };
+    });
+    if (fx.infiniteReverb?.enabled) install("infiniteReverb", (p) => {
+      // Phase F4-A.5 Batch 2 — infiniteReverb refinement.
+      // Phase C2 continuous-decay reverb. Topology (UPDATED for true freeze):
+      //   input → ConvolverNode → inFeed (gain) → wetSum
+      //   wetSum → DelayNode (1.5 s) → damping LP → shimmer high-shelf →
+      //           feedback gain → wetSum   (loops itself)
+      //   wetSum → mix gain → output
+      // freeze=true:
+      //   - inFeed.gain → 0  (disables input feed; tail isolates from new audio)
+      //   - fbGain.gain → 1.0 (unity feedback, true infinite tail)
+      // freeze=false:
+      //   - inFeed.gain → 1
+      //   - fbGain.gain → 0.6 (natural decay)
+      // shimmer is a high-shelf boost on the feedback path (true pitch-up shimmer
+      //   landed in the dedicated `shimmer` factory; this stays a cheap fake here).
+      // damping (0..1) lowers the feedback LP cutoff (1 = bright, 0 = dark).
+      // roomSize (0..1) scales IR length 0.5..6 s.
+      // UI keys: freeze (bool), roomSize (0..1), damping (0..1), mix (0..1), shimmer (0..1).
+      const sizeInit = safe(p.roomSize != null ? p.roomSize : 0.9, 0.9, 0, 1);
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, 0.5 + sizeInit * 5.5);
+      const inFeed = ctx.createGain(); // dedicated input-feed gate for true freeze
+      const wetSum = ctx.createGain(); setGainLinear(wetSum.gain, 1);
+      const fbDelay = ctx.createDelay(2.0); setTime(fbDelay.delayTime, 1.5);
+      const dampLP = ctx.createBiquadFilter(); dampLP.type = "lowpass";
+      const dampInit = safe(p.damping != null ? p.damping : 0.3, 0.3, 0, 1);
+      // damping 0 → bright (16k), damping 1 → dark (1k)
+      setFreq(dampLP.frequency, 1000 + (1 - dampInit) * 15000);
+      setQ(dampLP.Q, 0.7);
+      const shimmerHS = ctx.createBiquadFilter(); shimmerHS.type = "highshelf";
+      setFreq(shimmerHS.frequency, 6000);
+      const shimmerInit = safe(p.shimmer != null ? p.shimmer : 0, 0, 0, 1);
+      setGainDb(shimmerHS.gain, shimmerInit * 12);
+      const fbGain = ctx.createGain();
+      const freezeInit = !!p.freeze;
+      setGainLinear(inFeed.gain, freezeInit ? 0 : 1);
+      setGainLinear(fbGain.gain, freezeInit ? 1.0 : 0.6);
+      const mix = ctx.createGain();
+      setMix(mix.gain, safe(p.mix != null ? p.mix : 0.4, 0.4, 0, 1));
+      // Wire: conv → inFeed → wetSum → fbDelay → dampLP → shimmerHS → fbGain → wetSum (loop)
+      //                          └→ mix (out)
+      conv.connect(inFeed); inFeed.connect(wetSum);
+      wetSum.connect(fbDelay); fbDelay.connect(dampLP); dampLP.connect(shimmerHS);
+      shimmerHS.connect(fbGain); fbGain.connect(wetSum);
+      wetSum.connect(mix);
+      return {
+        inputNode: conv, outputNode: mix,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "mix":      mix.gain.setTargetAtTime(safe(v, 0.4, 0, 1), t, TAU); break;
+          case "freeze":
+            // True freeze: cut input feed and lift feedback to unity.
+            inFeed.gain.setTargetAtTime(v ? 0 : 1, t, TAU);
+            fbGain.gain.setTargetAtTime(v ? 1.0 : 0.6, t, TAU);
+            break;
+          case "damping": {
+            const d = safe(v, 0.3, 0, 1);
+            dampLP.frequency.setTargetAtTime(safe(1000 + (1 - d) * 15000, 8000, 20, 20000), t, TAU);
+            break;
+          }
+          case "shimmer":  shimmerHS.gain.setTargetAtTime(safe(safe(v, 0, 0, 1) * 12, 0, -60, 24), t, TAU); break;
+          case "roomSize": conv.buffer = getReverbBuf(ctx, 0.5 + safe(v, 0.9, 0, 1) * 5.5); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(conv, inFeed, wetSum, fbDelay, dampLP, shimmerHS, fbGain, mix); },
+      };
+    });
+    if (fx.spaceForge?.enabled) install("spaceForge", (p) => {
+      const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, p.size || 2.0);
+      const g = ctx.createGain(); g.gain.value = normalizeMix(p.mix, 0);
+      conv.connect(g);
+      return {
+        inputNode: conv, outputNode: g,
+        setParam(n, v) { switch (n) {
+          case "size": conv.buffer = getReverbBuf(ctx, safe(v, 2.0, 0.05, 20)); break;
+          case "mix":  setReverbMix(g.gain, v); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(conv, g); },
+      };
+    });
+    if (fx.stereoBloom?.enabled) install("stereoBloom", (p) => {
       const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, 0.6);
-      const wi = ctx.createStereoPanner(); wi.pan.value = fx.stereoBloom.width||0.5;
-      const g = ctx.createGain(); g.gain.value = fx.stereoBloom.mix||0.25;
-      nodes.push(conv, wi, g);
-    }
-    if (fx.echoField?.enabled) {
-      const d = ctx.createDelay(2); d.delayTime.value = fx.echoField.time||0.4;
-      const fb = ctx.createGain(); fb.gain.value = fx.echoField.feedback||0.4;
-      const g = ctx.createGain(); g.gain.value = fx.echoField.mix||0.3;
-      nodes.push(d, fb, g);
-    }
+      // UI never emits `width`; uses chorus-style mix (0..100). Drop dead panner.
+      const g = ctx.createGain(); g.gain.value = normalizeMix(p.mix != null ? p.mix : 50, 0.5);
+      conv.connect(g);
+      return {
+        inputNode: conv, outputNode: g,
+        setParam(name, v) { switch (name) {
+          case "mix":   setReverbMix(g.gain, v); break;
+          // Phase C: rate/depth/feedback/detuneL/detuneR/mode need real chorus chain.
+          case "rate": case "depth": case "feedback": case "detuneL": case "detuneR": case "mode": case "width": break;
+          default: break;
+        } },
+        dispose() { disposeNodes(conv, g); },
+      };
+    });
+    if (fx.echoField?.enabled) install("echoField", (p) => {
+      // Feedback delay (no convolver). feedback gain ramps; delay time ramps.
+      const d = ctx.createDelay(2); setTime(d.delayTime, (p.time || 250) / 1000);
+      const fb = ctx.createGain(); setMix(fb.gain, p.feedback || 0.3);
+      const g = ctx.createGain(); g.gain.value = normalizeMix(p.mix, 0);
+      d.connect(fb); fb.connect(d); d.connect(g);
+      return {
+        inputNode: d, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "time":     d.delayTime.setTargetAtTime(safe(v / 1000, 0.25, 0, 2), t, TAU); break;
+          case "feedback": fb.gain.setTargetAtTime(safe(v, 0.3, 0, 0.95), t, TAU); break;
+          case "mix":      setReverbMix(g.gain, v); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(d, fb, g); },
+      };
+    });
 
     // ── SPX DELAY ──
-    if (fx.reverseDelay?.enabled) {
-      const d = ctx.createDelay(2); d.delayTime.value = fx.reverseDelay.time||0.3;
-      const fb = ctx.createGain(); fb.gain.value = fx.reverseDelay.feedback||0.3;
-      const g = ctx.createGain(); g.gain.value = fx.reverseDelay.mix||0.25;
-      nodes.push(d, fb, g);
-    }
-    if (fx.tempoDelay?.enabled) {
-      const beat = (60/bpm) * (fx.tempoDelay.division||1);
-      const d = ctx.createDelay(4); d.delayTime.value = Math.min(beat, 3.9);
-      const fb = ctx.createGain(); fb.gain.value = fx.tempoDelay.feedback||0.35;
-      const g = ctx.createGain(); g.gain.value = fx.tempoDelay.mix||0.3;
-      nodes.push(d, fb, g);
-    }
-    if (fx.dualDelay?.enabled) {
-      const d1 = ctx.createDelay(2); d1.delayTime.value = fx.dualDelay.time1||0.25;
-      const d2 = ctx.createDelay(2); d2.delayTime.value = fx.dualDelay.time2||0.375;
-      const g = ctx.createGain(); g.gain.value = fx.dualDelay.mix||0.25;
-      nodes.push(d1, d2, g);
-    }
+    if (fx.reverseDelay?.enabled) install("reverseDelay", (p) => {
+      // True reverse-buffer playback needs a worklet; this is a feedback delay
+      // that approximates the wash. time/feedback/mix all ramp.
+      const d = ctx.createDelay(2); setTime(d.delayTime, (p.time || 250) / 1000);
+      const fb = ctx.createGain(); setMix(fb.gain, p.feedback || 0.3);
+      const g = ctx.createGain(); setMix(g.gain, p.mix || 0);
+      d.connect(fb); fb.connect(d); d.connect(g);
+      return {
+        inputNode: d, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "time":     d.delayTime.setTargetAtTime(safe(v / 1000, 0.25, 0, 2), t, TAU); break;
+          case "feedback": fb.gain.setTargetAtTime(safe(v, 0.3, 0, 0.95), t, TAU); break;
+          case "mix":      g.gain.setTargetAtTime(safe(v, 0, 0, 1), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(d, fb, g); },
+      };
+    });
+    if (fx.tempoDelay?.enabled) install("tempoDelay", (p) => {
+      // BPM-synced delay — division is a beat fraction, time = (60/bpm)*division.
+      const beat = (60 / bpm) * (p.division || 1);
+      const d = ctx.createDelay(4); setTime(d.delayTime, Math.min(beat, 3.9));
+      const fb = ctx.createGain(); setMix(fb.gain, p.feedback || 0.3);
+      const g = ctx.createGain(); setMix(g.gain, p.mix || 0);
+      d.connect(fb); fb.connect(d); d.connect(g);
+      return {
+        inputNode: d, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "division": d.delayTime.setTargetAtTime(safe(Math.min((60 / bpm) * safe(v, 1, 0, 16), 3.9), 0.5, 0, 4), t, TAU); break;
+          case "feedback": fb.gain.setTargetAtTime(safe(v, 0.3, 0, 0.95), t, TAU); break;
+          case "mix":      g.gain.setTargetAtTime(safe(v, 0, 0, 1), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(d, fb, g); },
+      };
+    });
+    if (fx.dualDelay?.enabled) install("dualDelay", (p) => {
+      // Two delays in series — separate time1 and time2 knobs. UI mix is percent.
+      const d1 = ctx.createDelay(2); setTime(d1.delayTime, (p.time1 || 250) / 1000);
+      const d2 = ctx.createDelay(2); setTime(d2.delayTime, (p.time2 || 375) / 1000);
+      const g = ctx.createGain(); g.gain.value = normalizeMix(p.mix, 0);
+      d1.connect(d2); d2.connect(g);
+      return {
+        inputNode: d1, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "time1": d1.delayTime.setTargetAtTime(safe(v / 1000, 0.25, 0, 2), t, TAU); break;
+          case "time2": d2.delayTime.setTargetAtTime(safe(v / 1000, 0.375, 0, 2), t, TAU); break;
+          case "mix":   setReverbMix(g.gain, v); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(d1, d2, g); },
+      };
+    });
 
     // ── SPX MODULATION ──
-    if (fx.pitchForge?.enabled) {
-      const p = ctx.createBiquadFilter(); p.type="allpass"; p.frequency.value=1000+(fx.pitchForge.pitch||0)*100; p.Q.value=5;
-      nodes.push(p);
-    }
-    if (fx.pitchLock?.enabled) {
-      const p = ctx.createBiquadFilter(); p.type="allpass"; p.frequency.value=440; p.Q.value=10;
-      nodes.push(p);
-    }
-    if (fx.pitchRandomizer?.enabled) {
-      const p = ctx.createBiquadFilter(); p.type="allpass"; p.frequency.value=500+(Math.random()*500); p.Q.value=3;
-      nodes.push(p);
-    }
-    if (fx.subOctaver?.enabled) {
-      const lp = ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=200;
-      const g = ctx.createGain(); g.gain.value = fx.subOctaver.mix||0.4;
-      const ws = ctx.createWaveShaper(); const N=44100; const c=new Float32Array(N);
-      for(let i=0;i<N;i++){const x=(i*2)/N-1; c[i]=Math.abs(x)*2-1;}
-      ws.curve=c; nodes.push(lp, ws, g);
-    }
-    if (fx.autoWah?.enabled) {
-      const f = ctx.createBiquadFilter(); f.type="bandpass"; f.frequency.value=800+(fx.autoWah.sensitivity||0.5)*1200; f.Q.value=fx.autoWah.resonance||5;
+    if (fx.pitchForge?.enabled) install("pitchForge", (p) => {
+      // Phase C4: real pitch shift via Tone.PitchShift (delay-line/grain
+      // crossfade method). Quality clean within ±5 semitones, mild artifacts
+      // beyond. Optional formant peaking biquad approximates formant
+      // preservation (decorative — true formant scaling needs a phase
+      // vocoder worklet, flagged V2).
+      try { Tone.setContext(ctx); } catch (e) {}
+      const inGain = ctx.createGain(); setGainLinear(inGain.gain, 1);
+      const outGain = ctx.createGain(); setGainLinear(outGain.gain, 1);
+      const wet = ctx.createGain(); setGainLinear(wet.gain, 1);
+      const dry = ctx.createGain(); setGainLinear(dry.gain, 0);
+      const formant = ctx.createBiquadFilter(); formant.type = "peaking";
+      setFreq(formant.frequency, safe(p.formant != null ? 1000 + p.formant * 50 : 1000, 1000, 20, 20000));
+      setQ(formant.Q, 1.4); setGainDb(formant.gain, safe(p.formantGain != null ? p.formantGain : 0, 0, -12, 12));
+      const ps = new Tone.PitchShift({
+        pitch: safe(p.pitch != null ? p.pitch : 0, 0, -24, 24),
+        windowSize: safe(p.windowSize != null ? p.windowSize : 0.1, 0.1, 0.03, 0.5),
+      });
+      inGain.connect(ps.input);
+      ps.connect(formant);
+      formant.connect(wet);
+      wet.connect(outGain);
+      inGain.connect(dry); dry.connect(outGain);
+      const mix0 = safe(p.mix != null ? (p.mix > 1 ? p.mix / 100 : p.mix) : 1, 1, 0, 1);
+      setGainLinear(wet.gain, mix0); setGainLinear(dry.gain, 1 - mix0);
+      return {
+        inputNode: inGain, outputNode: outGain,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "pitch": ps.pitch = safe(v, 0, -24, 24); break;
+          case "windowSize": ps.windowSize = safe(v, 0.1, 0.03, 0.5); break;
+          case "formant": formant.frequency.setTargetAtTime(safe(1000 + safe(v, 0, -50, 50) * 50, 1000, 20, 20000), t, TAU); break;
+          case "formantGain": formant.gain.setTargetAtTime(safe(v, 0, -12, 12), t, TAU); break;
+          case "mix": {
+            const m = safe(v > 1 ? v / 100 : v, 1, 0, 1);
+            wet.gain.setTargetAtTime(m, t, TAU);
+            dry.gain.setTargetAtTime(1 - m, t, TAU);
+            break;
+          }
+          default: break;
+        } },
+        dispose() {
+          try { ps.dispose(); } catch (e) {}
+          disposeNodes(inGain, outGain, wet, dry, formant);
+        },
+      };
+    });
+    if (fx.pitchLock?.enabled) install("pitchLock", (p) => {
+      // Phase C4: manual snap-to-target pitch lock via Tone.PitchShift.
+      // True pitch-lock requires real-time pitch detection (autocorrelation /
+      // YIN inside an AudioWorklet) — flagged V2. This build offers a
+      // fixed-transpose mode: user sets `target` (semitones) and the entire
+      // signal is shifted by that amount. Combined with a steep narrow
+      // peaking filter at `lockFreq`, it emphasises the locked pitch band.
+      try { Tone.setContext(ctx); } catch (e) {}
+      const inGain = ctx.createGain(); setGainLinear(inGain.gain, 1);
+      const outGain = ctx.createGain(); setGainLinear(outGain.gain, 1);
+      const ps = new Tone.PitchShift({
+        pitch: safe(p.target != null ? p.target : 0, 0, -24, 24),
+        windowSize: 0.1,
+      });
+      const peak = ctx.createBiquadFilter(); peak.type = "peaking";
+      setFreq(peak.frequency, safe(p.lockFreq != null ? p.lockFreq : 440, 440, 20, 20000));
+      setQ(peak.Q, safe(p.strength != null ? p.strength * 10 + 1 : 4, 4, 0.1, 30));
+      setGainDb(peak.gain, 3);
+      inGain.connect(ps.input);
+      ps.connect(peak); peak.connect(outGain);
+      return {
+        inputNode: inGain, outputNode: outGain,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "target": case "pitch": ps.pitch = safe(v, 0, -24, 24); break;
+          case "lockFreq": peak.frequency.setTargetAtTime(safe(v, 440, 20, 20000), t, TAU); break;
+          case "strength": peak.Q.setTargetAtTime(safe(v * 10 + 1, 4, 0.1, 30), t, TAU); break;
+          default: break;
+        } },
+        dispose() { try { ps.dispose(); } catch (e) {} disposeNodes(inGain, outGain, peak); },
+      };
+    });
+    if (fx.pitchRandomizer?.enabled) install("pitchRandomizer", (p) => {
+      // Phase C2.3 rebuild: pitch wobble via DelayNode-modulated delay time.
+      // Topology:
+      //   in → dryGain → out
+      //   in → delay → wetGain → out
+      //   LFO osc (sine) → lfoGain (depth) → delay.delayTime
+      // amount (cents 0..100): scaled to delay-time mod depth (~0..2 ms wobble).
+      // rate (Hz): LFO frequency. smooth (0..1): lowpass on LFO output. mix (0..1).
+      // True pitch tracking would need an AudioWorklet — flagged C5.
+      const inNode  = ctx.createGain(); setGainLinear(inNode.gain, 1);
+      const outNode = ctx.createGain(); setGainLinear(outNode.gain, 1);
+      const delay = ctx.createDelay(0.05);
+      // Center delay around ~10 ms so modulation can swing both ways.
+      setTime(delay.delayTime, 0.01);
+      const lfo = ctx.createOscillator(); lfo.type = 'sine';
+      const lfoGain = ctx.createGain();
+      const smoothLPF = ctx.createBiquadFilter(); smoothLPF.type = 'lowpass';
+      // smooth (0..1): 0 = LPF at 30 Hz (snappy), 1 = LPF at 0.5 Hz (very smooth).
+      const smoothToFreq = (s) => 30 - safe(s, 0.7, 0, 1) * 29.5;
+      setFreq(smoothLPF.frequency, smoothToFreq(p.smooth != null ? p.smooth : 0.7));
+      setQ(smoothLPF.Q, 0.707);
+      // amount (cents 0..100): map to delay-time depth. ~50 cents ≈ 1 ms wobble.
+      const centsToDepth = (cents) => safe(cents, 0, 0, 100) / 50000; // 100¢ → 2 ms
+      setGainLinear(lfoGain.gain, centsToDepth(p.amount != null ? p.amount : 0));
+      setFreq(lfo.frequency, safe(p.rate != null ? p.rate : 4, 4, 0.1, 20));
+      lfo.connect(smoothLPF);
+      smoothLPF.connect(lfoGain);
+      lfoGain.connect(delay.delayTime);
+      lfo.start();
+      const wetGain = ctx.createGain();
+      const dryGain = ctx.createGain();
+      const initMix = safe(p.mix != null ? p.mix : 1.0, 1, 0, 1);
+      setGainLinear(wetGain.gain, initMix);
+      setGainLinear(dryGain.gain, 1 - initMix);
+      // Wet path
+      inNode.connect(delay); delay.connect(wetGain); wetGain.connect(outNode);
+      // Dry path
+      inNode.connect(dryGain); dryGain.connect(outNode);
+      return {
+        inputNode: inNode, outputNode: outNode,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "amount": lfoGain.gain.setTargetAtTime(centsToDepth(v), t, TAU); break;
+          case "rate":   lfo.frequency.setTargetAtTime(safe(v, 4, 0.1, 20), t, TAU_LFO); break;
+          case "smooth": smoothLPF.frequency.setTargetAtTime(safe(smoothToFreq(v), 1, 0.1, 30), t, TAU); break;
+          case "mix": {
+            const m = safe(v, 1, 0, 1);
+            wetGain.gain.setTargetAtTime(m, t, TAU);
+            dryGain.gain.setTargetAtTime(1 - m, t, TAU);
+            break;
+          }
+          default: break;
+        } },
+        dispose() { stopOscs(lfo); disposeNodes(inNode, delay, smoothLPF, lfoGain, wetGain, dryGain, outNode); },
+      };
+    });
+    if (fx.subOctaver?.enabled) install("subOctaver", (p) => {
+      // Phase C2: dry + oct1 (full-wave rectifier → LPF) + oct2 (cascade rectifier → LPF).
+      // |x| halves the perceived fundamental → octave-down content.
+      const N = 2048;
+      const rectCurve = new Float32Array(N);
+      for (let i = 0; i < N; i++) { const x = (2 * i) / (N - 1) - 1; rectCurve[i] = Math.abs(x) * 2 - 1; }
+      const filterFromUI = (v) => {
+        // UI 0..1 → 60..600 Hz LPF cutoff (low end emphasises sub-bass).
+        const f = safe(v, 0.4, 0, 1);
+        return 60 + f * 540;
+      };
+      const inGain = ctx.createGain(); setGainLinear(inGain.gain, 1);
+      // Pre-LPF on the rectifier paths cleans the input first.
+      const preLP = ctx.createBiquadFilter(); preLP.type = "lowpass";
+      setFreq(preLP.frequency, 800);
+      // OCT1 path: rectify → LPF
+      const oct1WS = ctx.createWaveShaper(); oct1WS.curve = rectCurve;
+      const oct1LP = ctx.createBiquadFilter(); oct1LP.type = "lowpass";
+      setFreq(oct1LP.frequency, filterFromUI(p.filter));
+      const oct1Gain = ctx.createGain(); setGainLinear(oct1Gain.gain, safe(p.oct1Level, 0, 0, 1));
+      // OCT2 path: cascade rectifier (|||x|||) → LPF (deeper sub).
+      const oct2WS = ctx.createWaveShaper(); oct2WS.curve = rectCurve;
+      const oct2LP = ctx.createBiquadFilter(); oct2LP.type = "lowpass";
+      setFreq(oct2LP.frequency, filterFromUI(p.filter) * 0.7);
+      const oct2Gain = ctx.createGain(); setGainLinear(oct2Gain.gain, safe(p.oct2Level, 0, 0, 1));
+      // Dry path
+      const dryGain = ctx.createGain(); setGainLinear(dryGain.gain, safe(p.dryLevel, 1, 0, 1));
+      // trackSpeed maps to AudioParam smoothing (faster = smaller TAU). 0..1 → 0.05..0.005s.
+      const trackSpeedTau = (v) => 0.05 - safe(v, 0.5, 0, 1) * 0.045;
+      let curTau = trackSpeedTau(p.trackSpeed);
+      const out = ctx.createGain(); setGainLinear(out.gain, 1);
+      // Wiring
+      inGain.connect(dryGain); dryGain.connect(out);
+      inGain.connect(preLP);
+      preLP.connect(oct1WS); oct1WS.connect(oct1LP); oct1LP.connect(oct1Gain); oct1Gain.connect(out);
+      // OCT2: feed first rectified+LP into the second rectifier+LP.
+      oct1LP.connect(oct2WS); oct2WS.connect(oct2LP); oct2LP.connect(oct2Gain); oct2Gain.connect(out);
+      return {
+        inputNode: inGain, outputNode: out,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "oct1Level": oct1Gain.gain.setTargetAtTime(safe(v, 0, 0, 1), t, curTau); break;
+          case "oct2Level": oct2Gain.gain.setTargetAtTime(safe(v, 0, 0, 1), t, curTau); break;
+          case "dryLevel":  dryGain.gain.setTargetAtTime(safe(v, 1, 0, 1), t, curTau); break;
+          case "filter": {
+            const f = filterFromUI(v);
+            oct1LP.frequency.setTargetAtTime(safe(f, 200, 20, 20000), t, curTau);
+            oct2LP.frequency.setTargetAtTime(safe(f * 0.7, 140, 20, 20000), t, curTau);
+            break;
+          }
+          case "trackSpeed": curTau = trackSpeedTau(v); break;
+          // Legacy `mix` (older PLUGIN_DEFAULTS) → splits across dry vs wet (oct1).
+          case "mix": {
+            const m = safe(v, 0.4, 0, 1);
+            dryGain.gain.setTargetAtTime(1 - m, t, curTau);
+            oct1Gain.gain.setTargetAtTime(m, t, curTau);
+            break;
+          }
+          default: break;
+        } },
+        dispose() { disposeNodes(inGain, preLP, oct1WS, oct1LP, oct1Gain, oct2WS, oct2LP, oct2Gain, dryGain, out); },
+      };
+    });
+    if (fx.autoWah?.enabled) install("autoWah", (p) => {
+      // Bandpass with center modulated by LFO. sensitivity offsets center freq.
+      const f = ctx.createBiquadFilter(); f.type = "bandpass";
+      setFreq(f.frequency, 800 + ((p.sensitivity || 0.5) * 1200)); setQ(f.Q, p.resonance || 5);
       const lfo = ctx.createOscillator(); const lfoG = ctx.createGain();
-      lfo.frequency.value = fx.autoWah.rate||2; lfoG.gain.value = 500;
+      setFreq(lfo.frequency, p.rate || 2); setGainLinear(lfoG.gain, 500);
       lfo.connect(lfoG); lfoG.connect(f.frequency); lfo.start();
-      nodes.push(f, lfo, lfoG);
-    }
-    if (fx.chorusEnsemble?.enabled) {
-      const d1 = ctx.createDelay(0.05); d1.delayTime.value = 0.015;
-      const d2 = ctx.createDelay(0.05); d2.delayTime.value = 0.025;
+      return {
+        inputNode: f, outputNode: f,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "sensitivity": f.frequency.setTargetAtTime(safe(800 + safe(v, 0.5, 0, 1) * 1200, 1400, 20, 20000), t, TAU); break;
+          case "resonance":   f.Q.setTargetAtTime(safe(v, 5, 0.0001, 1000), t, TAU); break;
+          case "rate":        lfo.frequency.setTargetAtTime(safe(v, 2, 0, 20), t, TAU_LFO); break;
+          default: break;
+        } },
+        dispose() { stopOscs(lfo); disposeNodes(f, lfoG); },
+      };
+    });
+    if (fx.chorusEnsemble?.enabled) install("chorusEnsemble", (p) => {
+      // Two delays with two LFOs at 1× and 1.3× rate — denser than mono chorus.
+      // UI emits mode (1–4 button), mix (0–1), depth (0–1). mode scales the
+      // LFO rate (slow chorus → ensemble); depth writes the lfoG gains;
+      // mix needs a dry/wet split (Phase C — current topology is 100% wet).
+      const modeToRate = (m) => 0.3 * safe(m, 1, 1, 4);
+      const initMode = p.mode != null ? p.mode : 1;
+      const initDepth = p.depth != null ? p.depth : 0.5;
+      const d1 = ctx.createDelay(0.05); setTime(d1.delayTime, 0.015);
+      const d2 = ctx.createDelay(0.05); setTime(d2.delayTime, 0.025);
       const lfo1 = ctx.createOscillator(); const lfoG1 = ctx.createGain();
-      lfo1.frequency.value = fx.chorusEnsemble.rate||1.5; lfoG1.gain.value = 0.005;
+      setFreq(lfo1.frequency, modeToRate(initMode)); setGainLinear(lfoG1.gain, safe(initDepth, 0.5, 0, 1) * 0.01);
       lfo1.connect(lfoG1); lfoG1.connect(d1.delayTime); lfo1.start();
       const lfo2 = ctx.createOscillator(); const lfoG2 = ctx.createGain();
-      lfo2.frequency.value = (fx.chorusEnsemble.rate||1.5)*1.3; lfoG2.gain.value = 0.005;
+      setFreq(lfo2.frequency, modeToRate(initMode) * 1.3); setGainLinear(lfoG2.gain, safe(initDepth, 0.5, 0, 1) * 0.01);
       lfo2.connect(lfoG2); lfoG2.connect(d2.delayTime); lfo2.start();
-      nodes.push(d1, d2, lfo1, lfoG1, lfo2, lfoG2);
-    }
-    if (fx.vortexMod?.enabled) {
-      const d = ctx.createDelay(0.03); d.delayTime.value = 0.02;
+      d1.connect(d2);
+      return {
+        inputNode: d1, outputNode: d2,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "mode": {
+            const r = modeToRate(v);
+            lfo1.frequency.setTargetAtTime(safe(r, 0.3, 0, 20), t, TAU_LFO);
+            lfo2.frequency.setTargetAtTime(safe(r * 1.3, 0.4, 0, 20), t, TAU_LFO);
+            break;
+          }
+          case "depth": {
+            const d = safe(v, 0.5, 0, 1) * 0.01;
+            lfoG1.gain.setTargetAtTime(safe(d, 0.005, 0, 4), t, TAU);
+            lfoG2.gain.setTargetAtTime(safe(d, 0.005, 0, 4), t, TAU);
+            break;
+          }
+          case "rate":
+            lfo1.frequency.setTargetAtTime(safe(v, 1.5, 0, 20), t, TAU_LFO);
+            lfo2.frequency.setTargetAtTime(safe(safe(v, 1.5, 0, 20) * 1.3, 2, 0, 20), t, TAU_LFO);
+            break;
+          // Phase C: mix needs a dry/wet split (chorus output is currently 100% wet).
+          case "mix": break;
+          default: break;
+        } },
+        dispose() { stopOscs(lfo1, lfo2); disposeNodes(d1, d2, lfoG1, lfoG2); },
+      };
+    });
+    if (fx.vortexMod?.enabled) install("vortexMod", (p) => {
+      const d = ctx.createDelay(0.03); setTime(d.delayTime, 0.02);
       const lfo = ctx.createOscillator(); const lfoG = ctx.createGain();
-      lfo.frequency.value = fx.vortexMod.rate||0.5; lfoG.gain.value = fx.vortexMod.depth||0.01;
+      setFreq(lfo.frequency, p.rate || 0.5); setGainLinear(lfoG.gain, p.depth || 0.01);
       lfo.connect(lfoG); lfoG.connect(d.delayTime); lfo.start();
-      nodes.push(d, lfo, lfoG);
-    }
-    if (fx.voiceForge?.enabled) {
-      const f = ctx.createBiquadFilter(); f.type="peaking"; f.frequency.value=fx.voiceForge.formant||1000; f.Q.value=3; f.gain.value=fx.voiceForge.amount||4;
-      const pres = ctx.createBiquadFilter(); pres.type="highshelf"; pres.frequency.value=5000; pres.gain.value=fx.voiceForge.air||2;
-      nodes.push(f, pres);
-    }
-    if (fx.tapeStop?.enabled) {
-      const lp = ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=4000;
-      const g = ctx.createGain(); g.gain.value = 0.8;
-      nodes.push(lp, g);
-    }
+      return {
+        inputNode: d, outputNode: d,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "rate":  lfo.frequency.setTargetAtTime(safe(v, 0.5, 0, 20), t, TAU_LFO); break;
+          case "depth": lfoG.gain.setTargetAtTime(safe(v, 0.01, 0, 4), t, TAU); break;
+          default: break;
+        } },
+        dispose() { stopOscs(lfo); disposeNodes(d, lfoG); },
+      };
+    });
+    if (fx.voiceForge?.enabled) install("voiceForge", (p) => {
+      // Phase C4 vocal-harmonizer — REAL pitch shift via 4× Tone.PitchShift
+      // voices. Replaces the C2 Haas-style detune approximation. Per-voice
+      // shift (semitones), per-voice volume, formant peaking biquad. Quality
+      // clean within ±5 semitones, mild artifacts beyond. Formant scaling
+      // is decorative (true formant correction needs a phase vocoder, V2).
+      // Topology:
+      //   input (inBus) → dryGain ─────────────────────┐
+      //                 → 4× parallel { delay (5..30 ms) ←── LFO mod (0.13..0.27 Hz, ±2 ms)
+      //                                  → voice gain v1..v4 ──┤
+      //                                                        ↓
+      //                                                     wetBus → mix → output
+      // voices (1..4) gates which voice gains stay non-zero.
+      // v1Vol..v4Vol map straight to per-voice gain (0..1).
+      // mix (0..1 or 0..100) blends dry vs wet.
+      // formant maps to a peaking biquad on the wet bus (decorative — true
+      //   formant scaling needs a Phase C4 pitch shifter).
+      // UI keys: voices (1..4), key/scale (informational — V2 needs pitch
+      //   detection for chromatic snapping), v1Shift..v4Shift (semitones,
+      //   live), v1Vol..v4Vol (0..1), formant (decorative peaking filter),
+      //   mix (0..1).
+      try { Tone.setContext(ctx); } catch (e) {}
+      const voicesInit = Math.max(1, Math.min(4, Math.round(safe(p.voices != null ? p.voices : 2, 2, 1, 4))));
+      const inBus = ctx.createGain(); setGainLinear(inBus.gain, 1);
+      const dry = ctx.createGain(); setGainLinear(dry.gain, 1);
+      const wetBus = ctx.createBiquadFilter(); wetBus.type = "peaking";
+      setFreq(wetBus.frequency, safe(p.formant != null ? Math.max(20, 1000 + p.formant * 50) : 1000, 1000, 20, 20000));
+      setQ(wetBus.Q, 1.4); setGainDb(wetBus.gain, 0);
+      const out = ctx.createGain(); setGainLinear(out.gain, 1);
+      const mixWet = ctx.createGain();
+      const mixDry = ctx.createGain();
+      const mixInit = (() => { const m = p.mix != null ? p.mix : 0; return safe(m > 1 ? m / 100 : m, 0, 0, 1); })();
+      setMix(mixWet.gain, mixInit); setMix(mixDry.gain, 1 - mixInit);
+
+      // Per-voice default shifts (musical doubling): unison + 5th + octave + 3rd.
+      const defaultShifts = [0, 7, 12, 4];
+      const shiftKeys = ["v1Shift", "v2Shift", "v3Shift", "v4Shift"];
+      const volKeys = ["v1Vol", "v2Vol", "v3Vol", "v4Vol"];
+      const voices = [0, 1, 2, 3].map((i) => {
+        const initShift = safe(p[shiftKeys[i]] != null ? p[shiftKeys[i]] : defaultShifts[i], defaultShifts[i], -24, 24);
+        const baseVol = safe(p[volKeys[i]] != null ? p[volKeys[i]] : 0, 0, 0, 1);
+        const ps = new Tone.PitchShift({ pitch: initShift, windowSize: 0.1 });
+        const g = ctx.createGain();
+        const gated = (i + 1) <= voicesInit ? baseVol : 0;
+        setGainLinear(g.gain, gated);
+        inBus.connect(ps.input);
+        // Only wire ps→g when the voice is audible — saves CPU at vol=0.
+        const v = { ps, g, baseVol, connected: false };
+        if (gated > 0) { try { ps.connect(g); v.connected = true; } catch (e) {} }
+        g.connect(wetBus);
+        return v;
+      });
+      const setVoiceConnected = (v, shouldConnect) => {
+        if (shouldConnect && !v.connected) { try { v.ps.connect(v.g); v.connected = true; } catch (e) {} }
+        else if (!shouldConnect && v.connected) { try { v.ps.disconnect(v.g); v.connected = false; } catch (e) {} }
+      };
+
+      wetBus.connect(mixWet); mixWet.connect(out);
+      inBus.connect(dry); dry.connect(mixDry); mixDry.connect(out);
+
+      let voiceCount = voicesInit;
+      const applyVoiceCount = (count) => {
+        voiceCount = Math.max(1, Math.min(4, Math.round(count)));
+        voices.forEach((v, i) => {
+          const target = (i + 1) <= voiceCount ? v.baseVol : 0;
+          v.g.gain.setTargetAtTime(safe(target, 0, 0, 4), ctx.currentTime, TAU);
+          setVoiceConnected(v, target > 0);
+        });
+      };
+
+      return {
+        inputNode: inBus, outputNode: out,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "voices":  applyVoiceCount(safe(v, 2, 1, 4)); break;
+          case "v1Vol":
+          case "v2Vol":
+          case "v3Vol":
+          case "v4Vol": {
+            const idx = parseInt(n.slice(1), 10) - 1;
+            const newVol = safe(v, 0, 0, 1);
+            voices[idx].baseVol = newVol;
+            const gated = (idx + 1) <= voiceCount ? newVol : 0;
+            voices[idx].g.gain.setTargetAtTime(safe(gated, 0, 0, 4), t, TAU);
+            setVoiceConnected(voices[idx], gated > 0);
+            break;
+          }
+          case "v1Shift":
+          case "v2Shift":
+          case "v3Shift":
+          case "v4Shift": {
+            const idx = parseInt(n.slice(1), 10) - 1;
+            voices[idx].ps.pitch = safe(v, 0, -24, 24);
+            break;
+          }
+          case "mix": {
+            const m = safe(v > 1 ? v / 100 : v, 0, 0, 1);
+            mixWet.gain.setTargetAtTime(m, t, TAU);
+            mixDry.gain.setTargetAtTime(1 - m, t, TAU);
+            break;
+          }
+          case "formant":
+            wetBus.frequency.setTargetAtTime(safe(1000 + safe(v, 0, -50, 50) * 50, 1000, 20, 20000), t, TAU);
+            break;
+          /* V2 — needs real-time pitch detection for chromatic snapping */
+          case "key":     break;
+          case "scale":   break;
+          // Legacy compat (pre-rebuild voiceForge had `amount`/`air`).
+          case "amount":  wetBus.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          case "air":     /* legacy — no separate air shelf in rebuild */ break;
+          default: break;
+        } },
+        dispose() {
+          voices.forEach(v => {
+            try { v.ps.dispose(); } catch (e) {}
+            disposeNodes(v.g);
+          });
+          disposeNodes(inBus, dry, wetBus, mixWet, mixDry, out);
+        },
+      };
+    });
+    if (fx.tapeStop?.enabled) install("tapeStop", (p) => {
+      // Phase C2.3 rebuild: tape-stop pitch sweep via DelayNode automation.
+      // Topology: in → delay → lp (darkens during stop) → outGain → out
+      // active=true triggers a delayTime ramp from 0 → ~0.5 s over stopTime
+      // seconds, plus an outGain ramp to silence, plus an LP sweep for darken.
+      // active=false triggers the inverse (start-up). True tape-stop needs a
+      // worklet for proper pitch tracking; this is the canonical Web Audio
+      // approximation.
+      const inNode  = ctx.createGain(); setGainLinear(inNode.gain, 1);
+      const outNode = ctx.createGain(); setGainLinear(outNode.gain, 1);
+      const delay = ctx.createDelay(1.0);
+      setTime(delay.delayTime, 0);
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
+      setFreq(lp.frequency, 18000);
+      setQ(lp.Q, 0.707);
+      const trim = ctx.createGain(); setGainLinear(trim.gain, 1);
+      inNode.connect(delay);
+      delay.connect(lp);
+      lp.connect(trim);
+      trim.connect(outNode);
+      let isActive = !!p.active;
+      let stopTime = safe(p.stopTime != null ? p.stopTime : 0.5, 0.5, 0.05, 3);
+      let startTime = safe(p.startTime != null ? p.startTime : 0.3, 0.3, 0.05, 3);
+      let curveAmt = safe(p.curve != null ? p.curve : 0.5, 0.5, 0, 1);
+      const triggerStop = () => {
+        const t = ctx.currentTime;
+        // Cancel any in-flight ramps.
+        try { delay.delayTime.cancelScheduledValues(t); } catch (e) { /* noop */ }
+        try { lp.frequency.cancelScheduledValues(t); } catch (e) { /* noop */ }
+        try { trim.gain.cancelScheduledValues(t); } catch (e) { /* noop */ }
+        delay.delayTime.setValueAtTime(delay.delayTime.value, t);
+        lp.frequency.setValueAtTime(lp.frequency.value, t);
+        trim.gain.setValueAtTime(trim.gain.value, t);
+        // curve 0 = linear, curve 1 = exponential drag (slower at start).
+        // Approximate by exponential ramps when curve > 0.
+        const useExp = curveAmt > 0.5;
+        if (useExp) {
+          // expRamp must avoid 0 — use small floor.
+          delay.delayTime.exponentialRampToValueAtTime(0.5, t + stopTime);
+          lp.frequency.exponentialRampToValueAtTime(200, t + stopTime);
+          trim.gain.exponentialRampToValueAtTime(0.0001, t + stopTime);
+        } else {
+          delay.delayTime.linearRampToValueAtTime(0.5, t + stopTime);
+          lp.frequency.linearRampToValueAtTime(200, t + stopTime);
+          trim.gain.linearRampToValueAtTime(0.0, t + stopTime);
+        }
+      };
+      const triggerStart = () => {
+        const t = ctx.currentTime;
+        try { delay.delayTime.cancelScheduledValues(t); } catch (e) { /* noop */ }
+        try { lp.frequency.cancelScheduledValues(t); } catch (e) { /* noop */ }
+        try { trim.gain.cancelScheduledValues(t); } catch (e) { /* noop */ }
+        delay.delayTime.setValueAtTime(delay.delayTime.value, t);
+        lp.frequency.setValueAtTime(Math.max(lp.frequency.value, 50), t);
+        trim.gain.setValueAtTime(Math.max(trim.gain.value, 0.0001), t);
+        const useExp = curveAmt > 0.5;
+        if (useExp) {
+          delay.delayTime.exponentialRampToValueAtTime(0.0001, t + startTime);
+          lp.frequency.exponentialRampToValueAtTime(18000, t + startTime);
+          trim.gain.exponentialRampToValueAtTime(1.0, t + startTime);
+        } else {
+          delay.delayTime.linearRampToValueAtTime(0, t + startTime);
+          lp.frequency.linearRampToValueAtTime(18000, t + startTime);
+          trim.gain.linearRampToValueAtTime(1.0, t + startTime);
+        }
+      };
+      // Apply initial state — if active=true at build, tape is already stopped.
+      if (isActive) {
+        setTime(delay.delayTime, 0.5);
+        setFreq(lp.frequency, 200);
+        setGainLinear(trim.gain, 0.0001);
+      }
+      return {
+        inputNode: inNode, outputNode: outNode,
+        setParam(n, v) { switch (n) {
+          case "active": {
+            const next = !!v;
+            if (next === isActive) break;
+            isActive = next;
+            if (isActive) triggerStop(); else triggerStart();
+            break;
+          }
+          case "stopTime":  stopTime = safe(v, 0.5, 0.05, 3); break;
+          case "startTime": startTime = safe(v, 0.3, 0.05, 3); break;
+          case "curve":     curveAmt = safe(v, 0.5, 0, 1); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(inNode, delay, lp, trim, outNode); },
+      };
+    });
 
     // ── SPX MASTERING ──
-    if (fx.stereoImager?.enabled) {
-      const g = ctx.createGain(); g.gain.value = fx.stereoImager.width||1.2; nodes.push(g);
-    }
-    if (fx.loudnessMeter?.enabled) {
-      const g = ctx.createGain(); g.gain.value = 1; nodes.push(g);
-    }
-    if (fx.ditherForge?.enabled) {
-      const g = ctx.createGain(); g.gain.value = 1; nodes.push(g);
-    }
-    if (fx.dcBlock?.enabled) {
-      const hp = ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=10; hp.Q.value=0.707; nodes.push(hp);
-    }
-    if (fx.harmonicSum?.enabled) {
-      const ws = ctx.createWaveShaper(); const N=44100; const c=new Float32Array(N);
-      for(let i=0;i<N;i++){const x=(i*2)/N-1; c[i]=x+0.1*Math.sin(x*Math.PI*2)+0.05*Math.sin(x*Math.PI*3);}
-      ws.curve=c; nodes.push(ws);
-    }
-    if (fx.matchEQ?.enabled) {
-      const lo = ctx.createBiquadFilter(); lo.type="lowshelf"; lo.frequency.value=200; lo.gain.value=fx.matchEQ.low||0;
-      const hi = ctx.createBiquadFilter(); hi.type="highshelf"; hi.frequency.value=8000; hi.gain.value=fx.matchEQ.high||0;
-      nodes.push(lo, hi);
-    }
-    if (fx.lowEndFocus?.enabled) {
-      const sub = ctx.createBiquadFilter(); sub.type="peaking"; sub.frequency.value=60; sub.Q.value=0.8; sub.gain.value=fx.lowEndFocus.sub||3;
-      const kick = ctx.createBiquadFilter(); kick.type="peaking"; kick.frequency.value=100; kick.Q.value=1; kick.gain.value=fx.lowEndFocus.kick||2;
-      const hp = ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=30;
-      nodes.push(hp, sub, kick);
-    }
-    if (fx.loudnessTarget?.enabled) {
-      const lim = ctx.createDynamicsCompressor(); lim.threshold.value=fx.loudnessTarget.ceiling||-1; lim.ratio.value=20; lim.attack.value=0.001; lim.release.value=0.01;
-      const g = ctx.createGain(); g.gain.value=Math.pow(10,(fx.loudnessTarget.target||0)/20);
-      nodes.push(lim, g);
-    }
-    if (fx.msImager?.enabled) {
-      const g = ctx.createGain(); g.gain.value = fx.msImager.width||1; nodes.push(g);
-    }
-    if (fx.spectralRecovery?.enabled) {
-      const hi = ctx.createBiquadFilter(); hi.type="highshelf"; hi.frequency.value=10000; hi.gain.value=fx.spectralRecovery.amount||4;
-      const ex = ctx.createBiquadFilter(); ex.type="peaking"; ex.frequency.value=8000; ex.Q.value=0.5; ex.gain.value=fx.spectralRecovery.presence||2;
-      nodes.push(hi, ex);
-    }
-    if (fx.codecPreview?.enabled) {
-      const lp = ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=16000;
-      const hp = ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=40;
-      nodes.push(hp, lp);
-    }
-    if (fx.declicker?.enabled) {
-      const g = ctx.createGain(); g.gain.value=0.98; nodes.push(g);
-    }
-    if (fx.dehummer?.enabled) {
-      const n1 = ctx.createBiquadFilter(); n1.type="notch"; n1.frequency.value=50; n1.Q.value=20;
-      const n2 = ctx.createBiquadFilter(); n2.type="notch"; n2.frequency.value=60; n2.Q.value=20;
-      const n3 = ctx.createBiquadFilter(); n3.type="notch"; n3.frequency.value=100; n3.Q.value=20;
-      nodes.push(n1, n2, n3);
-    }
-    if (fx.dialogueIsolator?.enabled) {
-      const hp = ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=100;
-      const lp = ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=8000;
-      const pres = ctx.createBiquadFilter(); pres.type="peaking"; pres.frequency.value=2500; pres.Q.value=0.8; pres.gain.value=3;
-      nodes.push(hp, lp, pres);
-    }
-    if (fx.phaseScope?.enabled) { const g = ctx.createGain(); g.gain.value=1; nodes.push(g); }
-    if (fx.goniometer?.enabled) { const g = ctx.createGain(); g.gain.value=1; nodes.push(g); }
+    if (fx.stereoImager?.enabled) install("stereoImager", (p) => {
+      // Phase C2.1: real M/S split + per-band width on Side channel.
+      // in → ChannelSplitter (L,R) → encode M=(L+R)/2, S=(L-R)/2.
+      // M passes through. S split 3 ways via xover1/xover2; per-band width gain.
+      // Decode: L = M+S', R = M-S' → ChannelMerger.
+      const x1 = safe(p.xover1 != null ? p.xover1 : 300,  300,  20, 20000);
+      const x2 = safe(p.xover2 != null ? p.xover2 : 5000, 5000, 20, 20000);
+      const lowW  = safe(p.lowWidth  != null ? p.lowWidth  : 1.0, 1.0, 0, 4);
+      const midW  = safe(p.midWidth  != null ? p.midWidth  : 1.0, 1.0, 0, 4);
+      const highW = safe(p.highWidth != null ? p.highWidth : 1.0, 1.0, 0, 4);
+      const inSplitter = ctx.createChannelSplitter(2);
+      const outMerger  = ctx.createChannelMerger(2);
+      const midSum = ctx.createGain(); midSum.gain.value = 0.5;
+      inSplitter.connect(midSum, 0); inSplitter.connect(midSum, 1);
+      const rInvert = ctx.createGain(); rInvert.gain.value = -1;
+      const sideSum = ctx.createGain(); sideSum.gain.value = 0.5;
+      inSplitter.connect(sideSum, 0);
+      inSplitter.connect(rInvert, 1); rInvert.connect(sideSum);
+      const sLowLp1 = ctx.createBiquadFilter(); sLowLp1.type = "lowpass";  setFreq(sLowLp1.frequency, x1); setQ(sLowLp1.Q, 0.707);
+      const sLowLp2 = ctx.createBiquadFilter(); sLowLp2.type = "lowpass";  setFreq(sLowLp2.frequency, x1); setQ(sLowLp2.Q, 0.707);
+      const sMidHp1 = ctx.createBiquadFilter(); sMidHp1.type = "highpass"; setFreq(sMidHp1.frequency, x1); setQ(sMidHp1.Q, 0.707);
+      const sMidHp2 = ctx.createBiquadFilter(); sMidHp2.type = "highpass"; setFreq(sMidHp2.frequency, x1); setQ(sMidHp2.Q, 0.707);
+      const sMidLp1 = ctx.createBiquadFilter(); sMidLp1.type = "lowpass";  setFreq(sMidLp1.frequency, x2); setQ(sMidLp1.Q, 0.707);
+      const sMidLp2 = ctx.createBiquadFilter(); sMidLp2.type = "lowpass";  setFreq(sMidLp2.frequency, x2); setQ(sMidLp2.Q, 0.707);
+      const sHiHp1  = ctx.createBiquadFilter(); sHiHp1.type  = "highpass"; setFreq(sHiHp1.frequency,  x2); setQ(sHiHp1.Q,  0.707);
+      const sHiHp2  = ctx.createBiquadFilter(); sHiHp2.type  = "highpass"; setFreq(sHiHp2.frequency,  x2); setQ(sHiHp2.Q,  0.707);
+      const gLow  = ctx.createGain(); setGainLinear(gLow.gain,  lowW);
+      const gMid  = ctx.createGain(); setGainLinear(gMid.gain,  midW);
+      const gHigh = ctx.createGain(); setGainLinear(gHigh.gain, highW);
+      const sideOut = ctx.createGain();
+      sideSum.connect(sLowLp1); sLowLp1.connect(sLowLp2); sLowLp2.connect(gLow);  gLow.connect(sideOut);
+      sideSum.connect(sMidHp1); sMidHp1.connect(sMidHp2); sMidHp2.connect(sMidLp1); sMidLp1.connect(sMidLp2); sMidLp2.connect(gMid); gMid.connect(sideOut);
+      sideSum.connect(sHiHp1);  sHiHp1.connect(sHiHp2);   sHiHp2.connect(gHigh); gHigh.connect(sideOut);
+      const sInvertOut = ctx.createGain(); sInvertOut.gain.value = -1;
+      sideOut.connect(sInvertOut);
+      const lOut = ctx.createGain();
+      const rOut = ctx.createGain();
+      midSum.connect(lOut);      sideOut.connect(lOut);
+      midSum.connect(rOut); sInvertOut.connect(rOut);
+      lOut.connect(outMerger, 0, 0);
+      rOut.connect(outMerger, 0, 1);
+      return {
+        inputNode: inSplitter, outputNode: outMerger,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "lowWidth":  gLow.gain.setTargetAtTime(safe(v, 1.0, 0, 4), t, TAU); break;
+          case "midWidth":  gMid.gain.setTargetAtTime(safe(v, 1.0, 0, 4), t, TAU); break;
+          case "highWidth": gHigh.gain.setTargetAtTime(safe(v, 1.0, 0, 4), t, TAU); break;
+          case "xover1": {
+            const f = safe(v, 300, 20, 20000);
+            sLowLp1.frequency.setTargetAtTime(f, t, TAU); sLowLp2.frequency.setTargetAtTime(f, t, TAU);
+            sMidHp1.frequency.setTargetAtTime(f, t, TAU); sMidHp2.frequency.setTargetAtTime(f, t, TAU);
+            break;
+          }
+          case "xover2": {
+            const f = safe(v, 5000, 20, 20000);
+            sMidLp1.frequency.setTargetAtTime(f, t, TAU); sMidLp2.frequency.setTargetAtTime(f, t, TAU);
+            sHiHp1.frequency.setTargetAtTime(f, t, TAU);  sHiHp2.frequency.setTargetAtTime(f, t, TAU);
+            break;
+          }
+          case "width": {
+            const w = safe(v, 1.2, 0, 4);
+            gLow.gain.setTargetAtTime(w, t, TAU);
+            gMid.gain.setTargetAtTime(w, t, TAU);
+            gHigh.gain.setTargetAtTime(w, t, TAU);
+            break;
+          }
+          default: break;
+        } },
+        dispose() {
+          disposeNodes(inSplitter, midSum, rInvert, sideSum,
+            sLowLp1, sLowLp2, sMidHp1, sMidHp2, sMidLp1, sMidLp2, sHiHp1, sHiHp2,
+            gLow, gMid, gHigh, sideOut, sInvertOut, lOut, rOut, outMerger);
+        },
+      };
+    });
+    if (fx.loudnessMeter?.enabled) install("loudnessMeter", () => makePassthrough());
+    if (fx.ditherForge?.enabled) install("ditherForge", () => makePassthrough());
+    if (fx.dcBlock?.enabled) install("dcBlock", () => {
+      // Fixed 10Hz HPF — no user params.
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; setFreq(hp.frequency, 10); setQ(hp.Q, 0.707);
+      return { inputNode: hp, outputNode: hp, setParam() {}, dispose() { disposeNodes(hp); } };
+    });
+    if (fx.harmonicSum?.enabled) install("harmonicSum", (p) => {
+      // Phase C2 parameterized harmonic generator. Topology:
+      //   input → WaveShaper (curve regen on drive/even/odd/crosstalk) →
+      //           highpass (avoids low-end mud accumulating from added harmonics) →
+      //           outputGain → output
+      // Curve formula (per UI spec):
+      //   c[i] = x + drive * (
+      //            even2nd * sin(x * 2π) +
+      //            odd3rd  * sin(x * 3π) +
+      //            odd5th  * sin(x * 5π)
+      //          ) + crosstalk * x * x * sign(x) * drive    // asymmetry
+      // noiseFloor (dB) is decorative without a noise gate sidechain — accepted
+      //   no-op (true noise-floor handling needs a sidechained gate / Phase C5).
+      // UI keys: drive, even2nd, odd3rd, odd5th, noiseFloor (no-op),
+      //   crosstalk, outputGain (dB).
+      const cur = {
+        drive:     safe(p.drive    != null ? p.drive    : 0, 0, 0, 4),
+        even2nd:   safe(p.even2nd  != null ? p.even2nd  : 0, 0, 0, 1),
+        odd3rd:    safe(p.odd3rd   != null ? p.odd3rd   : 0, 0, 0, 1),
+        odd5th:    safe(p.odd5th   != null ? p.odd5th   : 0, 0, 0, 1),
+        crosstalk: safe(p.crosstalk!= null ? p.crosstalk: 0, 0, 0, 1),
+      };
+      const buildCurve = () => {
+        const N = 2048; const arr = new Float32Array(N);
+        for (let i = 0; i < N; i++) {
+          const x = (i * 2) / N - 1;
+          const harm =
+            cur.even2nd * Math.sin(x * Math.PI * 2) +
+            cur.odd3rd  * Math.sin(x * Math.PI * 3) +
+            cur.odd5th  * Math.sin(x * Math.PI * 5);
+          // Asymmetry adds even-order tube-like crosstalk distortion.
+          const asym = cur.crosstalk * x * Math.abs(x);
+          let y = x + cur.drive * (harm + asym);
+          // Soft clip to keep waveshaper sane.
+          if (y > 1) y = 1; else if (y < -1) y = -1;
+          arr[i] = y;
+        }
+        return arr;
+      };
+      const ws = ctx.createWaveShaper(); ws.oversample = "2x";
+      ws.curve = buildCurve();
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass";
+      setFreq(hp.frequency, 30); setQ(hp.Q, 0.707);
+      const og = ctx.createGain();
+      setGainLinear(og.gain, Math.pow(10, safe(p.outputGain != null ? p.outputGain : 0, 0, -60, 24) / 20));
+      ws.connect(hp); hp.connect(og);
+      const refresh = () => { ws.curve = buildCurve(); };
+      return {
+        inputNode: ws, outputNode: og,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "drive":      cur.drive     = safe(v, 0.4, 0, 4);  refresh(); break;
+          case "even2nd":    cur.even2nd   = safe(v, 0.5, 0, 1);  refresh(); break;
+          case "odd3rd":     cur.odd3rd    = safe(v, 0.3, 0, 1);  refresh(); break;
+          case "odd5th":     cur.odd5th    = safe(v, 0.1, 0, 1);  refresh(); break;
+          case "crosstalk":  cur.crosstalk = safe(v, 0.2, 0, 1);  refresh(); break;
+          case "outputGain": og.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -60, 24) / 20), 1, 0, 4), t, TAU); break;
+          case "noiseFloor": /* Phase C5 — needs sidechain gate for true noise floor */ break;
+          default: break;
+        } },
+        dispose() { disposeNodes(ws, hp, og); },
+      };
+    });
+    if (fx.matchEQ?.enabled) install("matchEQ", (p) => {
+      const lo = ctx.createBiquadFilter(); lo.type = "lowshelf"; setFreq(lo.frequency, 200); setGainDb(lo.gain, p.low || 0);
+      const hi = ctx.createBiquadFilter(); hi.type = "highshelf"; setFreq(hi.frequency, 8000); setGainDb(hi.gain, p.high || 0);
+      lo.connect(hi);
+      return {
+        inputNode: lo, outputNode: hi,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "low":  lo.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          case "high": hi.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(lo, hi); },
+      };
+    });
+    if (fx.lowEndFocus?.enabled) install("lowEndFocus", (p) => {
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; setFreq(hp.frequency, 30);
+      const sub = ctx.createBiquadFilter(); sub.type = "peaking"; setFreq(sub.frequency, 60); setQ(sub.Q, 0.8); setGainDb(sub.gain, p.sub || 0);
+      const kick = ctx.createBiquadFilter(); kick.type = "peaking"; setFreq(kick.frequency, 100); setQ(kick.Q, 1); setGainDb(kick.gain, p.kick || 0);
+      hp.connect(sub); sub.connect(kick);
+      return {
+        inputNode: hp, outputNode: kick,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "sub":  sub.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          case "kick": kick.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(hp, sub, kick); },
+      };
+    });
+    if (fx.loudnessTarget?.enabled) install("loudnessTarget", (p) => {
+      const lim = ctx.createDynamicsCompressor();
+      setCompThresh(lim.threshold, p.ceiling || -1); setCompRatio(lim.ratio, 20); setCompAttack(lim.attack, 0.001); setCompRelease(lim.release, 0.01);
+      const g = ctx.createGain(); setGainLinear(g.gain, Math.pow(10, (p.target || 0) / 20));
+      lim.connect(g);
+      return {
+        inputNode: lim, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "ceiling": lim.threshold.setTargetAtTime(safe(v, -1, -100, 0), t, TAU); break;
+          case "target":  g.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -60, 24) / 20), 1, 0, 4), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(lim, g); },
+      };
+    });
+    if (fx.msImager?.enabled) install("msImager", (p) => {
+      const g = ctx.createGain(); setGainLinear(g.gain, p.width || 1);
+      return {
+        inputNode: g, outputNode: g,
+        setParam(n, v) { if (n === "width") g.gain.setTargetAtTime(safe(v, 1, 0, 4), ctx.currentTime, TAU); },
+        dispose() { disposeNodes(g); },
+      };
+    });
+    if (fx.spectralRecovery?.enabled) install("spectralRecovery", (p) => {
+      const hi = ctx.createBiquadFilter(); hi.type = "highshelf"; setFreq(hi.frequency, 10000); setGainDb(hi.gain, p.amount || 0);
+      const ex = ctx.createBiquadFilter(); ex.type = "peaking"; setFreq(ex.frequency, 8000); setQ(ex.Q, 0.5); setGainDb(ex.gain, p.presence || 0);
+      hi.connect(ex);
+      return {
+        inputNode: hi, outputNode: ex,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "amount":   hi.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          case "presence": ex.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(hi, ex); },
+      };
+    });
+    if (fx.codecPreview?.enabled) install("codecPreview", () => {
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; setFreq(hp.frequency, 40);
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; setFreq(lp.frequency, 16000);
+      hp.connect(lp);
+      return { inputNode: hp, outputNode: lp, setParam() {}, dispose() { disposeNodes(hp, lp); } };
+    });
+    if (fx.declicker?.enabled) install("declicker", (p) => {
+      // True click detection requires a worklet. UI emits sensitivity, strength,
+      // maxWidth — only `strength` maps to any existing node (overall gain
+      // attenuation: strength=0 → unity, strength=1 → −20%). sensitivity and
+      // maxWidth are Phase C (need transient detector).
+      const strengthToGain = (s) => 1 - safe(s, 0, 0, 1) * 0.2;
+      const g = ctx.createGain();
+      setGainLinear(g.gain, strengthToGain(p.strength != null ? p.strength : 0));
+      return {
+        inputNode: g, outputNode: g,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "strength": g.gain.setTargetAtTime(safe(strengthToGain(v), 1, 0, 4), t, TAU); break;
+          // Phase C: sensitivity, maxWidth need a transient detector / worklet.
+          case "sensitivity": case "maxWidth": break;
+          default: break;
+        } },
+        dispose() { disposeNodes(g); },
+      };
+    });
+    if (fx.dehummer?.enabled) install("dehummer", (p) => {
+      // depth (0..1) modulates each notch's Q. Q~0.0001 = bypass; ramps to 20 at depth=1.
+      const depthToQ = (d) => 0.0001 + safe(d, 0.5, 0, 1) * 20;
+      const initQ = depthToQ(p && p.depth != null ? p.depth : 0.5);
+      const n1 = ctx.createBiquadFilter(); n1.type = "notch"; setFreq(n1.frequency, 50);  setQ(n1.Q, initQ);
+      const n2 = ctx.createBiquadFilter(); n2.type = "notch"; setFreq(n2.frequency, 60);  setQ(n2.Q, initQ);
+      const n3 = ctx.createBiquadFilter(); n3.type = "notch"; setFreq(n3.frequency, 100); setQ(n3.Q, initQ);
+      n1.connect(n2); n2.connect(n3);
+      return {
+        inputNode: n1, outputNode: n3,
+        setParam(name, v) { if (name === "depth") {
+          const q = depthToQ(v); const t = ctx.currentTime;
+          n1.Q.setTargetAtTime(q, t, TAU); n2.Q.setTargetAtTime(q, t, TAU); n3.Q.setTargetAtTime(q, t, TAU);
+        } },
+        dispose() { disposeNodes(n1, n2, n3); },
+      };
+    });
+    if (fx.dialogueIsolator?.enabled) install("dialogueIsolator", (p) => {
+      // True spectral voice isolation needs a worklet. Approximate with a
+      // dialogue-band passband + presence peak. UI knobs:
+      //   isolation (0–1) — narrows the band (HP up, LP down toward 2.5kHz center)
+      //   sensitivity (0–1) — scales the presence peak gain (0–6 dB)
+      //   smoothing/mix — Phase C (need envelope follower / dry-wet split).
+      const isoToHp = (v) => 100 + safe(v, 0, 0, 1) * 200;   // 100 → 300 Hz
+      const isoToLp = (v) => 8000 - safe(v, 0, 0, 1) * 4000; // 8000 → 4000 Hz
+      const sensToGain = (v) => safe(v, 0, 0, 1) * 6;        // 0 → 6 dB
+      const initIso = p.isolation != null ? p.isolation : 0;
+      const initSens = p.sensitivity != null ? p.sensitivity : 0;
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; setFreq(hp.frequency, isoToHp(initIso));
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; setFreq(lp.frequency, isoToLp(initIso));
+      const pres = ctx.createBiquadFilter(); pres.type = "peaking"; setFreq(pres.frequency, 2500); setQ(pres.Q, 0.8); setGainDb(pres.gain, sensToGain(initSens));
+      hp.connect(lp); lp.connect(pres);
+      return {
+        inputNode: hp, outputNode: pres,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "isolation":
+            hp.frequency.setTargetAtTime(safe(isoToHp(v), 100, 20, 20000), t, TAU);
+            lp.frequency.setTargetAtTime(safe(isoToLp(v), 8000, 20, 20000), t, TAU);
+            break;
+          case "sensitivity":
+            pres.gain.setTargetAtTime(safe(sensToGain(v), 0, -60, 24), t, TAU);
+            break;
+          // Phase C: smoothing (envelope follower), mix (dry/wet split).
+          case "smoothing": case "mix": break;
+          default: break;
+        } },
+        dispose() { disposeNodes(hp, lp, pres); },
+      };
+    });
+    if (fx.phaseScope?.enabled) install("phaseScope", () => makePassthrough());
+    if (fx.goniometer?.enabled) install("goniometer", () => makePassthrough());
 
     // ── Part 16: 14 SPX plugins that previously had UI but no DSP. ──
     // Each handler builds a real Web Audio chain so the user hears their
     // changes. Complex DSP (true SSB freq shift, real granular synthesis,
     // proper vocoder) is approximated via standard nodes; richer
     // implementations live in the audio/plugins/ PluginHost system.
-    if (fx.baxandallEQ?.enabled) {
-      const lo = ctx.createBiquadFilter(); lo.type="lowshelf";  lo.frequency.value = fx.baxandallEQ.bassFreq   || 100;   lo.gain.value = fx.baxandallEQ.bass   || 0;
-      const mi = ctx.createBiquadFilter(); mi.type="peaking";   mi.frequency.value = fx.baxandallEQ.midFreq    || 1000;  mi.Q.value    = fx.baxandallEQ.midQ   || 0.7; mi.gain.value = fx.baxandallEQ.mid || 0;
-      const hi = ctx.createBiquadFilter(); hi.type="highshelf"; hi.frequency.value = fx.baxandallEQ.trebleFreq || 10000; hi.gain.value = fx.baxandallEQ.treble || 0;
-      const og = ctx.createGain(); og.gain.value = Math.pow(10, (fx.baxandallEQ.outputGain || 0) / 20);
-      nodes.push(lo, mi, hi, og);
-    }
-    if (fx.tiltEQ?.enabled) {
-      const t = fx.tiltEQ.tilt || 0;
-      const lo = ctx.createBiquadFilter(); lo.type="lowshelf";  lo.frequency.value = fx.tiltEQ.tiltFreq || 1000; lo.gain.value = -t / 2;
-      const hi = ctx.createBiquadFilter(); hi.type="highshelf"; hi.frequency.value = fx.tiltEQ.tiltFreq || 1000; hi.gain.value =  t / 2;
-      const pr = ctx.createBiquadFilter(); pr.type="peaking";   pr.frequency.value = fx.tiltEQ.presenceFreq || 3000; pr.Q.value = 1; pr.gain.value = fx.tiltEQ.presence || 0;
-      const air = ctx.createBiquadFilter(); air.type="highshelf"; air.frequency.value = fx.tiltEQ.airFreq || 12000; air.gain.value = fx.tiltEQ.air || 0;
-      const og = ctx.createGain(); og.gain.value = Math.pow(10, (fx.tiltEQ.outputGain || 0) / 20);
-      nodes.push(lo, hi, pr, air, og);
-    }
-    if (fx.pultecForge?.enabled) {
-      const lf = fx.pultecForge.lowFreq  || 60;
-      const hf = (fx.pultecForge.highFreq || 10) * 1000; // UI unit is kHz
-      const lo = ctx.createBiquadFilter(); lo.type="lowshelf";  lo.frequency.value = lf; lo.gain.value = (fx.pultecForge.lowBoost  || 0) - (fx.pultecForge.lowAtten  || 0);
-      const hi = ctx.createBiquadFilter(); hi.type="highshelf"; hi.frequency.value = hf; hi.gain.value = (fx.pultecForge.highBoost || 0) - (fx.pultecForge.highAtten || 0);
-      hi.Q.value = 0.5 + (fx.pultecForge.highBW || 0.5);
-      const og = ctx.createGain(); og.gain.value = Math.pow(10, (fx.pultecForge.outputGain || 0) / 20);
-      nodes.push(lo, hi, og);
-    }
-    if (fx.graphicEQ?.enabled) {
-      // 31-band ISO graphic EQ. Each band is a single peaking biquad with Q≈4.3
-      // (one-third-octave). Pre-amp is a final gain stage.
+    if (fx.baxandallEQ?.enabled) install("baxandallEQ", (p) => {
+      const lo = ctx.createBiquadFilter(); lo.type = "lowshelf";  setFreq(lo.frequency, p.bassFreq   || 100);   setGainDb(lo.gain, p.bass   || 0);
+      const mi = ctx.createBiquadFilter(); mi.type = "peaking";   setFreq(mi.frequency, p.midFreq    || 1000);  setQ(mi.Q, p.midQ || 0.7); setGainDb(mi.gain, p.mid || 0);
+      const hi = ctx.createBiquadFilter(); hi.type = "highshelf"; setFreq(hi.frequency, p.trebleFreq || 10000); setGainDb(hi.gain, p.treble || 0);
+      const og = ctx.createGain(); setGainLinear(og.gain, Math.pow(10, (p.outputGain || 0) / 20));
+      lo.connect(mi); mi.connect(hi); hi.connect(og);
+      return {
+        inputNode: lo, outputNode: og,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "bass":       lo.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          case "bassFreq":   lo.frequency.setTargetAtTime(safe(v, 100, 20, 20000), t, TAU); break;
+          case "mid":        mi.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          case "midFreq":    mi.frequency.setTargetAtTime(safe(v, 1000, 20, 20000), t, TAU); break;
+          case "midQ":       mi.Q.setTargetAtTime(safe(v, 0.7, 0.0001, 1000), t, TAU); break;
+          case "treble":     hi.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          case "trebleFreq": hi.frequency.setTargetAtTime(safe(v, 10000, 20, 20000), t, TAU); break;
+          case "outputGain": og.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -60, 24) / 20), 1, 0, 4), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(lo, mi, hi, og); },
+      };
+    });
+    if (fx.tiltEQ?.enabled) install("tiltEQ", (p) => {
+      const tilt = p.tilt || 0;
+      const lo = ctx.createBiquadFilter(); lo.type = "lowshelf";  setFreq(lo.frequency, p.tiltFreq || 1000); setGainDb(lo.gain, -tilt / 2);
+      const hi = ctx.createBiquadFilter(); hi.type = "highshelf"; setFreq(hi.frequency, p.tiltFreq || 1000); setGainDb(hi.gain,  tilt / 2);
+      const pr = ctx.createBiquadFilter(); pr.type = "peaking";   setFreq(pr.frequency, p.presenceFreq || 3000); setQ(pr.Q, 1); setGainDb(pr.gain, p.presence || 0);
+      const air = ctx.createBiquadFilter(); air.type = "highshelf"; setFreq(air.frequency, p.airFreq || 12000); setGainDb(air.gain, p.air || 0);
+      const og = ctx.createGain(); setGainLinear(og.gain, Math.pow(10, (p.outputGain || 0) / 20));
+      lo.connect(hi); hi.connect(pr); pr.connect(air); air.connect(og);
+      // tilt and tiltFreq affect both lo+hi shelves — track current values so
+      // either knob can recompute the pair.
+      let curTilt = tilt, curTiltFreq = p.tiltFreq || 1000;
+      const applyTilt = () => {
+        const t = ctx.currentTime;
+        lo.frequency.setTargetAtTime(safe(curTiltFreq, 1000, 20, 20000), t, TAU);
+        hi.frequency.setTargetAtTime(safe(curTiltFreq, 1000, 20, 20000), t, TAU);
+        lo.gain.setTargetAtTime(safe(-curTilt / 2, 0, -60, 24), t, TAU);
+        hi.gain.setTargetAtTime(safe( curTilt / 2, 0, -60, 24), t, TAU);
+      };
+      return {
+        inputNode: lo, outputNode: og,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "tilt":         curTilt = safe(v, 0, -24, 24); applyTilt(); break;
+          case "tiltFreq":     curTiltFreq = safe(v, 1000, 20, 20000); applyTilt(); break;
+          case "presence":     pr.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          case "presenceFreq": pr.frequency.setTargetAtTime(safe(v, 3000, 20, 20000), t, TAU); break;
+          case "air":          air.gain.setTargetAtTime(safe(v, 0, -60, 24), t, TAU); break;
+          case "airFreq":      air.frequency.setTargetAtTime(safe(v, 12000, 20, 20000), t, TAU); break;
+          case "outputGain":   og.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -60, 24) / 20), 1, 0, 4), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(lo, hi, pr, air, og); },
+      };
+    });
+    if (fx.pultecForge?.enabled) install("pultecForge", (p) => {
+      // UI unit for highFreq is kHz. Boost/Atten are separate knobs that
+      // combine into a single shelf gain (the Pultec trick is to apply both
+      // simultaneously which produces a notch — preserved by combining at apply).
+      const lf = p.lowFreq  || 60;
+      const hf = (p.highFreq || 10) * 1000;
+      const lo = ctx.createBiquadFilter(); lo.type = "lowshelf";  setFreq(lo.frequency, lf); setGainDb(lo.gain, (p.lowBoost  || 0) - (p.lowAtten  || 0));
+      const hi = ctx.createBiquadFilter(); hi.type = "highshelf"; setFreq(hi.frequency, hf); setGainDb(hi.gain, (p.highBoost || 0) - (p.highAtten || 0));
+      setQ(hi.Q, 0.5 + (p.highBW || 0.5));
+      const og = ctx.createGain(); setGainLinear(og.gain, Math.pow(10, (p.outputGain || 0) / 20));
+      lo.connect(hi); hi.connect(og);
+      let lowBoost = p.lowBoost || 0, lowAtten = p.lowAtten || 0;
+      let highBoost = p.highBoost || 0, highAtten = p.highAtten || 0;
+      return {
+        inputNode: lo, outputNode: og,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "lowFreq":    lo.frequency.setTargetAtTime(safe(v, 60, 20, 20000), t, TAU); break;
+          case "lowBoost":   lowBoost = safe(v, 0, 0, 24); lo.gain.setTargetAtTime(safe(lowBoost - lowAtten, 0, -60, 24), t, TAU); break;
+          case "lowAtten":   lowAtten = safe(v, 0, 0, 24); lo.gain.setTargetAtTime(safe(lowBoost - lowAtten, 0, -60, 24), t, TAU); break;
+          case "highFreq":   hi.frequency.setTargetAtTime(safe((v || 10) * 1000, 10000, 20, 20000), t, TAU); break;
+          case "highBoost":  highBoost = safe(v, 0, 0, 24); hi.gain.setTargetAtTime(safe(highBoost - highAtten, 0, -60, 24), t, TAU); break;
+          case "highAtten":  highAtten = safe(v, 0, 0, 24); hi.gain.setTargetAtTime(safe(highBoost - highAtten, 0, -60, 24), t, TAU); break;
+          case "highBW":     hi.Q.setTargetAtTime(safe(0.5 + safe(v, 0.5, 0, 4), 1, 0.0001, 1000), t, TAU); break;
+          case "outputGain": og.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -60, 24) / 20), 1, 0, 4), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(lo, hi, og); },
+      };
+    });
+    if (fx.graphicEQ?.enabled) install("graphicEQ", (p) => {
+      // 31-band ISO graphic EQ. Build all 31 bands always-on at 0 dB so live
+      // band edits ramp without rebuild. Pre-amp is always present at unity.
       const ISO = [20,25,31.5,40,50,63,80,100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150,4000,5000,6300,8000,10000,12500,16000,20000];
-      const bands = fx.graphicEQ.bands || {};
-      ISO.forEach(f => {
-        const g = bands[f]; if (!g) return; // skip neutral bands for performance
-        const b = ctx.createBiquadFilter(); b.type="peaking"; b.frequency.value = f; b.Q.value = 4.3; b.gain.value = g;
-        nodes.push(b);
+      const bands = p.bands || {};
+      const filters = ISO.map(f => {
+        const b = ctx.createBiquadFilter(); b.type = "peaking"; setFreq(b.frequency, f); setQ(b.Q, 4.3); setGainDb(b.gain, bands[f] || 0);
+        return b;
       });
-      if (fx.graphicEQ.preAmp) { const og = ctx.createGain(); og.gain.value = Math.pow(10, fx.graphicEQ.preAmp / 20); nodes.push(og); }
-    }
-    if (fx.stereoWidener?.enabled) {
-      // Mid/Side widener: split L/R, derive M=L+R, S=L-R, scale S by width,
-      // recombine. width=1 is unity, width=2 is double S, width=0 collapses to mono.
-      const w = (fx.stereoWidener.width != null ? fx.stereoWidener.width : 1.0);
+      const og = ctx.createGain(); setGainLinear(og.gain, Math.pow(10, (p.preAmp || 0) / 20));
+      let prev = filters[0]; for (let i = 1; i < filters.length; i++) { prev.connect(filters[i]); prev = filters[i]; }
+      prev.connect(og);
+      return {
+        inputNode: filters[0], outputNode: og,
+        setParam(n, v) {
+          const t = ctx.currentTime;
+          if (n === "preAmp") { og.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -60, 24) / 20), 1, 0, 4), t, TAU); return; }
+          if (n === "bands" && v && typeof v === "object") {
+            ISO.forEach((f, i) => {
+              const g = v[f]; if (g === undefined) return;
+              filters[i].gain.setTargetAtTime(safe(g, 0, -60, 24), t, TAU);
+            });
+          }
+        },
+        dispose() { disposeNodes(og, ...filters); },
+      };
+    });
+    if (fx.stereoWidener?.enabled) install("stereoWidener", (p) => {
+      // Mid/Side widener with custom routing — sInv MUST stay negative (phase-invert).
+      // Live width knob ramps both sGain (positive) and sInv (negative) symmetrically.
+      const w = (p.width != null ? p.width : 1.0);
       const split = ctx.createChannelSplitter(2);
-      const mGain = ctx.createGain(); mGain.gain.value = 0.5;
-      const sGain = ctx.createGain(); sGain.gain.value = 0.5 * w;
-      const sInv  = ctx.createGain(); sInv.gain.value  = -0.5 * w;
+      const mGain = ctx.createGain(); setGainLinear(mGain.gain, 0.5);
+      const sGain = ctx.createGain(); setGainLinear(sGain.gain, 0.5 * w);
+      const sInv  = ctx.createGain(); sInv.gain.value  = safe(-0.5 * w, -0.5, -4, 0);
       const merge = ctx.createChannelMerger(2);
-      // L = M + S, R = M - S → wire to merger inputs 0 and 1
-      // Build (M, S) by tapping channels and summing through gains. We chain
-      // the nodes into the FX list so buildPlaybackSources' linear chaining
-      // still works: the splitter is the input, the merger is the output.
-      // Intermediate sums route through nGain anchors connected internally.
       const passL = ctx.createGain(), passR = ctx.createGain();
       split.connect(passL, 0); split.connect(passR, 1);
       passL.connect(mGain); passR.connect(mGain); mGain.connect(merge, 0, 0); mGain.connect(merge, 0, 1);
-      passL.connect(sGain); passR.connect(sInv);  sGain.connect(merge, 0, 0); sInv.connect(merge,  0, 1);
-      // Compound node: chainer wires `last → split` and `merge → next`,
-      // leaving the M/S sub-graph untouched.
-      nodes.push({ inputNode: split, outputNode: merge });
-    }
-    if (fx.enhancer808?.enabled) {
-      // Sub boost via lowshelf at user freq, harmonic exciter via tanh saturation
-      // mixed parallel. Punch shapes the attack via a transient-leaning shelf.
-      const sub = ctx.createBiquadFilter(); sub.type="lowshelf"; sub.frequency.value = fx.enhancer808.freq || 60; sub.gain.value = (fx.enhancer808.sub || 0) * 12;
-      const punch = ctx.createBiquadFilter(); punch.type="peaking"; punch.frequency.value = (fx.enhancer808.freq || 60) * 1.5; punch.Q.value = 1.2; punch.gain.value = (fx.enhancer808.punch || 0) * 6;
-      const ws = ctx.createWaveShaper(); const harm = (fx.enhancer808.harmonic || 0); const N=2048; const c = new Float32Array(N);
-      for (let i = 0; i < N; i++) { const x = (i*2)/N - 1; c[i] = Math.tanh(x * (1 + harm * 4)); }
-      ws.curve = c; ws.oversample = "2x";
-      const og = ctx.createGain(); og.gain.value = fx.enhancer808.outputGain != null ? fx.enhancer808.outputGain : 1.0;
-      nodes.push(sub, punch, ws, og);
-    }
-    if (fx.formantFilter?.enabled) {
-      // Three peaking filters at the morphed F1/F2/F3 of the chosen vowels.
-      // Approximation: not a true formant filter but produces audibly distinct
-      // vowel coloration suitable for talkbox/wah effects.
+      passL.connect(sGain); passR.connect(sInv);  sGain.connect(merge, 0, 0); sInv.connect(merge, 0, 1);
+      return {
+        inputNode: split, outputNode: merge,
+        setParam(n, v) { const t = ctx.currentTime; if (n === "width") {
+          const ww = safe(v, 1, 0, 4);
+          sGain.gain.setTargetAtTime(safe(0.5 * ww, 0.5, 0, 4), t, TAU);
+          // sInv must remain negative — setTargetAtTime tolerates negative targets.
+          sInv.gain.setTargetAtTime(safe(-0.5 * ww, -0.5, -4, 0), t, TAU);
+        } },
+        dispose() { disposeNodes(split, mGain, sGain, sInv, merge, passL, passR); },
+      };
+    });
+    if (fx.enhancer808?.enabled) install("enhancer808", (p) => {
+      // Sub boost via lowshelf, harmonic exciter via tanh, output trim.
+      // freq couples sub.frequency and punch.frequency (1.5×) — track in closure.
+      const sub = ctx.createBiquadFilter(); sub.type = "lowshelf"; setFreq(sub.frequency, p.freq || 60); setGainDb(sub.gain, (p.sub || 0) * 12);
+      const punch = ctx.createBiquadFilter(); punch.type = "peaking"; setFreq(punch.frequency, (p.freq || 60) * 1.5); setQ(punch.Q, 1.2); setGainDb(punch.gain, (p.punch || 0) * 6);
+      const ws = ctx.createWaveShaper(); ws.oversample = "2x"; ws.curve = makeTanhCurve(p.harmonic || 0);
+      const og = ctx.createGain(); setGainLinear(og.gain, p.outputGain != null ? p.outputGain : 1.0);
+      sub.connect(punch); punch.connect(ws); ws.connect(og);
+      return {
+        inputNode: sub, outputNode: og,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "freq":       sub.frequency.setTargetAtTime(safe(v, 60, 20, 20000), t, TAU);
+                             punch.frequency.setTargetAtTime(safe((v || 60) * 1.5, 90, 20, 20000), t, TAU); break;
+          case "sub":        sub.gain.setTargetAtTime(safe(safe(v, 0, 0, 1) * 12, 0, -60, 24), t, TAU); break;
+          case "punch":      punch.gain.setTargetAtTime(safe(safe(v, 0, 0, 1) * 6, 0, -60, 24), t, TAU); break;
+          case "harmonic":   ws.curve = makeTanhCurve(v); break;
+          case "outputGain": og.gain.setTargetAtTime(safe(v, 1, 0, 4), t, TAU); break;
+          default: break;
+        } },
+        dispose() { disposeNodes(sub, punch, ws, og); },
+      };
+    });
+    if (fx.formantFilter?.enabled) install("formantFilter", (p) => {
+      // Phase C2: 3 peaking filters at morphed F1/F2/F3 with optional autoWah
+      // LFO modulating each filter's frequency, plus wet/dry mix.
       const FORMANTS = { A:[700,1220,2600], E:[400,1700,2400], I:[270,2290,3010], O:[450,800,2830], U:[325,700,2530] };
-      const fA = FORMANTS[fx.formantFilter.vowelA] || FORMANTS.A;
-      const fB = FORMANTS[fx.formantFilter.vowelB] || FORMANTS.E;
-      const m  = fx.formantFilter.morph != null ? fx.formantFilter.morph : 0.5;
-      const Q  = fx.formantFilter.q || 8;
-      const f1 = ctx.createBiquadFilter(); f1.type="peaking"; f1.frequency.value = fA[0] * (1 - m) + fB[0] * m; f1.Q.value = Q; f1.gain.value = 18;
-      const f2 = ctx.createBiquadFilter(); f2.type="peaking"; f2.frequency.value = fA[1] * (1 - m) + fB[1] * m; f2.Q.value = Q; f2.gain.value = 14;
-      const f3 = ctx.createBiquadFilter(); f3.type="peaking"; f3.frequency.value = fA[2] * (1 - m) + fB[2] * m; f3.Q.value = Q; f3.gain.value = 10;
-      const og = ctx.createGain(); og.gain.value = Math.pow(10, (fx.formantFilter.outputGain || 0) / 20);
-      nodes.push(f1, f2, f3, og);
-    }
-    if (fx.freqShifter?.enabled) {
-      // True single-sideband frequency shift requires a Hilbert transformer pair.
-      // V1: amplitude-modulation approximation that produces audibly similar
-      // sidebands for moderate shift amounts. Real SSB lives in the PluginHost
-      // FrequencyShifterPlugin (audio/plugins/plugins/FrequencyShifterPlugin.js).
-      const carrier = ctx.createOscillator(); carrier.frequency.value = Math.abs(fx.freqShifter.shift || 0);
-      const carrierGain = ctx.createGain(); carrierGain.gain.value = 1;
-      const modGain = ctx.createGain(); modGain.gain.value = 1;
-      carrier.connect(carrierGain); carrierGain.connect(modGain.gain);
-      carrier.start();
-      const mix = (fx.freqShifter.mix != null ? fx.freqShifter.mix : 100) / 100;
-      const wet = ctx.createGain(); wet.gain.value = mix;
-      modGain.connect(wet);
-      nodes.push({ inputNode: modGain, outputNode: wet });
-    }
-    if (fx.granularFreeze?.enabled) {
-      // True granular synthesis freeze needs an audio worklet to read random
-      // grains from a circular buffer. V1: long delay with high feedback for
-      // a sustained "frozen" texture when the freeze switch is on. Pitch and
-      // grain controls are not honored in this approximation.
+      let curA = FORMANTS[p.vowelA] || FORMANTS.A;
+      let curB = FORMANTS[p.vowelB] || FORMANTS.E;
+      let curMorph = p.morph != null ? p.morph : 0.5;
+      let curQ = p.q || 8;
+      let autoWah = !!p.autoWah;
+      let wahDepth = safe(p.wahDepth != null ? p.wahDepth : 0.5, 0.5, 0, 1);
+      const inGain = ctx.createGain(); setGainLinear(inGain.gain, 1);
+      const f1 = ctx.createBiquadFilter(); f1.type = "peaking"; setFreq(f1.frequency, curA[0]*(1-curMorph) + curB[0]*curMorph); setQ(f1.Q, curQ); setGainDb(f1.gain, 18);
+      const f2 = ctx.createBiquadFilter(); f2.type = "peaking"; setFreq(f2.frequency, curA[1]*(1-curMorph) + curB[1]*curMorph); setQ(f2.Q, curQ); setGainDb(f2.gain, 14);
+      const f3 = ctx.createBiquadFilter(); f3.type = "peaking"; setFreq(f3.frequency, curA[2]*(1-curMorph) + curB[2]*curMorph); setQ(f3.Q, curQ); setGainDb(f3.gain, 10);
+      const initMix = safe(((p.mix != null ? p.mix : 0) / 100), 0, 0, 1);
+      const wet = ctx.createGain(); setMix(wet.gain, initMix);
+      const dry = ctx.createGain(); setMix(dry.gain, 1 - initMix);
+      const og = ctx.createGain(); setGainLinear(og.gain, Math.pow(10, (p.outputGain || 0) / 20));
+      const lfo = ctx.createOscillator(); lfo.type = "sine"; setFreq(lfo.frequency, p.wahRate || 1);
+      const lfoG1 = ctx.createGain(); const lfoG2 = ctx.createGain(); const lfoG3 = ctx.createGain();
+      const updateLfoDepths = () => {
+        const f1c = curA[0]*(1-curMorph) + curB[0]*curMorph;
+        const f2c = curA[1]*(1-curMorph) + curB[1]*curMorph;
+        const f3c = curA[2]*(1-curMorph) + curB[2]*curMorph;
+        const dGain = autoWah ? wahDepth : 0;
+        setGainLinear(lfoG1.gain, f1c * 0.3 * dGain);
+        setGainLinear(lfoG2.gain, f2c * 0.4 * dGain);
+        setGainLinear(lfoG3.gain, f3c * 0.5 * dGain);
+      };
+      updateLfoDepths();
+      lfo.connect(lfoG1); lfo.connect(lfoG2); lfo.connect(lfoG3);
+      lfoG1.connect(f1.frequency); lfoG2.connect(f2.frequency); lfoG3.connect(f3.frequency);
+      lfo.start();
+      inGain.connect(f1); f1.connect(f2); f2.connect(f3); f3.connect(wet); wet.connect(og);
+      inGain.connect(dry); dry.connect(og);
+      const applyFormants = () => {
+        const t = ctx.currentTime;
+        f1.frequency.setTargetAtTime(safe(curA[0]*(1-curMorph) + curB[0]*curMorph, 700, 20, 20000), t, TAU);
+        f2.frequency.setTargetAtTime(safe(curA[1]*(1-curMorph) + curB[1]*curMorph, 1220, 20, 20000), t, TAU);
+        f3.frequency.setTargetAtTime(safe(curA[2]*(1-curMorph) + curB[2]*curMorph, 2600, 20, 20000), t, TAU);
+        updateLfoDepths();
+      };
+      return {
+        inputNode: inGain, outputNode: og,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "vowelA":     curA = FORMANTS[v] || FORMANTS.A; applyFormants(); break;
+          case "vowelB":     curB = FORMANTS[v] || FORMANTS.E; applyFormants(); break;
+          case "morph":      curMorph = safe(v, 0.5, 0, 1); applyFormants(); break;
+          case "q":          curQ = safe(v, 8, 0.0001, 1000);
+                             f1.Q.setTargetAtTime(curQ, t, TAU); f2.Q.setTargetAtTime(curQ, t, TAU); f3.Q.setTargetAtTime(curQ, t, TAU); break;
+          case "autoWah":    autoWah = !!v; updateLfoDepths(); break;
+          case "wahRate":    lfo.frequency.setTargetAtTime(safe(v, 1, 0.01, 50), t, TAU_LFO); break;
+          case "wahDepth":   wahDepth = safe(v, 0.5, 0, 1); updateLfoDepths(); break;
+          case "mix": {
+            const m = safe((v || 0) / 100, 0, 0, 1);
+            wet.gain.setTargetAtTime(m, t, TAU);
+            dry.gain.setTargetAtTime(1 - m, t, TAU);
+            break;
+          }
+          case "outputGain": og.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -60, 24) / 20), 1, 0, 4), t, TAU); break;
+          default: break;
+        } },
+        dispose() { stopOscs(lfo); disposeNodes(inGain, f1, f2, f3, lfoG1, lfoG2, lfoG3, wet, dry, og); },
+      };
+    });
+    if (fx.freqShifter?.enabled) install("freqShifter", (p) => {
+      // Phase C4: TRUE single-sideband (SSB) frequency shifter using a
+      // Hilbert-transform pair built from cascaded all-pass biquads (Olli
+      // Niemitalo 8-section coefficients). Output: y = I·cos(ωt) - Q·sin(ωt)
+      // (positive shift) or y = I·cos(ωt) + Q·sin(ωt) (negative). Quality:
+      // clean to ±2 kHz, mild aliasing past ±5 kHz, residual leakage <50 Hz.
+      const HILBERT_A = [0.4670940904, 0.1232728458, 0.0290015347, 0.0061119025];
+      const HILBERT_B = [0.2967226020, 0.0729604006, 0.0166937845, 0.0030597117];
+      const buildHilbert = (poles2) => {
+        const inG = ctx.createGain();
+        let last = inG;
+        poles2.forEach((p2) => {
+          // 2nd-order all-pass: H(z) = (a² + z^-2) / (1 + a²·z^-2)
+          const ap = new IIRFilterNode(ctx, { feedforward: [p2, 0, 1], feedback: [1, 0, p2] });
+          last.connect(ap); last = ap;
+        });
+        const outG = ctx.createGain();
+        last.connect(outG);
+        return { input: inG, output: outG };
+      };
+      const branchI = buildHilbert(HILBERT_A);
+      const branchQ = buildHilbert(HILBERT_B);
+
+      const inGain = ctx.createGain(); setGainLinear(inGain.gain, 1);
+      const outGain = ctx.createGain(); setGainLinear(outGain.gain, 1);
+      const dry = ctx.createGain();
+      const wet = ctx.createGain();
+      // Sample-delay on Q branch aligns the polyphase Hilbert pair group delay.
+      const sampleDelay = ctx.createDelay(1 / ctx.sampleRate + 0.001);
+      sampleDelay.delayTime.value = 1 / ctx.sampleRate;
+
+      inGain.connect(branchI.input);
+      inGain.connect(sampleDelay);
+      sampleDelay.connect(branchQ.input);
+
+      const cosOsc = ctx.createOscillator();
+      const sinOsc = ctx.createOscillator();
+      const cosWave = ctx.createPeriodicWave(new Float32Array([0, 1]), new Float32Array([0, 0]), { disableNormalization: true });
+      const sinWave = ctx.createPeriodicWave(new Float32Array([0, 0]), new Float32Array([0, 1]), { disableNormalization: true });
+      cosOsc.setPeriodicWave(cosWave);
+      sinOsc.setPeriodicWave(sinWave);
+      const shift0 = safe(p.shift != null ? p.shift : 0, 0, -5000, 5000);
+      cosOsc.frequency.value = Math.abs(shift0);
+      sinOsc.frequency.value = Math.abs(shift0);
+
+      const mulI = ctx.createGain(); mulI.gain.value = 0;
+      const mulQ = ctx.createGain(); mulQ.gain.value = 0;
+      cosOsc.connect(mulI.gain);
+      sinOsc.connect(mulQ.gain);
+      branchI.output.connect(mulI);
+      branchQ.output.connect(mulQ);
+
+      const qSign = ctx.createGain();
+      qSign.gain.value = shift0 >= 0 ? -1 : 1;
+      mulQ.connect(qSign);
+
+      const sumNode = ctx.createGain();
+      mulI.connect(sumNode);
+      qSign.connect(sumNode);
+      sumNode.connect(wet);
+      wet.connect(outGain);
+      inGain.connect(dry); dry.connect(outGain);
+
+      const mix0 = safe(p.mix != null ? (p.mix > 1 ? p.mix / 100 : p.mix) : 1, 1, 0, 1);
+      setGainLinear(wet.gain, mix0);
+      setGainLinear(dry.gain, 1 - mix0);
+
+      cosOsc.start(); sinOsc.start();
+      let curShift = shift0;
+
+      return {
+        inputNode: inGain, outputNode: outGain,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "shift": {
+            const s = safe(v != null ? v : 0, 0, -5000, 5000);
+            curShift = s;
+            cosOsc.frequency.setTargetAtTime(Math.abs(s), t, TAU);
+            sinOsc.frequency.setTargetAtTime(Math.abs(s), t, TAU);
+            qSign.gain.setTargetAtTime(s >= 0 ? -1 : 1, t, TAU);
+            break;
+          }
+          case "mix": {
+            const m = safe(v > 1 ? v / 100 : v, 1, 0, 1);
+            wet.gain.setTargetAtTime(m, t, TAU);
+            dry.gain.setTargetAtTime(1 - m, t, TAU);
+            break;
+          }
+          // V2: lfoRate / lfoDepth need a second LFO modulating cos/sin freq.
+          case "lfoRate": case "lfoDepth": break;
+          default: break;
+        } },
+        dispose() {
+          stopOscs(cosOsc, sinOsc);
+          disposeNodes(inGain, outGain, dry, wet, mulI, mulQ, qSign, sumNode,
+            sampleDelay, branchI.input, branchI.output, branchQ.input, branchQ.output);
+        },
+      };
+    });
+    if (fx.granularFreeze?.enabled) install("granularFreeze", (p) => {
+      // Long delay with high feedback approximates the "frozen" texture.
       const d = ctx.createDelay(2.0);
-      d.delayTime.value = (fx.granularFreeze.grainSize || 80) / 1000;
-      const fb = ctx.createGain(); fb.gain.value = fx.granularFreeze.freeze ? 0.95 : (fx.granularFreeze.density || 0.7) * 0.6;
-      const wet = ctx.createGain(); wet.gain.value = (fx.granularFreeze.mix != null ? fx.granularFreeze.mix : 80) / 100;
-      const og  = ctx.createGain(); og.gain.value = Math.pow(10, (fx.granularFreeze.outputGain || 0) / 20);
+      setTime(d.delayTime, (p.grainSize || 80) / 1000);
+      const fb = ctx.createGain(); setMix(fb.gain, p.freeze ? 0.95 : (p.density || 0.7) * 0.6);
+      const wet = ctx.createGain(); setMix(wet.gain, ((p.mix != null ? p.mix : 80) / 100));
+      const og  = ctx.createGain(); setGainLinear(og.gain, Math.pow(10, (p.outputGain || 0) / 20));
       d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(og);
-      nodes.push({ inputNode: d, outputNode: og });
-    }
-    if (fx.noiseReduction?.enabled) {
-      // Approximated as a frequency-aware downward expander: a gentle highpass
-      // attenuates rumble + a DynamicsCompressor in expander mode (ratio < 1
-      // is not supported on Web Audio, so we use ratio=1.5 with attack/release
-      // tuned to an aggressive gate). Real spectral subtraction lives in the
-      // PluginHost AINoiseReducePlugin.
-      const hp = ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value = 60;
+      let frozen = !!p.freeze, density = p.density != null ? p.density : 0.7;
+      const applyFb = () => fb.gain.setTargetAtTime(safe(frozen ? 0.95 : safe(density, 0.7, 0, 1) * 0.6, 0.42, 0, 0.95), ctx.currentTime, TAU);
+      return {
+        inputNode: d, outputNode: og,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "grainSize":  d.delayTime.setTargetAtTime(safe((v || 80) / 1000, 0.08, 0, 2), t, TAU); break;
+          case "freeze":     frozen = !!v; applyFb(); break;
+          case "density":    density = safe(v, 0.7, 0, 1); applyFb(); break;
+          case "mix":        wet.gain.setTargetAtTime(safe((v || 0) / 100, 0.8, 0, 1), t, TAU); break;
+          case "outputGain": og.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -60, 24) / 20), 1, 0, 4), t, TAU); break;
+          // Phase C candidates — need granular-engine node tree (pitch shifter,
+          // grain scheduler, position/randomize). Explicit no-ops to document.
+          case "pitch":      /* needs pitch-shift — Phase C */ break;
+          case "spread":     /* needs L/R split — Phase C */ break;
+          case "position":   /* needs grain buffer — Phase C */ break;
+          case "randomize":  /* needs grain scheduler — Phase C */ break;
+          case "attack":     /* needs grain envelope — Phase C */ break;
+          case "release":    /* needs grain envelope — Phase C */ break;
+          default: break;
+        } },
+        dispose() { disposeNodes(d, fb, wet, og); },
+      };
+    });
+    if (fx.noiseReduction?.enabled) install("noiseReduction", (p) => {
+      // Frequency-aware downward expander approximation.
+      // UI param aliases: smoothing (0..1) → c.knee (0..30 dB).
+      // learn/learnDone/preserveTransients: state flags / detector that have
+      // no audio node — accepted as no-ops (workflow lives in UI only).
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; setFreq(hp.frequency, 60);
       const c = ctx.createDynamicsCompressor();
-      c.threshold.value = fx.noiseReduction.threshold != null ? fx.noiseReduction.threshold : -40;
-      c.ratio.value = 1 + (fx.noiseReduction.reduction || 0.6) * 6;
-      c.attack.value  = (fx.noiseReduction.attack  || 10)  / 1000;
-      c.release.value = (fx.noiseReduction.release || 200) / 1000;
-      c.knee.value = 6;
-      const og = ctx.createGain(); og.gain.value = Math.pow(10, (fx.noiseReduction.outputGain || 0) / 20);
-      nodes.push(hp, c, og);
-    }
-    if (fx.ringMod?.enabled) {
-      // Audio-rate amplitude modulation: input × carrier sine.
-      // mode "ringmod" = pure RM (DC-balanced carrier), "am" = unipolar carrier
-      // (preserves some of the original signal), "freqshift" → falls back to RM
-      // since true SSB needs a Hilbert pair (see freqShifter handler).
+      setCompThresh(c.threshold, p.threshold != null ? p.threshold : -40);
+      setCompRatio(c.ratio, 1 + (p.reduction != null ? p.reduction : 0) * 6);
+      setCompAttack(c.attack, (p.attack || 10) / 1000);
+      setCompRelease(c.release, (p.release || 200) / 1000);
+      setCompKnee(c.knee, safe(p.smoothing != null ? p.smoothing : 0, 0, 0, 1) * 30);
+      const og = ctx.createGain(); setGainLinear(og.gain, Math.pow(10, (p.outputGain || 0) / 20));
+      hp.connect(c); c.connect(og);
+      return {
+        inputNode: hp, outputNode: og,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "threshold":  c.threshold.setTargetAtTime(safe(v, -40, -100, 0), t, TAU); break;
+          case "reduction":  c.ratio.setTargetAtTime(safe(1 + safe(v, 0, 0, 1) * 6, 1, 1, 20), t, TAU); break;
+          case "attack":     c.attack.setTargetAtTime(safe((v || 10) / 1000, 0.01, 0, 1), t, TAU); break;
+          case "release":    c.release.setTargetAtTime(safe((v || 200) / 1000, 0.2, 0, 1), t, TAU); break;
+          case "smoothing":  c.knee.setTargetAtTime(safe(safe(v, 0, 0, 1) * 30, 0, 0, 40), t, TAU); break;
+          case "outputGain": og.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -60, 24) / 20), 1, 0, 4), t, TAU); break;
+          case "learn":              /* UI workflow flag — no audio node */ break;
+          case "learnDone":          /* UI workflow flag — no audio node */ break;
+          case "preserveTransients": /* needs transient detector — Phase C */ break;
+          default: break;
+        } },
+        dispose() { disposeNodes(hp, c, og); },
+      };
+    });
+    if (fx.ringMod?.enabled) install("ringMod", (p) => {
       const carrier = ctx.createOscillator();
-      carrier.type = fx.ringMod.carrierType || "sine";
-      carrier.frequency.value = fx.ringMod.carrierFreq || 440;
-      const dc = ctx.createGain(); dc.gain.value = (fx.ringMod.mode === "am") ? 0.5 : 0;
-      const carrierGain = ctx.createGain(); carrierGain.gain.value = 1;
-      const ampMod = ctx.createGain(); ampMod.gain.value = 0;
+      carrier.type = p.carrierType || "sine";
+      setFreq(carrier.frequency, p.carrierFreq || 440);
+      const dc = ctx.createGain(); setGainLinear(dc.gain, (p.mode === "am") ? 0.5 : 0);
+      const carrierGain = ctx.createGain(); setGainLinear(carrierGain.gain, 1);
+      const ampMod = ctx.createGain(); setGainLinear(ampMod.gain, 0);
       carrier.connect(carrierGain); carrierGain.connect(ampMod.gain);
-      // dc bias is approximated by also feeding a constant 0.5 — but Web Audio
-      // doesn't have ConstantSourceNode in older browsers, so skip and accept RM.
       carrier.start();
-      const mix = (fx.ringMod.mix != null ? fx.ringMod.mix : 50) / 100;
-      const wet = ctx.createGain(); wet.gain.value = mix;
-      const og  = ctx.createGain(); og.gain.value = Math.pow(10, (fx.ringMod.outputGain || 0) / 20);
+      const wet = ctx.createGain(); setMix(wet.gain, ((p.mix != null ? p.mix : 0) / 100));
+      const og  = ctx.createGain(); setGainLinear(og.gain, Math.pow(10, (p.outputGain || 0) / 20));
       ampMod.connect(wet); wet.connect(og);
-      nodes.push({ inputNode: ampMod, outputNode: og });
-    }
-    if (fx.spectrumAnalyzer?.enabled) {
-      // Meter-only — passthrough so the chain stays connected. The analyser
-      // tap for visualization is the SPX plugin window's responsibility.
-      const g = ctx.createGain(); g.gain.value = 1; nodes.push(g);
-    }
-    if (fx.loudnessMeter2?.enabled) {
-      const g = ctx.createGain(); g.gain.value = 1; nodes.push(g);
-    }
-    if (fx.vocoderSPX?.enabled) {
-      // Approximation: N-band peaking filter array driven by carrier frequency
-      // distribution. Real channel vocoder lives in the PluginHost system; this
-      // gives audible band-emphasis coloration that varies with carrier freq.
-      const bands = Math.min(16, fx.vocoderSPX.bands || 16);
-      const baseF = fx.vocoderSPX.carrierFreq || 110;
-      for (let i = 0; i < bands; i++) {
-        const b = ctx.createBiquadFilter();
-        b.type = "peaking";
-        b.frequency.value = baseF * Math.pow(2, i * 6 / bands); // log-spaced
-        b.Q.value = 4 + (fx.vocoderSPX.unvoiced || 0.3) * 10;
-        b.gain.value = 6;
-        nodes.push(b);
+      return {
+        inputNode: ampMod, outputNode: og,
+        setParam(n, v) { const t = ctx.currentTime; switch (n) {
+          case "carrierType": try { carrier.type = v || "sine"; } catch (e) {} break;
+          case "carrierFreq": carrier.frequency.setTargetAtTime(safe(v, 440, 0, 20000), t, TAU); break;
+          case "mode":        dc.gain.setTargetAtTime(safe(v === "am" ? 0.5 : 0, 0, 0, 4), t, TAU); break;
+          case "mix":         wet.gain.setTargetAtTime(safe((v || 0) / 100, 0, 0, 1), t, TAU); break;
+          case "outputGain":  og.gain.setTargetAtTime(safe(Math.pow(10, safe(v, 0, -60, 24) / 20), 1, 0, 4), t, TAU); break;
+          default: break;
+        } },
+        dispose() { stopOscs(carrier); disposeNodes(dc, carrierGain, ampMod, wet, og); },
+      };
+    });
+    if (fx.spectrumAnalyzer?.enabled) install("spectrumAnalyzer", () => makePassthrough());
+    if (fx.loudnessMeter2?.enabled) install("loudnessMeter2", () => makePassthrough());
+    if (fx.vocoderSPX?.enabled) install("vocoderSPX", (p) => {
+      // N peaking filters log-spaced from carrierFreq. Always build MAX_BANDS
+      // (16) so live `bands` knob can mute extras with gain=0 instead of
+      // requiring a chain rebuild.
+      const MAX_BANDS = 16;
+      const activeBands = Math.min(MAX_BANDS, p.bands || 16);
+      const baseF = p.carrierFreq || 110;
+      const filters = [];
+      for (let i = 0; i < MAX_BANDS; i++) {
+        const b = ctx.createBiquadFilter(); b.type = "peaking";
+        setFreq(b.frequency, baseF * Math.pow(2, i * 6 / MAX_BANDS));
+        setQ(b.Q, 4 + (p.unvoiced || 0.3) * 10);
+        setGainDb(b.gain, i < activeBands ? 6 : 0);
+        filters.push(b);
       }
-      const mix = (fx.vocoderSPX.mix != null ? fx.vocoderSPX.mix : 100) / 100;
-      const og = ctx.createGain(); og.gain.value = mix * Math.pow(10, (fx.vocoderSPX.outputGain || 0) / 20);
-      nodes.push(og);
-    }
+      let prev = filters[0]; for (let i = 1; i < filters.length; i++) { prev.connect(filters[i]); prev = filters[i]; }
+      const og = ctx.createGain(); const initMix = (p.mix != null ? p.mix : 0) / 100;
+      setGainLinear(og.gain, initMix * Math.pow(10, (p.outputGain || 0) / 20));
+      prev.connect(og);
+      // Internal sawtooth carrier so vocoder is audible without an external carrier.
+      const _validTypes = ["sine", "square", "triangle", "sawtooth"];
+      const _initCarrierType = _validTypes.indexOf(p.carrierType) >= 0 ? p.carrierType : "sawtooth";
+      const carrier = ctx.createOscillator(); carrier.type = _initCarrierType;
+      try { carrier.frequency.value = safe(baseF, 110, 20, 20000); } catch (e) {}
+      const carrierGainNode = ctx.createGain(); carrierGainNode.gain.value = 0.3;
+      carrier.connect(carrierGainNode); carrierGainNode.connect(filters[0]);
+      try { carrier.start(); } catch (e) {}
+      let curBase = baseF, curBands = activeBands, curUnvoiced = p.unvoiced || 0.3;
+      let curMix = initMix, curOutGain = p.outputGain || 0;
+      const applyFreqs = () => {
+        const t = ctx.currentTime;
+        for (let i = 0; i < MAX_BANDS; i++) {
+          filters[i].frequency.setTargetAtTime(safe(curBase * Math.pow(2, i * 6 / MAX_BANDS), 110, 20, 20000), t, TAU);
+        }
+      };
+      const applyBandCount = () => {
+        const t = ctx.currentTime;
+        for (let i = 0; i < MAX_BANDS; i++) filters[i].gain.setTargetAtTime(safe(i < curBands ? 6 : 0, 0, -60, 24), t, TAU);
+      };
+      const applyOutput = () => og.gain.setTargetAtTime(safe(curMix * Math.pow(10, safe(curOutGain, 0, -60, 24) / 20), 1, 0, 4), ctx.currentTime, TAU);
+      // formantShift: scale all band frequencies by 2^(semitones/12).
+      let curFormantSemi = safe(p.formantShift != null ? p.formantShift : 0, 0, -24, 24);
+      const applyFreqsWithFormant = () => {
+        const t = ctx.currentTime;
+        const scale = Math.pow(2, curFormantSemi / 12);
+        for (let i = 0; i < MAX_BANDS; i++) {
+          filters[i].frequency.setTargetAtTime(
+            safe(curBase * scale * Math.pow(2, i * 6 / MAX_BANDS), 110, 20, 20000), t, TAU);
+        }
+      };
+      return {
+        inputNode: filters[0], outputNode: og,
+        setParam(n, v) { switch (n) {
+          case "bands":        curBands = Math.min(MAX_BANDS, Math.max(1, Math.floor(safe(v, 16, 1, MAX_BANDS)))); applyBandCount(); break;
+          case "carrierFreq":  curBase = safe(v, 110, 20, 20000); applyFreqsWithFormant();
+                               try { carrier.frequency.setTargetAtTime(curBase, ctx.currentTime, TAU); } catch (e) {} break;
+          case "formantShift": curFormantSemi = safe(v, 0, -24, 24); applyFreqsWithFormant(); break;
+          case "unvoiced":     curUnvoiced = safe(v, 0.3, 0, 1);
+                               for (const f of filters) f.Q.setTargetAtTime(safe(4 + curUnvoiced * 10, 7, 0.0001, 1000), ctx.currentTime, TAU); break;
+          case "mix":          curMix = safe((v || 0) / 100, 0, 0, 1); applyOutput(); break;
+          case "outputGain":   curOutGain = safe(v, 0, -60, 24); applyOutput(); break;
+          // Phase C candidates — need oscillator carrier + envelope follower
+          // tree. Static peaking-filter approximation cannot honor these.
+          case "carrierType":  if (_validTypes.indexOf(v) >= 0) { try { carrier.type = v; } catch (e) {} } break;
+          case "attack":       /* no envelope follower — Phase C */ break;
+          case "release":      /* no envelope follower — Phase C */ break;
+          case "breathiness":  /* needs noise generator — Phase C */ break;
+          case "freeze":       /* needs envelope-hold — Phase C */ break;
+          default: break;
+        } },
+        dispose() { try { carrier.stop(); } catch (e) {} disposeNodes(carrierGainNode, og, ...filters); },
+      };
+    });
 
     // ── Part 16: PluginHost factories ─────────────────────────────────────
     // Any track.effects key prefixed `ph_` resolves to a plugin factory in
@@ -1921,8 +5860,10 @@ const RecordingStudio = ({ user }) => {
       delete params.enabled;
       try {
         const inst = factory(ctx, params);
-        if (inst?.inputNode && inst?.outputNode) {
-          nodes.push({ inputNode: inst.inputNode, outputNode: inst.outputNode, _hostInstance: inst, _pluginId: pluginId });
+        const inp = inst?.inputNode || inst?.node;
+        const out = inst?.outputNode || inst?.inputNode || inst?.node;
+        if (inp && out) {
+          nodes.push({ inputNode: inp, outputNode: out, _hostInstance: inst, _pluginId: pluginId });
         }
       } catch (e) { console.warn("[SPX PluginHost] factory threw for", pluginId, e); }
     }
@@ -2169,7 +6110,7 @@ const RecordingStudio = ({ user }) => {
     last.connect(panNode); panNode.connect(fader); fader.connect(meter);
     const boardId = trackConsoleChar[track.id] || "none";
     const consoleOut = ctx.createGain();
-    const consoleNodes = applyConsoleCharacter(ctx, meter, consoleOut, boardId) || [];
+    const consoleNodes = applyConsoleCharacter(ctx, meter, consoleOut, boardId, { trackId: track.id, params: trackConsoleParams[track.id] }) || [];
     const busTrack = track.busTarget ? tracks.find(t => t.id === track.busTarget) : null;
     const busNodes = busTrack ? trackNodesRef.current.get(busTrack.id) : null;
     const dest = (busNodes && busNodes.input) ? busNodes.input : masterGainRef.current;
@@ -2194,7 +6135,7 @@ const RecordingStudio = ({ user }) => {
     fxNodes.forEach(n => { const ni = n.inputNode || n, no = n.outputNode || n; last.connect(ni); last = no; });
     last.connect(panNode); panNode.connect(fader); fader.connect(meter);
     const busConsoleOut = ctx.createGain();
-    const busConsoleNodes = applyConsoleCharacter(ctx, meter, busConsoleOut, trackConsoleChar[busTrack?.id] || "none") || [];
+    const busConsoleNodes = applyConsoleCharacter(ctx, meter, busConsoleOut, trackConsoleChar[busTrack?.id] || "none", { trackId: busTrack?.id, params: trackConsoleParams[busTrack?.id] }) || [];
     busConsoleOut.connect(masterGainRef.current);
     input.connect(preGain);
     const nodes = { input, preGain, panNode, fader, meter, fxNodes, consoleOut: busConsoleOut, consoleNodes: busConsoleNodes, sendNodes: [], isBus: true };
@@ -2249,7 +6190,7 @@ const RecordingStudio = ({ user }) => {
       masterAnalyserLRef.current = ctx.createAnalyser(); masterAnalyserLRef.current.fftSize = 2048; masterAnalyserLRef.current.smoothingTimeConstant = 0.88;
       masterAnalyserRRef.current = ctx.createAnalyser(); masterAnalyserRRef.current.fftSize = 2048; masterAnalyserRRef.current.smoothingTimeConstant = 0.88;
       const masterConsoleOutNode = ctx.createGain(); masterConsoleOutRef.current = masterConsoleOutNode;
-      applyConsoleCharacter(ctx, masterGainRef.current, masterConsoleOutNode, masterConsoleChar || "none");
+      applyConsoleCharacter(ctx, masterGainRef.current, masterConsoleOutNode, masterConsoleChar || "none", { trackId: "master", params: masterConsoleParams || undefined });
       if (masterConsoleChar && masterConsoleChar !== "none") masterConsoleOutNode.connect(masterPanRef.current);
       else masterGainRef.current.connect(masterPanRef.current);
       masterPanRef.current.connect(splitter);
@@ -2374,9 +6315,20 @@ const RecordingStudio = ({ user }) => {
   // closure inside startLoopCheck doesn't see a stale `tracks` snapshot.
   const buildSourcesRef = useRef(null);
   const startLoopCheck = useCallback(() => {
-    if (loopCheckRef.current) cancelAnimationFrame(loopCheckRef.current);
+    // Phase F2 (Bug #3): swapped requestAnimationFrame for setInterval(50ms).
+    // rAF is paused/severely throttled in background tabs while the AudioContext
+    // clock keeps ticking, so the playhead drifts well past cycleEnd before the
+    // wrap fires (or never fires). setInterval is also throttled in background
+    // tabs (typically to ~1000ms), but it still FIRES — so the wrap engages
+    // within ~1s of cycleEnd instead of when the tab regains focus. Good enough
+    // for cycle correctness; precise audio-clock scheduling would need
+    // setTimeout-re-armed-each-cycle and isn't needed for beta.
+    if (loopCheckRef.current) clearInterval(loopCheckRef.current);
     const check = () => {
-      if (!cycleEnabled || !isPlaying) { loopCheckRef.current = null; return; }
+      if (!cycleEnabled || !isPlaying) {
+        if (loopCheckRef.current) { clearInterval(loopCheckRef.current); loopCheckRef.current = null; }
+        return;
+      }
       // Bug #4b-2-extra: playOffsetRef.current is SECONDS — convert to BEATS so both terms (and cycleEnd) share units.
       const beatNow = secondsToBeat(playOffsetRef.current, bpm) + (audioCtxRef.current ? (audioCtxRef.current.currentTime - playStartRef.current) * (bpm / 60) : 0);
       if (beatNow >= cycleEnd) {
@@ -2389,14 +6341,14 @@ const RecordingStudio = ({ user }) => {
         // Bug #5b: BufferSourceNodes don't support post-start seeking — stop them and rebuild at the loop start.
         if (ctx && buildSourcesRef.current) buildSourcesRef.current(ctx, cycleStartSec);
       }
-      loopCheckRef.current = requestAnimationFrame(check);
     };
-    loopCheckRef.current = requestAnimationFrame(check);
+    loopCheckRef.current = setInterval(check, 50);
   }, [cycleEnabled, cycleStart, cycleEnd, bpm, isPlaying]);
 
   useEffect(() => {
     if (isPlaying && cycleEnabled) startLoopCheck();
-    else if (loopCheckRef.current) { cancelAnimationFrame(loopCheckRef.current); loopCheckRef.current = null; }
+    else if (loopCheckRef.current) { clearInterval(loopCheckRef.current); loopCheckRef.current = null; }
+    return () => { if (loopCheckRef.current) { clearInterval(loopCheckRef.current); loopCheckRef.current = null; } };
   }, [isPlaying, cycleEnabled, startLoopCheck]);
 
   // Bug #5b: shared source builder so cycle wrap can rebuild buffer sources at the new offset
@@ -2432,7 +6384,7 @@ const RecordingStudio = ({ user }) => {
       let masterIn = p;
       if (consoleId && consoleId !== "none") {
         const consoleOut = ctx.createGain();
-        applyConsoleCharacter(ctx, p, consoleOut, consoleId);
+        applyConsoleCharacter(ctx, p, consoleOut, consoleId, { trackId: t.id, params: trackConsoleParams[t.id] });
         masterIn = consoleOut;
       }
       masterIn.connect(masterGainRef.current); if (t.effects) buildSends(ctx, t, p, masterGainRef.current);
@@ -2452,8 +6404,9 @@ const RecordingStudio = ({ user }) => {
   // inserting/toggling an effect mid-playback was silently a no-op. Watch a
   // serialized signature of every track's effects (which keys are enabled) and
   // rebuild the live source chain so the user actually hears their inserts.
-  // Param-knob changes still wait for the next play to take effect — rebuilding
-  // on every param tweak would glitch audio. Toggling enabled is the threshold.
+  // Phase 3: param-knob changes hit AudioParams directly via liveInstancesRef
+  // (see SPXPluginHost onChange handler), so this signature only triggers a
+  // rebuild on enable/disable — knob sweeps no longer touch this path.
   const fxSignature = useMemo(
     () => tracks.map(t => Object.entries(t.effects || {}).filter(([, v]) => v?.enabled).map(([k]) => k).sort().join(",")).join("|"),
     [tracks]
@@ -2565,6 +6518,50 @@ const RecordingStudio = ({ user }) => {
 
   const rewind = () => { if (isPlaying) stopPlayback(); playOffsetRef.current = 0; setCurrentTime(0); };
 
+  // Transport bar-step + hold-to-scrub. Single click on Rewind/FF moves ±1 bar;
+  // mousedown-hold (>250ms) scrubs continuously. During playback the seek is
+  // applied by re-arming buildPlaybackSources at the new offset — same pattern
+  // fxSignature uses to swap inserts mid-flight (no stop+restart click).
+  const projectMaxDuration = () => Math.max(0, ...tracks.map(t => t.audioBuffer?.duration || 0));
+  const seekBy = (deltaSec) => {
+    const max = projectMaxDuration();
+    const ctx = audioCtxRef.current;
+    const cur = (isPlaying && ctx)
+      ? (ctx.currentTime - playStartRef.current + playOffsetRef.current)
+      : playOffsetRef.current;
+    let next = cur + deltaSec;
+    if (next < 0) next = 0;
+    if (max > 0 && next > max) next = max;
+    if (next === cur) return;
+    if (isPlaying && ctx) {
+      playOffsetRef.current = next;
+      playStartRef.current = ctx.currentTime;
+      buildPlaybackSources(ctx, next);
+    } else {
+      playOffsetRef.current = next;
+    }
+    setCurrentTime(next);
+  };
+  const scrubHoldTimeoutRef = useRef(null);
+  const scrubIntervalRef = useRef(null);
+  const startScrub = (direction) => {
+    // Immediate ±1 bar so a quick click is exactly one bar.
+    const beats = (timeSignatureRef.current && timeSignatureRef.current[0]) || 4;
+    const barSec = (60 / Math.max(1, bpm)) * beats;
+    seekBy(direction * barSec);
+    if (scrubHoldTimeoutRef.current) clearTimeout(scrubHoldTimeoutRef.current);
+    if (scrubIntervalRef.current) clearInterval(scrubIntervalRef.current);
+    // After 250ms hold, scrub at one beat per 50ms tick (~10× realtime at 4/4).
+    scrubHoldTimeoutRef.current = setTimeout(() => {
+      scrubIntervalRef.current = setInterval(() => seekBy(direction * (barSec / 4)), 50);
+    }, 250);
+  };
+  const stopScrub = () => {
+    if (scrubHoldTimeoutRef.current) { clearTimeout(scrubHoldTimeoutRef.current); scrubHoldTimeoutRef.current = null; }
+    if (scrubIntervalRef.current) { clearInterval(scrubIntervalRef.current); scrubIntervalRef.current = null; }
+  };
+  useEffect(() => () => stopScrub(), []);
+
   const fmt = (s) => { const m = Math.floor(s / 60), sec = Math.floor(s % 60), ms = Math.floor((s % 1) * 100); return `${m}:${String(sec).padStart(2, "0")}.${String(ms).padStart(2, "0")}`; };
 
   // ── Region helpers ──
@@ -2628,14 +6625,29 @@ const RecordingStudio = ({ user }) => {
         return;
       }
       const src = ctx.createMediaStreamSource(stream); recInputSrcRef.current = src;
-      inputAnalyserRef.current = ctx.createAnalyser(); inputAnalyserRef.current.fftSize = 256; src.connect(inputAnalyserRef.current);
+      // Phase F1.4 (Bug #7): force mono→stereo upmix at the input boundary.
+      // USB/aggregate interfaces commonly hand back a 2-channel MediaStream with
+      // mic on ch.0 and silence on ch.1. GainNode's "speakers" interpretation
+      // doesn't kick in (input already has 2 channels), so the bare wiring
+      // src→recMon→destination played mic in left ear only. Splitter takes ch.0
+      // and Merger writes it to BOTH outputs — handles 1-channel and
+      // 2-channel-with-silent-R sources alike.
+      const monoSplitter = ctx.createChannelSplitter(2);
+      const stereoMerger = ctx.createChannelMerger(2);
+      src.connect(monoSplitter);
+      monoSplitter.connect(stereoMerger, 0, 0);
+      monoSplitter.connect(stereoMerger, 0, 1);
+      micSplitterRef.current = monoSplitter; micMergerRef.current = stereoMerger;
+      // Analyser reads the upmixed signal so the meter matches what the user
+      // hears (and so a stereo-rendered VU shows centered, not L-only).
+      inputAnalyserRef.current = ctx.createAnalyser(); inputAnalyserRef.current.fftSize = 256; stereoMerger.connect(inputAnalyserRef.current);
       // Bug #11-3: route mic to destination so user hears themselves while recording. Held at 0 if direct-monitor is already on, to avoid double-routing/feedback.
       // Bug #7 (Part 9): if the armed track has its own per-track monitor enabled,
       // start at 0.6; otherwise default to 0 (silent unless user explicitly opts in).
       // Global monitoringEnabled still wins (held at 0 to avoid double-routing/feedback).
       const armedTrack = tracks[ai];
       const initialMon = monitoringEnabled ? 0 : (armedTrack?.monitoring ? 0.6 : 0);
-      const recMon = ctx.createGain(); recMon.gain.value = initialMon; src.connect(recMon); recMon.connect(ctx.destination); recMonitorGainRef.current = recMon;
+      const recMon = ctx.createGain(); recMon.gain.value = initialMon; stereoMerger.connect(recMon); recMon.connect(ctx.destination); recMonitorGainRef.current = recMon;
       const mon = () => { if (!inputAnalyserRef.current) return; const d = new Uint8Array(inputAnalyserRef.current.frequencyBinCount); inputAnalyserRef.current.getByteFrequencyData(d); setInputLevel(d.reduce((a, b) => a + b, 0) / d.length / 255); inputAnimRef.current = requestAnimationFrame(mon); }; mon();
       if (countIn && countInBars > 0) { setStatus(`Count in (${countInBars} bar${countInBars > 1 ? "s" : ""})...`); await playCountIn(ctx); }
       // supportedMime guard: Safari rejects webm; let the browser pick its default when none of our preferred mimes are available.
@@ -2675,12 +6687,16 @@ const RecordingStudio = ({ user }) => {
           setStatus(`✗ Recording decode failed: ${err?.message || err}`);
           return;
         }
-        // Part 13b bug 1: USB/MOTU mics commonly deliver a mono stream. The
-        // playback chain SHOULD upmix mono via channelInterpretation:'speakers',
-        // but several FX nodes (Convolver, the splitter→analyser tap) pin
-        // their channel count and end up routing the recording to one ear
-        // only. Materialize a 2-channel buffer once at decode so every
-        // downstream consumer sees stereo.
+        // Recorded buffer: post-decode mono→stereo for the 1-channel case ONLY.
+        // Does NOT detect "2-channel buffer with silent R" — common for USB
+        // interfaces that hand back a 2-ch stream with mic on ch.0 only. In
+        // that case decodeAudioData yields numberOfChannels === 2 and this
+        // branch is skipped, leaving the recorded buffer L=mic / R=silent.
+        // Live monitoring is already corrected upstream by the splitter+merger
+        // upmix at startRecording (Phase F1.4). The matching capture-side fix
+        // (route MediaRecorder through a MediaStreamDestination fed from the
+        // upmixed graph, OR detect near-silent R post-decode and copy L→R) is
+        // tracked as Phase E post-beta cleanup.
         if (buf.numberOfChannels === 1) {
           const mono = buf.getChannelData(0);
           const stereo = ctx.createBuffer(2, buf.length, buf.sampleRate);
@@ -2707,6 +6723,14 @@ const RecordingStudio = ({ user }) => {
         try { await uploadTrack(blob, ai); } catch (err) { console.error("[SPX] uploadTrack failed:", err); return; }
       };
       mediaRecorderRef.current = rec; rec.start(100); startPlayback(true); setIsRecording(true); setStatus(`● REC Track ${ai + 1} — ${inputLabel}`);
+      // startPlayback→buildPlaybackSources nulls the armed track's analyser slot
+      // (no audioBuffer yet on a fresh take). Wire the live mic analyser into
+      // the slot so the meter loop reads input level during the take. Mic is
+      // mono — left and right point to the same analyser. stopPlayback (called
+      // by stopRecording) clears trackAnalysersRef wholesale so no manual cleanup.
+      if (inputAnalyserRef.current && trackAnalysersRef.current) {
+        trackAnalysersRef.current[ai] = { left: inputAnalyserRef.current, right: inputAnalyserRef.current };
+      }
     } catch (e) { setStatus(`✗ Mic: ${e.message}`); }
   };
 
@@ -2717,7 +6741,10 @@ const RecordingStudio = ({ user }) => {
     // Bug #11-3 cleanup.
     try { recMonitorGainRef.current?.disconnect(); } catch (_) {}
     try { recInputSrcRef.current?.disconnect(); } catch (_) {}
+    try { micSplitterRef.current?.disconnect(); } catch (_) {}
+    try { micMergerRef.current?.disconnect(); } catch (_) {}
     recMonitorGainRef.current = null; recInputSrcRef.current = null;
+    micSplitterRef.current = null; micMergerRef.current = null;
     setMicSimStream(null); setInputLevel(0); setIsRecording(false); stopPlayback();
   };
 
@@ -2732,7 +6759,35 @@ const RecordingStudio = ({ user }) => {
   // be missing the `effects` field (legacy projects, externally-created
   // tracks). Without these guards, adding any insert would throw
   // "Cannot read properties of undefined (reading '<plugin-key>')".
-  const updateEffect = (ti, fx, param, val) => setTracks(p => p.map((t, i) => i !== ti ? t : { ...t, effects: { ...(t.effects || DEFAULT_EFFECTS()), [fx]: { ...((t.effects || {})[fx] || {}), [param]: val } } }));
+  const updateEffect = (ti, fx, param, val) => {
+    const key = `${tracks[ti]?.id}:${fx}`;
+    const inst = liveInstancesRef.current.get(key);
+    console.warn("[UE-DISPATCH]", key, "→ instance found:", !!inst, "param:", param, "val:", val);  // Phase F3 instrumentation — Bug #1
+    if (inst?.setParam && param !== "enabled") inst.setParam(param, val);
+    setTracks(p => p.map((t, i) => i !== ti ? t : { ...t, effects: { ...(t.effects || DEFAULT_EFFECTS()), [fx]: { ...((t.effects || {})[fx] || {}), [param]: val } } }));
+  };
+  // Seed an effect's full defaults + enabled:true atomically. Used by the
+  // inserts picker so buildFxChain sees populated params on the first build.
+  // Merges defaults UNDER any pre-existing values so DEFAULT_EFFECTS()'s native
+  // plugin params (deesser.frequency, exciter.amount, etc.) survive — wiping
+  // them caused non-finite AudioParam errors when the audio handler read
+  // undefined keys.
+  const seedEffect = (ti, fx, defaults) => setTracks(p => p.map((t, i) => i !== ti ? t : { ...t, effects: { ...(t.effects || DEFAULT_EFFECTS()), [fx]: { ...defaults, ...((t.effects || {})[fx] || {}), enabled: true } } }));
+  // Phase 3 / Fix 1: full removal of an insert. Disposes the live PluginInstance
+  // (stops LFO oscillators, disconnects nodes) BEFORE setTracks so the chain
+  // rebuild on fxSignature change starts from a clean registry. Difference vs
+  // updateEffect(.., "enabled", false): this drops the key entirely from
+  // track.effects so saved sessions don't accumulate stale params.
+  const removeInsert = (ti, fxKey) => {
+    const t = tracks[ti]; if (!t) return;
+    disposeInstance(t.id, fxKey);
+    setTracks(prev => prev.map((tr, i) => i !== ti ? tr : ({
+      ...tr,
+      effects: Object.fromEntries(
+        Object.entries(tr.effects || {}).filter(([k]) => k !== fxKey)
+      ),
+    })));
+  };
 
   const addTrack = () => {
     if (tracks.length >= maxTracks) { setStatus(`⚠ ${userTier} tier limit: ${maxTracks} tracks.`); return; }
@@ -2774,6 +6829,9 @@ const RecordingStudio = ({ user }) => {
         (old.sendNodes || []).forEach(n => { try { n.disconnect(); } catch (_) {} });
       }
       trackNodesRef.current.delete(removed.id);
+      // Phase 3: dispose every PluginInstance keyed under this trackId so
+      // setParam refs / running LFO oscillators don't leak after removal.
+      disposeAllForTrack(removed.id);
     }
     setTracks(prev => prev.filter((_, i) => i !== idx));
     if (activeEffectsTrack === idx) setActiveEffectsTrack(null);
@@ -2946,6 +7004,8 @@ const RecordingStudio = ({ user }) => {
         automation, cycle_start: cycleStart, cycle_end: cycleEnd, cycle_enabled: cycleEnabled,
         track_console_char: trackConsoleChar,
         master_console_char: masterConsoleChar,
+        track_console_params: trackConsoleParams,
+        master_console_params: masterConsoleParams,
         monitor_speaker: monitorSpeaker,
         room_sim: roomSim,
         binaural_on: binauralOn,
@@ -2977,6 +7037,8 @@ const RecordingStudio = ({ user }) => {
         if (p.cycle_enabled != null) setCycleEnabled(p.cycle_enabled);
         if (p.track_console_char) setTrackConsoleChar(p.track_console_char);
         if (p.master_console_char) setMasterConsoleChar(p.master_console_char);
+        if (p.track_console_params) setTrackConsoleParams(p.track_console_params);
+        if (p.master_console_params != null) setMasterConsoleParams(p.master_console_params);
         if (p.monitor_speaker) setMonitorSpeaker(p.monitor_speaker);
         if (p.room_sim) setRoomSim(p.room_sim);
         if (p.binaural_on != null) setBinauralOn(p.binaural_on);
@@ -3418,6 +7480,8 @@ const RecordingStudio = ({ user }) => {
     if (project.master_pan != null) setMasterPan(project.master_pan);
     if (project.track_console_char) setTrackConsoleChar(project.track_console_char);
     if (project.master_console_char) setMasterConsoleChar(project.master_console_char);
+    if (project.track_console_params) setTrackConsoleParams(project.track_console_params);
+    if (project.master_console_params != null) setMasterConsoleParams(project.master_console_params);
     if (project.monitor_speaker) setMonitorSpeaker(project.monitor_speaker);
     if (project.room_sim) setRoomSim(project.room_sim);
     if (project.binaural_on != null) setBinauralOn(project.binaural_on);
@@ -3614,7 +7678,17 @@ const RecordingStudio = ({ user }) => {
       case "transport:playPause": isPlaying ? stopPlayback() : startPlayback(); break;
       case "transport:stop": stopEverything(); break;
       case "transport:record": isRecording ? stopRecording() : startRecording(); break;
-      case "transport:rewind": rewind(); break;
+      case "transport:rewind": {
+        const beats = (timeSignatureRef.current && timeSignatureRef.current[0]) || 4;
+        seekBy(-(60 / Math.max(1, bpm)) * beats);
+        break;
+      }
+      case "transport:fastForward": {
+        const beats = (timeSignatureRef.current && timeSignatureRef.current[0]) || 4;
+        seekBy((60 / Math.max(1, bpm)) * beats);
+        break;
+      }
+      case "transport:goToStart": rewind(); break;  // legacy "jump to 0" — preserved under explicit name
       case "transport:tapTempo": tapTempo(); break;
       case "track:add": setShowAddTrackDialog(true); break;
       case "track:remove": removeTrack(sel); break;
@@ -3888,26 +7962,51 @@ const RecordingStudio = ({ user }) => {
                 <div className="daw-console-scroll">
                   {tracks.map((t, i) => {
                     const meter = meterLevels?.[i] || { left: 0, right: 0, peak: 0 };
+                    // Phase F4-A.7B: visual active-console feedback. Non-`none`
+                    // boards tint the channel's left edge with the console color
+                    // and add a small ● ACTIVE badge near the header number.
+                    const tConsoleId = trackConsoleChar[t.id];
+                    const tConsoleActive = tConsoleId && tConsoleId !== "none";
+                    const tConsoleColor = tConsoleActive ? (CONSOLE_BOARDS[tConsoleId]?.color || "#888") : null;
                     return (
-                      <div key={t.id ?? i} className={"daw-channel"+(i===selectedTrack?" selected":"")+(t.armed?" armed":"")+(t.trackType==="bus"?" bus-channel":"")+(selectedChannels.has(t.id)?" linked":"")} onClick={e=>{if(e.ctrlKey||e.metaKey){setSelectedChannels(prev=>{const n=new Set(prev);n.has(t.id)?n.delete(t.id):n.add(t.id);return n;});}else setSelectedTrack(i);}} onContextMenu={e=>{e.preventDefault();setChannelCtxMenu({x:e.clientX,y:e.clientY,trackId:t.id,trackIndex:i});}}>
+                      <div key={t.id ?? i} className={"daw-channel"+(i===selectedTrack?" selected":"")+(t.armed?" armed":"")+(t.trackType==="bus"?" bus-channel":"")+(selectedChannels.has(t.id)?" linked":"")} style={tConsoleActive ? { borderLeft: `3px solid ${tConsoleColor}` } : undefined} onClick={e=>{if(e.ctrlKey||e.metaKey){setSelectedChannels(prev=>{const n=new Set(prev);n.has(t.id)?n.delete(t.id):n.add(t.id);return n;});}else setSelectedTrack(i);}} onContextMenu={e=>{e.preventDefault();setChannelCtxMenu({x:e.clientX,y:e.clientY,trackId:t.id,trackIndex:i});}}>
                         <div className="daw-ch-colorbar" style={{ background: t.color || "#4a90d9" }}/>
                         <div className="daw-ch-header">
                           <span className="daw-ch-type-icon">{t.trackType === "midi" ? "🎹" : "🎙"}</span>
                           <span className="daw-ch-header-num">{i + 1}</span>
+                          {tConsoleActive && (
+                            <span title={`${CONSOLE_BOARDS[tConsoleId]?.name} active`} style={{ display: "inline-flex", alignItems: "center", gap: 2, marginLeft: 4, fontSize: 8, fontWeight: 700, color: tConsoleColor, letterSpacing: 0.5, textShadow: `0 0 4px ${tConsoleColor}88` }}>
+                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: tConsoleColor, boxShadow: `0 0 4px ${tConsoleColor}` }} />
+                              ACTIVE
+                            </span>
+                          )}
                         </div>
                         <div className="daw-ch-routing">
                           <span className="daw-ch-routing-value">{t.input || "Stereo In"}</span>
-                          <select className="daw-ch-console-select" value={trackConsoleChar[t.id] || "none"} onChange={e => setTrackConsoleChar(prev => ({ ...prev, [t.id]: e.target.value }))}>
+                          <select className="daw-ch-console-select" value={trackConsoleChar[t.id] || "none"} onChange={e => selectTrackConsole(t.id, e.target.value)}>
                             {Object.entries(CONSOLE_BOARDS).map(([id, b]) => <option key={id} value={id}>{b.name}</option>)}
                           </select>
+                          {trackConsoleChar[t.id] && trackConsoleChar[t.id] !== "none" && (
+                            <button
+                              type="button"
+                              className="daw-ch-console-edit-btn"
+                              title="Open console editor"
+                              onClick={e => { e.stopPropagation(); setOpenConsolePanel(prev => prev === t.id ? null : t.id); }}
+                              style={{ marginLeft: 4, padding: "1px 6px", fontSize: 9, background: openConsolePanel === t.id ? (CONSOLE_BOARDS[trackConsoleChar[t.id]]?.color || "#4a90d9") : "#21262d", color: openConsolePanel === t.id ? "#000" : "#cdd9e5", border: `1px solid ${CONSOLE_BOARDS[trackConsoleChar[t.id]]?.color || "#444"}`, borderRadius: 3, cursor: "pointer", fontFamily: "monospace", fontWeight: 700 }}
+                            >EDIT</button>
+                          )}
                         </div>
                         <div className="ch-upper">
                         <div className="daw-ch-inserts">
                           <div className="daw-ch-inserts-label">INSERTS</div>
                           {getLoadedInserts(t).map(fx => (
                             <div key={fx.key} className={"daw-ch-insert-slot active " + (fx.type || "")}
-                              onClick={e => { e.stopPropagation(); setSelectedTrack(i); setActiveEffectsTrack(i); setOpenFxKey(fx.key); }}>
+                              onClick={e => { e.stopPropagation(); setSelectedTrack(i); setActiveEffectsTrack(i); setOpenFxKey(fx.key); }}
+                              onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setInsertCtxMenu({ x: e.clientX, y: e.clientY, trackIndex: i, fxKey: fx.key, fxName: fx.name }); }}>
                               {fx.name}
+                              <button className="daw-ch-insert-x"
+                                title="Remove insert"
+                                onClick={e => { e.stopPropagation(); removeInsert(i, fx.key); }}>×</button>
                             </div>
                           ))}
                           {Array.from({length: Math.max(0, 6 - getLoadedInserts(t).length)}).map((_, si) => (
@@ -3992,17 +8091,36 @@ const RecordingStudio = ({ user }) => {
                       </div>
                     );
                   })}
-                  <div className={"daw-channel master-channel" + (selectedTrack === -1 ? " selected" : "")} onClick={() => { console.log("Master clicked! Current selectedTrack:", selectedTrack); setSelectedTrack(-1); }}>
+                  {(() => {
+                    const mActive = masterConsoleChar && masterConsoleChar !== "none";
+                    const mColor = mActive ? (CONSOLE_BOARDS[masterConsoleChar]?.color || "#ff8a3d") : null;
+                    return (
+                  <div className={"daw-channel master-channel" + (selectedTrack === -1 ? " selected" : "")} style={mActive ? { borderLeft: `3px solid ${mColor}` } : undefined} onClick={() => { console.log("Master clicked! Current selectedTrack:", selectedTrack); setSelectedTrack(-1); }}>
                     <div className="daw-ch-colorbar" style={{ background: "#ff8a3d" }}/>
                     <div className="daw-ch-header">
                       <span className="daw-ch-type-icon">🎚</span>
                       <span className="daw-ch-header-num" style={{color:"#ff8a3d"}}>M</span>
+                      {mActive && (
+                        <span title={`${CONSOLE_BOARDS[masterConsoleChar]?.name} active`} style={{ display: "inline-flex", alignItems: "center", gap: 2, marginLeft: 4, fontSize: 8, fontWeight: 700, color: mColor, letterSpacing: 0.5, textShadow: `0 0 4px ${mColor}88` }}>
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: mColor, boxShadow: `0 0 4px ${mColor}` }} />
+                          ACTIVE
+                        </span>
+                      )}
                     </div>
                     <div className="daw-ch-routing">
                       <span className="daw-ch-routing-value">Stereo Out</span>
-                      <select className="daw-ch-console-select" value={masterConsoleChar} onChange={e => setMasterConsoleChar(e.target.value)}>
+                      <select className="daw-ch-console-select" value={masterConsoleChar} onChange={e => selectMasterConsole(e.target.value)}>
                         {Object.entries(CONSOLE_BOARDS).map(([id, b]) => <option key={id} value={id}>{b.name}</option>)}
                       </select>
+                      {masterConsoleChar && masterConsoleChar !== "none" && (
+                        <button
+                          type="button"
+                          className="daw-ch-console-edit-btn"
+                          title="Open master console editor"
+                          onClick={e => { e.stopPropagation(); setOpenConsolePanel(prev => prev === "master" ? null : "master"); }}
+                          style={{ marginLeft: 4, padding: "1px 6px", fontSize: 9, background: openConsolePanel === "master" ? (CONSOLE_BOARDS[masterConsoleChar]?.color || "#ff8a3d") : "#21262d", color: openConsolePanel === "master" ? "#000" : "#cdd9e5", border: `1px solid ${CONSOLE_BOARDS[masterConsoleChar]?.color || "#444"}`, borderRadius: 3, cursor: "pointer", fontFamily: "monospace", fontWeight: 700 }}
+                        >EDIT</button>
+                      )}
                     </div>
                     <div className="ch-upper">
                     <div className="daw-ch-inserts">
@@ -4050,6 +8168,8 @@ const RecordingStudio = ({ user }) => {
                     </div>
                     </div>
                   </div>
+                  );
+                  })()}
                 </div>
 
                 {channelCtxMenu && (
@@ -4081,6 +8201,15 @@ const RecordingStudio = ({ user }) => {
                     <button className="arr-ctx-item danger" onClick={()=>{removeTrack(channelCtxMenu.trackIndex);setChannelCtxMenu(null);}}>🗑 Remove Track</button>
                   </div>
                 )}
+                {insertCtxMenu && (
+                  <div className="insert-context-menu" style={{left: insertCtxMenu.x, top: insertCtxMenu.y}} onMouseLeave={()=>setInsertCtxMenu(null)}>
+                    <div className="ctx-header">{insertCtxMenu.fxName}</div>
+                    <button className="arr-ctx-item danger" onClick={()=>{ removeInsert(insertCtxMenu.trackIndex, insertCtxMenu.fxKey); setInsertCtxMenu(null); }}>🗑 Remove insert</button>
+                    <button className="arr-ctx-item" onClick={()=>{ updateEffect(insertCtxMenu.trackIndex, insertCtxMenu.fxKey, "enabled", false); setInsertCtxMenu(null); }}>🚫 Disable (keep params)</button>
+                    <div className="ctx-separator" />
+                    <button className="arr-ctx-item" onClick={()=>{ seedEffect(insertCtxMenu.trackIndex, insertCtxMenu.fxKey, PLUGIN_DEFAULTS[insertCtxMenu.fxKey] || {}); setInsertCtxMenu(null); }}>↺ Reset to defaults</button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -4110,8 +8239,11 @@ const RecordingStudio = ({ user }) => {
                       {loaded.map(fx => (
                         <div key={fx.key} className={"daw-ch-insert-slot active " + (fx.type || "")}
                           onClick={e => { e.stopPropagation(); setSelectedTrack(i); setSelectedTrackIndex(i); setActiveEffectsTrack(i); setOpenFxKey(fx.key); }}
-                          onContextMenu={e => { e.preventDefault(); e.stopPropagation(); updateEffect(i, fx.key, "enabled", false); }}>
+                          onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setInsertCtxMenu({ x: e.clientX, y: e.clientY, trackIndex: i, fxKey: fx.key, fxName: fx.name }); }}>
                           {fx.name}
+                          <button className="daw-ch-insert-x"
+                            title="Remove insert"
+                            onClick={e => { e.stopPropagation(); removeInsert(i, fx.key); }}>×</button>
                         </div>
                       ))}
                       {loaded.length < 8 && (
@@ -4170,7 +8302,7 @@ const RecordingStudio = ({ user }) => {
                     </div>
                     <div className="daw-ch-name">
                       <input className="daw-ch-name-input" value={t.name} onChange={e => updateTrack(i, { name: e.target.value })} onClick={e => e.stopPropagation()}/>
-                      <select className="daw-ch-console-select" value={trackConsoleChar[t.id] || "none"} onChange={e => setTrackConsoleChar(prev => ({ ...prev, [t.id]: e.target.value }))} onClick={e => e.stopPropagation()}>
+                      <select className="daw-ch-console-select" value={trackConsoleChar[t.id] || "none"} onChange={e => selectTrackConsole(t.id, e.target.value)} onClick={e => e.stopPropagation()}>
                         {Object.entries(CONSOLE_BOARDS).map(([id, b]) => <option key={id} value={id}>{b.name}</option>)}
                       </select>
                     </div>
@@ -4225,7 +8357,7 @@ const RecordingStudio = ({ user }) => {
                 </div>
                 <div className="daw-ch-name">
                   <span className="rs-master-label">MASTER</span>
-                  <select className="daw-ch-console-select" value={masterConsoleChar} onChange={e => setMasterConsoleChar(e.target.value)}>
+                  <select className="daw-ch-console-select" value={masterConsoleChar} onChange={e => selectMasterConsole(e.target.value)}>
                     {Object.entries(CONSOLE_BOARDS).map(([id, b]) => <option key={id} value={id}>{b.name}</option>)}
                   </select>
                 </div>
@@ -4288,7 +8420,7 @@ const RecordingStudio = ({ user }) => {
             selectedRoom={roomSim}
             selectedConsole={masterConsoleChar}
             onRoomChange={v => setRoomSim(v)}
-            onConsoleChange={v => { setMasterConsoleChar(v); masterConsoleCharRef.current = v; }}
+            onConsoleChange={v => { selectMasterConsole(v); masterConsoleCharRef.current = v; }}
             onClose={() => setShowMonitorSelector(false)}
           />
         )}
@@ -4383,7 +8515,7 @@ const RecordingStudio = ({ user }) => {
                 </div>
               )}
               {analogSubview === "pedals"  && <div className="rs-amp-panel"><h4 className="daw-pedals-heading">🎛️ Signal Chain</h4><p className="daw-pedals-sub">Analog-modeled effects in series — Tuner → Compressor → Overdrive → Chorus → Delay → Reverb</p><div className="rs-chain-grid">{[["🎵","Tuner"],["🗜️","Compressor"],["🔥","Overdrive"],["🌊","Chorus"],["⏱️","Delay"],["🏔️","Reverb"]].map(([icon, name]) => (<div key={name} className="rs-effect-card daw-pedal-card"><span className="rs-effect-icon">{icon}</span><span className="rs-effect-name">{name}</span><div className="rs-effect-knob"/></div>))}</div><p className="rs-hint-sm">Full pedal chain in Amp Sim tab → Pedal Chain section</p></div>}
-              {analogSubview === "console" && <div className="rs-console-panel"><div className="rs-console-label">CONSOLE CHARACTER — Applied to each track and master bus</div><div className="rs-console-btn-row">{Object.entries(CONSOLE_BOARDS).map(([id, b]) => (<button key={id} onClick={() => { const nc = {}; tracks.forEach(t => { nc[t.id] = id; }); setTrackConsoleChar(nc); }} className="daw-console-board-btn" style={{ borderColor: b.color, background: id === "none" ? "#0d1117" : `${b.color}22`, color: b.color }}>{b.name}</button>))}</div><div className="rs-master-bus-label">MASTER BUS</div><div className="rs-console-btn-row">{Object.entries(CONSOLE_BOARDS).map(([id, b]) => (<button key={id} onClick={() => setMasterConsoleChar(id)} className="daw-console-board-btn-sm" style={{ borderColor: masterConsoleChar === id ? b.color : "#21262d", background: masterConsoleChar === id ? `${b.color}22` : "#0d1117", color: masterConsoleChar === id ? b.color : "#4e6a82" }}>{b.name}</button>))}</div><div className="rs-console-hint">Per-track: Use the Console tab dropdown on each channel strip</div></div>}
+              {analogSubview === "console" && <div className="rs-console-panel"><div className="rs-console-label">CONSOLE CHARACTER — Applied to each track and master bus</div><div className="rs-console-btn-row">{Object.entries(CONSOLE_BOARDS).map(([id, b]) => (<button key={id} onClick={() => { tracks.forEach(t => selectTrackConsole(t.id, id)); }} className="daw-console-board-btn" style={{ borderColor: b.color, background: id === "none" ? "#0d1117" : `${b.color}22`, color: b.color }}>{b.name}</button>))}</div><div className="rs-master-bus-label">MASTER BUS</div><div className="rs-console-btn-row">{Object.entries(CONSOLE_BOARDS).map(([id, b]) => (<button key={id} onClick={() => selectMasterConsole(id)} className="daw-console-board-btn-sm" style={{ borderColor: masterConsoleChar === id ? b.color : "#21262d", background: masterConsoleChar === id ? `${b.color}22` : "#0d1117", color: masterConsoleChar === id ? b.color : "#4e6a82" }}>{b.name}</button>))}</div><div className="rs-console-hint">Per-track: Use the Console tab dropdown on each channel strip</div></div>}
             </div>
           </div>
         )}
@@ -4458,11 +8590,14 @@ const RecordingStudio = ({ user }) => {
               setInsertPickerState={setInsertPickerState}
               tracks={tracks}
               updateEffect={updateEffect}
+              seedEffect={seedEffect}
               setActiveEffectsTrack={setActiveEffectsTrack}
               setOpenFxKey={setOpenFxKey}
               setShowVocalModal={setShowVocalModal}
               setShowMicSimModal={setShowMicSimModal}
               setStatus={setStatus}
+              setTracks={setTracks}
+              disposeAllForTrack={disposeAllForTrack}
             />
             </div>
           </DraggablePanel>
@@ -4654,13 +8789,29 @@ const RecordingStudio = ({ user }) => {
           <SPXPluginHost
             pluginKey={openFxKey}
             params={afx?.effects?.[openFxKey]}
-            onChange={(p) => setTracks(prev => prev.map((t, i) => i !== activeEffectsTrack ? t : {
-              ...t,
-              effects: {
-                ...(t.effects || DEFAULT_EFFECTS()),
-                [openFxKey]: { ...p, enabled: t.effects?.[openFxKey]?.enabled ?? true },
-              },
-            }))}
+            onChange={(newPatch) => {
+              // Phase 3 RT path: diff against previous patch and push only
+              // changed params straight to the live AudioParam via setParam.
+              // Persistence via setTracks happens after — UI never has to wait.
+              const oldPatch = afx?.effects?.[openFxKey] || {};
+              const spxKey = `${afx.id}:${openFxKey}`;
+              const inst = liveInstancesRef.current.get(spxKey);
+              console.warn("[SPX-DISPATCH]", spxKey, "→ instance found:", !!inst);  // Phase F3 instrumentation — Bug #1
+              if (inst?.setParam) {
+                Object.keys(newPatch).forEach(key => {
+                  if (key !== "enabled" && newPatch[key] !== oldPatch[key]) {
+                    inst.setParam(key, newPatch[key]);
+                  }
+                });
+              }
+              setTracks(prev => prev.map((t, i) => i !== activeEffectsTrack ? t : {
+                ...t,
+                effects: {
+                  ...(t.effects || DEFAULT_EFFECTS()),
+                  [openFxKey]: { ...newPatch, enabled: t.effects?.[openFxKey]?.enabled ?? true },
+                },
+              }));
+            }}
             onClose={() => { setActiveEffectsTrack(null); setOpenFxKey(null); }}
             setStatus={setStatus}
           />
@@ -4672,6 +8823,83 @@ const RecordingStudio = ({ user }) => {
               setStatus={setStatus}/>
           </DraggablePanel>
         )}
+
+        {/* Phase F4-A.7B: ConsolePanel — live-tweak UI for the active console */}
+        {openConsolePanel && (() => {
+          const isMaster = openConsolePanel === "master";
+          const trackId = isMaster ? null : openConsolePanel;
+          const boardId = isMaster ? masterConsoleChar : trackConsoleChar[trackId];
+          if (!boardId || boardId === "none") return null;
+          const board = CONSOLE_BOARDS[boardId];
+          if (!board) return null;
+          const params = isMaster
+            ? (masterConsoleParams || CONSOLE_FACTORY_PARAMS[boardId])
+            : (trackConsoleParams[trackId] || CONSOLE_FACTORY_PARAMS[boardId]);
+          const family = CONSOLE_FAMILY[boardId] || "vintage";
+          const scopeKey = isMaster ? "master" : `track:${trackId}`;
+          const onParamChange = (name, value) => {
+            if (isMaster) updateMasterConsoleParam(name, value);
+            else updateTrackConsoleParam(trackId, name, value);
+          };
+          const onReset = () => { if (isMaster) resetMasterConsole(); else resetTrackConsole(trackId); };
+          const onAB = () => {
+            // Snapshot current → B if no B yet for this scope; otherwise swap
+            // current ↔ B and apply via setParam ramps.
+            const cur = { ...(params || {}) };
+            const slot = consoleABSlot[scopeKey];
+            if (!slot) {
+              setConsoleABSlot(prev => ({ ...prev, [scopeKey]: cur }));
+              setStatus("Stored B snapshot — tweak knobs then A/B to swap");
+            } else {
+              setConsoleABSlot(prev => ({ ...prev, [scopeKey]: cur }));
+              // Apply slot values to live audio + state
+              if (isMaster) {
+                setMasterConsoleParams({ ...slot, _board: boardId });
+                const inst = liveInstancesRef.current.get(`master:console`);
+                if (inst) Object.entries(slot).forEach(([k, v]) => { if (k !== "_board") try { inst.setParam(k, v); } catch (_e) {} });
+              } else {
+                setTrackConsoleParams(prev => ({ ...prev, [trackId]: { ...slot, _board: boardId } }));
+                const inst = liveInstancesRef.current.get(`${trackId}:console`);
+                if (inst) Object.entries(slot).forEach(([k, v]) => { if (k !== "_board") try { inst.setParam(k, v); } catch (_e) {} });
+              }
+              setStatus("A/B swap");
+            }
+          };
+          const onLoadPreset = (_name, presetParams) => {
+            if (isMaster) {
+              setMasterConsoleParams({ ...presetParams, _board: boardId });
+              const inst = liveInstancesRef.current.get(`master:console`);
+              if (inst) Object.entries(presetParams).forEach(([k, v]) => { if (k !== "_board") try { inst.setParam(k, v); } catch (_e) {} });
+            } else {
+              setTrackConsoleParams(prev => ({ ...prev, [trackId]: { ...presetParams, _board: boardId } }));
+              const inst = liveInstancesRef.current.get(`${trackId}:console`);
+              if (inst) Object.entries(presetParams).forEach(([k, v]) => { if (k !== "_board") try { inst.setParam(k, v); } catch (_e) {} });
+            }
+          };
+          return (
+            <DraggablePanel
+              title={`CONSOLE — ${board.name}${isMaster ? " (MASTER)" : ""}`}
+              onClose={() => setOpenConsolePanel(null)}
+              initialX={Math.max(20, window.innerWidth - 580)}
+              initialY={120}
+            >
+              <ConsolePanel
+                consoleId={boardId}
+                consoleName={board.name}
+                consoleColor={board.color}
+                family={family}
+                params={params}
+                onParamChange={onParamChange}
+                onAB={onAB}
+                onReset={onReset}
+                onLoadPreset={onLoadPreset}
+                onSavePreset={() => setStatus("Preset saved")}
+                onClose={() => setOpenConsolePanel(null)}
+                target={isMaster ? "master" : "track"}
+              />
+            </DraggablePanel>
+          );
+        })()}
 
         {/* Architectural #4: restore-unsaved-work offer (metadata only, no audio). */}
         {restoreOffer && (
@@ -4740,8 +8968,25 @@ const RecordingStudio = ({ user }) => {
           </button>
         </div>
         <div className="daw-bt-center">
-          <button className="daw-transport-btn" onClick={rewind} disabled={isRecording} title="Rewind">
+          <button className="daw-transport-btn"
+            onMouseDown={() => startScrub(-1)}
+            onMouseUp={stopScrub}
+            onMouseLeave={stopScrub}
+            onTouchStart={(e) => { e.preventDefault(); startScrub(-1); }}
+            onTouchEnd={stopScrub}
+            disabled={isRecording}
+            title="Rewind 1 bar (hold to scrub)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 20L9 12l10-8v16zM7 19V5H5v14h2z"/></svg>
+          </button>
+          <button className="daw-transport-btn"
+            onMouseDown={() => startScrub(1)}
+            onMouseUp={stopScrub}
+            onMouseLeave={stopScrub}
+            onTouchStart={(e) => { e.preventDefault(); startScrub(1); }}
+            onTouchEnd={stopScrub}
+            disabled={isRecording}
+            title="Fast forward 1 bar (hold to scrub)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M5 4l10 8-10 8V4zM17 5h2v14h-2V5z"/></svg>
           </button>
           <button className="daw-transport-btn" onClick={stopEverything} title="Stop">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>

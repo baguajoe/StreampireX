@@ -11,8 +11,8 @@ export const createHallReverbPlugin = (context, p = {}) => {
   const preDelay = context.createDelay(0.1);
   const damping  = context.createBiquadFilter();
 
-  const mix     = (p.mix ?? 30) / 100;
-  const decay   = p.decay ?? 4.0;
+  const mix     = (p.mix ?? 0) / 100;
+  const decay   = p.decay ?? 2.0;
   const sr      = context.sampleRate;
   const len     = Math.floor(sr * decay);
   const ir      = context.createBuffer(2, len, sr);
@@ -55,7 +55,7 @@ export const createHallReverbPlugin = (context, p = {}) => {
   convolver.buffer = ir;
 
   damping.type = 'lowpass'; damping.frequency.value = p.damping ?? 6000;
-  preDelay.delayTime.value = (p.preDelay ?? 30) / 1000;
+  preDelay.delayTime.value = (p.preDelay ?? 20) / 1000;
   dryGain.gain.value = 1 - mix;
   wetGain.gain.value = mix;
 

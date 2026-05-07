@@ -7,9 +7,9 @@ export const createVCACompPlugin = (context, p = {}) => {
   const output = context.createGain();
   const comp   = context.createDynamicsCompressor();
 
-  comp.threshold.value = p.threshold ?? -15;
+  comp.threshold.value = p.threshold ?? -10;
   comp.knee.value      = 4;
-  comp.ratio.value     = p.ratio ?? 4;
+  comp.ratio.value     = p.ratio ?? 2;
   comp.attack.value    = p.attack ?? 0.01;
   comp.release.value   = p.release ?? 0.1;
 
@@ -18,7 +18,7 @@ export const createVCACompPlugin = (context, p = {}) => {
 
   // SSL G-Bus character — subtle harmonic enhancement
   const enhance = context.createBiquadFilter();
-  enhance.type = 'peaking'; enhance.frequency.value = 3000; enhance.gain.value = 0.5; enhance.Q.value = 2;
+  enhance.type = 'peaking'; enhance.frequency.value = 3000; enhance.gain.value = 0; enhance.Q.value = 2;
 
   input.connect(comp); comp.connect(enhance); enhance.connect(makeup); makeup.connect(output);
 
