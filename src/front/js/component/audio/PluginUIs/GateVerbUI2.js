@@ -18,6 +18,7 @@ import React, { useState, useEffect } from "react";
 import HardwarePanel from "../HardwareUI/HardwarePanel";
 import AnalogKnob from "../HardwareUI/AnalogKnob";
 import LEDLadder from "../HardwareUI/LEDLadder";
+import useAnalyserValue from "../HardwareUI/useAnalyserValue";
 
 const ACCENT = "#ff3030"; // red LED
 const DEFAULTS = {
@@ -95,7 +96,7 @@ function StatusLED({ on, label }) {
   );
 }
 
-export default function GateVerbUI2({ params, onChange, onClose }) {
+export default function GateVerbUI2({ params, onChange, onClose, getInstance }) {
   const [s, setS] = useState({ ...DEFAULTS, ...(params || {}) });
   useEffect(() => {
     if (typeof onChange === "function") onChange(s);
@@ -103,9 +104,9 @@ export default function GateVerbUI2({ params, onChange, onClose }) {
   }, [s]);
   const set = (k) => (v) => setS((p) => ({ ...p, [k]: v }));
 
-  // Threshold meter: gateThresh ranges -80..0 dB. Higher (closer to 0)
-  // means more "open" — we map to LEDLadder normalized 0..1.
-  const threshNorm = Math.max(0, Math.min(1, (s.gateThresh + 80) / 80));
+  // Live input level — when input rises above threshold, gate opens. The
+  // LEDLadder fills with input RMS; user reads it against the threshold knob.
+  const threshNorm = useAnalyserValue(() => getInstance && getInstance()?.meters?.analyserIn);
 
   // Knob common props
   const knobCommon = {

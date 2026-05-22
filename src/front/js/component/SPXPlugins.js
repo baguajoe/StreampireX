@@ -1819,30 +1819,35 @@ export const ALL_FX_EXTENDED = [
   { key: "granularFreeze", name: "GranularFreeze", type: "reverb",     component: "GranularFreezeUI" },
   { key: "noiseReduction", name: "NoiseRedux",     type: "filter",     component: "NoiseReductionUI" },
   { key: "ringMod",        name: "RingMod",        type: "distortion", component: "RingModUI"        },
-  { key: "formantFilter",  name: "FormantFilter",  type: "filter",     component: "FormantFilterUI"  },
-  { key: "spectrumAnalyzer", name: "SpectrumAnalyzer", type: "eq",     component: "SpectrumAnalyzerUI" },
-  { key:"tapeStop",name:"TapeStop",type:"creative",component:"TapeStopUI" },
-  { key:"transientShaper",name:"TransientShaper",type:"comp",component:"TransientShaperUI" },
+  // F4-C-FIX Task 2: component:null where the declared UI has no
+  // COMPONENT_MAP entry, no inline definition, and no PluginUIs/ file —
+  // falls through to the legacy DraggablePanel + ConsoleFXPanel branch
+  // in RecordingStudio.js so the popup actually opens. Restore the
+  // component reference once a real UI is shipped.
+  { key: "formantFilter",  name: "FormantFilter",  type: "filter",     component: null  },
+  { key: "spectrumAnalyzer", name: "SpectrumAnalyzer", type: "eq",     component: null },
+  { key:"tapeStop",name:"TapeStop",type:"creative",component:null },
+  { key:"transientShaper",name:"TransientShaper",type:"comp",component:null },
   { key:"enhancer808",name:"808Enhancer",type:"distortion",component:"EnhancerSPX808UI" },
   { key:"infiniteReverb",name:"InfiniteReverb",type:"reverb",component:"InfiniteReverbUI" },
-  { key:"reverseDelay",name:"ReverseDelay",type:"delay",component:"ReverseDelayUI" },
-  { key:"subOctaver",name:"SubOctaver",type:"filter",component:"SubOctaverUI" },
-  { key:"tempoDelay",name:"TempoDelay",type:"delay",component:"TempoDelayUI" },
-  { key:"pitchRandomizer",name:"PitchRandomizer",type:"filter",component:"PitchRandomizerUI" },
-  { key:"autoWah",name:"AutoWah",type:"filter",component:"AutoWahUI" },
-  { key:"drumEnhancer",name:"DrumEnhancer",type:"comp",component:"DrumEnhancerUI" },
+  { key:"reverseDelay",name:"ReverseDelay",type:"delay",component:null },
+  { key:"subOctaver",name:"SubOctaver",type:"filter",component:null },
+  { key:"tempoDelay",name:"TempoDelay",type:"delay",component:null },
+  { key:"pitchRandomizer",name:"PitchRandomizer",type:"filter",component:null },
+  { key:"autoWah",name:"AutoWah",type:"filter",component:null },
+  { key:"drumEnhancer",name:"DrumEnhancer",type:"comp",component:null },
   { key:"vocalSaturator",name:"VocalSaturator",type:"distortion",component:"VocalSaturatorUI" },
   { key:"gainStager",name:"GainStager",type:"eq",component:"GainStagerUI" },
 
   // ── Missing plugins from COMPONENT_MAP ──
   { key:"ditherForge",    name:"DitherForge",     type:"mastering", component:"DitherForgeUI" },
   { key:"dcBlock",        name:"DC Block",         type:"mastering", component:"DCBlockUI" },
-  { key:"stereoImager",   name:"StereoImager",     type:"mastering", component:"StereoImagerUI" },
+  { key:"stereoImager",   name:"StereoImager",     type:"mastering", component:null },
   { key:"midSideComp",    name:"Mid-Side Comp",    type:"comp",      component:"MidSideCompUI" },
-  { key:"multibandLimiter",name:"MultibandLimiter",type:"mastering", component:"MultibandLimiterUI" },
-  { key:"multibandSat",   name:"MultibandSat",     type:"distortion",component:"MultibandSatUI" },
-  { key:"goniometer",     name:"Goniometer",       type:"mastering", component:"GoniometerUI" },
-  { key:"phaseScope",     name:"PhaseScope",       type:"mastering", component:"PhaseScopeUI" },
+  { key:"multibandLimiter",name:"MultibandLimiter",type:"mastering", component:null },
+  { key:"multibandSat",   name:"MultibandSat",     type:"distortion",component:null },
+  { key:"goniometer",     name:"Goniometer",       type:"mastering", component:null },
+  { key:"phaseScope",     name:"PhaseScope",       type:"mastering", component:null },
   { key:"loudnessMeter2", name:"LoudnessMeter II", type:"mastering", component:"LoudnessMeter2UI" },
   { key:"loFiCrusher",    name:"Lo-Fi Crusher",    type:"distortion",component:"LoFiCrusherUI" },
   { key:"chorusEnsemble", name:"ChorusEnsemble",   type:"filter",    component:"ChorusEnsembleUI" },
@@ -1870,15 +1875,18 @@ export const ALL_FX_EXTENDED = [
 // Values lifted verbatim from each UI's useState({...defaults}) initializer.
 const REVERB_BASE_DEFAULTS = {
   preDelay: 20, decay: 2.0, diffusion: 0.8, damping: 0.5,
-  earlyLevel: 0.7, lateLevel: 0.8, mix: 0, hpf: 80, lpf: 8000,
+  earlyLevel: 0.7, lateLevel: 0.8, mix: 25, hpf: 80, lpf: 8000,
 };
 const ISO_GRAPHIC_BANDS = [20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000].reduce((a, f) => ({ ...a, [f]: 0 }), {});
 export const PLUGIN_DEFAULTS = {
   // Analog character
-  tapeForge: { drive: 0, bias: 0.5, speed: 15, saturation: 0, hfLoss: 0, noise: 0, wow: 0, flutter: 0 },
-  valveGlow: { drive: 0, warmth: 0, even2nd: 0, even4th: 0, bias: 0.5, outputGain: 0, dcBlock: true },
-  ironCore: { slewRate: 0, coreSize: 0, dcMag: 0, resonance: 0, outputGain: 0 },
-  consoleSoul: { crosstalk: 0, noiseFloor: -90, tolerance: 0.02, channelColor: 0, sumSaturation: 0 },
+  // F4-C-FIX Task 3: bumped from 0 so saturation plugins produce audible
+  // character on insert. Pre-fix all knobs defaulted to 0 → identity curves
+  // → users perceived "broken plugin". Dial back to taste in the panel.
+  tapeForge: { drive: 0.5, bias: 0.5, speed: 15, saturation: 0.4, hfLoss: 0.2, noise: 0, wow: 0.1, flutter: 0.1 },
+  valveGlow: { drive: 0.4, warmth: 0.3, even2nd: 0.2, even4th: 0.1, bias: 0.5, outputGain: 0, dcBlock: true },
+  ironCore: { slewRate: 0.4, coreSize: 0.5, dcMag: 0.2, resonance: 0.3, outputGain: 0 },
+  consoleSoul: { crosstalk: 0.2, noiseFloor: -90, tolerance: 0.02, channelColor: 0.3, sumSaturation: 0.3 },
   // Dynamics
   brickWall: { ceiling: -0.3, lookahead: 3, release: 100, truePeak: true, ispDetect: true, outputGain: 0 },
   warmPress: { threshold: -10, ratio: 2, attack: 10, release: 100, knee: 6, makeupGain: 0, model: "optical", mix: 100 },
@@ -1891,7 +1899,7 @@ export const PLUGIN_DEFAULTS = {
   transientShaper: { attack: 0, sustain: 0, speed: 0.5, outputGain: 1 },
   midSideComp: { midThresh: -10, midRatio: 2, sideThresh: -10, sideRatio: 2, attack: 10, release: 100, makeup: 0 },
   drumEnhancer: { punch: 0, snap: 0, glue: 0, sub: 0, air: 0, outputGain: 1 },
-  vocalSaturator: { drive: 0, warmth: 0, presence: 0, air: 0, mix: 0, outputGain: 1 },
+  vocalSaturator: { drive: 0.4, warmth: 0.3, presence: 0.3, air: 0.2, mix: 25, outputGain: 1 },
   multibandLimiter: { ceiling: -0.3, xover1: 200, xover2: 2000, xover3: 8000, lookahead: 3 },
   // EQ
   ironBand: { lowGain: 0, lowFreq: 100, lowMidGain: 0, lowMidFreq: 360, hiMidGain: 0, hiMidFreq: 3200, hiGain: 0, hiFreq: 10000, hpf: 0, lpf: 20000, inputGain: 0 },
@@ -1939,33 +1947,33 @@ export const PLUGIN_DEFAULTS = {
   greatHall: { ...REVERB_BASE_DEFAULTS },
   plateForge: { decay: 2.0, damping: 0.4, diffusion: 0.9, mix: 10, bass: 0, treble: 0, width: 1 },
   springBox: { tanks: 3, tension: 0.6, damping: 0.4, drip: 0.3, mix: 10, inputGain: 0 },
-  vocalSpace: { preDelay: 15, decay: 1.8, brightness: 0.6, warmth: 0.5, size: 0.4, earlyMix: 0.6, lateMix: 0.4, mix: 0 },
-  spaceForge: { ir: "concert_hall", preDelay: 10, stretch: 1.0, trim: 1.0, earlyGain: 0, lateGain: 0, mix: 0 },
-  infiniteReverb: { freeze: false, roomSize: 0.9, damping: 0.3, mix: 0, shimmer: 0 },
+  vocalSpace: { preDelay: 15, decay: 1.8, brightness: 0.6, warmth: 0.5, size: 0.4, earlyMix: 0.6, lateMix: 0.4, mix: 25 },
+  spaceForge: { ir: "concert_hall", preDelay: 10, stretch: 1.0, trim: 1.0, earlyGain: 0, lateGain: 0, mix: 25 },
+  infiniteReverb: { freeze: false, roomSize: 0.9, damping: 0.3, mix: 25, shimmer: 0 },
   phantomDouble: { delay: 18, spread: 0.8, pitchVarL: -5, pitchVarR: 5, modRate: 0.3, modDepth: 3, mix: 30 },
   // Delay
-  echoField: { time: 250, feedback: 0.3, modRate: 0.3, modDepth: 0.2, hpf: 100, lpf: 8000, mix: 0, stereoSpread: 0.5, sync: false },
-  dualDelay: { timeL: 250, timeR: 375, feedbackL: 0.3, feedbackR: 0.3, crossfeedL: 0.1, crossfeedR: 0.1, modRate: 0.3, modDepth: 0.1, hpf: 80, lpf: 10000, mix: 0 },
-  reverseDelay: { time: 250, feedback: 0.3, mix: 0, filter: 0.5 },
-  tempoDelay: { bpm: 120, division: 4, feedback: 0.3, filterHP: 100, filterLP: 8000, mix: 0, pingPong: false },
+  echoField: { time: 250, feedback: 0.3, modRate: 0.3, modDepth: 0.2, hpf: 100, lpf: 8000, mix: 25, stereoSpread: 0.5, sync: false },
+  dualDelay: { timeL: 250, timeR: 375, feedbackL: 0.3, feedbackR: 0.3, crossfeedL: 0.1, crossfeedR: 0.1, modRate: 0.3, modDepth: 0.1, hpf: 80, lpf: 10000, mix: 25 },
+  reverseDelay: { time: 250, feedback: 0.3, mix: 25, filter: 0.5 },
+  tempoDelay: { bpm: 120, division: 4, feedback: 0.3, filterHP: 100, filterLP: 8000, mix: 25, pingPong: false },
   // Modulation / pitch / creative
-  stereoBloom: { mode: "chorus", rate: 0.5, depth: 0.6, feedback: 0.2, detuneL: -8, detuneR: 8, mix: 0 },
-  vortexMod: { mode: "flanger", rate: 0.5, depth: 0.7, feedback: 0.2, stages: 4, center: 1000, mix: 0, stereo: true },
-  chorusEnsemble: { mode: 1, mix: 0, depth: 0.5 },
-  autoWah: { sensitivity: 0.6, minFreq: 200, maxFreq: 4000, resonance: 8, attack: 5, release: 200, mix: 0 },
+  stereoBloom: { mode: "chorus", rate: 0.5, depth: 0.6, feedback: 0.2, detuneL: -8, detuneR: 8, mix: 25 },
+  vortexMod: { mode: "flanger", rate: 0.5, depth: 0.7, feedback: 0.2, stages: 4, center: 1000, mix: 25, stereo: true },
+  chorusEnsemble: { mode: 1, mix: 25, depth: 0.5 },
+  autoWah: { sensitivity: 0.6, minFreq: 200, maxFreq: 4000, resonance: 8, attack: 5, release: 200, mix: 25 },
   pitchForge: { shift: 0, formant: 0, grainSize: 80, crossfade: 0.5, mix: 100, pitchA: 0, pitchB: 7, harmony: false },
   pitchLock: { key: "C", scale: "major", speed: 0, retune: 0, humanize: 0, formant: 0, detune: 0, bypass: false },
   pitchRandomizer: { amount: 0, rate: 4, smooth: 0.7, mix: 1.0 },
   subOctaver: { oct1Level: 0, oct2Level: 0, dryLevel: 1.0, filter: 0.4, trackSpeed: 0.5 },
   tapeStop: { active: false, stopTime: 0.5, startTime: 0.3, curve: 0.5 },
   freqShifter: { shift: 0, lfoRate: 0, lfoDepth: 0, mix: 100 },
-  ringMod: { mode: "ringmod", carrierFreq: 440, carrierType: "sine", mix: 0, lfoRate: 0, lfoDepth: 0, sidebandBalance: 0, outputGain: 0 },
-  formantFilter: { vowelA: "A", vowelB: "E", morph: 0.5, autoWah: false, wahRate: 1, wahDepth: 0.5, q: 8, outputGain: 0, mix: 0 },
+  ringMod: { mode: "ringmod", carrierFreq: 440, carrierType: "sine", mix: 25, lfoRate: 0, lfoDepth: 0, sidebandBalance: 0, outputGain: 0 },
+  formantFilter: { vowelA: "A", vowelB: "E", morph: 0.5, autoWah: false, wahRate: 1, wahDepth: 0.5, q: 8, outputGain: 0, mix: 25 },
   granularFreeze: { freeze: false, grainSize: 80, density: 0.7, pitch: 0, spread: 0.5, position: 0.5, randomize: 0.3, attack: 20, release: 50, mix: 80, outputGain: 0 },
-  vocoderSPX: { bands: 32, carrierType: "sawtooth", carrierFreq: 110, attack: 5, release: 50, formantShift: 0, mix: 0, unvoiced: 0.3, breathiness: 0.2, outputGain: 0, freeze: false },
+  vocoderSPX: { bands: 32, carrierType: "sawtooth", carrierFreq: 110, attack: 5, release: 50, formantShift: 0, mix: 25, unvoiced: 0.3, breathiness: 0.2, outputGain: 0, freeze: false },
   noiseReduction: { reduction: 0, threshold: -40, attack: 10, release: 200, smoothing: 0, learn: false, learnDone: false, preserveTransients: true, outputGain: 0 },
   // Vocal suite
-  voiceForge: { voices: 2, key: "C", scale: "major", v1Shift: -5, v2Shift: 3, v3Shift: 7, v4Shift: 12, v1Vol: 0, v2Vol: 0, v3Vol: 0, v4Vol: 0, formant: 0, mix: 0 },
+  voiceForge: { voices: 2, key: "C", scale: "major", v1Shift: -5, v2Shift: 3, v3Shift: 7, v4Shift: 12, v1Vol: 0, v2Vol: 0, v3Vol: 0, v4Vol: 0, formant: 0, mix: 25 },
   breathGate: { threshold: -40, sensitivity: 0.7, attack: 2, release: 100, breathReduction: -20, noiseFloor: -60, learn: false },
   sibilantCut: { freq: 7000, bandwidth: 0.5, threshold: -20, ratio: 3, attackSpeed: 0.3, mode: "dynamic", listenSC: false },
   // Mastering / utility
@@ -1973,20 +1981,20 @@ export const PLUGIN_DEFAULTS = {
   stereoForge: { width: 100, midGain: 0, sideGain: 0, balance: 0, monoBelow: 0, phase: false, mono: false },
   stereoImager: { lowWidth: 1.0, midWidth: 1.0, highWidth: 1.0, xover1: 300, xover2: 5000 },
   loudnessMeter: { target: "streaming", integrated: -14, lra: 8, truePeak: -1, momentary: -14, shortTerm: -14 },
-  harmonicExcite: { freq: 3000, drive: 0, even: 0, odd: 0, mix: 0, airBoost: 0 },
+  harmonicExcite: { freq: 3000, drive: 0.4, even: 0.3, odd: 0.2, mix: 25, airBoost: 0 },
   harmonicSum: { drive: 0, even2nd: 0, odd3rd: 0, odd5th: 0, noiseFloor: -90, crosstalk: 0, outputGain: 0 },
-  vinylPress: { warmth: 0, crackle: 0, dust: 0, warp: 0, riaa: true, rpm: 33, hpf: 20, outputGain: 0 },
+  vinylPress: { warmth: 0.3, crackle: 0.2, dust: 0.1, warp: 0, riaa: true, rpm: 33, hpf: 20, outputGain: 0 },
   ditherForge: { bitDepth: 24, type: "shaped", noiseShaping: "F1", highPass: true, level: 0.5 },
   dcBlock: { hpfFreq: 5, hpfSlope: 12, dcRemove: true, subCut: 30 },
   gainRider: { targetLevel: -10, speed: 0.95, maxGain: 0, minGain: -12, lookahead: 10, smooth: 0.2, gateThresh: -60 },
   gainStager: { gain: 1, targetDb: -18, trim: 0, phase: false, rmsDb: -100, peakDb: -100 },
   enhancer808: { freq: 60, punch: 0, sub: 0, harmonic: 0, outputGain: 1.0 },
-  loFiCrusher: { bits: 24, rate: 1.0, filter: 1.0, noise: 0, wobble: 0, mix: 1.0 },
-  multibandSat: { xover1: 200, xover2: 2000, xover3: 8000, drive1: 0, drive2: 0, drive3: 0, drive4: 0, mix: 0 },
+  loFiCrusher: { bits: 12, rate: 0.7, filter: 0.8, noise: 0.1, wobble: 0.1, mix: 1.0 },
+  multibandSat: { xover1: 200, xover2: 2000, xover3: 8000, drive1: 0.4, drive2: 0.4, drive3: 0.4, drive4: 0.4, mix: 25 },
   declicker: { sensitivity: 0, strength: 0, maxWidth: 3 },
   dehummer: { freq: 60, harmonics: 5, depth: 0, learn: false },
   dialogueIsolator: { isolation: 0, sensitivity: 0, smoothing: 0, mix: 100 },
-  cabinetSim: { cabinet: 0, mic: 0, distance: 0, angle: 0, mix: 100 },
+  cabinetSim: { cabinet: 0.5, mic: 0.5, distance: 0.3, angle: 0, mix: 100 },
   // Visualization-only / minimal
   goniometer: { decay: 0.95 },
   phaseScope: {},
@@ -2230,7 +2238,7 @@ export const PresetBar = ({ pluginKey, params, onChange, setStatus }) => {
   );
 };
 
-export function SPXPluginHost({ pluginKey, params, onChange, onClose, setStatus }) {
+export function SPXPluginHost({ pluginKey, params, onChange, onClose, setStatus, getInstance }) {
   const fxDef = ALL_FX_EXTENDED.find((f) => f.key === pluginKey);
   if (!fxDef?.component) return null;
   const Comp = COMPONENT_MAP[fxDef.component];
@@ -2238,7 +2246,7 @@ export function SPXPluginHost({ pluginKey, params, onChange, onClose, setStatus 
   return (
     <div className="spx-plugin-host">
       <PresetBar pluginKey={pluginKey} params={params} onChange={onChange} setStatus={setStatus} />
-      <Comp params={params} onChange={onChange} onClose={onClose} />
+      <Comp params={params} onChange={onChange} onClose={onClose} getInstance={getInstance} />
     </div>
   );
 }

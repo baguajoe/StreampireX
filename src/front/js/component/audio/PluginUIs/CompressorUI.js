@@ -18,11 +18,12 @@ import React, { useState, useEffect } from "react";
 import HardwarePanel from "../HardwareUI/HardwarePanel";
 import AnalogKnob from "../HardwareUI/AnalogKnob";
 import LEDLadder from "../HardwareUI/LEDLadder";
+import useGRMeter from "../HardwareUI/useGRMeter";
 
 const TEAL = "#00ffc8";
 const TEAL_DIM = "#1a4a44";
 
-export default function CompressorUI({ params, onChange, onClose }) {
+export default function CompressorUI({ params, onChange, onClose, getInstance }) {
   const [s, setS] = useState({
     threshold: -24,
     ratio: 4,
@@ -36,14 +37,7 @@ export default function CompressorUI({ params, onChange, onClose }) {
   }, [s]);
   const set = (k) => (v) => setS((p) => ({ ...p, [k]: v }));
 
-  // Approx GR estimate for the meter — purely visual, derived from
-  // threshold/ratio. Real GR would come from a sidechain analyzer.
-  // Map threshold -60..0dB toward a fake "drive" level then divide
-  // by ratio for the visual GR depth (clamped 0..1 normalized to 12dB).
-  const fakeDrive = -10; // assume program at -10dB RMS
-  const overshoot = Math.max(0, fakeDrive - s.threshold);
-  const grDB = overshoot - overshoot / Math.max(1, s.ratio);
-  const grNorm = Math.max(0, Math.min(1, grDB / 12));
+  const grNorm = useGRMeter(() => getInstance && getInstance()?.meters?.comp);
 
   return (
     <div

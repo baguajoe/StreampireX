@@ -17,6 +17,7 @@ import React, { useState, useEffect } from "react";
 import HardwarePanel from "../HardwareUI/HardwarePanel";
 import AnalogKnob from "../HardwareUI/AnalogKnob";
 import LEDLadder from "../HardwareUI/LEDLadder";
+import useAnalyserValue from "../HardwareUI/useAnalyserValue";
 
 const RED = "#ff3030";
 const RED_BRIGHT = "#ff6060";
@@ -24,7 +25,7 @@ const RED_DEEP = "#990808";
 const GREEN = "#33cc66";
 const GREEN_BRIGHT = "#66ee99";
 
-export default function ParallelCrushUI2({ params, onChange, onClose }) {
+export default function ParallelCrushUI2({ params, onChange, onClose, getInstance }) {
   const [s, setS] = useState({
     threshold: -10,
     ratio: 2,
@@ -41,11 +42,8 @@ export default function ParallelCrushUI2({ params, onChange, onClose }) {
   }, [s]);
   const set = (k) => (v) => setS((p) => ({ ...p, [k]: v }));
 
-  // Map dry/wet gains to 0..1 ladder fills.
-  // Range: -24 .. +24 dB → 0..1, with default 0 dB → 0.5.
-  const norm = (db) => Math.max(0, Math.min(1, (db + 24) / 48));
-  const wetTarget = norm(s.wetGain);
-  const dryTarget = norm(s.dryGain);
+  const dryTarget = useAnalyserValue(() => getInstance && getInstance()?.meters?.analyserDry);
+  const wetTarget = useAnalyserValue(() => getInstance && getInstance()?.meters?.analyserWet);
 
   return (
     <div

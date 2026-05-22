@@ -20,12 +20,14 @@ import HardwarePanel from "../HardwareUI/HardwarePanel";
 import AnalogKnob from "../HardwareUI/AnalogKnob";
 import LEDLadder from "../HardwareUI/LEDLadder";
 import ButtonBank from "../HardwareUI/ButtonBank";
+import useGRMeter from "../HardwareUI/useGRMeter";
+import useAnalyserValue from "../HardwareUI/useAnalyserValue";
 
 const CYAN = "#00ffc8";
 const ORANGE = "#ff7711";
 const WARM = "#cc6611";
 
-export default function WarmPressUI2({ params, onChange, onClose }) {
+export default function WarmPressUI2({ params, onChange, onClose, getInstance }) {
   const [s, setS] = useState({
     threshold: -10,
     ratio: 2,
@@ -42,21 +44,10 @@ export default function WarmPressUI2({ params, onChange, onClose }) {
   }, [s]);
   const set = (k) => (v) => setS((p) => ({ ...p, [k]: v }));
 
-  // GR meter target — synthesized from threshold + ratio. Hotter
-  // (closer to 0) threshold + higher ratio → more reduction shown.
-  const grTarget = Math.max(
-    0,
-    Math.min(1, ((-s.threshold) / 30) * (s.ratio / 12))
-  );
-
-  // SAT meter — saturation level decorative; depends on model + makeup.
-  // vari-mu adds tube-like saturation, vca is cleanest, optical mid.
-  const modelSat =
-    s.model === "vari-mu" ? 0.6 : s.model === "optical" ? 0.4 : 0.2;
-  const satTarget = Math.max(
-    0,
-    Math.min(1, modelSat + Math.max(0, s.makeupGain) / 24)
-  );
+  const grTarget = useGRMeter(() => getInstance && getInstance()?.meters?.comp, { targetDb: 12 });
+  // SAT meter from post-makeup analyser RMS — heavier saturation pushes the
+  // wet path hotter, so peak RMS is a usable proxy for "how saturated".
+  const satTarget = useAnalyserValue(() => getInstance && getInstance()?.meters?.analyserOut);
 
   return (
     <div

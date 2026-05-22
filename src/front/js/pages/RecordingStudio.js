@@ -1550,12 +1550,92 @@ const RecordingStudio = ({ user }) => {
     const TAU = 0.01;
     const TAU_LFO = 0.05;
 
+    // F4-C-FIX: audible-processing verification. After a plugin installs
+    // successfully, attach two analyser sinks (one on inputNode, one on
+    // outputNode) and 800 ms later compare RMS + waveform diff. If output ≈
+    // input AND signal is present, the plugin is a silent passthrough — log
+    // a warning so the user sees which factories install but don't process.
+    // Analysers are sinks (no audio impact). Skipped if input is below -50 dBFS
+    // (no signal yet, e.g. live-mixer build before Play). Self-cleans 800 ms in.
+    const verifyPluginProcessesAudio = (inst, pluginKey) => {
+      if (!inst || !inst.inputNode || !inst.outputNode) return;
+      let inAn, outAn;
+      try {
+        inAn = ctx.createAnalyser(); inAn.fftSize = 256;
+        outAn = ctx.createAnalyser(); outAn.fftSize = 256;
+        inst.inputNode.connect(inAn);
+        inst.outputNode.connect(outAn);
+      } catch (e) {
+        console.error(`[F4-C-FIX] verifyPluginProcessesAudio: tap-attach failed for "${pluginKey}":`, e);
+        return;
+      }
+      setTimeout(() => {
+        try {
+          const inBuf = new Float32Array(inAn.fftSize);
+          const outBuf = new Float32Array(outAn.fftSize);
+          inAn.getFloatTimeDomainData(inBuf);
+          outAn.getFloatTimeDomainData(outBuf);
+          let inAcc = 0, outAcc = 0, diffAcc = 0;
+          for (let i = 0; i < inBuf.length; i++) {
+            inAcc += inBuf[i] * inBuf[i];
+            outAcc += outBuf[i] * outBuf[i];
+            diffAcc += Math.abs(inBuf[i] - outBuf[i]);
+          }
+          const inRms = Math.sqrt(inAcc / inBuf.length);
+          const outRms = Math.sqrt(outAcc / outBuf.length);
+          const avgDiff = diffAcc / inBuf.length;
+          const inDb = 20 * Math.log10(Math.max(1e-6, inRms));
+          const outDb = 20 * Math.log10(Math.max(1e-6, outRms));
+          if (inDb < -50) return; // no signal at install-time — skip rather than log a false positive
+          const dbDelta = Math.abs(outDb - inDb);
+          if (avgDiff < 0.001 && dbDelta < 0.5) {
+            console.warn(
+              `[F4-C-FIX] PASSTHROUGH WARN "${pluginKey}" — output ≈ input. ` +
+              `inDb=${inDb.toFixed(1)} outDb=${outDb.toFixed(1)} diff=${avgDiff.toFixed(4)}. ` +
+              `Plugin may not be processing (mix=0, internal disconnect, or factory bug).`
+            );
+          } else {
+            console.log(
+              `[F4-C-FIX] OK "${pluginKey}" — inDb=${inDb.toFixed(1)} outDb=${outDb.toFixed(1)} diff=${avgDiff.toFixed(4)}`
+            );
+          }
+        } finally {
+          try { inAn.disconnect(); } catch (_e) { /* noop */ }
+          try { outAn.disconnect(); } catch (_e) { /* noop */ }
+        }
+      }, 800);
+    };
+
     // Install helper: invoke factory, register instance, push compound node.
     // Centralizes the registry+chain wiring so each handler stays one-liner-ish.
+    // F4-C-FIX: wrap factory + validate return shape so a single bad plugin
+    // doesn't take down the whole chain build, and the failing plugin name
+    // shows up in the console for surgical follow-up.
     const install = (pluginKey, factory) => {
-      const inst = factory(fx[pluginKey] || {});
+      let inst;
+      try {
+        inst = factory(fx[pluginKey] || {});
+      } catch (e) {
+        console.error(
+          `[F4-C-FIX] factory threw for "${pluginKey}" on track ${track.id}:`,
+          e?.message || e,
+          "\nparams:", fx[pluginKey] || {},
+          "\nstack:", e?.stack || "(no stack)"
+        );
+        return;
+      }
+      if (!inst || !inst.inputNode || !inst.outputNode) {
+        console.error(
+          `[F4-C-FIX] factory returned invalid instance for "${pluginKey}" on track ${track.id}:`,
+          "\nreturned:", inst,
+          "\nparams:", fx[pluginKey] || {},
+          "\nexpected: { inputNode, outputNode, setParam, dispose }"
+        );
+        return;
+      }
       registerInstance(track.id, pluginKey, inst);
       nodes.push({ inputNode: inst.inputNode, outputNode: inst.outputNode });
+      verifyPluginProcessesAudio(inst, pluginKey);
     };
     const disposeNodes = (...ns) => { for (const n of ns) { try { n?.disconnect(); } catch (e) { /* noop */ } } };
     // Stop oscillators safely (LFOs created with .start() must be .stop()'d)
@@ -1680,6 +1760,7 @@ const RecordingStudio = ({ user }) => {
           default: break;
         } },
         dispose() { disposeNodes(c); },
+        meters: { comp: c },
       };
     });
     if (fx.distortion?.enabled) install("distortion", (p) => {
@@ -2415,6 +2496,9 @@ const RecordingStudio = ({ user }) => {
       // Wire: dry path inNode → dryGain → outNode; wet path inNode → c → ws → mk → wetGain → outNode.
       inNode.connect(c); c.connect(ws); ws.connect(mk); mk.connect(wetGain); wetGain.connect(outNode);
       inNode.connect(dryGain); dryGain.connect(outNode);
+      // SAT meter tap: post-makeup wet level. Analyser is a sink — no audio impact.
+      const satAn = ctx.createAnalyser(); satAn.fftSize = 256; satAn.smoothingTimeConstant = 0.85;
+      mk.connect(satAn);
 
       return {
         inputNode: inNode, outputNode: outNode,
@@ -2435,7 +2519,8 @@ const RecordingStudio = ({ user }) => {
           }
           default: break;
         } },
-        dispose() { disposeNodes(inNode, c, ws, mk, wetGain, dryGain, outNode); },
+        dispose() { disposeNodes(inNode, c, ws, mk, wetGain, dryGain, outNode, satAn); },
+        meters: { comp: c, analyserOut: satAn },
       };
     });
     if (fx.glueBus?.enabled) install("glueBus", (p) => {
@@ -2493,6 +2578,7 @@ const RecordingStudio = ({ user }) => {
           default: break;
         } },
         dispose() { disposeNodes(lookahead, c, air, g); },
+        meters: { comp: c },
       };
     });
     if (fx.fetStrike?.enabled) install("fetStrike", (p) => {
@@ -2553,6 +2639,7 @@ const RecordingStudio = ({ user }) => {
           default: break;
         } },
         dispose() { disposeNodes(c, ws, g); },
+        meters: { comp: c },
       };
     });
     if (fx.optoPress?.enabled) install("optoPress", (p) => {
@@ -2645,6 +2732,7 @@ const RecordingStudio = ({ user }) => {
           if (releaseTimer != null) { try { clearInterval(releaseTimer); } catch (e) { /* noop */ } }
           disposeNodes(hf, xfmr, c, ws, mk, og, an);
         },
+        meters: { comp: c },
       };
     });
     if (fx.parallelCrush?.enabled) install("parallelCrush", (p) => {
@@ -2689,6 +2777,10 @@ const RecordingStudio = ({ user }) => {
       inNode.connect(comp); comp.connect(ws); ws.connect(wetTrim); wetTrim.connect(wetGain); wetGain.connect(outNode);
       // Dry path
       inNode.connect(dryTrim); dryTrim.connect(dryGain); dryGain.connect(outNode);
+      // Per-path meter taps. dryAn is post-dryTrim/pre-mix; wetAn is post-wetTrim/pre-mix.
+      const dryAn = ctx.createAnalyser(); dryAn.fftSize = 256; dryAn.smoothingTimeConstant = 0.85;
+      const wetAn = ctx.createAnalyser(); wetAn.fftSize = 256; wetAn.smoothingTimeConstant = 0.85;
+      dryTrim.connect(dryAn); wetTrim.connect(wetAn);
       return {
         inputNode: inNode, outputNode: outNode,
         setParam(n, v) { const t = ctx.currentTime; switch (n) {
@@ -2707,7 +2799,8 @@ const RecordingStudio = ({ user }) => {
           }
           default: break;
         } },
-        dispose() { disposeNodes(inNode, comp, ws, wetTrim, dryTrim, wetGain, dryGain, outNode); },
+        dispose() { disposeNodes(inNode, comp, ws, wetTrim, dryTrim, wetGain, dryGain, outNode, dryAn, wetAn); },
+        meters: { analyserDry: dryAn, analyserWet: wetAn },
       };
     });
     if (fx.tubeComp?.enabled) install("tubeComp", (p) => {
@@ -2751,9 +2844,13 @@ const RecordingStudio = ({ user }) => {
       setGainDb(warmth.gain, safe(p.warmth != null ? p.warmth : 0.5, 0.5, 0, 1) * 6);
       const mk = ctx.createGain();
       setGainLinear(mk.gain, Math.pow(10, safe(p.makeup != null ? p.makeup : 0, 0, -60, 24) / 20));
+      // Input gain wraps c so we can tap a true pre-comp analyser.
+      const inGain = ctx.createGain(); setGainLinear(inGain.gain, 1);
+      const inAn = ctx.createAnalyser(); inAn.fftSize = 256; inAn.smoothingTimeConstant = 0.85;
+      inGain.connect(c); inGain.connect(inAn);
       c.connect(ws); ws.connect(warmth); warmth.connect(mk);
       return {
-        inputNode: c, outputNode: mk,
+        inputNode: inGain, outputNode: mk,
         setParam(n, v) { const t = ctx.currentTime; switch (n) {
           case "threshold":  c.threshold.setTargetAtTime(safe(v, -14, -100, 0), t, TAU); break;
           case "ratio":      c.ratio.setTargetAtTime(safe(v, 3, 1, 20), t, TAU); break;
@@ -2765,7 +2862,8 @@ const RecordingStudio = ({ user }) => {
           case "stereoLink": /* UI-only — see comment above */ break;
           default: break;
         } },
-        dispose() { disposeNodes(c, ws, warmth, mk); },
+        dispose() { disposeNodes(inGain, c, ws, warmth, mk, inAn); },
+        meters: { comp: c, analyserIn: inAn },
       };
     });
     if (fx.vocalComp?.enabled) install("vocalComp", (p) => {
@@ -2827,6 +2925,12 @@ const RecordingStudio = ({ user }) => {
       wetGain.connect(outNode);
       // Dry path: in → dryGain → out.
       inNode.connect(dryGain); dryGain.connect(outNode);
+      // Sibilance meter: 6 kHz bandpass tap on the input. Reflects high-freq
+      // energy density so the LEDLadder lights up on actual sibilants.
+      const sibBP = ctx.createBiquadFilter();
+      sibBP.type = "bandpass"; setFreq(sibBP.frequency, 6000); setQ(sibBP.Q, 4);
+      const sibAn = ctx.createAnalyser(); sibAn.fftSize = 256; sibAn.smoothingTimeConstant = 0.7;
+      inNode.connect(sibBP); sibBP.connect(sibAn);
 
       return {
         inputNode: inNode, outputNode: outNode,
@@ -2846,7 +2950,8 @@ const RecordingStudio = ({ user }) => {
           }
           default: break;
         } },
-        dispose() { disposeNodes(inNode, tiltHpf, airShelf, deEss, mainComp, presence, wetGain, dryGain, outNode); },
+        dispose() { disposeNodes(inNode, tiltHpf, airShelf, deEss, mainComp, presence, wetGain, dryGain, outNode, sibBP, sibAn); },
+        meters: { analyserSibilance: sibAn },
       };
     });
     if (fx.multiPress?.enabled) install("multiPress", (p) => {
@@ -2944,6 +3049,7 @@ const RecordingStudio = ({ user }) => {
           disposeNodes(inBus, b1lp1, b1lp2, b2hp1, b2hp2, b2lp1, b2lp2,
             b3hp1, b3hp2, b3lp1, b3lp2, b4hp1, b4hp2, c1, c2, c3, c4, g1, g2, g3, g4, out);
         },
+        meters: { comps: [c1, c2, c3, c4] },
       };
     });
     if (fx.transGate?.enabled) install("transGate", (p) => {
@@ -3816,6 +3922,9 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
       const g    = ctx.createGain(); g.gain.value = normalizeMix(p.mix, 0);
       // pre → gate → conv → damp → wet
       pre.connect(gate); gate.connect(conv); conv.connect(damp); damp.connect(g);
+      // Input meter tap pre-gate so the threshold meter shows incoming level vs threshold.
+      const inAn = ctx.createAnalyser(); inAn.fftSize = 256; inAn.smoothingTimeConstant = 0.85;
+      pre.connect(inAn);
       return {
         inputNode: pre, outputNode: g,
         setParam(n, v) { const t = ctx.currentTime; switch (n) {
@@ -3827,7 +3936,8 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
           case "mix":        setReverbMix(g.gain, v); break;
           default: break;
         } },
-        dispose() { disposeNodes(pre, gate, conv, damp, g); },
+        dispose() { disposeNodes(pre, gate, conv, damp, g, inAn); },
+        meters: { analyserIn: inAn },
       };
     });
     if (fx.vintageAir?.enabled) install("vintageAir", (p) => {
@@ -3875,6 +3985,9 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
       // conv → sat → wowDelay → flutDelay → air → wet
       conv.connect(sat); sat.connect(wowDelay); wowDelay.connect(flutDelay);
       flutDelay.connect(air); air.connect(g);
+      // Output meter tap on the wet stage so the VU reflects how hot the verb is.
+      const outAn = ctx.createAnalyser(); outAn.fftSize = 256; outAn.smoothingTimeConstant = 0.85;
+      g.connect(outAn);
       return {
         inputNode: conv, outputNode: g,
         setParam(n, v) { const t = ctx.currentTime; switch (n) {
@@ -3888,8 +4001,9 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
         } },
         dispose() {
           stopOscs(wowLFO, flutLFO);
-          disposeNodes(conv, sat, wowDelay, flutDelay, wowGain, flutGain, air, g);
+          disposeNodes(conv, sat, wowDelay, flutDelay, wowGain, flutGain, air, g, outAn);
         },
+        meters: { analyserOut: outAn },
       };
     });
     if (fx.stochasticHall?.enabled) install("stochasticHall", (p) => {
@@ -4332,6 +4446,9 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
       // Also feed input to shimmerInput so initial pre also flows into conv.
       // (pre.connect(conv) above already handles dry-side feed — this just re-uses
       // shimmerInput as the loop's sum point.)
+      // Output meter tap on wet stage — drives particle drift density in the UI.
+      const outAn = ctx.createAnalyser(); outAn.fftSize = 256; outAn.smoothingTimeConstant = 0.85;
+      wet.connect(outAn);
       return {
         inputNode: pre, outputNode: wet,
         setParam(n, v) { const t = ctx.currentTime; switch (n) {
@@ -4347,7 +4464,8 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
           case "mix":     setReverbMix(wet.gain, v); break;
           default: break;
         } },
-        dispose() { disposeNodes(pre, conv, damp, wet, shimmerInput, delayHi, shimmerHS, shimmerFb); },
+        dispose() { disposeNodes(pre, conv, damp, wet, shimmerInput, delayHi, shimmerHS, shimmerFb, outAn); },
+        meters: { analyserOut: outAn },
       };
     });
 
@@ -4602,7 +4720,12 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
         pitch: safe(p.pitch != null ? p.pitch : 0, 0, -24, 24),
         windowSize: safe(p.windowSize != null ? p.windowSize : 0.1, 0.1, 0.03, 0.5),
       });
-      inGain.connect(ps.input);
+      // Tone.js v15: ps.input is a Tone.Gain wrapper, not a native AudioNode.
+      // nativeNode.connect(toneWrapper) throws "Overload resolution failed".
+      // Tone.connect bridges native→Tone correctly. The reverse direction
+      // (ps.connect(formant) below) goes through Tone's own connect which
+      // already handles native targets.
+      Tone.connect(inGain, ps);
       ps.connect(formant);
       formant.connect(wet);
       wet.connect(outGain);
@@ -4648,7 +4771,8 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
       setFreq(peak.frequency, safe(p.lockFreq != null ? p.lockFreq : 440, 440, 20, 20000));
       setQ(peak.Q, safe(p.strength != null ? p.strength * 10 + 1 : 4, 4, 0.1, 30));
       setGainDb(peak.gain, 3);
-      inGain.connect(ps.input);
+      // Tone.js v15 native→Tone bridge — see pitchForge above.
+      Tone.connect(inGain, ps);
       ps.connect(peak); peak.connect(outGain);
       return {
         inputNode: inGain, outputNode: outGain,
@@ -4899,7 +5023,8 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
         const g = ctx.createGain();
         const gated = (i + 1) <= voicesInit ? baseVol : 0;
         setGainLinear(g.gain, gated);
-        inBus.connect(ps.input);
+        // Tone.js v15 native→Tone bridge — see pitchForge above.
+        Tone.connect(inBus, ps);
         // Only wire ps→g when the voice is audible — saves CPU at vol=0.
         const v = { ps, g, baseVol, connected: false };
         if (gated > 0) { try { ps.connect(g); v.connected = true; } catch (e) {} }
@@ -6106,7 +6231,18 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
     const meter = ctx.createAnalyser(); meter.fftSize = 2048;
     const fxNodes = (track.effects && Object.keys(track.effects).length) ? buildFxChain(ctx, track) : [];
     let last = preGain;
-    fxNodes.forEach(n => { const ni = n.inputNode || n, no = n.outputNode || n; last.connect(ni); last = no; });
+    // F4-C-FIX: drop the silent `|| n` fallback that was wrapping the
+    // entry itself (a plain object) when its inputNode/outputNode were
+    // undefined — that's what threw "Failed to execute 'connect' on
+    // 'AudioNode': Overload resolution failed". Now skip + log instead.
+    fxNodes.forEach(n => {
+      const ni = n.inputNode, no = n.outputNode;
+      if (!ni || !no || typeof ni.connect !== "function") {
+        console.error("[F4-C-FIX] ensureTrackGraph chainer skipping invalid entry:", n);
+        return;
+      }
+      last.connect(ni); last = no;
+    });
     last.connect(panNode); panNode.connect(fader); fader.connect(meter);
     const boardId = trackConsoleChar[track.id] || "none";
     const consoleOut = ctx.createGain();
@@ -6132,7 +6268,15 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
     const meter = ctx.createAnalyser(); meter.fftSize = 2048;
     const fxNodes = (busTrack.effects && Object.keys(busTrack.effects).length) ? buildFxChain(ctx, busTrack) : [];
     let last = preGain;
-    fxNodes.forEach(n => { const ni = n.inputNode || n, no = n.outputNode || n; last.connect(ni); last = no; });
+    // F4-C-FIX: same chainer guard as ensureTrackGraph.
+    fxNodes.forEach(n => {
+      const ni = n.inputNode, no = n.outputNode;
+      if (!ni || !no || typeof ni.connect !== "function") {
+        console.error("[F4-C-FIX] ensureBusGraph chainer skipping invalid entry:", n);
+        return;
+      }
+      last.connect(ni); last = no;
+    });
     last.connect(panNode); panNode.connect(fader); fader.connect(meter);
     const busConsoleOut = ctx.createGain();
     const busConsoleNodes = applyConsoleCharacter(ctx, meter, busConsoleOut, trackConsoleChar[busTrack?.id] || "none", { trackId: busTrack?.id, params: trackConsoleParams[busTrack?.id] }) || [];
@@ -6371,9 +6515,16 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
       // (same shape as PluginHost.addPlugin returns) so multi-node DSP fragments
       // — stereoWidener M/S split, ringMod's modulation graph, etc. — wire
       // cleanly without the loop adding spurious dry-shortcut connections.
-      fxNodes.forEach(n => { const ni = n.inputNode || n, no = n.outputNode || n; last.connect(ni); last = no; });
-      last.connect(g); g.connect(p); p.connect(splitter);
-      splitter.connect(analyserL, 0); splitter.connect(analyserR, 1);
+      // F4-C-FIX: same chainer guard as ensureTrackGraph.
+      fxNodes.forEach(n => {
+        const ni = n.inputNode, no = n.outputNode;
+        if (!ni || !no || typeof ni.connect !== "function") {
+          console.error("[F4-C-FIX] buildPlaybackSources chainer skipping invalid entry:", n);
+          return;
+        }
+        last.connect(ni); last = no;
+      });
+      last.connect(g); g.connect(p);
       // Part 16: insert per-track console character on playback path. Pre-Part 16
       // the per-track CONSOLE_BOARDS dropdown only colored the live-mixer graph
       // (which audio tracks never traverse), so picking SSL 4000E on a recorded
@@ -6387,6 +6538,10 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
         applyConsoleCharacter(ctx, p, consoleOut, consoleId, { trackId: t.id, params: trackConsoleParams[t.id] });
         masterIn = consoleOut;
       }
+      // F4-C: meter tap is post-console so the dB ladder reflects what the
+      // user hears (SSL/Neve saturation + EQ included). Pre-F4-C the splitter
+      // sat between pan and console, so console color never showed on the meter.
+      masterIn.connect(splitter); splitter.connect(analyserL, 0); splitter.connect(analyserR, 1);
       masterIn.connect(masterGainRef.current); if (t.effects) buildSends(ctx, t, p, masterGainRef.current);
       // Clamp offset to within buffer length so we don't throw or get silence on wrap.
       const safeOffset = Math.max(0, Math.min(fromOffsetSec, Math.max(0, t.audioBuffer.duration - 0.001)));
@@ -6760,11 +6915,46 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
   // tracks). Without these guards, adding any insert would throw
   // "Cannot read properties of undefined (reading '<plugin-key>')".
   const updateEffect = (ti, fx, param, val) => {
-    const key = `${tracks[ti]?.id}:${fx}`;
+    const trackId = tracks[ti]?.id;
+    const key = `${trackId}:${fx}`;
     const inst = liveInstancesRef.current.get(key);
     console.warn("[UE-DISPATCH]", key, "→ instance found:", !!inst, "param:", param, "val:", val);  // Phase F3 instrumentation — Bug #1
     if (inst?.setParam && param !== "enabled") inst.setParam(param, val);
     setTracks(p => p.map((t, i) => i !== ti ? t : { ...t, effects: { ...(t.effects || DEFAULT_EFFECTS()), [fx]: { ...((t.effects || {})[fx] || {}), [param]: val } } }));
+
+    // F4-C-FIX Task 4: enable toggles MUST bust the ensureTrackGraph cache and
+    // rewire the live-mixer chain — otherwise per-track FX panel toggles
+    // (Analog Rack tape-sat, exciter, compressor, etc.) flip UI state but the
+    // audio graph stays frozen with the previous plugin set, so subsequent
+    // slider moves dispatch into nothing. We compute the updated track object
+    // locally (don't wait on setTracks to resolve) so the rebuild reads the
+    // just-toggled effects map.
+    if (param === "enabled" && audioCtxRef.current && trackId) {
+      // Dispose the prior live instance for this fx key. ensureTrackGraph
+      // re-registers when the plugin is enabled; for val=false the registry
+      // entry would otherwise linger.
+      if (!val) disposeInstance(trackId, fx);
+      if (trackNodesRef.current.has(trackId)) {
+        const oldTrack = tracks[ti];
+        if (oldTrack) {
+          const updatedTrack = { ...oldTrack, effects: { ...(oldTrack.effects || DEFAULT_EFFECTS()), [fx]: { ...((oldTrack.effects || {})[fx] || {}), [param]: val } } };
+          const oldNodes = trackNodesRef.current.get(trackId);
+          if (oldNodes) {
+            ["input", "preGain", "panNode", "fader", "meter", "consoleOut"].forEach(k => { try { oldNodes[k]?.disconnect(); } catch (_) {} });
+            (oldNodes.fxNodes || []).forEach(n => {
+              const ni = n.inputNode || n, no = n.outputNode || n;
+              try { if (typeof n.stop === "function") n.stop(); } catch (_) {}
+              try { ni.disconnect(); } catch (_) {}
+              if (no !== ni) { try { no.disconnect(); } catch (_) {} }
+            });
+            (oldNodes.consoleNodes || []).forEach(n => { try { n.disconnect(); } catch (_) {} });
+            (oldNodes.sendNodes || []).forEach(n => { try { n.disconnect(); } catch (_) {} });
+          }
+          trackNodesRef.current.delete(trackId);
+          ensureTrackGraph(updatedTrack);
+        }
+      }
+    }
   };
   // Seed an effect's full defaults + enabled:true atomically. Used by the
   // inserts picker so buildFxChain sees populated params on the first build.
@@ -8814,6 +9004,7 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
             }}
             onClose={() => { setActiveEffectsTrack(null); setOpenFxKey(null); }}
             setStatus={setStatus}
+            getInstance={() => liveInstancesRef.current.get(`${afx.id}:${openFxKey}`)}
           />
         )}
         {afx && openFxKey && !SPX_PLUGIN_KEYS.has(openFxKey) && (

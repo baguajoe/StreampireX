@@ -158,6 +158,7 @@ import BeatSyncPage from "./pages/BeatSyncPage";
 import AIAutoEditPage from "./pages/AIAutoEditPage";
 import NodeCompositorPage from "./pages/NodeCompositorPage";
 import RecordingStudio from "./pages/RecordingStudio";
+import PluginAudit from "./pages/PluginAudit";
 import SamplerBeatMaker from "./component/SamplerBeatMaker";
 
 import EditGamerProfilePage from "./pages/EditGamerProfilePage";
@@ -602,6 +603,8 @@ const AppShell = ({ user }) => {
                                 <Route path="/plugin-rack-demo" element={<PluginRackDemo />} />
                                 {/* Part 17: dev-only simulator verification — not in nav, direct URL only. */}
                                 <Route path="/studio-smoke-test" element={<StudioSmokeTest />} />
+                                {/* Plugin truth audit — runtime test of every PLUGIN_FACTORIES entry. Direct URL only. */}
+                                <Route path="/plugin-audit" element={<PluginAudit />} />
                                 <Route path="/wam-plugin-store" element={<WAMPluginStore />} />
                                 <Route path="/ai-mastering" element={<AIMasteringPage />} />
                                 <Route path="/ai-content-writer" element={<AIContentWriter />} />

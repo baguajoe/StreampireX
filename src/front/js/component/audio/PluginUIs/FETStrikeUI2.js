@@ -27,6 +27,7 @@ import HardwarePanel from "../HardwareUI/HardwarePanel";
 import AnalogKnob from "../HardwareUI/AnalogKnob";
 import VUMeter from "../HardwareUI/VUMeter";
 import ButtonBank from "../HardwareUI/ButtonBank";
+import useGRMeter from "../HardwareUI/useGRMeter";
 
 const SILVER = "#c0c0c0";
 const SILVER_DEEP = "#7a7a8a";
@@ -50,7 +51,7 @@ const findClosestStep = (table, ms) => {
   return bestIdx + 1; // 1..7
 };
 
-export default function FETStrikeUI2({ params, onChange, onClose }) {
+export default function FETStrikeUI2({ params, onChange, onClose, getInstance }) {
   const [s, setS] = useState({
     threshold: -10,
     ratio: 2,
@@ -80,14 +81,8 @@ export default function FETStrikeUI2({ params, onChange, onClose }) {
     set("release")(ms);
   };
 
-  // Approx GR for the VU. inputGain pushes the signal harder, outputGain
-  // is a make-up trim. GR ~ overshoot * (1 - 1/ratio).
-  const fakeProgramRMS = -10 + s.inputGain;
-  const effectiveRatio = s.allButtonRatio ? 20 : s.ratio;
-  const overshoot = Math.max(0, fakeProgramRMS - s.threshold);
-  const grDB = overshoot - overshoot / Math.max(1, effectiveRatio);
-  // VU shows GR — map 0..15dB GR to 0..1 VU range
-  const vuValue = Math.max(0, Math.min(1, grDB / 15));
+  // 1176 maxes around 15 dB GR.
+  const vuValue = useGRMeter(() => getInstance && getInstance()?.meters?.comp, { targetDb: 15 });
 
   // Ratio bank: when allButtonRatio is true, every option is "active"
   // (all depressed). We emulate this by rendering a custom row instead

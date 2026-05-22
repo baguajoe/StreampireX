@@ -18,6 +18,7 @@ import React, { useState, useEffect, useRef } from "react";
 import HardwarePanel from "../HardwareUI/HardwarePanel";
 import AnalogKnob from "../HardwareUI/AnalogKnob";
 import VUMeter from "../HardwareUI/VUMeter";
+import useAnalyserValue from "../HardwareUI/useAnalyserValue";
 
 const ACCENT = "#cc6611"; // orange/amber
 const DEFAULTS = {
@@ -152,7 +153,7 @@ function TapeReel({ speed = 1, size = 60, label = "" }) {
   );
 }
 
-export default function VintageAirUI2({ params, onChange, onClose }) {
+export default function VintageAirUI2({ params, onChange, onClose, getInstance }) {
   const [s, setS] = useState({ ...DEFAULTS, ...(params || {}) });
   useEffect(() => {
     if (typeof onChange === "function") onChange(s);
@@ -160,11 +161,7 @@ export default function VintageAirUI2({ params, onChange, onClose }) {
   }, [s]);
   const set = (k) => (v) => setS((p) => ({ ...p, [k]: v }));
 
-  // VU level driven primarily by mix + lateLevel as a visual proxy.
-  const vu = Math.max(
-    0,
-    Math.min(1, (s.mix / 100) * 0.6 + s.lateLevel * 0.4)
-  );
+  const vu = useAnalyserValue(() => getInstance && getInstance()?.meters?.analyserOut);
 
   // Reel speed scales with tapeWow (1 = nominal speed)
   const reelSpeed = Math.max(0.05, Math.min(1, 0.2 + s.tapeWow * 0.8));

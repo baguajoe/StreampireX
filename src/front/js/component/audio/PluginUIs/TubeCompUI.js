@@ -16,6 +16,8 @@ import HardwarePanel from "../HardwareUI/HardwarePanel";
 import AnalogKnob from "../HardwareUI/AnalogKnob";
 import VUMeter from "../HardwareUI/VUMeter";
 import ButtonBank from "../HardwareUI/ButtonBank";
+import useGRMeter from "../HardwareUI/useGRMeter";
+import useAnalyserValue from "../HardwareUI/useAnalyserValue";
 
 const ORANGE = "#cc7711";
 const ORANGE_BRIGHT = "#ff9933";
@@ -71,7 +73,7 @@ const TubeGlow = ({ drive }) => {
   );
 };
 
-export default function TubeCompUI({ params, onChange, onClose }) {
+export default function TubeCompUI({ params, onChange, onClose, getInstance }) {
   const [s, setS] = useState({
     threshold: -14,
     ratio: 3,
@@ -88,14 +90,9 @@ export default function TubeCompUI({ params, onChange, onClose }) {
   }, [s]);
   const set = (k) => (v) => setS((p) => ({ ...p, [k]: v }));
 
-  // Synthesize VU meter values from params (decorative, no live audio).
-  // Input meter: roughly suggests current "input level" by mapping
-  // threshold (closer to 0 = hotter signal = higher reading).
-  const inputLevel = Math.max(0, Math.min(1, (s.threshold + 30) / 30));
-  // GR meter: maps from 0 (no GR) to ~1 (heavy compression). Driven
-  // by drive + ratio / threshold proximity.
-  const grTarget =
-    Math.min(1, (Math.max(0, -s.threshold) / 30) * (s.ratio / 10) + s.drive * 0.2);
+  const inputLevel = useAnalyserValue(() => getInstance && getInstance()?.meters?.analyserIn);
+  // Vari-Mu maxes around 12 dB GR.
+  const grTarget = useGRMeter(() => getInstance && getInstance()?.meters?.comp, { targetDb: 12 });
 
   return (
     <div

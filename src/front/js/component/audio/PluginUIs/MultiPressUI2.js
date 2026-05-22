@@ -20,6 +20,7 @@ import React, { useState, useEffect } from "react";
 import HardwarePanel from "../HardwareUI/HardwarePanel";
 import AnalogKnob from "../HardwareUI/AnalogKnob";
 import LEDLadder from "../HardwareUI/LEDLadder";
+import useGRMeter from "../HardwareUI/useGRMeter";
 
 const PURPLE = "#a040ff";
 const PURPLE_BRIGHT = "#c870ff";
@@ -155,9 +156,9 @@ const BandColumn = ({
   setThresh,
   setRatio,
   setGain,
+  getComp,
 }) => {
-  // GR target — synthesized from thresh + ratio
-  const grTarget = Math.max(0, Math.min(1, ((-thresh) / 30) * (ratio / 12)));
+  const grTarget = useGRMeter(getComp, { targetDb: 12 });
   return (
     <div
       style={{
@@ -241,7 +242,7 @@ const BandColumn = ({
   );
 };
 
-export default function MultiPressUI2({ params, onChange, onClose }) {
+export default function MultiPressUI2({ params, onChange, onClose, getInstance }) {
   const [s, setS] = useState({
     xover1: 100,
     xover2: 1000,
@@ -408,6 +409,7 @@ export default function MultiPressUI2({ params, onChange, onClose }) {
             setThresh={set("b1Thresh")}
             setRatio={set("b1Ratio")}
             setGain={set("b1Gain")}
+            getComp={() => getInstance && getInstance()?.meters?.comps?.[0]}
           />
           <BandColumn
             index={1}
@@ -419,6 +421,7 @@ export default function MultiPressUI2({ params, onChange, onClose }) {
             setThresh={set("b2Thresh")}
             setRatio={set("b2Ratio")}
             setGain={set("b2Gain")}
+            getComp={() => getInstance && getInstance()?.meters?.comps?.[1]}
           />
           <BandColumn
             index={2}
@@ -430,6 +433,7 @@ export default function MultiPressUI2({ params, onChange, onClose }) {
             setThresh={set("b3Thresh")}
             setRatio={set("b3Ratio")}
             setGain={set("b3Gain")}
+            getComp={() => getInstance && getInstance()?.meters?.comps?.[2]}
           />
           <BandColumn
             index={3}
@@ -441,6 +445,7 @@ export default function MultiPressUI2({ params, onChange, onClose }) {
             setThresh={set("b4Thresh")}
             setRatio={set("b4Ratio")}
             setGain={set("b4Gain")}
+            getComp={() => getInstance && getInstance()?.meters?.comps?.[3]}
           />
         </div>
 

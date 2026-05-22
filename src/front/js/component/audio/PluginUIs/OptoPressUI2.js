@@ -24,6 +24,7 @@ import AnalogKnob from "../HardwareUI/AnalogKnob";
 import VUMeter from "../HardwareUI/VUMeter";
 import ButtonBank from "../HardwareUI/ButtonBank";
 import ProgramBank from "../HardwareUI/ProgramBank";
+import useGRMeter from "../HardwareUI/useGRMeter";
 
 const GOLD = "#cc8844";
 const GOLD_DIM = "#7a4a18";
@@ -104,7 +105,7 @@ const saveUserPrograms = (data) => {
   }
 };
 
-export default function OptoPressUI2({ params, onChange, onClose }) {
+export default function OptoPressUI2({ params, onChange, onClose, getInstance }) {
   const [s, setS] = useState({
     peakReduction: 17,
     gainControl: 0,
@@ -152,9 +153,8 @@ export default function OptoPressUI2({ params, onChange, onClose }) {
     }));
   };
 
-  // VU value: peakReduction drives a "gain reduction" visual reading.
-  // 0..100 PR → 0..1 VU
-  const vuValue = Math.max(0, Math.min(1, s.peakReduction / 100));
+  // LA-2A maxes around 12 dB GR.
+  const vuValue = useGRMeter(() => getInstance && getInstance()?.meters?.comp, { targetDb: 12 });
 
   return (
     <div

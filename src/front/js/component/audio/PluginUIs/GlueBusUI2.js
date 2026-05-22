@@ -22,6 +22,7 @@ import HardwarePanel from "../HardwareUI/HardwarePanel";
 import AnalogKnob from "../HardwareUI/AnalogKnob";
 import LEDLadder from "../HardwareUI/LEDLadder";
 import ButtonBank from "../HardwareUI/ButtonBank";
+import useGRMeter from "../HardwareUI/useGRMeter";
 
 const SILVER = "#888888";
 const SILVER_BRIGHT = "#cfcfcf";
@@ -47,7 +48,7 @@ const RATIO_OPTIONS = [
 // continuous via the knob but suggest these milestones.
 // SSL release: 0.1, 0.3, 0.6, 1.2 s (= 100, 300, 600, 1200 ms) and "AUTO".
 
-export default function GlueBusUI2({ params, onChange, onClose }) {
+export default function GlueBusUI2({ params, onChange, onClose, getInstance }) {
   const [s, setS] = useState({
     threshold: -10,
     ratio: 2,
@@ -64,11 +65,8 @@ export default function GlueBusUI2({ params, onChange, onClose }) {
   }, [s]);
   const set = (k) => (v) => setS((p) => ({ ...p, [k]: v }));
 
-  // Approx GR for the LED ladder.
-  const fakeProgramRMS = -10;
-  const overshoot = Math.max(0, fakeProgramRMS - s.threshold);
-  const grDB = overshoot - overshoot / Math.max(1, s.ratio);
-  const grNorm = Math.max(0, Math.min(1, grDB / 12));
+  const grNorm = useGRMeter(() => getInstance && getInstance()?.meters?.comp, { targetDb: 12 });
+  const grDB = grNorm * 12;
 
   return (
     <div

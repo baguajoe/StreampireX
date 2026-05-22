@@ -15,6 +15,7 @@ import React, { useState, useEffect } from "react";
 import HardwarePanel from "../HardwareUI/HardwarePanel";
 import AnalogKnob from "../HardwareUI/AnalogKnob";
 import LEDLadder from "../HardwareUI/LEDLadder";
+import useAnalyserValue from "../HardwareUI/useAnalyserValue";
 
 const PINK = "#aa4488";
 const PINK_BRIGHT = "#cc66aa";
@@ -95,7 +96,7 @@ const MicGraphic = ({ accent }) => {
   );
 };
 
-export default function VocalCompUI({ params, onChange, onClose }) {
+export default function VocalCompUI({ params, onChange, onClose, getInstance }) {
   const [s, setS] = useState({
     threshold: -16,
     ratio: 3,
@@ -112,8 +113,12 @@ export default function VocalCompUI({ params, onChange, onClose }) {
   }, [s]);
   const set = (k) => (v) => setS((p) => ({ ...p, [k]: v }));
 
-  // Sibilance reduction display (decorative). Higher de-ess = more reduction shown.
-  const sibilanceTarget = Math.max(0, Math.min(1, s.deEss));
+  // 6 kHz bandpass tap on input. Scale boosted (×3) because narrow bandpass
+  // RMS is much smaller than full-band — this restores meter sensitivity.
+  const sibilanceTarget = useAnalyserValue(
+    () => getInstance && getInstance()?.meters?.analyserSibilance,
+    { scale: 18 }
+  );
 
   return (
     <div

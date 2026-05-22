@@ -14,6 +14,7 @@ import React, { useState, useEffect, useRef } from "react";
 import HardwarePanel from "../HardwareUI/HardwarePanel";
 import AnalogKnob from "../HardwareUI/AnalogKnob";
 import ButtonBank from "../HardwareUI/ButtonBank";
+import useAnalyserValue from "../HardwareUI/useAnalyserValue";
 
 const ACCENT = "#a040ff"; // purple/magenta
 const DEFAULTS = {
@@ -109,13 +110,18 @@ function ShimmerParticles({ intensity = 0.6 }) {
   );
 }
 
-export default function ShimmerReverbUI({ params, onChange, onClose }) {
+export default function ShimmerReverbUI({ params, onChange, onClose, getInstance }) {
   const [s, setS] = useState({ ...DEFAULTS, ...(params || {}) });
   useEffect(() => {
     if (typeof onChange === "function") onChange(s);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s]);
   const set = (k) => (v) => setS((p) => ({ ...p, [k]: v }));
+
+  // Particle intensity = shimmer-knob × live output level. Particles only
+  // animate when audio is flowing; shimmer knob still scales overall density.
+  const liveOut = useAnalyserValue(() => getInstance && getInstance()?.meters?.analyserOut);
+  const particleIntensity = Math.min(1, s.shimmer * (0.2 + liveOut * 1.5));
 
   return (
     <div
@@ -138,7 +144,7 @@ export default function ShimmerReverbUI({ params, onChange, onClose }) {
         }}
       >
         {/* Particles overlay (absolute) */}
-        <ShimmerParticles intensity={s.shimmer} />
+        <ShimmerParticles intensity={particleIntensity} />
 
         <HardwarePanel
           skin="vintage-cream"
