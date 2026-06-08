@@ -1241,16 +1241,28 @@ const RecordingStudio = ({ user }) => {
 
   // Update a single console param. Updates state AND ramps the live AudioParam
   // on the registered PluginInstance (key: `${trackId}:console` or `master:console`).
+  // Part 1: fan a console param out to EVERY registered console node-set for a
+  // track (keys "${trackId}:console", "${trackId}:console:monitor",
+  // "${trackId}:console:playback"). Only one is in the audible path at a time
+  // (playback for audio tracks, monitor for MIDI), but applying to all is
+  // harmless — they are independent parallel graphs — and guarantees the
+  // audible one receives the tweak regardless of which built last.
+  const setConsoleParamForTrack = useCallback((trackId, name, value) => {
+    const prefix = `${trackId}:console`;
+    for (const [key, inst] of liveInstancesRef.current) {
+      if (key.startsWith(prefix) && inst && typeof inst.setParam === "function") {
+        try { inst.setParam(name, value); } catch (_e) { /* noop */ }
+      }
+    }
+  }, []);
+
   const updateTrackConsoleParam = useCallback((trackId, name, value) => {
     setTrackConsoleParams(prev => ({
       ...prev,
       [trackId]: { ...(prev[trackId] || {}), [name]: value },
     }));
-    const inst = liveInstancesRef.current.get(`${trackId}:console`);
-    if (inst && typeof inst.setParam === "function") {
-      try { inst.setParam(name, value); } catch (_e) { /* noop */ }
-    }
-  }, []);
+    setConsoleParamForTrack(trackId, name, value);
+  }, [setConsoleParamForTrack]);
 
   const updateMasterConsoleParam = useCallback((name, value) => {
     setMasterConsoleParams(prev => ({ ...(prev || {}), [name]: value }));
@@ -1268,11 +1280,8 @@ const RecordingStudio = ({ user }) => {
     if (!boardId || boardId === "none") return;
     const factory = CONSOLE_FACTORY_PARAMS[boardId]; if (!factory) return;
     setTrackConsoleParams(prev => ({ ...prev, [trackId]: { ...factory, _board: boardId } }));
-    const inst = liveInstancesRef.current.get(`${trackId}:console`);
-    if (inst && typeof inst.setParam === "function") {
-      Object.entries(factory).forEach(([k, v]) => { try { inst.setParam(k, v); } catch (_e) {} });
-    }
-  }, [trackConsoleChar]);
+    Object.entries(factory).forEach(([k, v]) => setConsoleParamForTrack(trackId, k, v));
+  }, [trackConsoleChar, setConsoleParamForTrack]);
 
   const resetMasterConsole = useCallback(() => {
     const boardId = masterConsoleChar;
@@ -1421,9 +1430,17 @@ const RecordingStudio = ({ user }) => {
       const TAU_C = 0.01;
       const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
       const safeNum = (v, fb) => (Number.isFinite(v) ? v : fb);
+      // Part 2: parallel analyser TAP off the console output so the ConsolePanel
+      // VU/LED meter reflects post-console level. This is a branch (outputGain →
+      // analyser), NOT inserted in series — it does not alter the signal that
+      // reaches outputNode.
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.8;
+      outputGain.connect(analyser);
       const inst = {
         inputNode: inputHp,
         outputNode,
+        analyser,
         setParam(name, value) {
           const t = ctx.currentTime;
           const v = safeNum(value, 0);
@@ -1451,12 +1468,16 @@ const RecordingStudio = ({ user }) => {
           }
         },
         dispose() {
-          for (const n of [inputHp, inputSat, eqLo, eqHi, outputSat, outputGain]) {
+          for (const n of [inputHp, inputSat, eqLo, eqHi, outputSat, outputGain, analyser]) {
             try { n.disconnect(); } catch (_e) { /* noop */ }
           }
         },
       };
-      registerInstance(opts.trackId, "console", inst);
+      // Part 1: scope-qualified key (default "console"). Distinct scopes
+      // (e.g. "console:monitor" vs "console:playback") let the per-track
+      // monitor and playback consoles coexist instead of disposing each
+      // other; the panel fans setParam out to every "${trackId}:console*".
+      registerInstance(opts.trackId, opts.consoleScope || "console", inst);
     }
 
     return [inputHp, inputSat, eqLo, eqHi, outputSat, outputGain];
@@ -6229,7 +6250,7 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
     last.connect(panNode); panNode.connect(fader); fader.connect(meter);
     const boardId = trackConsoleChar[track.id] || "none";
     const consoleOut = ctx.createGain();
-    const consoleNodes = applyConsoleCharacter(ctx, meter, consoleOut, boardId, { trackId: track.id, params: trackConsoleParams[track.id] }) || [];
+    const consoleNodes = applyConsoleCharacter(ctx, meter, consoleOut, boardId, { trackId: track.id, consoleScope: "console:monitor", params: trackConsoleParams[track.id] }) || [];
     const busTrack = track.busTarget ? tracks.find(t => t.id === track.busTarget) : null;
     const busNodes = busTrack ? trackNodesRef.current.get(busTrack.id) : null;
     const dest = (busNodes && busNodes.input) ? busNodes.input : masterGainRef.current;
@@ -6518,7 +6539,7 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
       let masterIn = p;
       if (consoleId && consoleId !== "none") {
         const consoleOut = ctx.createGain();
-        applyConsoleCharacter(ctx, p, consoleOut, consoleId, { trackId: t.id, params: trackConsoleParams[t.id] });
+        applyConsoleCharacter(ctx, p, consoleOut, consoleId, { trackId: t.id, consoleScope: "console:playback", params: trackConsoleParams[t.id] });
         masterIn = consoleOut;
       }
       // F4-C: meter tap is post-console so the dB ladder reflects what the
@@ -9051,8 +9072,7 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
                 if (inst) Object.entries(slot).forEach(([k, v]) => { if (k !== "_board") try { inst.setParam(k, v); } catch (_e) {} });
               } else {
                 setTrackConsoleParams(prev => ({ ...prev, [trackId]: { ...slot, _board: boardId } }));
-                const inst = liveInstancesRef.current.get(`${trackId}:console`);
-                if (inst) Object.entries(slot).forEach(([k, v]) => { if (k !== "_board") try { inst.setParam(k, v); } catch (_e) {} });
+                Object.entries(slot).forEach(([k, v]) => { if (k !== "_board") setConsoleParamForTrack(trackId, k, v); });
               }
               setStatus("A/B swap");
             }
@@ -9064,10 +9084,19 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
               if (inst) Object.entries(presetParams).forEach(([k, v]) => { if (k !== "_board") try { inst.setParam(k, v); } catch (_e) {} });
             } else {
               setTrackConsoleParams(prev => ({ ...prev, [trackId]: { ...presetParams, _board: boardId } }));
-              const inst = liveInstancesRef.current.get(`${trackId}:console`);
-              if (inst) Object.entries(presetParams).forEach(([k, v]) => { if (k !== "_board") try { inst.setParam(k, v); } catch (_e) {} });
+              Object.entries(presetParams).forEach(([k, v]) => { if (k !== "_board") setConsoleParamForTrack(trackId, k, v); });
             }
           };
+          // Part 2: feed the VU/LED meter from the AUDIBLE console's analyser
+          // tap. Prefer playback (audio tracks) then monitor (MIDI), falling
+          // back to the legacy unscoped key; master has a single console.
+          const lm = liveInstancesRef.current;
+          const meterAnalyser = isMaster
+            ? lm.get(`master:console`)?.analyser
+            : (lm.get(`${trackId}:console:playback`)?.analyser
+               || lm.get(`${trackId}:console:monitor`)?.analyser
+               || lm.get(`${trackId}:console`)?.analyser
+               || null);
           return (
             <DraggablePanel
               title={`CONSOLE — ${board.name}${isMaster ? " (MASTER)" : ""}`}
@@ -9088,6 +9117,7 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
                 onSavePreset={() => setStatus("Preset saved")}
                 onClose={() => setOpenConsolePanel(null)}
                 target={isMaster ? "master" : "track"}
+                postOutputAnalyser={meterAnalyser}
               />
             </DraggablePanel>
           );
