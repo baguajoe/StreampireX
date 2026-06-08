@@ -436,43 +436,31 @@ const CubaseMeter = React.memo(({ leftLevel = 0, rightLevel = 0, height = 200, s
 // =============================================================================
 // DB SCALE (Part 18) — inline SVG so number positions are deterministic.
 // =============================================================================
-// Pre-Part 18 the scale labels were absolutely-positioned <span>s inside an
-// 18px-wide container. With non-shrinking absolute children some browsers
-// rendered "-12" and "-18" close enough to read as "-1812". SVG <text>
-// elements with explicit y attributes side-step the cascade and give
-// pixel-perfect positioning regardless of CSS overrides.
-//
 // Two flavors share one component:
 //   type="fader" — left side of the fader, log Cubase taper
-//                  (+6 / 0 / -6 / -12 / -18 / -∞)
-//   type="meter" — right side of the meter, peak-meter scaling
-//                  (0 / -6 / -12 / -18 / -24 / -36 / -48)
-const DB_SCALE_MARKS = {
-  fader: [
-    { db: "+6",  y: 4   },
-    { db:  "0",  y: 47  },
-    { db: "-6",  y: 92  },
-    { db: "-12", y: 137 },
-    { db: "-18", y: 159 },
-    { db:  "-∞", y: 178 },
-  ],
-  meter: [
-    { db:  "0",  y: 6   },
-    { db: "-6",  y: 25  },
-    { db: "-12", y: 47  },
-    { db: "-18", y: 75  },
-    { db: "-24", y: 105 },
-    { db: "-36", y: 142 },
-    { db: "-48", y: 167 },
-  ],
-};
+//                  (+6 / 0 / -6 / -12 / -18 / -∞), hand-tuned to the SvgFader
+//                  thumb positions (which live in a separate module).
+//   type="meter" — right side of the meter, peak-meter scaling. Positions are
+//                  derived from dbToMeterPos so the labels always match the
+//                  CubaseMeter bar fills for the same dB value.
+const FADER_SCALE_MARKS = [
+  { db: "+6",  y: 4   },
+  { db:  "0",  y: 47  },
+  { db: "-6",  y: 92  },
+  { db: "-12", y: 137 },
+  { db: "-18", y: 159 },
+  { db:  "-∞", y: 178 },
+];
+const METER_DB_LIST = [0, -6, -12, -18, -24, -36, -48];
 const DBScale = React.memo(({ type = "fader", height = 180 }) => {
-  const marks = DB_SCALE_MARKS[type];
+  const marks = type === "meter"
+    ? METER_DB_LIST.map(db => ({ db: String(db), y: height - dbToMeterPos(db) * height }))
+    : FADER_SCALE_MARKS;
   const w = 26;  // wide enough for "-48" + tick mark
   const align = type === "fader" ? "end"   : "start";
   const tx    = type === "fader" ? w - 6   : 4;
   return (
-    <svg width={w} height={height} style={{ display: "block", flexShrink: 0, pointerEvents: "none" }}>
+    <svg className="db-scale-svg" width={w} height={height}>
       {marks.map(m => (
         <g key={m.db}>
           {/* tick mark */}
@@ -482,12 +470,10 @@ const DBScale = React.memo(({ type = "fader", height = 180 }) => {
             stroke="rgba(255,255,255,0.25)" strokeWidth={1}
           />
           <text
+            className="db-scale-text"
             x={tx} y={m.y}
-            fill="rgba(255,255,255,0.6)"
-            fontSize={9} fontWeight={600}
-            fontFamily='"JetBrains Mono","SF Mono",Consolas,monospace'
             textAnchor={align}
-            style={{ fontVariantNumeric: "tabular-nums" }}
+            dominantBaseline="hanging"
           >{m.db}</text>
         </g>
       ))}

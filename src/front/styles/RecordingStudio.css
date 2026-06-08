@@ -154,9 +154,11 @@
 .daw-ch-btn.solo.active { background:#003a2a; border-color:#008060; color:var(--rs-teal); }
 .daw-ch-pan { display:flex; flex-direction:column; align-items:center; padding:4px 0; gap:2px; }
 .daw-ch-pan-val { color:var(--rs-text2); font-weight:600; font-size:9px; }
-.daw-ch-fader-area { display:flex; flex-direction:column; align-items:center; padding:4px; width:100%; height:220px; min-height:220px; max-height:220px; flex-shrink:0;  }
+.daw-ch-fader-area { display:flex; flex-direction:column; align-items:center; padding:4px; width:100%; height:220px; min-height:220px; max-height:220px; flex:0 0 220px; flex-shrink:0; overflow:hidden; }
 .daw-ch-fader-row { display:flex; align-items:flex-end; gap:4px; width:100%; justify-content:center; height:180px; flex-shrink:0; }
-.daw-ch-fader { display:flex; align-items:flex-end; justify-content:center; height:180px; flex-shrink:0; }
+.daw-ch-fader { display:flex; align-items:center; justify-content:center; height:180px; flex-shrink:0; }
+.db-scale-svg { display:block; flex-shrink:0; pointer-events:none; overflow:visible; }
+.db-scale-text { fill:rgba(255,255,255,0.6); font-size:9px; font-weight:600; font-family:"JetBrains Mono","SF Mono",Consolas,monospace; font-variant-numeric:tabular-nums; }
 .daw-ch-fader input[type="range"] { appearance:none; writing-mode:vertical-lr; direction:rtl; width:18px; height:180px; cursor:pointer; background:#060a10; border-radius:1px; border:1px solid #0d1520; }
 .daw-ch-fader input[type="range"]::-webkit-slider-thumb {
   appearance:none;
@@ -1833,7 +1835,6 @@
 }
 
 /* ═══════════ SVG FADER INSIDE MIXER CHANNEL ═══════════ */
-.daw-ch-fader { display: flex; align-items: center; justify-content: center; }
 .daw-ch-fader .svg-fader-wrapper { height: 180px; }
 .daw-ch-fader .svg-fader-wrapper svg { height: 180px; }
 
@@ -1875,7 +1876,6 @@
 .ch-mid .daw-ch-controls { flex-wrap: wrap !important; row-gap: 3px !important; padding: 2px 4px !important; justify-content: center !important; }
 .ch-mid .daw-ch-rec-btn { flex-shrink: 0 !important; }
 .ch-lower { height: 260px !important; flex: 0 0 260px !important; overflow: visible !important; }
-.ch-lower .daw-ch-fader-area { height: 170px !important; max-height: 170px !important; flex: 0 0 170px !important; }
 
 /* Bug #7 (Part 9): per-track monitor badge — match M/S/e visual scale, glow
    teal when active so users can quickly see which track is being monitored. */
@@ -1999,7 +1999,6 @@
             display: flex !important; flex-direction: column !important; justify-content: flex-start !important; gap: 2px !important; }
 .ch-lower { flex: 1 1 auto !important; min-height: 320px !important;
             display: flex !important; flex-direction: column !important; justify-content: flex-start !important; }
-.daw-ch-fader-area { height: 220px !important; min-height: 220px !important; max-height: 220px !important; flex: 0 0 220px !important; }
 .daw-ch-vol-display { height: 22px !important; min-height: 22px !important; line-height: 1.2 !important;
                       display: flex !important; align-items: center !important; justify-content: center !important; }
 .daw-ch-vol-input { min-width: 44px !important; }
