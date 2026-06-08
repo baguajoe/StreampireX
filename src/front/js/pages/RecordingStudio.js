@@ -1028,9 +1028,18 @@ const RecordingStudio = ({ user }) => {
   const getInstance = (trackId, pluginKey) =>
     liveInstancesRef.current.get(`${trackId}:${pluginKey}`);
   const disposeInstance = (trackId, pluginKey) => {
-    const key = `${trackId}:${pluginKey}`;
-    const inst = liveInstancesRef.current.get(key);
-    if (inst) { try { inst.dispose(); } catch (e) { /* noop */ } liveInstancesRef.current.delete(key); }
+    // Dispose the exact (legacy/unscoped) key AND every "${base}:${scope}"
+    // variant, so disabling an insert tears down all of monitor/bus/playback.
+    // Anchored on ":" so pluginKey "hall" doesn't also drop "hallForgeS".
+    const base = `${trackId}:${pluginKey}`;
+    const scoped = `${base}:`;
+    for (const k of Array.from(liveInstancesRef.current.keys())) {
+      if (k === base || k.startsWith(scoped)) {
+        const inst = liveInstancesRef.current.get(k);
+        try { inst?.dispose(); } catch (e) { /* noop */ }
+        liveInstancesRef.current.delete(k);
+      }
+    }
   };
   const disposeAllForTrack = (trackId) => {
     const prefix = `${trackId}:`;
@@ -1251,6 +1260,25 @@ const RecordingStudio = ({ user }) => {
     const prefix = `${trackId}:console`;
     for (const [key, inst] of liveInstancesRef.current) {
       if (key.startsWith(prefix) && inst && typeof inst.setParam === "function") {
+        try { inst.setParam(name, value); } catch (_e) { /* noop */ }
+      }
+    }
+  }, []);
+
+  // Native insert plugins have the SAME instance-key collision the console had:
+  // buildFxChain runs from three builders (monitor/bus/playback), each
+  // registering `${trackId}:${pluginKey}:${scope}`. Fan a param out to EVERY
+  // registered scope for that plugin so the audible graph (playback for audio
+  // tracks, monitor for MIDI) always receives the tweak, regardless of which
+  // built last. Harmless on non-audible scopes — they are parallel graphs.
+  const setEffectParamForTrack = useCallback((trackId, pluginKey, name, value) => {
+    // Match the exact key (legacy/unscoped) OR any "${base}:${scope}" variant.
+    // Anchored on the ":" boundary so e.g. pluginKey "hall" does not also hit
+    // "hallForgeS"/"hallForgeL" instances on the same track.
+    const base = `${trackId}:${pluginKey}`;
+    const scoped = `${base}:`;
+    for (const [key, inst] of liveInstancesRef.current) {
+      if ((key === base || key.startsWith(scoped)) && inst && typeof inst.setParam === "function") {
         try { inst.setParam(name, value); } catch (_e) { /* noop */ }
       }
     }
@@ -1483,7 +1511,7 @@ const RecordingStudio = ({ user }) => {
     return [inputHp, inputSat, eqLo, eqHi, outputSat, outputGain];
   };
 
-  const buildFxChain = (ctx, track) => {
+  const buildFxChain = (ctx, track, scope) => {
     const nodes = []; const fx = track.effects;
     // Defensive AudioParam setters: clamp NaN/undefined/out-of-range values to
     // safe defaults so plugins don't crash the audio graph with non-finite
@@ -1637,7 +1665,11 @@ const RecordingStudio = ({ user }) => {
         );
         return;
       }
-      registerInstance(track.id, pluginKey, inst);
+      // Scope-qualified key (default bare pluginKey). Distinct scopes
+      // (monitor/bus/playback) let the per-track graphs coexist instead of
+      // disposing each other; the UI fans setParam out to every
+      // "${trackId}:${pluginKey}*" via setEffectParamForTrack.
+      registerInstance(track.id, scope ? `${pluginKey}:${scope}` : pluginKey, inst);
       nodes.push({ inputNode: inst.inputNode, outputNode: inst.outputNode });
       verifyPluginProcessesAudio(inst, pluginKey);
     };
@@ -6233,7 +6265,7 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
     const input = ctx.createGain(), preGain = ctx.createGain();
     const panNode = ctx.createStereoPanner(), fader = ctx.createGain();
     const meter = ctx.createAnalyser(); meter.fftSize = 2048;
-    const fxNodes = (track.effects && Object.keys(track.effects).length) ? buildFxChain(ctx, track) : [];
+    const fxNodes = (track.effects && Object.keys(track.effects).length) ? buildFxChain(ctx, track, "monitor") : [];
     let last = preGain;
     // F4-C-FIX: drop the silent `|| n` fallback that was wrapping the
     // entry itself (a plain object) when its inputNode/outputNode were
@@ -6270,7 +6302,7 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
     const input = ctx.createGain(), preGain = ctx.createGain();
     const panNode = ctx.createStereoPanner(), fader = ctx.createGain();
     const meter = ctx.createAnalyser(); meter.fftSize = 2048;
-    const fxNodes = (busTrack.effects && Object.keys(busTrack.effects).length) ? buildFxChain(ctx, busTrack) : [];
+    const fxNodes = (busTrack.effects && Object.keys(busTrack.effects).length) ? buildFxChain(ctx, busTrack, "bus") : [];
     let last = preGain;
     // F4-C-FIX: same chainer guard as ensureTrackGraph.
     fxNodes.forEach(n => {
@@ -6514,7 +6546,7 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
       const splitter = ctx.createChannelSplitter(2);
       const analyserL = ctx.createAnalyser(); analyserL.fftSize = 2048; analyserL.smoothingTimeConstant = 0.88;
       const analyserR = ctx.createAnalyser(); analyserR.fftSize = 2048; analyserR.smoothingTimeConstant = 0.88;
-      const fxNodes = (t.effects && Object.keys(t.effects).length) ? buildFxChain(ctx, t) : []; let last = s;
+      const fxNodes = (t.effects && Object.keys(t.effects).length) ? buildFxChain(ctx, t, "playback") : []; let last = s;
       // Part 16: chainer supports compound nodes via { inputNode, outputNode }
       // (same shape as PluginHost.addPlugin returns) so multi-node DSP fragments
       // — stereoWidener M/S split, ringMod's modulation graph, etc. — wire
@@ -6920,10 +6952,9 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
   // "Cannot read properties of undefined (reading '<plugin-key>')".
   const updateEffect = (ti, fx, param, val) => {
     const trackId = tracks[ti]?.id;
-    const key = `${trackId}:${fx}`;
-    const inst = liveInstancesRef.current.get(key);
-    console.warn("[UE-DISPATCH]", key, "→ instance found:", !!inst, "param:", param, "val:", val);  // Phase F3 instrumentation — Bug #1
-    if (inst?.setParam && param !== "enabled") inst.setParam(param, val);
+    // Fan out across every registered scope (monitor/bus/playback) so the
+    // audible graph receives the tweak regardless of which built last.
+    if (param !== "enabled") setEffectParamForTrack(trackId, fx, param, val);
     setTracks(p => p.map((t, i) => i !== ti ? t : { ...t, effects: { ...(t.effects || DEFAULT_EFFECTS()), [fx]: { ...((t.effects || {})[fx] || {}), [param]: val } } }));
 
     // F4-C-FIX Task 4: enable toggles MUST bust the ensureTrackGraph cache and
@@ -9006,16 +9037,13 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
               // changed params straight to the live AudioParam via setParam.
               // Persistence via setTracks happens after — UI never has to wait.
               const oldPatch = afx?.effects?.[openFxKey] || {};
-              const spxKey = `${afx.id}:${openFxKey}`;
-              const inst = liveInstancesRef.current.get(spxKey);
-              console.warn("[SPX-DISPATCH]", spxKey, "→ instance found:", !!inst);  // Phase F3 instrumentation — Bug #1
-              if (inst?.setParam) {
-                Object.keys(newPatch).forEach(key => {
-                  if (key !== "enabled" && newPatch[key] !== oldPatch[key]) {
-                    inst.setParam(key, newPatch[key]);
-                  }
-                });
-              }
+              // Fan changed params out to every registered scope
+              // (monitor/bus/playback) so the audible graph always receives them.
+              Object.keys(newPatch).forEach(key => {
+                if (key !== "enabled" && newPatch[key] !== oldPatch[key]) {
+                  setEffectParamForTrack(afx.id, openFxKey, key, newPatch[key]);
+                }
+              });
               setTracks(prev => prev.map((t, i) => i !== activeEffectsTrack ? t : {
                 ...t,
                 effects: {
@@ -9026,7 +9054,12 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
             }}
             onClose={() => { setActiveEffectsTrack(null); setOpenFxKey(null); }}
             setStatus={setStatus}
-            getInstance={() => liveInstancesRef.current.get(`${afx.id}:${openFxKey}`)}
+            getInstance={() => {
+              // Resolve the audible scoped instance (playback for audio tracks,
+              // monitor for MIDI), falling back to bus / legacy unscoped key.
+              const lm = liveInstancesRef.current, b = `${afx.id}:${openFxKey}`;
+              return lm.get(`${b}:playback`) || lm.get(`${b}:monitor`) || lm.get(`${b}:bus`) || lm.get(b);
+            }}
           />
         )}
         {afx && openFxKey && !SPX_PLUGIN_KEYS.has(openFxKey) && (
