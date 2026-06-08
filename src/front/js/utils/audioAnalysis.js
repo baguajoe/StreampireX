@@ -218,11 +218,20 @@ const _detectBpm = (mono, sr) => {
   peaks.sort((a, b) => b.score - a.score);
   const top = peaks.slice(0, 5);
   const maxScore = top[0].score;
-  const sweet = (b) => Math.exp(-Math.pow((b - 120) / 40, 2));
+  // Prior widened (σ 40 → 90) so the Gaussian no longer dominates the actual
+  // autocorrelation strength. The narrower σ used to flip a 96-BPM track to
+  // 128 BPM when a dotted-eighth (96 × 4/3 = 128) gave a real peak alongside
+  // the quarter-note peak — sweet(128) = 0.96 vs sweet(96) = 0.70 was enough
+  // to win on prior alone. σ=90 leaves a gentle preference around 120 without
+  // overriding clearly stronger peaks elsewhere.
+  const sweet = (b) => Math.exp(-Math.pow((b - 120) / 90, 2));
   const cands = [];
   for (const p of top) {
     const baseBpm = 60 / (p.lag * hopTime);
-    for (const mul of [0.5, 1, 2]) {
+    // Multipliers now include 2/3, 3/4, 4/3, 3/2 so the candidate generator
+    // can evaluate metrical relationships (dotted-eighth, triplet, etc.) and
+    // demote the wrong sub-level back to the true base tempo.
+    for (const mul of [0.5, 2/3, 0.75, 1, 4/3, 1.5, 2]) {
       const b = baseBpm * mul;
       if (b < 60 || b > 200) continue;
       const tLag = Math.round((60 / b) / hopTime);
