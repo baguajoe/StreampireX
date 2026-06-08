@@ -8495,6 +8495,15 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
                       <select className="daw-ch-console-select" value={trackConsoleChar[t.id] || "none"} onChange={e => selectTrackConsole(t.id, e.target.value)} onClick={e => e.stopPropagation()}>
                         {Object.entries(CONSOLE_BOARDS).map(([id, b]) => <option key={id} value={id}>{b.name}</option>)}
                       </select>
+                      {trackConsoleChar[t.id] && trackConsoleChar[t.id] !== "none" && (
+                        <button
+                          type="button"
+                          className="daw-ch-console-edit-btn"
+                          title="Open console editor"
+                          onClick={e => { e.stopPropagation(); setOpenConsolePanel(prev => prev === t.id ? null : t.id); }}
+                          style={{ marginLeft: 4, padding: "1px 6px", fontSize: 9, background: openConsolePanel === t.id ? (CONSOLE_BOARDS[trackConsoleChar[t.id]]?.color || "#4a90d9") : "#21262d", color: openConsolePanel === t.id ? "#000" : "#cdd9e5", border: `1px solid ${CONSOLE_BOARDS[trackConsoleChar[t.id]]?.color || "#444"}`, borderRadius: 3, cursor: "pointer", fontFamily: "monospace", fontWeight: 700 }}
+                        >EDIT</button>
+                      )}
                     </div>
                     </div>
                   </div>
@@ -8550,6 +8559,15 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
                   <select className="daw-ch-console-select" value={masterConsoleChar} onChange={e => selectMasterConsole(e.target.value)}>
                     {Object.entries(CONSOLE_BOARDS).map(([id, b]) => <option key={id} value={id}>{b.name}</option>)}
                   </select>
+                  {masterConsoleChar && masterConsoleChar !== "none" && (
+                    <button
+                      type="button"
+                      className="daw-ch-console-edit-btn"
+                      title="Open master console editor"
+                      onClick={e => { e.stopPropagation(); setOpenConsolePanel(prev => prev === "master" ? null : "master"); }}
+                      style={{ marginLeft: 4, padding: "1px 6px", fontSize: 9, background: openConsolePanel === "master" ? (CONSOLE_BOARDS[masterConsoleChar]?.color || "#ff8a3d") : "#21262d", color: openConsolePanel === "master" ? "#000" : "#cdd9e5", border: `1px solid ${CONSOLE_BOARDS[masterConsoleChar]?.color || "#444"}`, borderRadius: 3, cursor: "pointer", fontFamily: "monospace", fontWeight: 700 }}
+                    >EDIT</button>
+                  )}
                 </div>
                 </div>
               </div>
