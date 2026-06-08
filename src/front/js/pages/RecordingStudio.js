@@ -109,7 +109,7 @@ import SpeakerSimulator from "../component/SpeakerSimulator";
 import MonitorRoomPro from "../component/MonitorRoomPro";
 import LeftSidebar from "../component/LeftSidebar";
 import RightSidebar from "../component/RightSidebar";
-import SvgFader from "../component/SvgFader";
+import SvgFader, { volumeToPos } from "../component/SvgFader";
 import VirtualPiano from "../component/VirtualPiano";
 import FreesoundBrowser from "../component/FreesoundBrowser";
 import KeyFinder from "../component/KeyFinder";
@@ -436,47 +436,44 @@ const CubaseMeter = React.memo(({ leftLevel = 0, rightLevel = 0, height = 200, s
 // =============================================================================
 // DB SCALE (Part 18) — inline SVG so number positions are deterministic.
 // =============================================================================
-// Two flavors share one component:
-//   type="fader" — left side of the fader, log Cubase taper
-//                  (+6 / 0 / -6 / -12 / -18 / -∞), hand-tuned to the SvgFader
-//                  thumb positions (which live in a separate module).
-//   type="meter" — right side of the meter, peak-meter scaling. Positions are
-//                  derived from dbToMeterPos so the labels always match the
-//                  CubaseMeter bar fills for the same dB value.
-const FADER_SCALE_MARKS = [
-  { db: "+6",  y: 4   },
-  { db:  "0",  y: 47  },
-  { db: "-6",  y: 92  },
-  { db: "-12", y: 137 },
-  { db: "-18", y: 159 },
-  { db:  "-∞", y: 178 },
-];
-const METER_DB_LIST = [0, -6, -12, -18, -24, -36, -48];
+// Both flavors derive their y positions from the same math that draws the
+// thing they label, so labels and graphics can never drift:
+//   type="fader" — y from volumeToPos (SvgFader.js) so labels track the thumb.
+//   type="meter" — y from dbToMeterPos so labels track the CubaseMeter bar.
+// dB lists are deliberately sparse to keep ~14px+ y-gaps between labels.
+const FADER_DB_LIST = [6, 0, -6, -12, -24, -60];   // -60 renders as "-∞"
+const METER_DB_LIST = [0, -6, -12, -24, -48];
+const formatFaderDb = (db) => db <= -60 ? "-∞" : db > 0 ? `+${db}` : String(db);
 const DBScale = React.memo(({ type = "fader", height = 180 }) => {
   const marks = type === "meter"
     ? METER_DB_LIST.map(db => ({ db: String(db), y: height - dbToMeterPos(db) * height }))
-    : FADER_SCALE_MARKS;
+    : FADER_DB_LIST.map(db => ({ db: formatFaderDb(db), y: height - volumeToPos(Math.pow(10, db / 20)) * height }));
   const w = 26;  // wide enough for "-48" + tick mark
   const align = type === "fader" ? "end"   : "start";
   const tx    = type === "fader" ? w - 6   : 4;
+  const labelMaxY = height - 9;  // glyph height ≈ 9px; keep labels inside the SVG
   return (
     <svg className="db-scale-svg" width={w} height={height}>
-      {marks.map(m => (
-        <g key={m.db}>
-          {/* tick mark */}
-          <line
-            x1={type === "fader" ? w - 4 : 0} y1={m.y - 3}
-            x2={type === "fader" ? w     : 4} y2={m.y - 3}
-            stroke="rgba(255,255,255,0.25)" strokeWidth={1}
-          />
-          <text
-            className="db-scale-text"
-            x={tx} y={m.y}
-            textAnchor={align}
-            dominantBaseline="hanging"
-          >{m.db}</text>
-        </g>
-      ))}
+      {marks.map(m => {
+        // Tick stays at the true bar/thumb position; label clamps so the bottom
+        // mark ("-∞", "-48") doesn't overflow past the SVG's lower edge.
+        const yLabel = Math.max(0, Math.min(labelMaxY, m.y));
+        return (
+          <g key={m.db}>
+            <line
+              x1={type === "fader" ? w - 4 : 0} y1={m.y}
+              x2={type === "fader" ? w     : 4} y2={m.y}
+              stroke="rgba(255,255,255,0.25)" strokeWidth={1}
+            />
+            <text
+              className="db-scale-text"
+              x={tx} y={yLabel}
+              textAnchor={align}
+              dominantBaseline="hanging"
+            >{m.db}</text>
+          </g>
+        );
+      })}
     </svg>
   );
 });
