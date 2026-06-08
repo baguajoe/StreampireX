@@ -36,9 +36,9 @@ const PARAM_SPECS = {
   hpfQ:        { min: 0.1,  max: 2,     label: "Q",    unit: "" },
   satInDrive:  { min: 0,    max: 3,     label: "DRIVE",unit: "" },
   lowFreq:     { min: 40,   max: 600,   label: "FREQ", unit: "Hz", log: true },
-  lowGain:     { min: -6,   max: 6,     label: "GAIN", unit: "dB" },
+  lowGain:     { min: -9,   max: 9,     label: "GAIN", unit: "dB" },
   highFreq:    { min: 3000, max: 18000, label: "FREQ", unit: "Hz", log: true },
-  highGain:    { min: -3,   max: 3,     label: "GAIN", unit: "dB" },
+  highGain:    { min: -9,   max: 9,     label: "GAIN", unit: "dB" },
   satOutDrive: { min: 0,    max: 3,     label: "DRIVE",unit: "" },
   outputGain:  { min: 0.5,  max: 1.2,   label: "TRIM", unit: "" },
 };

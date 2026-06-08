@@ -1478,9 +1478,9 @@ const RecordingStudio = ({ user }) => {
             case "satInDrive":  buildSatCurve(inputSat, clamp(v, 0, 3), !!p.satInAsym); break;
             case "satInAsym":   p.satInAsym = !!v; buildSatCurve(inputSat, p.satInDrive, !!v); break;
             case "lowFreq":     eqLo.frequency.setTargetAtTime(clamp(v, 40, 600), t, TAU_C); break;
-            case "lowGain":     eqLo.gain.setTargetAtTime(clamp(v, -6, 6), t, TAU_C); break;
+            case "lowGain":     eqLo.gain.setTargetAtTime(clamp(v, -9, 9), t, TAU_C); break;
             case "highFreq":    eqHi.frequency.setTargetAtTime(clamp(v, 3000, 18000), t, TAU_C); break;
-            case "highGain":    eqHi.gain.setTargetAtTime(clamp(v, -3, 3), t, TAU_C); break;
+            case "highGain":    eqHi.gain.setTargetAtTime(clamp(v, -9, 9), t, TAU_C); break;
             case "satOutDrive": buildSatCurve(outputSat, clamp(v, 0, 3), !!p.satOutAsym); break;
             case "satOutAsym":  p.satOutAsym = !!v; buildSatCurve(outputSat, p.satOutDrive, !!v); break;
             case "outputGain":  outputGain.gain.setTargetAtTime(clamp(v, 0.5, 1.2), t, TAU_C); break;
