@@ -485,7 +485,7 @@ const MicModelSelector = React.memo(({ trackIndex, currentModel, onApply }) => {
   const [isOpen, setIsOpen] = useState(false);
   const isActive = currentModel && currentModel !== "none";
   return (
-    <>
+    <div className="daw-ch-mic-wrapper">
       <button
         className={"daw-ch-mic-btn" + (isActive ? " active" : "")}
         onClick={() => setIsOpen(!isOpen)}
@@ -513,7 +513,7 @@ const MicModelSelector = React.memo(({ trackIndex, currentModel, onApply }) => {
           ))}
         </div>
       )}
-    </>
+    </div>
   );
 });
 
