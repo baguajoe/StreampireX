@@ -61,7 +61,8 @@ from api.recording_studio_routes import recording_studio_bp
 from api.beat_store_routes import beat_store_bp
 from api.ai_chord_generator import ai_chord_generator_bp
 from api.ai_video_tools import ai_video_tools_bp
-from api.epk_collab import epk_collab_bp
+# epk_collab_bp: removed — duplicate of epk_collab_routes (same 'epk_collab' Blueprint name + identical
+# routes); the maintained/hardened copy is api.epk_collab_routes, registered below. See L633.
 
 # Import your blueprints - use src prefix
 from api.routes import api
@@ -96,7 +97,7 @@ from api.podcast_socket_events import register_podcast_socket_events
 from api.support_routes import support_bp
 from api.ai_credits_routes import ai_credits_bp
 from api.sampler_storage_routes import sampler_storage_bp
-from api.epk_collab import epk_collab_bp
+# epk_collab_bp: duplicate import removed — see note near L64; use api.epk_collab_routes (registered at L633)
 from api.tournament_routes import tournament_bp
 from api.storefront_routes import storefront_bp  # MC-1: Marketplace consolidation  # SP-5
 from api.contact_routes import contact_bp
@@ -365,7 +366,7 @@ app.register_blueprint(podcast_phase2_bp)
 app.register_blueprint(support_bp)
 app.register_blueprint(ai_credits_bp)
 app.register_blueprint(sampler_storage_bp)
-app.register_blueprint(epk_collab_bp)
+# epk_collab_bp registration removed — epk_collab_routes (epk_collab_routes_bp) registered at L633 covers it
 app.register_blueprint(contact_bp)
 app.register_blueprint(sonosuite_bp)
 app.register_blueprint(analytics_bp)

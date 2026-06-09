@@ -868,7 +868,7 @@ def apply_to_collab(req_id):
     if str(cr.user_id) == str(uid):
         return jsonify({"error": "Cannot apply to your own request"}), 400
 
-    existing = CollabApplication.query.filter_by(request_id=req_id, user_id=uid).first()
+    existing = CollabApplication.query.filter_by(request_id=req_id, applicant_id=uid).first()  # SP-2a: CollabApplication has applicant_id, not user_id (ported from epk_collab.py before it was dropped)
     if existing:
         return jsonify({"error": "Already applied"}), 400
 
