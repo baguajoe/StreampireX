@@ -363,6 +363,7 @@ class Deck {
     this.hotcues=[null,null,null,null];
     this.loop=false;this.loopStart=0;this.loopEnd=4;this.pitch=1.0;
     this.slip=false;this.title="";this.artwork=null;this.audioType="original";
+    this.stemData=null;this.stemSources=null;this.usingStems=false;
   }
   setup(out){
     const c=getCtx();
@@ -383,11 +384,25 @@ class Deck {
   play(off){
     if(!this.buffer)return;const c=getCtx();
     if(c.state==="suspended")c.resume();this._stop();
+    const o=off!==undefined?off:this.pauseOffset;
+    if(this.usingStems&&this.stemData){
+      // Stem mode: start all stem sources at one shared AudioContext time so they stay phase-locked.
+      this.stemSources=[];
+      const startAt=c.currentTime+0.03;
+      for(const name of Object.keys(this.stemData)){
+        const sd=this.stemData[name];if(!sd||!sd.buffer||!sd.gain)continue;
+        const src=c.createBufferSource();src.buffer=sd.buffer;src.playbackRate.value=this.pitch;
+        if(this.loop){src.loop=true;src.loopStart=this.loopStart;src.loopEnd=this.loopEnd;}
+        src.connect(sd.gain);
+        src.start(startAt,Math.max(0,o));
+        this.stemSources.push(src);
+      }
+      this.startTime=startAt-o;this.playing=true;return;
+    }
     this.source=c.createBufferSource();this.source.buffer=this.buffer;
     this.source.playbackRate.value=this.pitch;
     if(this.loop){this.source.loop=true;this.source.loopStart=this.loopStart;this.source.loopEnd=this.loopEnd;}
     this.source.connect(this.gainNode);
-    const o=off!==undefined?off:this.pauseOffset;
     this.source.start(0,Math.max(0,o));this.startTime=c.currentTime-o;this.playing=true;
   }
   pause(){if(!this.playing)return;this.pauseOffset=this.currentTime();this._stop();this.playing=false;}
@@ -412,7 +427,18 @@ class Deck {
     else{node=c.createGain();}
     if(node){this.eqHigh.disconnect();this.eqHigh.connect(node);node.connect(this.fxWet);this.eqHigh.connect(this.fxDry);this.currentFX=node;}
   }
-  _stop(){try{if(this.source){this.source.stop();this.source.disconnect();}}catch(_){}this.source=null;}
+  _stop(){
+    try{if(this.source){this.source.stop();this.source.disconnect();}}catch(_){}this.source=null;
+    if(this.stemSources){for(const s of this.stemSources){try{s.stop();s.disconnect();}catch(_){}}this.stemSources=null;}
+  }
+  // Switch the deck into stem mode. stemData: {drums:{buffer,gain}, bass:{...}, vocals:{...}, other:{...}}
+  // Each gain is already connected into the deck channel (this.gainNode) so deck EQ/FX/crossfader apply.
+  setStems(stemData){
+    const wasPlaying=this.playing;const pos=this.currentTime();
+    this._stop();                 // kill the original full-mix source so only stems are heard
+    this.stemData=stemData;this.usingStems=true;this.pauseOffset=pos;
+    if(wasPlaying)this.play(pos);
+  }
   getFreq(){if(!this.analyser)return new Uint8Array(64);const d=new Uint8Array(this.analyser.frequencyBinCount);this.analyser.getByteFrequencyData(d);return d;}
 }
 
@@ -832,20 +858,26 @@ export default function DJMixer(){
       let offset=44;
       for(let i=0;i<len;i++)for(let ch=0;ch<numCh;ch++){const samp=Math.max(-1,Math.min(1,dk.buffer.getChannelData(ch)[i]));view.setInt16(offset,samp<0?samp*0x8000:samp*0x7FFF,true);offset+=2;}
       const blob=new Blob([wavBuf],{type:"audio/wav"});
-      const form=new FormData();form.append("audio",blob,"deck_"+id+".wav");form.append("model","htdemucs");
+      const form=new FormData();form.append("file",blob,"deck_"+id+".wav");form.append("model","htdemucs");
       const res=await fetch(`${BACKEND}/api/ai/stems/separate-upload`,{method:"POST",headers:{Authorization:`Bearer ${token}`},body:form});
       if(!res.ok)throw new Error("Stem separation failed — "+res.status);
       const data=await res.json();
-      const stemUrls={drums:data.drums_url,bass:data.bass_url,vocals:data.vocals_url,other:data.other_url};
-      const stems={};const out=id==="A"?xgA.current:xgB.current;
+      // Backend returns { stems: { drums:{url}, bass:{url}, vocals:{url}, other:{url} } }
+      const sd=data.stems||{};
+      const stemUrls={drums:sd.drums?.url,bass:sd.bass?.url,vocals:sd.vocals?.url,other:sd.other?.url};
+      const stems={};const stemData={};
       for(const[name,url]of Object.entries(stemUrls)){
         if(!url)continue;
         const r=await fetch(url);const ab=await r.arrayBuffer();
         const buf=await c.decodeAudioData(ab);
-        const gn=c.createGain();gn.gain.value=1;gn.connect(out||c.destination);
+        // Route each stem's gain into the deck channel head so deck EQ/FX/crossfader/master all apply.
+        const gn=c.createGain();gn.gain.value=1;gn.connect(dk.gainNode||c.destination);
         stems[name+"_buf"]=buf;stems[name+"_gain"]=gn;
+        stemData[name]={buffer:buf,gain:gn};
       }
-      upd(id,{stems,stemsLoading:false,stemVols:{drums:1,bass:1,vocals:1,other:1},stemMutes:{}});
+      if(Object.keys(stemData).length===0)throw new Error("Stem separation returned no stems");
+      dk.setStems(stemData);  // stop original full-mix source; start stems together (sample-accurate)
+      upd(id,{stems,stemsLoading:false,playing:dk.playing,stemVols:{drums:1,bass:1,vocals:1,other:1},stemMutes:{}});
     }catch(e){console.error("Stems error:",e);upd(id,{stemsLoading:false});setDjStatus("Stem separation failed: "+e.message);}
   },[ds,store]);
 
