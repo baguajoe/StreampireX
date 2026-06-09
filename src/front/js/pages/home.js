@@ -204,6 +204,9 @@ const Home = () => {
                         Every tool you need to create anything — music, video, 3D, animation, scripts, podcasts, DJ sets, and live broadcasts.
                         Browser-based and desktop. No plugins to buy. No subscriptions per tool.
                     </p>
+                    <p className="section-subtitle">
+                        Tools marked LIVE are available now — the rest are launching soon.
+                    </p>
                     <div className="feature-grid">
                         <div className="feature-card">
                             <span className="feature-icon">🎛️</span>
