@@ -1200,6 +1200,36 @@
 	color: #ffffff !important;
 }
 
+/* Status badges for the 13-tool SPX Creative Suite grid (top-left corner) */
+.streampirex-home .feature-grid .feature-card {
+	padding-top: 2.75rem; /* clear room for the LIVE/SOON status badge */
+}
+
+.streampirex-home .status-badge {
+	position: absolute;
+	top: 1rem;
+	left: 1rem;
+	padding: 0.25rem 0.6rem;
+	border-radius: 20px;
+	font-size: 0.65rem;
+	font-weight: 800;
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+	z-index: 1;
+}
+
+.streampirex-home .status-badge.status-live {
+	background: var(--spx-teal) !important;
+	color: #0d1117 !important;
+	box-shadow: 0 0 12px rgba(0, 255, 200, 0.4);
+}
+
+.streampirex-home .status-badge.status-soon {
+	background: rgba(255, 255, 255, 0.08) !important;
+	color: #8b949e !important;
+	border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 /* =============================================
    Podcast Studio Spotlight
    ============================================= */

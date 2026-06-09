@@ -196,37 +196,108 @@ const Home = () => {
 			</header>
 
 			{/* ================================================================
-			    2. PROBLEM / SOLUTION: THE EMPATHY
+			    2. SPX CREATIVE SUITE — 13 PROFESSIONAL TOOLS
 			    ================================================================ */}
-			<section className="problem-solution">
-				<div className="problem">
-					<h3>😫 The Creator Problem</h3>
-					<p>
-						Fee fatigue. App jumping. Losing 30–50% of revenue to corporate giants.
-						Juggling 15+ apps for production, distribution, editing, hosting,
-						streaming, analytics, scheduling, licensing, and payments. Paying
-						$100–$350+ per month across disconnected tools. No audience ownership.
-						No simple way to mix or master without expensive software. Separate
-						Replace Adobe, FL Studio, Twitch, Patreon, Shopify, Spotify — and 15 other tools.
-                                            One subscription. 13 professional creative tools. 150+ distribution platforms.
-                                            90% revenue share on everything you earn.
-						collaboration.
-					</p>
-				</div>
-
-				<div className="solution">
-					<h3>✨ The StreamPireX Solution</h3>
-					<p>
-						A unified ecosystem where your tools, audience, and marketplace live
-						together. Record, mix, and master with AI help. Build synths, design
-						drums, and create custom instruments directly in the DAW. Make beats
-						with the MPC sampler. Sell beats with auto-generated license agreements.
-						Host and monetize podcasts. Stream live. Run 24/7 radio with an AI DJ. Go live on video with SPX Broadcast Studio — multi-host video, overlays, tip jar, song requests. BMI/ASCAP song logging built in.
-						Edit video. Build your EPK. Find collaborators. Sell merch and digital
-						products. Distribute to 150+ platforms. Keep 90% of your money.
-					</p>
-				</div>
-			</section>
+			<section className="features">
+                    <h2>🖥️ SPX Creative Suite — 13 Professional Tools</h2>
+                    <p className="section-subtitle">
+                        Every tool you need to create anything — music, video, 3D, animation, scripts, podcasts, DJ sets, and live broadcasts.
+                        Browser-based and desktop. No plugins to buy. No subscriptions per tool.
+                    </p>
+                    <div className="feature-grid">
+                        <div className="feature-card">
+                            <span className="feature-icon">🎛️</span>
+                            <h4>SPX Studio</h4>
+                            <span className="status-badge status-live">LIVE</span>
+                            <p>32-track DAW with 8 analog console characters (SSL, Neve, API, Trident, Studer, MCI), 22-profile speaker sim, VoxEngine vocoder, AI mastering, WAM/VST3 plugins.</p>
+                            <span className="feature-tag">DAW</span>
+                        </div>
+                        <div className="feature-card">
+                            <span className="feature-icon">🥁</span>
+                            <h4>SPX Beat Lab</h4>
+                            <span className="status-badge status-live">LIVE</span>
+                            <p>7 vintage hardware DSP engines (SPX-1200, SPX-3000, SPX-60, SPX-950, SPX-EPS, SPX-10) + SPX-Trident 3-engine unified. 16 pads, 64-step sequencer, AI beats, stem separation.</p>
+                            <span className="feature-tag">Beats</span>
+                        </div>
+                        <div className="feature-card">
+                            <span className="feature-icon">🎬</span>
+                            <h4>SPX Cut</h4>
+                            <span className="status-badge status-live">LIVE</span>
+                            <p>Multi-track video editor with 40+ effects, AI background removal, motion tracking, auto-captions, stem-aware audio editing, 4K export, and real-time collaboration.</p>
+                            <span className="feature-tag">Video</span>
+                        </div>
+                        <div className="feature-card">
+                            <span className="feature-icon">✨</span>
+                            <h4>SPX Motion</h4>
+                            <span className="status-badge status-soon">SOON</span>
+                            <p>After Effects-style motion graphics with keyframe animation, particle emitter, expressions engine, camera presets, blend modes, and cloud save.</p>
+                            <span className="feature-tag">Motion</span>
+                        </div>
+                        <div className="feature-card">
+                            <span className="feature-icon">🎛️</span>
+                            <h4>SPX Compositor</h4>
+                            <span className="status-badge status-soon">SOON</span>
+                            <p>DaVinci Fusion-style node-based compositing with color grading, LUT support, chroma key, blur/merge nodes, roto/mask editor, and GPU multi-pass rendering.</p>
+                            <span className="feature-tag">VFX</span>
+                        </div>
+                        <div className="feature-card">
+                            <span className="feature-icon">🎨</span>
+                            <h4>SPX Canvas</h4>
+                            <span className="status-badge status-live">LIVE</span>
+                            <p>Browser-based raster editor with layers, blend modes, filters, text/shapes, PNG/JPG/WebP export, and Cloudflare R2 cloud save.</p>
+                            <span className="feature-tag">Design</span>
+                        </div>
+                        <div className="feature-card">
+                            <span className="feature-icon">✒️</span>
+                            <h4>SPX Vector</h4>
+                            <span className="status-badge status-live">LIVE</span>
+                            <p>Browser-based vector editor with paths, shapes, boolean operations, SVG export, and cloud save. No Illustrator subscription needed.</p>
+                            <span className="feature-tag">Vector</span>
+                        </div>
+                        <div className="feature-card highlight">
+                            <span className="feature-icon">🧊</span>
+                            <h4>SPX 3D Mesh</h4>
+                            <span className="status-badge status-live">LIVE</span>
+                            <p>Full 3D modeling, sculpting, animation suite. BVH mocap, cloth sim, hair suite, FLIP fluid, GPU path tracer, VFX/destruction, crowd system. Desktop Electron build competes with Blender and Maya.</p>
+                            <span className="feature-tag new">3D</span>
+                        </div>
+                        <div className="feature-card highlight">
+                            <span className="feature-icon">🎭</span>
+                            <h4>SPX Puppet</h4>
+                            <span className="status-badge status-soon">SOON</span>
+                            <p>CA5-style 2D character animation with AutoRig, FABRIK IK, MediaPipe real-time mocap, ElevenLabs AI voice, auto lip sync, film pipeline with SceneSequencer and CameraAnimator.</p>
+                            <span className="feature-tag new">Animation</span>
+                        </div>
+                        <div className="feature-card">
+                            <span className="feature-icon">🎙️</span>
+                            <h4>SPX Cast</h4>
+                            <span className="status-badge status-soon">SOON</span>
+                            <p>Record podcasts with remote WebRTC guests, webcam video, screen share, AI transcription, RSS distribution to Apple/Spotify/Google, monetization, and fan memberships.</p>
+                            <span className="feature-tag">Podcast</span>
+                        </div>
+                        <div className="feature-card">
+                            <span className="feature-icon">🎚️</span>
+                            <h4>SPX DJ Mixer</h4>
+                            <span className="status-badge status-soon">SOON</span>
+                            <p>Dual pro decks with DVS timecode vinyl control, BPM sync, hot cues, stems per deck, FX panel, and simulcast to SPX/Twitch/YouTube. MIDI controller support.</p>
+                            <span className="feature-tag">DJ</span>
+                        </div>
+                        <div className="feature-card">
+                            <span className="feature-icon">📝</span>
+                            <h4>SPX Script</h4>
+                            <span className="status-badge status-live">LIVE</span>
+                            <p>Industry-standard screenplay editor with Comic Book mode, AI Generator (FLUX 1.1 Pro), FDX/Fountain import/export, and World Mode — Bible, Map, Timeline, Relationships, Moodboard.</p>
+                            <span className="feature-tag">Writing</span>
+                        </div>
+                        <div className="feature-card highlight">
+                            <span className="feature-icon">📺</span>
+                            <h4>SPX Broadcast Studio</h4>
+                            <span className="status-badge status-soon">SOON</span>
+                            <p>Multi-host live video studio wired to your radio station. Up to 4 hosts on camera, screen share any SPX tool live, lower thirds, ticker, tip jar, song requests. Replaces StreamYard.</p>
+                            <span className="feature-tag new">LIVE</span>
+                        </div>
+                    </div>
+                </section>
 
 			{/* ================================================================
 			    3. COST COMPARISON: THE LOGIC
@@ -269,6 +340,39 @@ const Home = () => {
                         </div>
                     </div>
                 </section>
+
+			{/* ================================================================
+			    2. PROBLEM / SOLUTION: THE EMPATHY
+			    ================================================================ */}
+			<section className="problem-solution">
+				<div className="problem">
+					<h3>😫 The Creator Problem</h3>
+					<p>
+						Fee fatigue. App jumping. Losing 30–50% of revenue to corporate giants.
+						Juggling 15+ apps for production, distribution, editing, hosting,
+						streaming, analytics, scheduling, licensing, and payments. Paying
+						$100–$350+ per month across disconnected tools. No audience ownership.
+						No simple way to mix or master without expensive software. Separate
+						Replace Adobe, FL Studio, Twitch, Patreon, Shopify, Spotify — and 15 other tools.
+                                            One subscription. 13 professional creative tools. 150+ distribution platforms.
+                                            90% revenue share on everything you earn.
+						collaboration.
+					</p>
+				</div>
+
+				<div className="solution">
+					<h3>✨ The StreamPireX Solution</h3>
+					<p>
+						A unified ecosystem where your tools, audience, and marketplace live
+						together. Record, mix, and master with AI help. Build synths, design
+						drums, and create custom instruments directly in the DAW. Make beats
+						with the MPC sampler. Sell beats with auto-generated license agreements.
+						Host and monetize podcasts. Stream live. Run 24/7 radio with an AI DJ. Go live on video with SPX Broadcast Studio — multi-host video, overlays, tip jar, song requests. BMI/ASCAP song logging built in.
+						Edit video. Build your EPK. Find collaborators. Sell merch and digital
+						products. Distribute to 150+ platforms. Keep 90% of your money.
+					</p>
+				</div>
+			</section>
 
 			{/* ================================================================
 			    4. FREE FEATURES BANNER: THE LEAD MAGNET
@@ -801,38 +905,6 @@ const Home = () => {
 			</section>
 
 			{/* ================================================================
-			    8b. SPX CREATIVE SUITE — Motion, Compositor, Canvas, Vector
-			    ================================================================ */}
-			<section style={{ padding:"80px 20px", background:"#0a0e16" }}>
-				<div style={{ maxWidth:1100, margin:"0 auto" }}>
-					<h2 style={{ fontSize:"clamp(1.8rem,3vw,2.8rem)", fontWeight:900, color:"#e6edf3", textAlign:"center", marginBottom:12, letterSpacing:-1 }}>
-						🎨 SPX Creative Suite
-					</h2>
-					<p style={{ textAlign:"center", color:"#8b949e", fontSize:15, maxWidth:700, margin:"0 auto 48px", lineHeight:1.7 }}>
-						Professional motion graphics, node compositing, canvas design, and vector illustration — all browser-based, all cloud-saved to your account.
-					</p>
-					<div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))", gap:20 }}>
-						{[
-							{ icon:"✨", name:"SPX Motion", desc:"After Effects-style motion studio. Keyframe animation, layers, easing curves, particle effects, and WebM export.", tag:"NEW", color:"#00ffc8" },
-							{ icon:"🔀", name:"SPX Compositor", desc:"DaVinci Fusion-style node compositor. Color grade, chroma key, blur, merge, LUT, and GPU multi-pass rendering.", tag:"NEW", color:"#bf5af2" },
-							{ icon:"🖼️", name:"SPX Canvas", desc:"Figma-lite canvas editor. Shapes, text, images, blend modes, filters, and PNG/JPG/WebP export.", tag:"FREE", color:"#ff6600" },
-							{ icon:"✒️", name:"SPX Vector", desc:"Illustrator-lite vector editor. Paths, shapes, boolean ops, and SVG export.", tag:"FREE", color:"#ffd60a" },
-						].map(tool => (
-							<div key={tool.name} style={{ background:"#0d1117", border:`1px solid ${tool.color}22`, borderRadius:16, padding:24, display:"flex", flexDirection:"column", gap:12 }}>
-								<div style={{ fontSize:36 }}>{tool.icon}</div>
-								<div style={{ display:"flex", alignItems:"center", gap:8 }}>
-									<h4 style={{ color:"#e6edf3", fontWeight:800, fontSize:16, margin:0 }}>{tool.name}</h4>
-									<span style={{ padding:"2px 8px", borderRadius:100, fontSize:10, fontWeight:800, background:`${tool.color}18`, border:`1px solid ${tool.color}44`, color:tool.color }}>{tool.tag}</span>
-								</div>
-								<p style={{ color:"#8b949e", fontSize:13, lineHeight:1.6, margin:0 }}>{tool.desc}</p>
-								<div style={{ fontSize:11, color:"#4e6a82", marginTop:"auto" }}>☁️ Auto-saves to cloud · File/Edit/View menus · Export to R2</div>
-							</div>
-						))}
-					</div>
-				</div>
-			</section>
-
-			{/* ================================================================
 			    8c. SPX ANALOG SUITE
 			    ================================================================ */}
 			<section style={{ padding:"80px 20px", background:"#06060f" }}>
@@ -939,97 +1011,6 @@ const Home = () => {
 					<a href="#waitlist" className="btn btn-outline-light">Request Early Access</a>
 				</div>
 			</section>
-
-			{/* ================================================================
-			    10. UNIFIED STUDIO, RADIO & DISTRIBUTION: THE CLOSE
-			    ================================================================ */}
-			<section className="features">
-                    <h2>🖥️ SPX Creative Suite — 13 Professional Tools</h2>
-                    <p className="section-subtitle">
-                        Every tool you need to create anything — music, video, 3D, animation, scripts, podcasts, DJ sets, and live broadcasts.
-                        Browser-based and desktop. No plugins to buy. No subscriptions per tool.
-                    </p>
-                    <div className="feature-grid">
-                        <div className="feature-card">
-                            <span className="feature-icon">🎛️</span>
-                            <h4>SPX Studio</h4>
-                            <p>32-track DAW with 8 analog console characters (SSL, Neve, API, Trident, Studer, MCI), 22-profile speaker sim, VoxEngine vocoder, AI mastering, WAM/VST3 plugins.</p>
-                            <span className="feature-tag">DAW</span>
-                        </div>
-                        <div className="feature-card">
-                            <span className="feature-icon">🥁</span>
-                            <h4>SPX Beat Lab</h4>
-                            <p>7 vintage hardware DSP engines (SPX-1200, SPX-3000, SPX-60, SPX-950, SPX-EPS, SPX-10) + SPX-Trident 3-engine unified. 16 pads, 64-step sequencer, AI beats, stem separation.</p>
-                            <span className="feature-tag">Beats</span>
-                        </div>
-                        <div className="feature-card">
-                            <span className="feature-icon">🎬</span>
-                            <h4>SPX Cut</h4>
-                            <p>Multi-track video editor with 40+ effects, AI background removal, motion tracking, auto-captions, stem-aware audio editing, 4K export, and real-time collaboration.</p>
-                            <span className="feature-tag">Video</span>
-                        </div>
-                        <div className="feature-card">
-                            <span className="feature-icon">✨</span>
-                            <h4>SPX Motion</h4>
-                            <p>After Effects-style motion graphics with keyframe animation, particle emitter, expressions engine, camera presets, blend modes, and cloud save.</p>
-                            <span className="feature-tag">Motion</span>
-                        </div>
-                        <div className="feature-card">
-                            <span className="feature-icon">🎛️</span>
-                            <h4>SPX Compositor</h4>
-                            <p>DaVinci Fusion-style node-based compositing with color grading, LUT support, chroma key, blur/merge nodes, roto/mask editor, and GPU multi-pass rendering.</p>
-                            <span className="feature-tag">VFX</span>
-                        </div>
-                        <div className="feature-card">
-                            <span className="feature-icon">🎨</span>
-                            <h4>SPX Canvas</h4>
-                            <p>Browser-based raster editor with layers, blend modes, filters, text/shapes, PNG/JPG/WebP export, and Cloudflare R2 cloud save.</p>
-                            <span className="feature-tag">Design</span>
-                        </div>
-                        <div className="feature-card">
-                            <span className="feature-icon">✒️</span>
-                            <h4>SPX Vector</h4>
-                            <p>Browser-based vector editor with paths, shapes, boolean operations, SVG export, and cloud save. No Illustrator subscription needed.</p>
-                            <span className="feature-tag">Vector</span>
-                        </div>
-                        <div className="feature-card highlight">
-                            <span className="feature-icon">🧊</span>
-                            <h4>SPX 3D Mesh</h4>
-                            <p>Full 3D modeling, sculpting, animation suite. BVH mocap, cloth sim, hair suite, FLIP fluid, GPU path tracer, VFX/destruction, crowd system. Desktop Electron build competes with Blender and Maya.</p>
-                            <span className="feature-tag new">3D</span>
-                        </div>
-                        <div className="feature-card highlight">
-                            <span className="feature-icon">🎭</span>
-                            <h4>SPX Puppet</h4>
-                            <p>CA5-style 2D character animation with AutoRig, FABRIK IK, MediaPipe real-time mocap, ElevenLabs AI voice, auto lip sync, film pipeline with SceneSequencer and CameraAnimator.</p>
-                            <span className="feature-tag new">Animation</span>
-                        </div>
-                        <div className="feature-card">
-                            <span className="feature-icon">🎙️</span>
-                            <h4>SPX Cast</h4>
-                            <p>Record podcasts with remote WebRTC guests, webcam video, screen share, AI transcription, RSS distribution to Apple/Spotify/Google, monetization, and fan memberships.</p>
-                            <span className="feature-tag">Podcast</span>
-                        </div>
-                        <div className="feature-card">
-                            <span className="feature-icon">🎚️</span>
-                            <h4>SPX DJ Mixer</h4>
-                            <p>Dual pro decks with DVS timecode vinyl control, BPM sync, hot cues, stems per deck, FX panel, and simulcast to SPX/Twitch/YouTube. MIDI controller support.</p>
-                            <span className="feature-tag">DJ</span>
-                        </div>
-                        <div className="feature-card">
-                            <span className="feature-icon">📝</span>
-                            <h4>SPX Script</h4>
-                            <p>Industry-standard screenplay editor with Comic Book mode, AI Generator (FLUX 1.1 Pro), FDX/Fountain import/export, and World Mode — Bible, Map, Timeline, Relationships, Moodboard.</p>
-                            <span className="feature-tag">Writing</span>
-                        </div>
-                        <div className="feature-card highlight">
-                            <span className="feature-icon">📺</span>
-                            <h4>SPX Broadcast Studio</h4>
-                            <p>Multi-host live video studio wired to your radio station. Up to 4 hosts on camera, screen share any SPX tool live, lower thirds, ticker, tip jar, song requests. Replaces StreamYard.</p>
-                            <span className="feature-tag new">LIVE</span>
-                        </div>
-                    </div>
-                </section>
 
 			{/* ================================================================
 			    PODCAST STUDIO SPOTLIGHT KEPT
