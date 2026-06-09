@@ -54,6 +54,9 @@ import { createGatePlugin } from './plugins/GatePlugin';
 import { createGatedReverbPlugin } from './plugins/GatedReverbPlugin';
 import { createGranularFreezePlugin } from './plugins/GranularFreezePlugin';
 import { createGraphicEQPlugin } from './plugins/GraphicEQPlugin';
+import { createGraphicEQ4BandPlugin } from './plugins/GraphicEQ4BandPlugin';
+import { createGraphicEQ5BandPlugin } from './plugins/GraphicEQ5BandPlugin';
+import { createGraphicEQ6BandPlugin } from './plugins/GraphicEQ6BandPlugin';
 import { createHaasEffectPlugin } from './plugins/HaasEffectPlugin';
 import { createHallReverbPlugin } from './plugins/HallReverbPlugin';
 import { createHarmonicExciterPlugin } from './plugins/HarmonicExciterPlugin';
@@ -120,7 +123,9 @@ let _nextId = 1;
 const _loadedWorklets = new Set();
 
 // Factory map: pluginId → create function
-const PLUGIN_FACTORIES = {
+// Part 16: exported so callers (Recording Studio) can instantiate plugin
+// instances directly, bypassing the PluginHost class for simple insert chains.
+export const PLUGIN_FACTORIES = {
   gain:       createGainPlugin,
   eq_3band:   createEQ3BandPlugin,
   compressor: createCompressorPlugin,
@@ -170,6 +175,9 @@ const PLUGIN_FACTORIES = {
   gated_reverb:       createGatedReverbPlugin,
   granular_freeze:       createGranularFreezePlugin,
   graphic_eq:       createGraphicEQPlugin,
+  graphic_e_q4_band: createGraphicEQ4BandPlugin,
+  graphic_e_q5_band: createGraphicEQ5BandPlugin,
+  graphic_e_q6_band: createGraphicEQ6BandPlugin,
   haas_effect:       createHaasEffectPlugin,
   hall_reverb:       createHallReverbPlugin,
   harmonic_exciter:       createHarmonicExciterPlugin,

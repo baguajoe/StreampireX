@@ -5,8 +5,8 @@
 export const createTremoloPlugin = (context, p = {}) => {
   const input=context.createGain(), output=context.createGain();
   const lfo=context.createOscillator(), lfoGain=context.createGain(), amp=context.createGain();
-  lfo.frequency.value=p.rate??4; lfo.type='sine';
-  lfoGain.gain.value=p.depth??0.5;
+  lfo.frequency.value=p.rate??1; lfo.type='sine';
+  lfoGain.gain.value=p.depth??0;
   amp.gain.value=0.5;
   lfo.connect(lfoGain); lfoGain.connect(amp.gain); lfo.start();
   input.connect(amp); amp.connect(output);

@@ -1,8 +1,27 @@
 import React, { useEffect, useRef, useMemo } from "react";
+// Part 11: shared preset bar (Save/Load/Default/A/B + factory + status). Same
+// component the SPX plugin host uses so native effects feel identical.
+import { PresetBar } from "./SPXPlugins";
+import { FACTORY_PRESETS } from "../utils/pluginPresets";
 
 // =============================================================================
 // ConsoleFXPanel.js — StreamPireX Pro Analog Rack / Channel Strip
 // =============================================================================
+// Part 11 helper: wrap PresetBar so the per-effect block can pass updateEffect
+// curried to (newParams) → fan-out per-param updates. Render only when there
+// are presets or factory defaults registered for this plugin key — otherwise
+// the bar would just clutter effects we haven't tuned yet.
+const FxPresetBar = ({ pluginKey, params, trackIndex, updateEffect, setStatus }) => {
+  if (!FACTORY_PRESETS[pluginKey]) return null;  // skip plugins without registered presets/defaults
+  const onChange = React.useCallback((newParams) => {
+    if (!newParams) return;
+    Object.entries(newParams).forEach(([k, v]) => {
+      if (k === "enabled") return;  // never let presets toggle bypass
+      updateEffect(trackIndex, pluginKey, k, v);
+    });
+  }, [pluginKey, trackIndex, updateEffect]);
+  return <PresetBar pluginKey={pluginKey} params={params} onChange={onChange} setStatus={setStatus} />;
+};
 
 const C = {
   bg: "#0a1018",
@@ -759,7 +778,7 @@ const AnalogRackSummary = ({ fx = {} }) => {
 // MAIN
 // =============================================================================
 
-const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey }) => {
+const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey, setStatus }) => {
 
   const snapshotARef = React.useRef(null);
   const snapshotBRef = React.useRef(null);
@@ -902,6 +921,7 @@ const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey })
           <EQGraph eq={fx.eq || {}} />
           {fx.eq?.enabled && (
             <div style={{ marginTop: 6 }}>
+              <FxPresetBar pluginKey="eq" params={fx.eq} trackIndex={trackIndex} updateEffect={updateEffect} setStatus={setStatus}/>
               <P label="Low" value={`${fx.eq.lowGain || 0}dB`}>
                 <Slider min={-12} max={12} step={0.5} value={fx.eq.lowGain || 0} onChange={(v) => u("eq", "lowGain", v)} />
               </P>
@@ -932,6 +952,7 @@ const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey })
           <CompGraph comp={fx.compressor || {}} />
           {fx.compressor?.enabled && (
             <div style={{ marginTop: 6 }}>
+              <FxPresetBar pluginKey="compressor" params={fx.compressor} trackIndex={trackIndex} updateEffect={updateEffect} setStatus={setStatus}/>
               <P label="Thresh" value={`${fx.compressor.threshold}dB`}>
                 <Slider min={-60} max={0} step={1} value={fx.compressor.threshold} onChange={(v) => u("compressor", "threshold", v)} color={C.yellow} />
               </P>
@@ -959,6 +980,7 @@ const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey })
           <ReverbGraph reverb={fx.reverb || {}} />
           {fx.reverb?.enabled && (
             <div style={{ marginTop: 6 }}>
+              <FxPresetBar pluginKey="reverb" params={fx.reverb} trackIndex={trackIndex} updateEffect={updateEffect} setStatus={setStatus}/>
               <P label="Mix" value={`${Math.round((fx.reverb.mix || 0) * 100)}%`}>
                 <Slider min={0} max={1} step={0.01} value={fx.reverb.mix || 0} onChange={(v) => u("reverb", "mix", v)} color={C.purple} />
               </P>
@@ -980,6 +1002,7 @@ const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey })
           <DelayGraph delay={fx.delay || {}} />
           {fx.delay?.enabled && (
             <div style={{ marginTop: 6 }}>
+              <FxPresetBar pluginKey="delay" params={fx.delay} trackIndex={trackIndex} updateEffect={updateEffect} setStatus={setStatus}/>
               <P label="Time" value={`${((fx.delay.time || 0.3) * 1000).toFixed(0)}ms`}>
                 <Slider min={0.01} max={2} step={0.01} value={fx.delay.time || 0.3} onChange={(v) => u("delay", "time", v)} color={C.orange} />
               </P>
@@ -1004,6 +1027,7 @@ const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey })
           <FilterGraph filter={fx.filter || {}} />
           {fx.filter?.enabled && (
             <div style={{ marginTop: 6 }}>
+              <FxPresetBar pluginKey="filter" params={fx.filter} trackIndex={trackIndex} updateEffect={updateEffect} setStatus={setStatus}/>
               <P label="Type" value="">
                 <Sel
                   value={fx.filter.type || "lowpass"}
@@ -1040,6 +1064,7 @@ const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey })
           <DistGraph distortion={fx.distortion || {}} />
           {fx.distortion?.enabled && (
             <div style={{ marginTop: 6 }}>
+              <FxPresetBar pluginKey="distortion" params={fx.distortion} trackIndex={trackIndex} updateEffect={updateEffect} setStatus={setStatus}/>
               <P label="Amount" value={fx.distortion.amount || 0}>
                 <Slider min={0} max={100} step={1} value={fx.distortion.amount || 0} onChange={(v) => u("distortion", "amount", v)} color={C.red} />
               </P>
@@ -1057,6 +1082,7 @@ const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey })
           </div>
           {fx.limiter?.enabled && (
             <div>
+              <FxPresetBar pluginKey="limiter" params={fx.limiter} trackIndex={trackIndex} updateEffect={updateEffect} setStatus={setStatus}/>
               <P label="Thresh" value={`${fx.limiter.threshold}dB`}>
                 <Slider min={-30} max={0} step={0.5} value={fx.limiter.threshold} onChange={(v) => u("limiter", "threshold", v)} color={C.red} />
               </P>
@@ -1080,6 +1106,7 @@ const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey })
           </div>
           {fx.gate?.enabled && (
             <div>
+              <FxPresetBar pluginKey="gate" params={fx.gate} trackIndex={trackIndex} updateEffect={updateEffect} setStatus={setStatus}/>
               <P label="Thresh" value={`${fx.gate.threshold}dB`}>
                 <Slider min={-80} max={0} step={1} value={fx.gate.threshold} onChange={(v) => u("gate", "threshold", v)} color={C.yellow} />
               </P>
@@ -1103,6 +1130,7 @@ const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey })
           </div>
           {fx.deesser?.enabled && (
             <div>
+              <FxPresetBar pluginKey="deesser" params={fx.deesser} trackIndex={trackIndex} updateEffect={updateEffect} setStatus={setStatus}/>
               <P label="Freq" value={`${fx.deesser.frequency}Hz`}>
                 <Slider min={2000} max={12000} step={100} value={fx.deesser.frequency} onChange={(v) => u("deesser", "frequency", v)} color={C.teal} />
               </P>
@@ -1221,6 +1249,7 @@ const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey })
           </div>
           {fx.bitcrusher?.enabled && (
             <div>
+              <FxPresetBar pluginKey="bitcrusher" params={fx.bitcrusher} trackIndex={trackIndex} updateEffect={updateEffect} setStatus={setStatus}/>
               <P label="Bits" value={fx.bitcrusher.bits}>
                 <Slider min={1} max={16} step={1} value={fx.bitcrusher.bits} onChange={(v) => u("bitcrusher", "bits", v)} color={C.red} />
               </P>
@@ -1268,6 +1297,7 @@ const ConsoleFXPanel = ({ track, trackIndex, updateEffect, onClose, openFxKey })
           <TapeGraph tape={fx.tapeSaturation || {}} />
           {fx.tapeSaturation?.enabled && (
             <div style={{ marginTop: 6 }}>
+              <FxPresetBar pluginKey="tapeSaturation" params={fx.tapeSaturation} trackIndex={trackIndex} updateEffect={updateEffect} setStatus={setStatus}/>
               <P label="Drive" value={`${Math.round((fx.tapeSaturation.drive || 0) * 100)}%`}>
                 <Slider min={0} max={1} step={0.01} value={fx.tapeSaturation.drive || 0} onChange={(v) => u("tapeSaturation", "drive", v)} color={C.yellow} />
               </P>

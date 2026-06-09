@@ -199,6 +199,12 @@ const LeftSidebar = ({
   onBpmChange,
   projectName = "Untitled Project",
   onProjectNameChange,
+  // Bug #11 (Part 9b): the inserts list previously read t.inserts (always
+  // undefined) so the picker appeared to do nothing. Read from t.effects via
+  // this registry instead, so a single source of truth (track.effects) drives
+  // both Console mixer slots and the sidebar list.
+  fxRegistry = null,
+  updateEffect = null,
 }) => {
   const [tab, setTab] = useState(() => localStorage.getItem("rs_left_tab") || "channel");
   const [vizSearch, setVizSearch] = useState("");
@@ -361,24 +367,102 @@ const LeftSidebar = ({
               ]}/>
             </div>
 
+            {/* Part 10: MUSIC INFO — auto-detected BPM / key / loudness with
+                inline manual override. Anything the user types becomes the
+                authoritative value (metadata.bpmManual / metadata.keyManual)
+                so a re-import of the same audio doesn't clobber their edit. */}
+            <div className="lsb-block">
+              <div className="lsb-block-hdr">MUSIC INFO</div>
+              {(() => {
+                const m = t.metadata;
+                if (!m) return <div className="lsb-empty-sm">Drop or import an audio file to analyze</div>;
+                const bpmConf = m.bpm?.confidence ?? 0;
+                const keyConf = m.key?.confidence ?? 0;
+                const dot = (c) => c >= 1.5 ? "#3fbf5f" : c >= 1.15 ? "#bfbf3f" : "#bf3f5f";
+                const writeMeta = (patch) => onUpdateTrack && onUpdateTrack(selectedTrack, { metadata: { ...m, ...patch } });
+                const ALL_KEYS = [];
+                ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"].forEach((n, r) => {
+                  ALL_KEYS.push({ label: `${n} major`, root: r, scale: "major" });
+                  ALL_KEYS.push({ label: `${n} minor`, root: r, scale: "minor" });
+                });
+                return (
+                  <div className="lsb-music-info">
+                    <div className="lsb-mi-row">
+                      <span className="lsb-mi-label">BPM</span>
+                      <input className="lsb-mi-input" type="number" min={20} max={300} step={1}
+                        value={Math.round((m.bpm?.bpm) ?? 0) || ""}
+                        placeholder="—"
+                        onChange={e => {
+                          const v = parseInt(e.target.value, 10);
+                          if (!isFinite(v)) return;
+                          writeMeta({ bpm: { ...(m.bpm || {}), bpm: v }, bpmManual: true });
+                        }}/>
+                      <span className="lsb-mi-conf" style={{background: dot(bpmConf)}} title={`BPM confidence ${bpmConf} (runner-up ${m.bpm?.runnerUp ?? "?"} BPM)`}/>
+                      {m.bpmManual && <span className="lsb-mi-edited" title="Manually overridden">✎</span>}
+                    </div>
+                    <div className="lsb-mi-row">
+                      <span className="lsb-mi-label">KEY</span>
+                      <select className="lsb-mi-select"
+                        value={`${m.key?.root ?? 0}-${m.key?.scale ?? "major"}`}
+                        onChange={e => {
+                          const [rs, sc] = e.target.value.split("-");
+                          const root = parseInt(rs, 10);
+                          const camMaj = ["8B","3B","10B","5B","12B","7B","2B","9B","4B","11B","6B","1B"];
+                          const camMin = ["5A","12A","7A","2A","9A","4A","11A","6A","1A","8A","3A","10A"];
+                          const NOTES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+                          writeMeta({ key: { ...(m.key || {}), root, scale: sc, camelot: sc === "major" ? camMaj[root] : camMin[root], key: `${NOTES[root]} ${sc}` }, keyManual: true });
+                        }}>
+                        {ALL_KEYS.map(k => <option key={k.label} value={`${k.root}-${k.scale}`}>{k.label}</option>)}
+                      </select>
+                      {m.key?.camelot && <span className="lsb-mi-camelot" style={{background: ({"1A":"#8b5fbf","1B":"#a47cd6","2A":"#5f7fbf","2B":"#7c9cd6","3A":"#4f9fbf","3B":"#6cbcd6","4A":"#3fbfa0","4B":"#5cd6bd","5A":"#3fbf5f","5B":"#5cd67c","6A":"#7fbf3f","6B":"#9cd65c","7A":"#bfbf3f","7B":"#d6d65c","8A":"#bf9f3f","8B":"#d6bc5c","9A":"#bf7f3f","9B":"#d69c5c","10A":"#bf5f3f","10B":"#d67c5c","11A":"#bf3f5f","11B":"#d65c7c","12A":"#bf3f9f","12B":"#d65cbc"})[m.key.camelot] || "#7a8aaa", color: "#06070d"}}>{m.key.camelot}</span>}
+                      <span className="lsb-mi-conf" style={{background: dot(keyConf)}} title={`Key confidence ${keyConf} (runner-up ${m.key?.runnerUp ?? "?"})`}/>
+                      {m.keyManual && <span className="lsb-mi-edited" title="Manually overridden">✎</span>}
+                    </div>
+                    <div className="lsb-mi-row">
+                      <span className="lsb-mi-label">LUFS</span>
+                      <span className="lsb-mi-readout">{m.loudness?.lufs != null ? `${m.loudness.lufs.toFixed(1)} dB` : "—"}</span>
+                      <span className="lsb-mi-readout-sub">peak {m.loudness?.peakDb != null ? m.loudness.peakDb.toFixed(1) : "—"} dB</span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
             <div className="lsb-block">
               <div className="lsb-block-hdr">INSERTS</div>
               <div className="lsb-inserts">
-                {(t.inserts || []).length === 0 && <div className="lsb-empty-sm">No inserts</div>}
-                {(t.inserts || []).map((ins, i) => (
-                  <div key={i} className={"lsb-insert" + (ins.bypassed ? " bypassed" : "")}>
-                    <button className="lsb-insert-enable" onClick={() => {
-                      const next = [...(t.inserts || [])];
-                      next[i] = { ...ins, bypassed: !ins.bypassed };
-                      onUpdateTrack && onUpdateTrack(selectedTrack, { inserts: next });
-                    }}>{ins.bypassed ? "○" : "●"}</button>
-                    <span className="lsb-insert-name">{i+1}. {ins.name || "Insert"}</span>
-                    <button className="lsb-insert-x" onClick={() => {
-                      const next = (t.inserts || []).filter((_, j) => j !== i);
-                      onUpdateTrack && onUpdateTrack(selectedTrack, { inserts: next });
-                    }}>×</button>
-                  </div>
-                ))}
+                {(() => {
+                  // Bug #11 (Part 9b): derive enabled inserts from t.effects so
+                  // the Console + sidebar share state. Falls back to legacy
+                  // t.inserts (deprecated) if no fxRegistry was passed.
+                  const enabled = fxRegistry
+                    ? fxRegistry.filter(fx => t.effects?.[fx.key]?.enabled)
+                    : (t.inserts || []).map((ins, i) => ({ key: `_legacy_${i}`, name: ins.name || "Insert", _legacyBypassed: ins.bypassed, _legacyIdx: i }));
+                  if (enabled.length === 0) return <div className="lsb-empty-sm">No inserts</div>;
+                  return enabled.map((fx, i) => (
+                    <div key={fx.key} className="lsb-insert">
+                      <button className="lsb-insert-enable" title="Bypass / enable"
+                        onClick={() => {
+                          if (fx.key.startsWith("_legacy_")) {
+                            const next = [...(t.inserts || [])]; next[fx._legacyIdx] = { ...next[fx._legacyIdx], bypassed: !next[fx._legacyIdx].bypassed };
+                            onUpdateTrack && onUpdateTrack(selectedTrack, { inserts: next });
+                          } else if (updateEffect) {
+                            updateEffect(selectedTrack, fx.key, "enabled", false);
+                          }
+                        }}>●</button>
+                      <span className="lsb-insert-name">{i+1}. {fx.name}</span>
+                      <button className="lsb-insert-x" title="Remove insert"
+                        onClick={() => {
+                          if (fx.key.startsWith("_legacy_")) {
+                            const next = (t.inserts || []).filter((_, j) => j !== fx._legacyIdx);
+                            onUpdateTrack && onUpdateTrack(selectedTrack, { inserts: next });
+                          } else if (updateEffect) {
+                            updateEffect(selectedTrack, fx.key, "enabled", false);
+                          }
+                        }}>×</button>
+                    </div>
+                  ));
+                })()}
                 <button className="lsb-insert-add" onClick={() => onTrackAction && onTrackAction("addInsert", selectedTrack)}>+ Add Insert</button>
               </div>
             </div>

@@ -14,8 +14,8 @@ export const createMultibandCompPlugin = (context, p = {}) => {
 
   const comps = [0,1,2].map(i => {
     const c = context.createDynamicsCompressor();
-    c.threshold.value = p[`threshold${i}`] ?? -18;
-    c.ratio.value     = p[`ratio${i}`] ?? 4;
+    c.threshold.value = p[`threshold${i}`] ?? -10;
+    c.ratio.value     = p[`ratio${i}`] ?? 2;
     c.attack.value    = 0.01; c.release.value = 0.1;
     return c;
   });
@@ -27,21 +27,56 @@ export const createMultibandCompPlugin = (context, p = {}) => {
   hpf1.connect(hpf2); hpf2.connect(comps[2]); comps[2].connect(merger);
   merger.connect(output);
 
+  // compLow/compMid/compHigh are 0..1 normalized: 0 = heavy compression, 1 = none.
+  // Map → threshold dB: 0 → -40, 1 → 0.
+  const compToThreshold = (v) => {
+    const c = Math.max(0, Math.min(1, Number.isFinite(v) ? v : 0.3));
+    return -40 * (1 - c);
+  };
+
   return {
     inputNode: input, node: input,
     setParam(k, v) {
+      const val = Number.isFinite(v) ? v : 0;
       const m = k.match(/^(threshold|ratio)(\d)$/);
       if (m) {
         const [,param,i] = m;
-        if (param === 'threshold') comps[i].threshold.setTargetAtTime(v, 0, 0.01);
-        if (param === 'ratio')     comps[i].ratio.setTargetAtTime(v, 0, 0.01);
+        if (param === 'threshold') comps[i].threshold.setTargetAtTime(val, 0, 0.01);
+        if (param === 'ratio')     comps[i].ratio.setTargetAtTime(val, 0, 0.01);
       }
-      if (k === 'crossover1') { lpf1.frequency.setTargetAtTime(v, 0, 0.01); hpf1.frequency.setTargetAtTime(v, 0, 0.01); }
-      if (k === 'crossover2') { lpf2.frequency.setTargetAtTime(v, 0, 0.01); hpf2.frequency.setTargetAtTime(v, 0, 0.01); }
+      if (k === 'crossover1') { lpf1.frequency.setTargetAtTime(val, 0, 0.01); hpf1.frequency.setTargetAtTime(val, 0, 0.01); }
+      if (k === 'crossover2') { lpf2.frequency.setTargetAtTime(val, 0, 0.01); hpf2.frequency.setTargetAtTime(val, 0, 0.01); }
+      // Registry aliases (this is the 3-band engine; xover3 has no node — registry pruning needed)
+      if (k === 'xover1') {
+        const c = Math.max(80, Math.min(500, val));
+        lpf1.frequency.setTargetAtTime(c, 0, 0.01);
+        hpf1.frequency.setTargetAtTime(c, 0, 0.01);
+      }
+      if (k === 'xover2') {
+        const c = Math.max(500, Math.min(5000, val));
+        lpf2.frequency.setTargetAtTime(c, 0, 0.01);
+        hpf2.frequency.setTargetAtTime(c, 0, 0.01);
+      }
+      // xover3 — no node mapping in 3-band engine; silently ignore (Phase C: prune from registry).
+      if (k === 'compLow')  comps[0].threshold.setTargetAtTime(compToThreshold(val), 0, 0.01);
+      if (k === 'compMid')  comps[1].threshold.setTargetAtTime(compToThreshold(val), 0, 0.01);
+      if (k === 'compHigh') comps[2].threshold.setTargetAtTime(compToThreshold(val), 0, 0.01);
     },
-    getState: () => ({ crossover1: lpf1.frequency.value, crossover2: lpf2.frequency.value }),
+    getState: () => ({
+      xover1: lpf1.frequency.value,
+      xover2: lpf2.frequency.value,
+      compLow: 1 - (-comps[0].threshold.value / 40),
+      compMid: 1 - (-comps[1].threshold.value / 40),
+      compHigh: 1 - (-comps[2].threshold.value / 40),
+    }),
     connect: d => output.connect(d),
-    disconnect: () => output.disconnect(),
+    disconnect: () => {
+      try { output.disconnect(); } catch (e) {}
+      try { input.disconnect(); } catch (e) {}
+      try { lpf1.disconnect(); hpf1.disconnect(); lpf2.disconnect(); hpf2.disconnect(); } catch (e) {}
+      try { comps.forEach(c => c.disconnect()); } catch (e) {}
+      try { merger.disconnect(); } catch (e) {}
+    },
   };
 };
 

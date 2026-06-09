@@ -31,6 +31,26 @@
 .daw-rec-dot { display:inline-block; width:9px; height:9px; border-radius:50%; background:currentColor; }
 .daw-metro-btn.active { color:var(--rs-orange); }
 .rs-transport-label { font-size:10px; font-weight:700; letter-spacing:1px; }
+
+/* Cubase-style Follow Playhead toggle (off / page / smooth). */
+.spx-follow-btn {
+  background: transparent;
+  border: 1px solid #2a2a3a;
+  color: #6a6a7a;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+.spx-follow-btn:hover { border-color: #00ffc8; color: #00ffc8; }
+.spx-follow-page { border-color: #00ffc8; color: #00ffc8; }
+.spx-follow-smooth { border-color: #00ffc8; color: #00ffc8; background: rgba(0,255,200,0.1); }
+/* Bug #6: pre-roll length picker — matches daw-transport-btn footprint. */
+.daw-pre-roll-select { background:transparent; border:1px solid var(--rs-border); border-radius:4px; color:var(--rs-text2); font-family:var(--rs-font); font-size:10px; font-weight:700; height:24px; padding:0 4px; cursor:pointer; outline:none; transition:all .12s; }
+.daw-pre-roll-select:hover { border-color:var(--rs-teal); color:var(--rs-text); }
+.daw-pre-roll-select:focus { border-color:var(--rs-teal); }
+.daw-pre-roll-select option { background:#06090f; color:var(--rs-text); }
 .daw-lcd { background:#06090f; border:1px solid #1a2436; border-radius:4px; padding:3px 10px; display:flex; align-items:center; gap:8px; min-width:140px; flex-shrink:0; }
 .daw-lcd-time { color:var(--rs-teal); font-size:15px; font-weight:700; letter-spacing:1.5px; font-variant-numeric:tabular-nums; }
 .daw-lcd-sep { color:var(--rs-text3); }
@@ -65,6 +85,10 @@
 .daw-mix-dropdown-item { display:block; width:100%; background:transparent; border:none; color:var(--rs-text2); cursor:pointer; font-family:var(--rs-font); font-size:11px; padding:8px 16px; text-align:left; transition:background .1s; }
 .daw-mix-dropdown-item:hover { background:var(--rs-surface); color:var(--rs-text); }
 .daw-mix-dropdown-item.active { color:var(--rs-orange); }
+/* Bug #10b: action items (e.g. Split at playhead) sit under the view-switch list, separated. */
+.daw-mix-dropdown-action { border-top:1px solid var(--rs-border); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.daw-mix-dropdown-action:hover { color:var(--rs-teal); }
+.daw-mix-dropdown-shortcut { color:var(--rs-text3); font-size:10px; font-weight:700; border:1px solid var(--rs-border); border-radius:3px; padding:1px 5px; }
 .daw-main { flex:1; overflow:hidden; position:relative; background:var(--rs-bg); }
 .rs-relative { position:relative; height:100%; }
 .daw-pianoroll-view,.daw-chords-view,.daw-piano-view,.daw-freesound-view,.daw-aibeat-view,.daw-voicemidi-view { height:100%; overflow:hidden; }
@@ -90,21 +114,38 @@
 .daw-ch-header { display:flex; align-items:center; gap:4px; padding:5px 6px; width:100%; }
 .daw-ch-type-icon { font-size:11px; }
 .daw-ch-header-num { color:#00ffc8; font-size:13px; font-weight:700; }
-.daw-ch-routing { padding:0 6px 3px; width:100%; }
+.daw-ch-routing { padding:0 6px 3px; width:100%; min-height: 46px; display:flex; flex-direction:column; gap:2px; }
 .daw-ch-routing-value { color:#cdd9e5; font-size:11px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; }
 .daw-ch-inserts { padding:3px 4px; width:100%; height:140px; min-height:140px; max-height:140px; overflow-y:auto; flex-shrink:0; }
 .daw-ch-inserts-label { color:#8ba3bc; font-size:10px; font-weight:700; letter-spacing:1.5px; letter-spacing:1px; text-transform:uppercase; padding:0 2px 3px; display:block; }
-.daw-ch-insert-slot { border-radius:3px; cursor:pointer; font-size:9px; margin-bottom:2px; overflow:hidden; padding:3px 6px; text-overflow:ellipsis; white-space:nowrap; border:1px solid; transition:all .1s; }
+.daw-ch-insert-slot { border-radius:3px; cursor:pointer; font-size:9px; margin-bottom:2px; overflow:hidden; padding:3px 6px; text-overflow:ellipsis; white-space:nowrap; border:1px solid; transition:all .1s; position:relative; }
 .daw-ch-insert-slot.empty { background:rgba(255,255,255,.02); border-color:var(--rs-border2); color:var(--rs-text3); }
 .daw-ch-insert-slot.empty:hover { border-color:var(--rs-teal); color:var(--rs-teal); }
 .daw-ch-insert-slot.active { background:rgba(0,255,200,.07); border-color:rgba(0,255,200,.3); color:var(--rs-teal); }
 .daw-ch-insert-slot.active.vocal { background:rgba(167,139,250,.1); border-color:rgba(167,139,250,.4); color:var(--rs-purple); }
+/* Phase 3 / Fix 1: hover X for one-click insert removal. */
+.daw-ch-insert-x { position:absolute; right:2px; top:50%; transform:translateY(-50%); width:14px; height:14px; padding:0; border:none; background:rgba(0,0,0,.4); color:#ff5967; border-radius:2px; font-size:12px; line-height:1; cursor:pointer; opacity:0; transition:opacity .1s, background .1s; display:flex; align-items:center; justify-content:center; font-family:var(--rs-font); }
+.daw-ch-insert-slot.active:hover .daw-ch-insert-x { opacity:1; }
+.daw-ch-insert-x:hover { background:rgba(255,89,103,.25); color:#ff8a98; }
+/* Phase 3 / Fix 1: insert-slot context menu — positioned at cursor (left/top inline). */
+.insert-context-menu { position:fixed; min-width:200px; background:#1a1e2a; border:1px solid #2a3248; border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,.8),0 0 0 1px rgba(0,255,200,.12); z-index:9999; padding:4px 0; font-family:'JetBrains Mono','Courier New',monospace; animation:ctxMenuIn 120ms ease; }
+.insert-context-menu .ctx-header { color:#cdd9e5; font-size:11px; font-weight:700; padding:6px 12px 4px; border-bottom:1px solid #2a3248; margin-bottom:3px; }
+.insert-context-menu .arr-ctx-item { display:block; width:100%; text-align:left; background:transparent; border:none; color:#9ba9bc; font-size:11px; font-family:inherit; padding:6px 12px; cursor:pointer; transition:all .08s; }
+.insert-context-menu .arr-ctx-item:hover { background:rgba(0,255,200,.08); color:var(--rs-teal); }
+.insert-context-menu .arr-ctx-item.danger { color:#ff5967; }
+.insert-context-menu .arr-ctx-item.danger:hover { background:rgba(255,89,103,.12); color:#ff8a98; }
+.insert-context-menu .ctx-separator { height:1px; background:#2a3248; margin:3px 0; }
 .daw-ch-controls { display:flex; align-items:center; gap:3px; padding:4px; width:100%; }
 .daw-ch-badge { border-radius:3px; cursor:pointer; font-size:10px; font-weight:700; height:20px; min-width:20px; display:flex; align-items:center; justify-content:center; padding:0 3px; font-family:var(--rs-font); border:1px solid #1e2a3e; color:var(--rs-text3); background:transparent; transition:all .12s; user-select:none; }
 .daw-ch-badge.m-on { background:#6a4400; border-color:#c07800; color:#ffc060; }
 .daw-ch-badge.s-on { background:#003a2a; border-color:#008060; color:var(--rs-teal); }
 .daw-ch-badge.e-on { background:rgba(0,255,200,.1); border-color:rgba(0,255,200,.4); color:var(--rs-teal); }
-.daw-ch-rec-btn { border-radius:50%; border:1px solid #1e2a3e; background:transparent; color:#555; cursor:pointer; font-size:9px; height:20px; width:20px; display:flex; align-items:center; justify-content:center; transition:all .12s; flex-shrink:0; padding:0; }
+/* Bug #7: idle ● glyph at color:#555 was unreadable on the #0d1117 console
+   background, so users missed the record-arm affordance. Use a saturated red
+   (matching the .armed escalation palette below) plus a faint border tint and
+   glow so the button is discoverable in its idle state. */
+.daw-ch-rec-btn { border-radius:50%; border:1px solid rgba(255,89,103,.45); background:transparent; color:#ff5967; cursor:pointer; font-size:11px; height:20px; width:20px; display:flex; align-items:center; justify-content:center; transition:all .12s; flex-shrink:0; padding:0; text-shadow:0 0 4px rgba(255,89,103,.55); }
+.daw-ch-rec-btn:hover { color:#ff8a98; border-color:rgba(255,89,103,.85); text-shadow:0 0 8px rgba(255,89,103,.85); }
 .daw-ch-rec-btn.armed { border-color:var(--rs-red); color:var(--rs-red); background:rgba(255,59,48,.12); animation:rs-pulse 1.4s ease-in-out infinite; }
 @keyframes rs-pulse { 0%,100%{opacity:1}50%{opacity:.45} }
 .daw-ch-btn { background:transparent; border:1px solid #1e2a3e; border-radius:3px; color:var(--rs-text3); cursor:pointer; font-family:var(--rs-font); font-size:10px; font-weight:700; height:20px; min-width:22px; padding:0 3px; transition:all .12s; }
@@ -113,9 +154,11 @@
 .daw-ch-btn.solo.active { background:#003a2a; border-color:#008060; color:var(--rs-teal); }
 .daw-ch-pan { display:flex; flex-direction:column; align-items:center; padding:4px 0; gap:2px; }
 .daw-ch-pan-val { color:var(--rs-text2); font-weight:600; font-size:9px; }
-.daw-ch-fader-area { display:flex; flex-direction:column; align-items:center; padding:4px; width:100%; height:220px; min-height:220px; max-height:220px; flex-shrink:0;  }
+.daw-ch-fader-area { display:flex; flex-direction:column; align-items:center; padding:4px; width:100%; height:220px; min-height:220px; max-height:220px; flex:0 0 220px; flex-shrink:0; overflow:hidden; }
 .daw-ch-fader-row { display:flex; align-items:flex-end; gap:4px; width:100%; justify-content:center; height:180px; flex-shrink:0; }
-.daw-ch-fader { display:flex; align-items:flex-end; justify-content:center; height:180px; flex-shrink:0; }
+.daw-ch-fader { display:flex; align-items:center; justify-content:center; height:180px; flex-shrink:0; }
+.db-scale-svg { display:block; flex-shrink:0; pointer-events:none; overflow:visible; }
+.db-scale-text { fill:rgba(255,255,255,0.6); font-size:9px; font-weight:600; font-family:"JetBrains Mono","SF Mono",Consolas,monospace; font-variant-numeric:tabular-nums; }
 .daw-ch-fader input[type="range"] { appearance:none; writing-mode:vertical-lr; direction:rtl; width:18px; height:180px; cursor:pointer; background:#060a10; border-radius:1px; border:1px solid #0d1520; }
 .daw-ch-fader input[type="range"]::-webkit-slider-thumb {
   appearance:none;
@@ -147,6 +190,7 @@
 .daw-ch-console-select { background:var(--rs-surface); border:1px solid var(--rs-border); border-radius:3px; color:var(--rs-text2); font-family:var(--rs-font); font-size:9px; padding:1px 2px; width:100%; }
 .daw-ch-track-label { font-size:13px; font-weight:700; color:#cdd9e5 !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; text-align:center; }
 .rs-master-label { color:var(--rs-orange); font-size:11px; font-weight:700; letter-spacing:1px; }
+.daw-ch-mic-wrapper { position: relative; }
 .daw-ch-mic-btn { background:rgba(255,255,255,.03); border:1px solid var(--rs-border); border-radius:3px; color:var(--rs-text3); cursor:pointer; font-size:9px; font-family:var(--rs-font); padding:2px 4px; width:100%; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:all .12s; }
 .daw-ch-mic-btn:hover { border-color:var(--rs-teal); color:var(--rs-teal); }
 .daw-ch-mic-btn.active { background:rgba(0,255,200,.08); border-color:rgba(0,255,200,.4); color:var(--rs-teal); }
@@ -213,6 +257,60 @@
 .rs-divider { height:1px; background:var(--rs-border2); margin:4px 0; }
 .rs-remove-item { color:var(--rs-text3); cursor:pointer; font-size:11px; padding:6px 16px; }
 .rs-remove-item:hover { background:var(--rs-surface); color:var(--rs-text); }
+/* Bug #4 (Part 9): "(None) / Clear all inserts" entry at top of insert picker. */
+.rs-insert-none-row { color:var(--rs-text3); cursor:pointer; font-size:11px; padding:8px 16px; background:rgba(255,89,103,.06); border-bottom:1px solid var(--rs-border2); transition:background .1s; }
+.rs-insert-none-row:hover { background:rgba(255,89,103,.18); color:#ff8a98; }
+
+/* Part 10: MUSIC INFO block in LeftSidebar — auto-detected BPM/key/loudness. */
+.lsb-music-info { display:flex; flex-direction:column; gap:6px; padding:4px 0; }
+.lsb-mi-row { display:flex; align-items:center; gap:6px; }
+.lsb-mi-label { color:#4e6a82; font-size:9px; font-weight:700; letter-spacing:1.5px; min-width:32px; }
+.lsb-mi-input { background:#0d1420; border:1px solid #243048; color:#cdd9e5; border-radius:3px; font-family:var(--rs-font); font-size:11px; padding:2px 5px; width:54px; text-align:right; }
+.lsb-mi-input:focus { border-color:var(--rs-teal); outline:none; }
+.lsb-mi-select { background:#0d1420; border:1px solid #243048; color:#cdd9e5; border-radius:3px; font-family:var(--rs-font); font-size:10px; padding:2px 4px; flex:1; min-width:90px; }
+.lsb-mi-select:focus { border-color:var(--rs-teal); outline:none; }
+.lsb-mi-camelot { display:inline-block; padding:1px 6px; border-radius:3px; font-size:10px; font-weight:800; min-width:28px; text-align:center; letter-spacing:0.5px; }
+.lsb-mi-conf { display:inline-block; width:8px; height:8px; border-radius:50%; box-shadow:0 0 4px currentColor; }
+.lsb-mi-edited { color:var(--rs-orange); font-size:11px; font-weight:700; }
+.lsb-mi-readout { color:#cdd9e5; font-family:var(--rs-font); font-size:11px; font-variant-numeric:tabular-nums; }
+.lsb-mi-readout-sub { color:#4e6a82; font-size:9px; margin-left:auto; }
+
+/* Part 10: Camelot key badge on Arrange-view regions — small chip top-right. */
+.arr-region-camelot { position:absolute; top:3px; right:4px; padding:1px 5px; border-radius:3px; font-size:9px; font-weight:800; letter-spacing:0.5px; pointer-events:auto; cursor:help; box-shadow:0 1px 3px rgba(0,0,0,.5); z-index:2; line-height:1.3; }
+
+/* Bug #5 (Part 9 → upgraded Part 11): unified preset bar — used by SPX plugin
+   host AND ConsoleFXPanel for native effects. Same look everywhere so a user
+   builds muscle memory once. */
+.spx-plugin-host { display:flex; flex-direction:column; gap:0; }
+.spx-preset-bar { display:flex; align-items:center; gap:6px; padding:6px 10px; background:#0a1018; border-bottom:1px solid #1e2638; border-radius:3px; flex-shrink:0; flex-wrap:wrap; margin-bottom:6px; }
+.spx-preset-label { color:#4e6a82; font-size:9px; font-weight:700; letter-spacing:1.5px; }
+.spx-preset-select { background:#0d1420; border:1px solid #243048; color:#cdd9e5; border-radius:3px; font-size:10px; padding:3px 6px; flex:1; min-width:120px; max-width:200px; font-family:var(--rs-font); }
+.spx-preset-select optgroup { color:var(--rs-teal); font-weight:700; font-style:normal; }
+.spx-preset-btn { background:transparent; border:1px solid #243048; color:#8ba3bc; border-radius:3px; cursor:pointer; font-family:var(--rs-font); font-size:10px; font-weight:700; padding:3px 10px; transition:all .12s; }
+.spx-preset-btn:hover:not(:disabled) { border-color:var(--rs-teal); color:var(--rs-teal); }
+.spx-preset-btn:disabled { opacity:.4; cursor:not-allowed; }
+.spx-preset-btn.primary { background:rgba(0,255,200,.14); border-color:var(--rs-teal); color:var(--rs-teal); }
+.spx-preset-btn.primary:hover { background:rgba(0,255,200,.22); }
+
+/* Part 11: A/B compare slot pair — two tight buttons. Stored slot has a faint
+   border tint; active slot glows teal so the user can see at a glance which
+   set of params is currently in effect. */
+.spx-preset-ab-group { display:inline-flex; gap:1px; margin-left:4px; }
+.spx-preset-ab { background:transparent; border:1px solid #243048; color:#5a6b82; cursor:pointer; font-family:var(--rs-font); font-size:10px; font-weight:800; padding:3px 9px; transition:all .12s; }
+.spx-preset-ab:first-child { border-radius:3px 0 0 3px; }
+.spx-preset-ab:last-child { border-radius:0 3px 3px 0; border-left:none; }
+.spx-preset-ab.stored { color:#8ba3bc; border-color:#3a4860; }
+.spx-preset-ab.active { background:rgba(0,255,200,.18); border-color:var(--rs-teal); color:var(--rs-teal); text-shadow:0 0 4px rgba(0,255,200,.6); }
+
+/* Part 11: modal save dialog — replaces window.prompt. Matches the studio's
+   dark-glass aesthetic (#06070d bg, teal accents, JetBrains Mono). */
+.spx-preset-modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.72); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:9999; }
+.spx-preset-modal { background:linear-gradient(180deg,#0c1220,#06070d); border:1px solid rgba(0,255,200,.3); border-radius:8px; box-shadow:0 16px 48px rgba(0,0,0,.85), 0 0 0 1px rgba(0,255,200,.05); padding:18px 20px; min-width:340px; max-width:480px; font-family:var(--rs-font); color:#e6f4ff; }
+.spx-preset-modal-hdr { color:var(--rs-teal); font-size:11px; font-weight:800; letter-spacing:2px; margin-bottom:12px; }
+.spx-preset-modal-input { width:100%; background:#0d1420; border:1px solid #243048; color:#e6f4ff; border-radius:4px; font-family:var(--rs-font); font-size:13px; padding:8px 10px; box-sizing:border-box; transition:border-color .12s; }
+.spx-preset-modal-input:focus { outline:none; border-color:var(--rs-teal); box-shadow:0 0 0 2px rgba(0,255,200,.15); }
+.spx-preset-modal-err { color:#ff5967; font-size:10px; margin-top:6px; }
+.spx-preset-modal-row { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
 .daw-fx-panel-popup { background:var(--rs-bg2); border:1px solid var(--rs-border); border-radius:6px; bottom:20px; box-shadow:0 12px 40px rgba(0,0,0,.7); max-height:60vh; overflow-y:auto; position:fixed; right:20px; width:420px; z-index:400; }
 .rs-analog-tabs { display:flex; gap:2px; padding:8px 8px 0; border-bottom:1px solid var(--rs-border2); }
 .daw-analog-tab { background:transparent; border:none; border-bottom:2px solid transparent; color:var(--rs-text3); cursor:pointer; font-family:var(--rs-font); font-size:11px; padding:6px 12px; transition:all .15s; }
@@ -1738,7 +1836,6 @@
 }
 
 /* ═══════════ SVG FADER INSIDE MIXER CHANNEL ═══════════ */
-.daw-ch-fader { display: flex; align-items: center; justify-content: center; }
 .daw-ch-fader .svg-fader-wrapper { height: 180px; }
 .daw-ch-fader .svg-fader-wrapper svg { height: 180px; }
 
@@ -1770,10 +1867,156 @@
 .daw-console { position: relative !important; }
 
 /* Lock mixer lower section to fixed height at bottom */
-.ch-mid { height: 50px !important; flex: 0 0 50px !important; }
+/* Bug #8 (Part 9): .ch-mid was forced to 50px, which clipped the record-arm
+   button row. The row needs ~26px (20px button + padding) plus the pan knob
+   underneath (~36px), so 70px gives both rows breathing room. The added
+   .daw-ch-controls overrides also let the rec button + monitor icon wrap
+   onto a second line if the channel narrows below ~110px instead of being
+   hidden by the next section's background. */
+.ch-mid { min-height: 70px !important; flex: 0 0 auto !important; overflow: visible !important; }
+.ch-mid .daw-ch-controls { flex-wrap: wrap !important; row-gap: 3px !important; padding: 2px 4px !important; justify-content: center !important; }
+.ch-mid .daw-ch-rec-btn { flex-shrink: 0 !important; }
 .ch-lower { height: 260px !important; flex: 0 0 260px !important; overflow: visible !important; }
-.ch-lower .daw-ch-fader-area { height: 170px !important; max-height: 170px !important; flex: 0 0 170px !important; }
+
+/* Bug #7 (Part 9): per-track monitor badge — match M/S/e visual scale, glow
+   teal when active so users can quickly see which track is being monitored. */
+.daw-ch-badge.mon { font-size: 11px !important; color: #4e6a82 !important; }
+.daw-ch-badge.mon.mon-on { background: rgba(0,255,200,.12) !important; border-color: rgba(0,255,200,.5) !important; color: #00ffc8 !important; text-shadow: 0 0 4px rgba(0,255,200,.6) !important; }
 
 /* Mixer fixed at bottom — split container flex col */
 .rs-split-screen { display: flex !important; flex-direction: column !important; height: 100% !important; overflow: hidden !important; }
 
+
+/* Architectural #4: restore-from-autosave toast */
+.rs-restore-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; align-items: center; gap: 14px; padding: 12px 18px; background: linear-gradient(180deg, #0c1220, #06070d); border: 1px solid rgba(0,255,200,.3); border-radius: 8px; box-shadow: 0 12px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(0,255,200,.05); color: #e6f4ff; font-family: "JetBrains Mono", monospace; font-size: 12px; max-width: min(720px, 92vw); }
+.rs-restore-toast-msg { display: flex; flex-direction: column; gap: 2px; line-height: 1.3; }
+.rs-restore-toast-msg strong { color: #00ffc8; font-weight: 700; }
+.rs-restore-toast-hint { color: rgba(230,244,255,.5); font-size: 10px; }
+.rs-restore-toast-btn { padding: 6px 12px; border: 1px solid rgba(255,255,255,.12); background: transparent; color: #e6f4ff; border-radius: 5px; font-family: inherit; font-size: 11px; font-weight: 600; cursor: pointer; transition: border-color .12s, color .12s, background .12s; }
+.rs-restore-toast-btn:hover { border-color: rgba(0,255,200,.4); color: #00ffc8; }
+.rs-restore-toast-btn.primary { border-color: rgba(0,255,200,.5); color: #06070d; background: linear-gradient(180deg, #00ffc8, #00b894); }
+.rs-restore-toast-btn.primary:hover { background: linear-gradient(180deg, #00ffc8, #00d4a3); color: #06070d; }
+
+/* =============================================================================
+   Architectural #13e: extracted inline styles from RecordingStudio.js
+   ============================================================================= */
+
+/* ── DraggablePanel chrome (only `left`/`top` stay dynamic in JSX) ── */
+.rs-drag-panel { position: fixed; z-index: 9998; background: #0d1117; border: 1px solid #243048; border-radius: 8px; box-shadow: 0 16px 48px rgba(0,0,0,.85); min-width: 520px; max-width: 95vw; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
+.rs-drag-panel-header { padding: 8px 14px; background: #161b22; border-bottom: 1px solid #1e2638; display: flex; justify-content: space-between; align-items: center; cursor: grab; user-select: none; border-radius: 8px 8px 0 0; }
+.rs-drag-panel-title { color: #cdd9e5; font-size: 12px; font-weight: 700; }
+.rs-drag-panel-close { background: none; border: none; color: #8ba3bc; cursor: pointer; font-size: 16px; }
+.rs-drag-panel-body { overflow-y: auto; flex: 1; }
+
+/* ── InsertPickerMenu category headers / rows ── */
+.rs-insert-cat-header { padding: 8px 12px 4px; color: #00ffc8; font-size: 9px; letter-spacing: 2px; font-weight: 800; text-transform: uppercase; border-top: 1px solid #1e2638; margin-top: 4px; background: #060a10; }
+.rs-insert-cat-row { cursor: pointer; display: flex; justify-content: space-between; padding: 6px 12px; background: rgba(255,255,255,.04); border-bottom: 1px solid #1e2638; }
+.rs-insert-cat-label { color: #cdd9e5; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; }
+.rs-insert-cat-label.spx   { color: #ff6600; }
+.rs-insert-cat-label.vocal { color: #a78bfa; }
+.rs-insert-cat-count { font-size: 10px; color: #8ba3bc; }
+
+/* ── Video score floating panel ── */
+.rs-video-score { position: fixed; bottom: 20px; right: 20px; z-index: 5000; background: #0d1117; border: 1px solid #243048; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.8); }
+.rs-video-score-header { background: #161b22; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; }
+.rs-video-score-title  { color: #cdd9e5; font-size: 11px; font-weight: 700; }
+.rs-video-score-close  { background: none; border: none; color: #8ba3bc; cursor: pointer; }
+.rs-video-score-video  { width: 320px; display: block; }
+
+/* ── Export-mixdown modal ── */
+.rs-export-overlay  { position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 10000; display: flex; align-items: center; justify-content: center; }
+.rs-export-modal    { background: #0d1117; border: 1px solid #243048; border-radius: 8px; width: 900px; max-width: 96vw; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,.9); }
+.rs-export-header   { background: #161b22; border-bottom: 1px solid #1e2638; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.rs-export-title    { color: #cdd9e5; font-weight: 800; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; }
+.rs-export-header-actions { display: flex; gap: 8px; }
+.rs-export-stems-quick    { padding: 5px 14px; background: #ff660022; border: 1px solid #ff6600; color: #ff6600; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 700; }
+.rs-export-close          { background: none; border: none; color: #8ba3bc; cursor: pointer; font-size: 18px; line-height: 1; }
+.rs-export-body  { display: grid; grid-template-columns: 280px 1fr; flex: 1; overflow: hidden; }
+.rs-export-left  { border-right: 1px solid #1e2638; display: flex; flex-direction: column; overflow: hidden; }
+.rs-export-section-head { padding: 10px 14px; background: #0f1520; border-bottom: 1px solid #1e2638; }
+.rs-export-section-head-label { color: #4e6a82; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+.rs-export-mode-row { display: flex; gap: 6px; margin-top: 8px; }
+.rs-export-mode-btn { flex: 1; padding: 5px 0; background: transparent; border: 1px solid #243048; color: #8ba3bc; border-radius: 3px; cursor: pointer; font-size: 10px; font-weight: 700; }
+.rs-export-mode-btn.active { background: #00ffc822; border-color: #00ffc8; color: #00ffc8; }
+.rs-export-channel-list { overflow-y: auto; flex: 1; padding: 6px 0; }
+.rs-export-channel-group-header { padding: 4px 14px; font-size: 9px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.rs-export-channel-group-header.output { color: #00ffc8; }
+.rs-export-channel-group-header.bus    { color: #a78bfa; }
+.rs-export-channel-group-header.audio  { color: #5ac8fa; }
+.rs-export-stereo-out { padding: 5px 14px 5px 28px; display: flex; align-items: center; gap: 8px; background: rgba(0,255,200,.05); border-left: 2px solid #00ffc8; margin-left: 14px; }
+.rs-export-channel-row { padding: 4px 14px 4px 28px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.rs-export-channel-row.selected { background: rgba(90,200,250,.05); }
+.rs-export-channel-name { font-size: 11px; color: #cdd9e5; }
+.rs-export-channel-name.flex1 { flex: 1; }
+.rs-export-channel-color { width: 3px; height: 14px; border-radius: 2px; }
+.rs-export-channel-has-audio { color: #00ffc8; font-size: 8px; }
+.rs-export-range-section { border-top: 1px solid #1e2638; padding: 10px 14px; flex-shrink: 0; }
+.rs-export-range-label { color: #4e6a82; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+.rs-export-range-row { display: flex; gap: 6px; }
+.rs-export-range-btn { flex: 1; padding: 4px 0; background: transparent; border: 1px solid #243048; color: #8ba3bc; border-radius: 3px; cursor: pointer; font-size: 10px; }
+.rs-export-range-btn.active { background: #00ffc822; border-color: #00ffc8; color: #00ffc8; }
+.rs-export-right { display: flex; flex-direction: column; overflow: auto; padding: 0; }
+.rs-export-block       { padding: 14px 20px; border-bottom: 1px solid #1e2638; }
+.rs-export-block:last-child { border-bottom: none; }
+.rs-export-block-label { color: #4e6a82; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
+.rs-export-grid-2col   { display: grid; grid-template-columns: 80px 1fr; gap: 6px 10px; align-items: center; }
+.rs-export-grid-4col   { display: grid; grid-template-columns: 100px 1fr 100px 1fr; gap: 8px 12px; align-items: center; }
+.rs-export-grid-2col-wide { display: grid; grid-template-columns: 100px 1fr; gap: 8px 12px; align-items: center; }
+.rs-export-field-label { color: #8ba3bc; font-size: 11px; }
+.rs-export-input  { background: #0a0f1a; border: 1px solid #243048; color: #cdd9e5; padding: 5px 8px; border-radius: 4px; font-size: 11px; outline: none; }
+.rs-export-select { background: #0a0f1a; border: 1px solid #243048; color: #cdd9e5; padding: 5px 8px; border-radius: 4px; font-size: 11px; }
+.rs-export-preview { color: #4e6a82; font-size: 11px; }
+.rs-export-options-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.rs-export-option-label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.rs-export-footer { border-top: 1px solid #1e2638; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; background: #0a0f1a; flex-shrink: 0; }
+.rs-export-footer-group { display: flex; gap: 8px; }
+.rs-export-stems-bulk { padding: 7px 16px; background: rgba(255,102,0,.15); border: 1px solid #ff6600; color: #ff6600; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 700; }
+.rs-export-cancel-btn { padding: 7px 18px; background: transparent; border: 1px solid #243048; color: #8ba3bc; border-radius: 4px; cursor: pointer; font-size: 11px; }
+.rs-export-confirm-btn { padding: 7px 24px; background: #00ffc8; border: none; color: #000; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 800; }
+
+/* Part 12: QWERTY MIDI toolbar button */
+.daw-toolbar-btn { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #cdd9e5; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: var(--rs-font); font-size: 11px; font-weight: 600; transition: all .12s; }
+.daw-toolbar-btn:hover { border-color: rgba(0,255,200,.5); color: #00ffc8; }
+.daw-toolbar-btn.active { background: rgba(0,255,200,.18); border-color: #00ffc8; color: #00ffc8; text-shadow: 0 0 4px rgba(0,255,200,.6); }
+
+/* Part 12: floating QWERTY MIDI HUD (only rendered while engine is enabled) */
+.qwerty-midi-hud { position: fixed; bottom: 60px; right: 20px; z-index: 1000; background: linear-gradient(180deg,#0c1220,#06070d); border: 1px solid rgba(0,255,200,.35); border-radius: 6px; padding: 10px 14px; font-family: var(--rs-font); font-size: 10px; color: #cdd9e5; box-shadow: 0 8px 24px rgba(0,0,0,.6); min-width: 200px; pointer-events: none; }
+.qwerty-midi-hud-row { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.qwerty-midi-label  { color: #4e6a82; font-weight: 700; letter-spacing: 1px; }
+.qwerty-midi-status { color: #00ffc8; font-weight: 800; }
+.qwerty-midi-hud-keys { font-size: 9px; color: #5a6a7a; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(0,255,200,.15); line-height: 1.5; }
+
+/* ── Part 13b: Console mixer alignment + readability ────────────────────── */
+/* Bug 3: ch-upper / ch-mid / ch-lower had variable heights, so each strip's */
+/* fader, name input, and console select sat at a different y-coordinate.  */
+/* Bug 4: when text inside a strip changed width (vol readout, insert     */
+/* labels) the strip reflowed; pinning sub-section heights and the vol    */
+/* readout width keeps neighbouring strips visually still during fades.   */
+/* Bug 5: routing value, inserts label, console select, vol unit, R/W and */
+/* name input had low contrast/size — bumped to ≥11px and ≥0.85 alpha.    */
+.daw-console-scroll { align-items: flex-start !important; }
+.ch-upper { height: 180px !important; min-height: 180px !important; max-height: 180px !important; flex: 0 0 180px !important; }
+.ch-mid   { height: 90px  !important; min-height: 90px  !important; max-height: 90px  !important; flex: 0 0 90px  !important;
+            display: flex !important; flex-direction: column !important; justify-content: flex-start !important; gap: 2px !important; }
+.ch-lower { flex: 1 1 auto !important; min-height: 320px !important;
+            display: flex !important; flex-direction: column !important; justify-content: flex-start !important; }
+.daw-ch-vol-display { height: 22px !important; min-height: 22px !important; line-height: 1.2 !important;
+                      display: flex !important; align-items: center !important; justify-content: center !important; }
+.daw-ch-vol-input { min-width: 44px !important; }
+.daw-ch-vol-val   { display: inline-block !important; min-width: 56px !important; text-align: center !important; font-variant-numeric: tabular-nums !important; }
+.daw-ch-automation { height: 22px !important; min-height: 22px !important; flex: 0 0 22px !important; }
+.daw-ch-name { flex: 0 0 auto !important; }
+
+/* Bug 5 — bump contrast & legibility of the small console labels. */
+.daw-ch-routing-value      { color: rgba(255,255,255,0.88) !important; font-size: 12px !important; font-weight: 600 !important; }
+.daw-ch-inserts-label      { color: rgba(255,255,255,0.78) !important; font-size: 11px !important; }
+.daw-ch-console-select     { color: rgba(255,255,255,0.88) !important; font-size: 11px !important; padding: 2px 4px !important;
+                             background: #0a0e18 !important; border-color: #2a3852 !important; }
+.daw-ch-console-select option { color: #cdd9e5 !important; background: #0a0e18 !important; }
+.daw-ch-vol-unit           { color: rgba(255,255,255,0.75) !important; font-size: 11px !important; }
+.daw-ch-vol-val            { color: rgba(255,255,255,0.92) !important; font-size: 12px !important; font-weight: 700 !important; }
+.daw-ch-vol-input          { color: rgba(255,255,255,0.95) !important; font-size: 11px !important; }
+.daw-ch-name-input         { color: rgba(255,255,255,0.92) !important; font-size: 12px !important; font-weight: 600 !important; }
+.daw-ch-rw                 { color: rgba(255,255,255,0.75) !important; font-size: 10px !important; font-weight: 700 !important; }
+.daw-ch-rw.active          { color: #00ffc8 !important; }
+.rs-master-label           { color: #ff8a3d !important; font-size: 12px !important; font-weight: 800 !important; letter-spacing: 1px !important; }

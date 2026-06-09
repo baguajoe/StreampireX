@@ -5,14 +5,21 @@
 export const createFETCompPlugin = (context, p = {}) => {
   const input  = context.createGain();
   const output = context.createGain();
+  const inputGain = context.createGain();
+  const outputGain = context.createGain();
   const comp   = context.createDynamicsCompressor();
 
   // FET compressors are fast and punchy
-  comp.threshold.value = p.threshold ?? -12;
+  // Note: registry default attack=0.5 ms, release=50 ms
+  comp.threshold.value = Number.isFinite(p.threshold) ? p.threshold : -10;
   comp.knee.value      = 2; // hard knee
-  comp.ratio.value     = p.ratio ?? 8;
-  comp.attack.value    = p.attack ?? 0.0002; // 0.2ms — very fast
-  comp.release.value   = p.release ?? 0.05;  // 50ms
+  comp.ratio.value     = Math.max(1, Math.min(20, Number.isFinite(p.ratio) ? p.ratio : 2));
+  comp.attack.value    = Math.max(0, Math.min(0.01, (Number.isFinite(p.attack) ? p.attack : 10) / 1000));
+  comp.release.value   = Math.max(0.01, Math.min(1.2, (Number.isFinite(p.release) ? p.release : 100) / 1000));
+
+  // Registry inputGain/outputGain are linear 0..4 (default 1)
+  inputGain.gain.value = Math.max(0, Math.min(4, Number.isFinite(p.inputGain) ? p.inputGain : 1));
+  outputGain.gain.value = Math.max(0, Math.min(4, Number.isFinite(p.outputGain) ? p.outputGain : 1));
 
   const saturation = context.createWaveShaper();
   const curve = new Float32Array(256);
@@ -23,23 +30,41 @@ export const createFETCompPlugin = (context, p = {}) => {
   saturation.curve = curve;
   saturation.oversample = '2x';
 
-  const makeupGain = context.createGain();
-  makeupGain.gain.value = Math.pow(10, (p.makeup ?? 0) / 20);
-
-  input.connect(comp); comp.connect(saturation); saturation.connect(makeupGain); makeupGain.connect(output);
+  input.connect(inputGain);
+  inputGain.connect(comp);
+  comp.connect(saturation);
+  saturation.connect(outputGain);
+  outputGain.connect(output);
 
   return {
     inputNode: input, node: input,
     setParam(k, v) {
-      if (k === 'threshold') comp.threshold.setTargetAtTime(v, 0, 0.01);
-      if (k === 'ratio')     comp.ratio.setTargetAtTime(Math.min(20, v), 0, 0.01);
-      if (k === 'attack')    comp.attack.setTargetAtTime(v / 1000, 0, 0.01);
-      if (k === 'release')   comp.release.setTargetAtTime(v / 1000, 0, 0.01);
-      if (k === 'makeup')    makeupGain.gain.setTargetAtTime(Math.pow(10, v / 20), 0, 0.01);
+      const safe = Number.isFinite(v) ? v : 0;
+      if (k === 'threshold')  comp.threshold.setTargetAtTime(Math.max(-40, Math.min(0, safe)), 0, 0.01);
+      if (k === 'ratio')      comp.ratio.setTargetAtTime(Math.max(1, Math.min(20, safe)), 0, 0.01);
+      if (k === 'attack')     comp.attack.setTargetAtTime(Math.max(0, Math.min(0.01, safe / 1000)), 0, 0.01);
+      if (k === 'release')    comp.release.setTargetAtTime(Math.max(0.01, Math.min(1.2, safe / 1000)), 0, 0.01);
+      if (k === 'inputGain')  inputGain.gain.setTargetAtTime(Math.max(0, Math.min(4, safe)), 0, 0.01);
+      if (k === 'outputGain') outputGain.gain.setTargetAtTime(Math.max(0, Math.min(4, safe)), 0, 0.01);
     },
-    getState: () => ({ threshold: comp.threshold.value, ratio: comp.ratio.value }),
+    getState: () => ({
+      threshold: comp.threshold.value,
+      ratio: comp.ratio.value,
+      attack: comp.attack.value * 1000,
+      release: comp.release.value * 1000,
+      inputGain: inputGain.gain.value,
+      outputGain: outputGain.gain.value,
+    }),
     connect: d => output.connect(d),
     disconnect: () => output.disconnect(),
+    destroy: () => {
+      try { output.disconnect(); } catch {}
+      try { input.disconnect(); } catch {}
+      try { inputGain.disconnect(); } catch {}
+      try { comp.disconnect(); } catch {}
+      try { saturation.disconnect(); } catch {}
+      try { outputGain.disconnect(); } catch {}
+    },
   };
 };
 

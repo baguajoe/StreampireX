@@ -7,23 +7,52 @@ export const createPresenceEQPlugin = (context, p = {}) => {
   const output   = context.createGain();
   const presence = context.createBiquadFilter();
   const body     = context.createBiquadFilter();
+  const air      = context.createBiquadFilter();
 
-  presence.type = 'peaking'; presence.frequency.value = p.presenceFreq ?? 4000; presence.gain.value = p.presenceGain ?? 0; presence.Q.value = 1.0;
-  body.type = 'peaking';     body.frequency.value = p.bodyFreq ?? 300;         body.gain.value = p.bodyGain ?? 0;         body.Q.value = 0.8;
+  // Registry params: presence (0-12 dB), freq (1000-8000 Hz), q (0.3-3), air (0-9 dB).
+  const initPresence = Number.isFinite(p.presence) ? Math.max(0, Math.min(12, p.presence)) : (p.presenceGain ?? 0);
+  const initFreq = Number.isFinite(p.freq) ? Math.max(1000, Math.min(8000, p.freq)) : (p.presenceFreq ?? 4000);
+  const initQ = Number.isFinite(p.q) ? Math.max(0.3, Math.min(3, p.q)) : 1.0;
+  const initAir = Number.isFinite(p.air) ? Math.max(0, Math.min(9, p.air)) : 0;
 
-  input.connect(body); body.connect(presence); presence.connect(output);
+  presence.type = 'peaking';
+  presence.frequency.value = initFreq;
+  presence.gain.value = initPresence;
+  presence.Q.value = initQ;
+
+  body.type = 'peaking'; body.frequency.value = p.bodyFreq ?? 300; body.gain.value = p.bodyGain ?? 0; body.Q.value = 0.8;
+
+  air.type = 'highshelf'; air.frequency.value = 12000; air.gain.value = initAir;
+
+  input.connect(body); body.connect(presence); presence.connect(air); air.connect(output);
 
   return {
     inputNode: input, node: input,
     setParam(k, v) {
-      if (k === 'presenceGain') presence.gain.setTargetAtTime(v, 0, 0.01);
-      if (k === 'presenceFreq') presence.frequency.setTargetAtTime(v, 0, 0.01);
-      if (k === 'bodyGain')     body.gain.setTargetAtTime(v, 0, 0.01);
-      if (k === 'bodyFreq')     body.frequency.setTargetAtTime(v, 0, 0.01);
+      const val = Number.isFinite(v) ? v : 0;
+      // Registry params
+      if (k === 'presence') presence.gain.setTargetAtTime(Math.max(0, Math.min(12, val)), 0, 0.01);
+      if (k === 'freq')     presence.frequency.setTargetAtTime(Math.max(1000, Math.min(8000, val)), 0, 0.01);
+      if (k === 'q')        presence.Q.setTargetAtTime(Math.max(0.3, Math.min(3, val)), 0, 0.01);
+      if (k === 'air')      air.gain.setTargetAtTime(Math.max(0, Math.min(9, val)), 0, 0.01);
+      // Legacy aliases
+      if (k === 'presenceGain') presence.gain.setTargetAtTime(val, 0, 0.01);
+      if (k === 'presenceFreq') presence.frequency.setTargetAtTime(val, 0, 0.01);
+      if (k === 'bodyGain')     body.gain.setTargetAtTime(val, 0, 0.01);
+      if (k === 'bodyFreq')     body.frequency.setTargetAtTime(val, 0, 0.01);
     },
-    getState: () => ({ presenceGain: presence.gain.value, bodyGain: body.gain.value }),
+    getState: () => ({
+      presence: presence.gain.value,
+      freq: presence.frequency.value,
+      q: presence.Q.value,
+      air: air.gain.value,
+    }),
     connect: d => output.connect(d),
-    disconnect: () => output.disconnect(),
+    disconnect: () => {
+      try { output.disconnect(); } catch (e) {}
+      try { input.disconnect(); } catch (e) {}
+      try { body.disconnect(); presence.disconnect(); air.disconnect(); } catch (e) {}
+    },
   };
 };
 

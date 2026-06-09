@@ -13,8 +13,8 @@ export const createTapeDelayPlugin = (context, p = {}) => {
   const wow      = context.createOscillator();
   const wowGain  = context.createGain();
 
-  delay.delayTime.value = (p.time ?? 500) / 1000;
-  feedback.gain.value   = p.feedback ?? 0.4;
+  delay.delayTime.value = (p.time ?? 250) / 1000;
+  feedback.gain.value   = p.feedback ?? 0.3;
   warmth.type = 'lowpass'; warmth.frequency.value = p.tone ?? 4000;
 
   // Wow/flutter modulation
@@ -23,7 +23,7 @@ export const createTapeDelayPlugin = (context, p = {}) => {
   wow.connect(wowGain); wowGain.connect(delay.delayTime);
   wow.start();
 
-  const mix = (p.mix ?? 30) / 100;
+  const mix = (p.mix ?? 0) / 100;
   dryGain.gain.value = 1 - mix;
   wetGain.gain.value = mix;
 

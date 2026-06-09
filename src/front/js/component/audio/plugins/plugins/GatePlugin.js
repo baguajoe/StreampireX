@@ -9,7 +9,7 @@ export const createGatePlugin = (context, p = {}) => {
   detector.fftSize = 256;
 
   let threshold = p.threshold ?? -40;
-  let attack    = p.attack ?? 5;
+  let attack    = p.attack ?? 1;
   let release   = p.release ?? 100;
   let hold      = p.hold ?? 50;
   let open      = false;

@@ -3,35 +3,77 @@
 // =============================================================================
 
 export const createLinearPhaseEQPlugin = (context, p = {}) => {
-  // Approximate linear phase using allpass + standard EQ
+  // 3-band EQ with allpass for approximate linear-phase character.
+  // Registry params: lowGain/lowFreq, midGain/midFreq, highGain/highFreq.
   const input  = context.createGain();
   const output = context.createGain();
-  const eq     = context.createBiquadFilter();
+  const low    = context.createBiquadFilter();
+  const mid    = context.createBiquadFilter();
+  const high   = context.createBiquadFilter();
   const allpass = context.createBiquadFilter();
 
-  eq.type = 'peaking';
-  eq.frequency.value = p.freq ?? 1000;
-  eq.gain.value      = p.gain ?? 0;
-  eq.Q.value         = p.q ?? 0.7;
+  const clampFreq = (v, lo, hi, def) => {
+    const n = Number.isFinite(v) ? v : def;
+    return Math.max(lo, Math.min(hi, n));
+  };
+  const clampGain = (v) => {
+    const n = Number.isFinite(v) ? v : 0;
+    return Math.max(-18, Math.min(18, n));
+  };
+
+  low.type = 'peaking';
+  low.frequency.value = clampFreq(p.lowFreq, 20, 500, 100);
+  low.gain.value = clampGain(p.lowGain);
+  low.Q.value = 0.7;
+
+  mid.type = 'peaking';
+  mid.frequency.value = clampFreq(p.midFreq, 200, 8000, 1000);
+  mid.gain.value = clampGain(p.midGain);
+  mid.Q.value = 0.7;
+
+  high.type = 'peaking';
+  high.frequency.value = clampFreq(p.highFreq, 2000, 20000, 8000);
+  high.gain.value = clampGain(p.highGain);
+  high.Q.value = 0.7;
 
   allpass.type = 'allpass';
-  allpass.frequency.value = p.freq ?? 1000;
+  allpass.frequency.value = mid.frequency.value;
   allpass.Q.value = 0.5;
 
-  input.connect(eq);
-  eq.connect(allpass);
+  input.connect(low);
+  low.connect(mid);
+  mid.connect(high);
+  high.connect(allpass);
   allpass.connect(output);
 
   return {
     inputNode: input, node: input,
     setParam(k, v) {
-      if (k === 'freq') { eq.frequency.setTargetAtTime(v, 0, 0.01); allpass.frequency.setTargetAtTime(v, 0, 0.01); }
-      if (k === 'gain') eq.gain.setTargetAtTime(v, 0, 0.01);
-      if (k === 'q')    eq.Q.setTargetAtTime(v, 0, 0.01);
+      if (k === 'lowGain')  low.gain.setTargetAtTime(clampGain(v), 0, 0.01);
+      if (k === 'lowFreq')  low.frequency.setTargetAtTime(clampFreq(v, 20, 500, 100), 0, 0.01);
+      if (k === 'midGain')  mid.gain.setTargetAtTime(clampGain(v), 0, 0.01);
+      if (k === 'midFreq')  {
+        const c = clampFreq(v, 200, 8000, 1000);
+        mid.frequency.setTargetAtTime(c, 0, 0.01);
+        allpass.frequency.setTargetAtTime(c, 0, 0.01);
+      }
+      if (k === 'highGain') high.gain.setTargetAtTime(clampGain(v), 0, 0.01);
+      if (k === 'highFreq') high.frequency.setTargetAtTime(clampFreq(v, 2000, 20000, 8000), 0, 0.01);
     },
-    getState: () => ({ freq: eq.frequency.value, gain: eq.gain.value, q: eq.Q.value }),
+    getState: () => ({
+      lowGain: low.gain.value, lowFreq: low.frequency.value,
+      midGain: mid.gain.value, midFreq: mid.frequency.value,
+      highGain: high.gain.value, highFreq: high.frequency.value,
+    }),
     connect: d => output.connect(d),
-    disconnect: () => output.disconnect(),
+    disconnect: () => {
+      try { output.disconnect(); } catch (e) {}
+      try { input.disconnect(); } catch (e) {}
+      try { low.disconnect(); } catch (e) {}
+      try { mid.disconnect(); } catch (e) {}
+      try { high.disconnect(); } catch (e) {}
+      try { allpass.disconnect(); } catch (e) {}
+    },
   };
 };
 

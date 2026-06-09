@@ -64,16 +64,15 @@ import PublicEPKPage from "./pages/PublicEPK";
 import Contact from "./pages/Contact";
 import VoiceCloneServices from "./pages/VoiceCloneServices";
 import PluginRackDemo from "./pages/PluginRackDemo";
+import StudioSmokeTest from "./pages/StudioSmokeTest";
 import PodcastStudio from "./pages/PodcastStudio";
 import PodcastGuestJoin from "./pages/PodcastGuestJoin";
 import { AsyncGuestRecordPage } from "./pages/PodcastStudioPhase2";
 import PodcastCollabRoom from "./component/PodcastCollabRoom";
 import WAMPluginStore from "./pages/WAMPluginStore";
-import AITextToSong from "./pages/AITextToSong";
+// Part 18c: Suno-gap stubs (AITextToSong, AddBeatToVocals, SongExtender, HumToSong)
+// hidden from UI — backend is unimplemented (returns fake success). Re-wire in 18d.
 import AddVocalsToTrack from "./pages/AddVocalsToTrack";
-import AddBeatToVocals from "./pages/AddBeatToVocals";
-import SongExtender from "./pages/SongExtender";
-import HumToSong from "./pages/HumToSong";
 import CreatorSampleMarketplace from "./pages/CreatorSampleMarketplace";
 import CreatorAcademy from "./pages/CreatorAcademy";
 import MyLearning from "./pages/MyLearning";
@@ -159,6 +158,7 @@ import BeatSyncPage from "./pages/BeatSyncPage";
 import AIAutoEditPage from "./pages/AIAutoEditPage";
 import NodeCompositorPage from "./pages/NodeCompositorPage";
 import RecordingStudio from "./pages/RecordingStudio";
+import PluginAudit from "./pages/PluginAudit";
 import SamplerBeatMaker from "./component/SamplerBeatMaker";
 
 import EditGamerProfilePage from "./pages/EditGamerProfilePage";
@@ -601,16 +601,17 @@ const AppShell = ({ user }) => {
                                 <Route path="/recording-studio" element={<RecordingStudio />} />
                                 <Route path="/spx-beat-lab" element={<SamplerBeatMaker />} />
                                 <Route path="/plugin-rack-demo" element={<PluginRackDemo />} />
+                                {/* Part 17: dev-only simulator verification — not in nav, direct URL only. */}
+                                <Route path="/studio-smoke-test" element={<StudioSmokeTest />} />
+                                {/* Plugin truth audit — runtime test of every PLUGIN_FACTORIES entry. Direct URL only. */}
+                                <Route path="/plugin-audit" element={<PluginAudit />} />
                                 <Route path="/wam-plugin-store" element={<WAMPluginStore />} />
                                 <Route path="/ai-mastering" element={<AIMasteringPage />} />
                                 <Route path="/ai-content-writer" element={<AIContentWriter />} />
                                 <Route path="/ai-stem-separation" element={<AIStemSeparation />} />
                                 <Route path="/ai-video-studio" element={<AIVideoStudio />} />
-                                <Route path="/ai-text-to-song" element={<AITextToSong />} />
+                                {/* Part 18c: /ai-text-to-song, /add-beat-to-vocals, /song-extender, /hum-to-song hidden — Suno-gap backend stubs */}
                                 <Route path="/add-vocals-to-track" element={<AddVocalsToTrack />} />
-                                <Route path="/add-beat-to-vocals" element={<AddBeatToVocals />} />
-                                <Route path="/song-extender" element={<SongExtender />} />
-                                <Route path="/hum-to-song" element={<HumToSong />} />
                                 <Route path="/ai-thumbnail-maker" element={<AIThumbnailMaker />} />
                                 <Route path="/ai-epk-writer" element={<AIEPKWriter />} />
                                 <Route path="/ai-promo-generator" element={<AIPromoGenerator />} />
@@ -673,7 +674,6 @@ const AppShell = ({ user }) => {
                                 <Route path="*" element={<Home />} />
 <Route path="/sell-plugin" element={<SellPluginPage />} />
 <Route path="/plugins/:pluginId" element={<PluginDetailPage />} />
-                                            <Route path="/spx-script" element={<SPXScriptPage />} />
                 </Routes>
                         </div>
 

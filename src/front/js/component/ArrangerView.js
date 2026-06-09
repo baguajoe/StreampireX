@@ -6,6 +6,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import "../../styles/ArrangerView.css";
 import AutomationLane, { AUTO_PARAMS, getValueAtTime } from "./AutomationLane";
+import { DEFAULT_TRACK } from "../utils/trackFactory";
+// Part 10: BPM + Key + Loudness detection moved to a shared module so other
+// surfaces (SPX DJ Pro, SPX Cast, Beat Lab) can reuse the same analyzer.
+import { analyzeAll, camelotColor } from "../utils/audioAnalysis";
 
 // =============================================================================
 // CONSTANTS
@@ -83,54 +87,150 @@ const formatBarBeat = (beat, timeSignatureTop) => {
 };
 
 // =============================================================================
+// BPM DETECTION (Bug #4)
+// =============================================================================
+// Onset-envelope + autocorrelation. Far more robust than threshold-on-RMS: ignores
+// dynamics, tolerates missed onsets, works across genres. Returns rounded BPM in
+// [60, 200], or null if no clear lag.
+//
+// Part 10: implementation moved to utils/audioAnalysis.js so SPX DJ Pro, SPX
+// Cast and Beat Lab can share the same analyzer. Local shim returns just the
+// rounded BPM number to preserve the existing onBpmDetected(num) call shape.
+const detectBpmAutocorr = (audioBuffer) => {
+  const r = analyzeAll(audioBuffer);
+  return r?.bpm?.bpm ?? null;
+};
+
+// =============================================================================
 // WAVEFORM MINI
 // =============================================================================
-const WaveformMini = React.memo(({ audioUrl, color, width, height }) => {
-  const canvasRef  = useRef(null);
-  const [waveData, setWaveData] = useState(null);
+// Bug #3b: a fresh AudioContext was being created per width change (deps were
+// [audioUrl, width]). Browsers cap concurrent contexts (~6 in Chrome) and then
+// silently fail decode, leaving every later region flat. Use a single lazy
+// module-level context for all decode work, and never close it.
+let _waveformDecodeCtx = null;
+const getDecodeCtx = () => {
+  if (!_waveformDecodeCtx) _waveformDecodeCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return _waveformDecodeCtx;
+};
+// Bug #3c: cache absolute peak summaries per audioUrl so re-renders / resize / scroll
+// don't re-decode the same blob. Simple LRU eviction at 50 entries.
+const _peakCache = new Map(); // audioUrl -> Float32Array of peaks (DENSE_PEAKS samples)
+const PEAK_CACHE_MAX = 50;
+const DENSE_PEAKS = 512;
+const _peakCacheGet = (key) => {
+  if (!_peakCache.has(key)) return null;
+  const v = _peakCache.get(key);
+  _peakCache.delete(key); _peakCache.set(key, v); // bump recency
+  return v;
+};
+const _peakCacheSet = (key, v) => {
+  if (_peakCache.has(key)) _peakCache.delete(key);
+  _peakCache.set(key, v);
+  while (_peakCache.size > PEAK_CACHE_MAX) {
+    const oldest = _peakCache.keys().next().value;
+    _peakCache.delete(oldest);
+  }
+};
+const _peaksFromBuffer = (buf) => {
+  const ch0 = buf.getChannelData(0);
+  const ch1 = buf.numberOfChannels > 1 ? buf.getChannelData(1) : null;
+  const blockSize = Math.max(1, Math.floor(ch0.length / DENSE_PEAKS));
+  const peaks = new Float32Array(DENSE_PEAKS);
+  for (let i = 0; i < DENSE_PEAKS; i++) {
+    let sum = 0; const start = i * blockSize;
+    for (let j = 0; j < blockSize; j++) {
+      const idx = start + j;
+      const a = Math.abs(ch0[idx] || 0);
+      const b = ch1 ? Math.abs(ch1[idx] || 0) : 0;
+      sum += ch1 ? (a + b) * 0.5 : a;
+    }
+    peaks[i] = sum / blockSize;
+  }
+  return peaks;
+};
+
+// Bug #3e: accepts audioBuffer fallback so regions whose blob URL was dropped
+// (project save path strips audioUrl) still render a real waveform.
+const WaveformMini = React.memo(({ audioUrl, audioBuffer, color, width, height }) => {
+  const canvasRef = useRef(null);
+  const [peaks, setPeaks] = useState(() => audioUrl ? _peakCacheGet(audioUrl) : null);
+  const [decodeFailed, setDecodeFailed] = useState(false);
 
   useEffect(() => {
-    if (!audioUrl) return;
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    setDecodeFailed(false);
+    // Cache hit (Bug #3c): skip decode entirely.
+    if (audioUrl) {
+      const cached = _peakCacheGet(audioUrl);
+      if (cached) { setPeaks(cached); return; }
+    }
+    // Decoded-buffer fast path (Bug #3e): no fetch/decode needed.
+    if (audioBuffer) {
+      const p = _peaksFromBuffer(audioBuffer);
+      if (audioUrl) _peakCacheSet(audioUrl, p);
+      setPeaks(p);
+      return;
+    }
+    if (!audioUrl) { setPeaks(null); return; }
+    let cancelled = false;
     fetch(audioUrl)
-      .then(r  => r.arrayBuffer())
-      .then(buf => ctx.decodeAudioData(buf))
+      .then(r => r.arrayBuffer())
+      .then(buf => getDecodeCtx().decodeAudioData(buf))
       .then(decoded => {
-        const raw     = decoded.getChannelData(0);
-        const samples = Math.min(width * 2, 512);
-        const blockSize = Math.floor(raw.length / samples);
-        const peaks = [];
-        for (let i = 0; i < samples; i++) {
-          let sum = 0;
-          for (let j = 0; j < blockSize; j++) sum += Math.abs(raw[i * blockSize + j]);
-          peaks.push(sum / blockSize);
-        }
-        setWaveData(peaks);
-        ctx.close();
+        if (cancelled) return;
+        const p = _peaksFromBuffer(decoded);
+        _peakCacheSet(audioUrl, p);
+        setPeaks(p);
       })
-      .catch(() => ctx.close());
-  }, [audioUrl, width]);
+      .catch(() => { if (!cancelled) setDecodeFailed(true); });
+    return () => { cancelled = true; };
+  }, [audioUrl, audioBuffer]);
 
+  // Bug #3d: redraw on parent resize so the canvas stays crisp at any zoom level.
   useEffect(() => {
-    if (!waveData || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const c      = canvas.getContext("2d");
-    const dpr    = window.devicePixelRatio || 1;
-    canvas.width  = width  * dpr;
-    canvas.height = height * dpr;
-    c.scale(dpr, dpr);
-    c.clearRect(0, 0, width, height);
-    const max  = Math.max(...waveData, 0.01);
-    const barW = width / waveData.length;
-    const mid  = height / 2;
-    c.fillStyle   = color || "#34c759";
-    c.globalAlpha = 0.75;
-    waveData.forEach((v, i) => {
-      const h = (v / max) * mid * 0.9;
-      c.fillRect(i * barW, mid - h, Math.max(barW - 0.5, 0.5), h * 2);
-    });
-  }, [waveData, width, height, color]);
+    if (!peaks || !canvasRef.current) return;
+    const draw = () => {
+      const canvas = canvasRef.current; if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const w = Math.max(1, Math.floor(rect.width || width || 1));
+      const h = Math.max(1, Math.floor(rect.height || height || 1));
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = w * dpr; canvas.height = h * dpr;
+      const c = canvas.getContext("2d");
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      c.clearRect(0, 0, w, h);
+      // Resample dense peaks → display columns.
+      const cols = Math.max(8, Math.min(w, peaks.length));
+      const stride = peaks.length / cols;
+      let max = 0;
+      for (let i = 0; i < peaks.length; i++) if (peaks[i] > max) max = peaks[i];
+      if (max < 0.01) max = 0.01;
+      const barW = w / cols;
+      const mid = h / 2;
+      c.fillStyle = color || "#34c759";
+      c.globalAlpha = 0.78;
+      for (let i = 0; i < cols; i++) {
+        let s = 0; const a = Math.floor(i * stride), b = Math.floor((i + 1) * stride);
+        for (let k = a; k < b; k++) s += peaks[k] || 0;
+        const v = s / Math.max(1, b - a);
+        const bh = (v / max) * mid * 0.92;
+        c.fillRect(i * barW, mid - bh, Math.max(barW - 0.5, 0.5), bh * 2);
+      }
+    };
+    draw();
+    const parent = canvasRef.current?.parentElement;
+    let ro = null;
+    if (parent && typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => draw());
+      ro.observe(parent);
+    }
+    return () => { if (ro) ro.disconnect(); };
+  }, [peaks, width, height, color]);
 
+  // Bug #3e: tinted dashed placeholder when we have neither URL nor buffer (or decode failed).
+  if (!peaks && (decodeFailed || (!audioUrl && !audioBuffer))) {
+    return <div className="arr-region-placeholder-wave" style={{ color: color || "#34c759" }} />;
+  }
   return <canvas ref={canvasRef} className="arranger-waveform-canvas" />;
 });
 
@@ -180,6 +280,8 @@ const MidiRegionMini = React.memo(({ notes, width, height, color }) => {
 const Region = React.memo(({
   region, trackColor, trackType, zoom, snapValue, timeSignatureTop,
   onMove, onResize, onSelect, isSelected, onContextMenu, trackHeight, bpm = 120,
+  onOpenClipEditor, // Bug #9: dbl-click opens AudioClipEditor for audio regions.
+  trackIndex, regionIndex,
 }) => {
   const [dragging, setDragging] = useState(null);
   const dragStart = useRef({ x: 0, startBeat: 0, duration: 0 });
@@ -236,17 +338,36 @@ const Region = React.memo(({
       }}
       onMouseDown={(e) => handleMouseDown(e, "move")}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, region); }}
+      onDoubleClick={(e) => {
+        // Bug #9: only audio regions get the editor; instrument regions belong in the Piano Roll.
+        if (isInstrument) return;
+        e.stopPropagation();
+        onOpenClipEditor && onOpenClipEditor(region, trackIndex, regionIndex);
+      }}
     >
       <div className="arr-region-handle left" onMouseDown={(e) => handleMouseDown(e, "resize-left")}/>
       <div className="arr-region-content">
         <span className="arr-region-label">{region.name || (isInstrument ? "MIDI" : "Audio")}</span>
-        {!isInstrument && region.audioUrl && (
-          <WaveformMini audioUrl={region.audioUrl} color={trackColor} width={Math.max(width - 16, 20)} height={trackHeight - 28}/>
+        {/* Part 10: Camelot key badge — color-coded by Camelot wheel position so harmonically-mixable keys are visually adjacent. Hidden when no analysis is available (instruments, undecoded clips). */}
+        {region.metadata?.key?.camelot && (
+          <span
+            className="arr-region-camelot"
+            style={{ background: camelotColor(region.metadata.key.camelot), color: "#06070d" }}
+            title={`${region.metadata.key.key} (${region.metadata.key.camelot}) · ${region.metadata.bpm?.bpm ?? "?"} BPM · ${region.metadata.loudness?.lufs ?? "?"} LUFS · key conf ${region.metadata.key.confidence}`}
+          >
+            {region.metadata.key.camelot}
+          </span>
+        )}
+        {!isInstrument && (region.audioUrl || region.audioBuffer) && (
+          <WaveformMini audioUrl={region.audioUrl} audioBuffer={region.audioBuffer} color={trackColor} width={Math.max(width - 16, 20)} height={trackHeight - 28}/>
         )}
         {isInstrument && region.notes && region.notes.length > 0 && (
           <MidiRegionMini notes={region.notes} color={trackColor} width={Math.max(width - 16, 20)} height={trackHeight - 28}/>
         )}
-        {!region.audioUrl && !(isInstrument && region.notes?.length) && (
+        {!isInstrument && !region.audioUrl && !region.audioBuffer && (
+          <div className="arr-region-placeholder-wave" style={{ color: trackColor }}/>
+        )}
+        {isInstrument && !(region.notes && region.notes.length > 0) && (
           <div className="arr-region-empty-wave"/>
         )}
       </div>
@@ -742,13 +863,33 @@ const ArrangerView = ({
   instrumentEngine,
   onBrowseSounds, onOpenPianoRoll, onTimelineDoubleClick,
   MidiRegionPreview, onAddTrack, onBpmDetected,
+  onOpenClipEditor, // Bug #9
+  // Part 10: full audio analysis (BPM + key + Camelot + loudness) emitted per
+  // dropped/imported audio file. Parent can store this on the track / region
+  // for display in the inspector and as a colored badge on the clip.
+  onAnalysisComplete,
+  // Part 13 (#13-1): when the parent passes selectedTrack/onSelectTrack, the
+  // arranger acts as a controlled component so LeftSidebar (and any other
+  // parent-rendered inspector) shares the same selection. Falls back to local
+  // state when the prop is omitted.
+  selectedTrack: selectedTrackProp,
+  onSelectTrack,
+  // Optional parent ref to the lanes scroll container — used by Follow
+  // Playhead in RecordingStudio to drive auto-scroll without lifting state.
+  scrollContainerRef,
 }) => {
   // ── State ──
   const [zoom,          setZoom]          = useState(DEFAULT_ZOOM);
   const [snapIndex,     setSnapIndex]     = useState(2);     // 1/2 bar default
   const [scrollLeft,    setScrollLeft]    = useState(0);
   const [scrollTop,     setScrollTop]     = useState(0);
-  const [selectedTrack, setSelectedTrack] = useState(0);
+  const [internalSelectedTrack, setInternalSelectedTrack] = useState(0);
+  const selectedTrack = selectedTrackProp != null ? selectedTrackProp : internalSelectedTrack;
+  const setSelectedTrack = useCallback((updater) => {
+    const next = typeof updater === "function" ? updater(selectedTrack) : updater;
+    if (onSelectTrack) onSelectTrack(next);
+    setInternalSelectedTrack(next);
+  }, [selectedTrack, onSelectTrack]);
   const [selectedRegion,setSelectedRegion]= useState(null);
   const [contextMenu,   setContextMenu]   = useState(null);
   const [showAutoTrack, setShowAutoTrack] = useState(null);  // track index
@@ -781,6 +922,17 @@ const ArrangerView = ({
     setScrollTop(e.target.scrollTop);
   }, []);
 
+  // Stable callback ref so React doesn't re-mount onDrop/onDragOver listeners
+  // each render (an inline ref function caused desktop-file drops to silently
+  // no-op after the Follow Playhead commit).
+  const setScrollRefs = useCallback((el) => {
+    scrollRef.current = el;
+    if (scrollContainerRef) {
+      if (typeof scrollContainerRef === "function") scrollContainerRef(el);
+      else scrollContainerRef.current = el;
+    }
+  }, [scrollContainerRef]);
+
   // ── Zoom ──
   const handleWheel = useCallback((e) => {
     if (e.ctrlKey || e.metaKey) {
@@ -795,19 +947,20 @@ const ArrangerView = ({
   }, [setTracks]);
 
   const addTrack = useCallback((type = "audio") => {
-    if (maxTracks > 0 && tracks.length >= maxTracks) return;
-    const i = tracks.length;
-    setTracks(prev => [...prev, {
-      id: `trk_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-      name: `${type === "instrument" ? "MIDI" : "Audio"} ${i + 1}`,
-      trackType: type,
-      volume: 1.0, pan: 0,
-      muted: false, solo: false, armed: false,
-      color: TRACK_COLORS[i % TRACK_COLORS.length],
-      regions: [],
-    }]);
-    setSelectedTrack(i);
-  }, [tracks.length, maxTracks, setTracks]);
+    // Bug #1 (Part 9): read `prev.length` inside the functional updater so a
+    // file-drop that appended a track milliseconds earlier doesn't leave us
+    // with a stale closure (i / limit check both wrong → silent no-op).
+    setTracks(prev => {
+      const i = prev.length;
+      if (maxTracks > 0 && i >= maxTracks) return prev;
+      const t = DEFAULT_TRACK(i, type, {
+        name: `${type === "instrument" ? "MIDI" : "Audio"} ${i + 1}`,
+        color: TRACK_COLORS[i % TRACK_COLORS.length],
+      });
+      setSelectedTrack(i);
+      return [...prev, t];
+    });
+  }, [maxTracks, setTracks]);
 
   const handleFileDrop = useCallback(async (e) => {
     e.preventDefault();
@@ -823,58 +976,53 @@ const ArrangerView = ({
       let duration = 4;
       let decodedBuf = null;
       try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        decodedBuf = await ctx.decodeAudioData(arrayBuf);
+        // Bug #3b: reuse the same singleton context so dropping many files doesn't exhaust the AudioContext pool.
+        decodedBuf = await getDecodeCtx().decodeAudioData(arrayBuf);
         duration = decodedBuf.duration;
-        // BPM detection
+        // Part 10: single-pass BPM + key + loudness analysis. analyzeAll
+        // shares the mono mixdown so a 4-min file analyzes in one O(N) sweep.
+        // Wrapped in try/catch + tagged log so a single failed file (e.g.
+        // ultra-short stab sample) doesn't break the whole drop.
         try {
-          const ch = decodedBuf.getChannelData(0); const sr = decodedBuf.sampleRate;
-          const step = Math.floor(sr * 0.01);
-          const peaks = [];
-          for (let s = 0; s < ch.length - step; s += step) {
-            let r = 0; for (let k = 0; k < step; k++) r += ch[s+k]*ch[s+k];
-            peaks.push(Math.sqrt(r/step));
-          }
-          const avg = peaks.reduce((a,b)=>a+b,0)/peaks.length;
-          const thr = avg * 1.5;
-          const beats = []; let last = -1;
-          for (let i = 1; i < peaks.length-1; i++) {
-            if (peaks[i]>thr && peaks[i]>peaks[i-1] && peaks[i]>peaks[i+1] && (i-last)>20) { beats.push(i*0.01); last=i; }
-          }
-          if (beats.length > 3) {
-            const intervals = beats.slice(1).map((b,i)=>b-beats[i]);
-            const avgInt = intervals.reduce((a,b)=>a+b,0)/intervals.length;
-            const det = Math.round(60/avgInt);
-            if (det>=60 && det<=200 && onBpmDetected) onBpmDetected(det);
-          }
-        } catch(e) {}
-        ctx.close();
+          const analysis = analyzeAll(decodedBuf);
+          if (analysis?.bpm?.bpm && onBpmDetected) onBpmDetected(analysis.bpm.bpm);
+          if (analysis && onAnalysisComplete) onAnalysisComplete(analysis, file.name);
+          if (analysis) console.log(`[SPX analyze] ${file.name}: BPM ${analysis.bpm?.bpm} (conf ${analysis.bpm?.confidence}), key ${analysis.key?.key} (${analysis.key?.camelot}, conf ${analysis.key?.confidence}), LUFS ${analysis.loudness?.lufs}`);
+        } catch (e) { console.warn("[SPX analyze] failed for", file.name, e); }
       } catch(err) {}
       const beatsPerSecond = bpm / 60;
       const regionBeats = Math.ceil(duration * beatsPerSecond);
-      const i = tracks.length;
-      const newTrack = {
-        id: `trk_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-        name: file.name.replace(/\.[^.]+$/, ''),
-        trackType: 'audio',
-        volume: 1.0, pan: 0,
-        muted: false, solo: false, armed: false,
-        color: TRACK_COLORS[i % TRACK_COLORS.length],
-        audioBuffer: decodedBuf,
-        audio_url: url,
-        regions: [{
-          id: `reg_${Date.now()}`,
-          startBeat: startBeat,
-          duration: regionBeats,
-          audioUrl: url,
+      // Part 10: stash the cached analysis on the track + region so the
+      // inspector + region badge can render BPM / Camelot without re-running
+      // analyzeAll. analyzeAll caches per-AudioBuffer (WeakMap), so this read
+      // is O(1).
+      const meta = (() => { try { return analyzeAll(decodedBuf); } catch { return null; } })();
+      // Bug #1 (Part 9): use prev.length inside the functional updater so back-to-back
+      // drops within the same loop iteration each get the correct index/color.
+      setTracks(prev => {
+        const i = prev.length;
+        const newTrack = DEFAULT_TRACK(i, 'audio', {
           name: file.name.replace(/\.[^.]+$/, ''),
           color: TRACK_COLORS[i % TRACK_COLORS.length],
-        }],
-      };
-      setTracks(prev => [...prev, newTrack]);
-      setSelectedTrack(i);
+          audioBuffer: decodedBuf,
+          audio_url: url,
+          metadata: meta,
+          regions: [{
+            id: `reg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            startBeat: startBeat,
+            duration: regionBeats,
+            audioUrl: url,
+            audioBuffer: decodedBuf,
+            metadata: meta,
+            name: file.name.replace(/\.[^.]+$/, ''),
+            color: TRACK_COLORS[i % TRACK_COLORS.length],
+          }],
+        });
+        setSelectedTrack(i);
+        return [...prev, newTrack];
+      });
     }
-  }, [tracks.length, bpm, zoom, setTracks]);
+  }, [bpm, zoom, setTracks, onBpmDetected]);
 
   const removeTrack = useCallback((index) => {
     if (tracks.length <= 1) return;
@@ -962,6 +1110,39 @@ const ArrangerView = ({
     const beat  = Math.max(0, pxToBeat(x, zoom, bpm));
     onSeek && onSeek(beat);
   }, [zoom, scrollLeft, onSeek]);
+
+  // ── Bug #5c: Alt+drag on timeline to define cycle region ──
+  const [cycleDragOverlay, setCycleDragOverlay] = useState(null); // { x, w } in px
+  const handleSeekLayerMouseDown = useCallback((e) => {
+    if (!e.altKey) return; // Plain click falls through to handleTimelineClick → seek.
+    if (!timelineRef.current) return;
+    e.preventDefault();
+    const rect = timelineRef.current.getBoundingClientRect();
+    const startBeat = Math.max(0, pxToBeat(e.clientX - rect.left + scrollLeft, zoom, bpm));
+    const startX = e.clientX - rect.left;
+    setCycleDragOverlay({ x: startX, w: 0 });
+    let endBeat = startBeat;
+    const onMove = (m) => {
+      const curX = m.clientX - rect.left;
+      endBeat = Math.max(0, pxToBeat(m.clientX - rect.left + scrollLeft, zoom, bpm));
+      const lo = Math.min(startX, curX), w = Math.abs(curX - startX);
+      setCycleDragOverlay({ x: lo, w });
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      setCycleDragOverlay(null);
+      const lo = Math.min(startBeat, endBeat);
+      const hi = Math.max(startBeat, endBeat);
+      // Require at least a tiny drag so an Alt+click doesn't blow away the existing region.
+      if (hi - lo < 0.05) return;
+      onCycleChange && onCycleChange(lo, hi);
+      // Toggle cycle on if it's not already on.
+      if (!cycleEnabled) onCycleToggle && onCycleToggle();
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [zoom, scrollLeft, bpm, onCycleChange, onCycleToggle, cycleEnabled]);
 
   // ── Timeline double-click → add region ──
   const handleTimelineDoubleClick = useCallback((e, trackIndex) => {
@@ -1209,7 +1390,7 @@ const ArrangerView = ({
 
           {/* Scrollable track lanes */}
           <div
-            ref={scrollRef}
+            ref={setScrollRefs}
             className="arr-lanes-scroll"
             onScroll={handleScroll}
             onDragOver={(e) => e.preventDefault()}
@@ -1228,8 +1409,20 @@ const ArrangerView = ({
                 bpm={bpm}
               />
 
-              {/* Click target for seek */}
-              <div ref={timelineRef} className="arr-seek-layer" onClick={handleTimelineClick}/>
+              {/* Click target for seek (Bug #5c: Alt+drag to define cycle region) */}
+              <div
+                ref={timelineRef}
+                className="arr-seek-layer"
+                title="Click to seek · Alt+drag to set cycle"
+                onClick={handleTimelineClick}
+                onMouseDown={handleSeekLayerMouseDown}
+              />
+              {cycleDragOverlay && (
+                <div
+                  className="arr-cycle-drag-overlay"
+                  style={{ left: cycleDragOverlay.x, width: cycleDragOverlay.w, height: tracks.length * trackHeight }}
+                />
+              )}
 
               {/* Track lanes */}
               {tracks.map((track, trackIndex) => (
@@ -1240,7 +1433,7 @@ const ArrangerView = ({
                   onClick={() => setSelectedTrack(trackIndex)}
                   onDoubleClick={(e) => handleTimelineDoubleClick(e, trackIndex)}
                 >
-                  {(track.regions || []).map(region => (
+                  {(track.regions || []).map((region, regionIndex) => (
                     <Region
                       key={region.id}
                       region={region}
@@ -1256,6 +1449,9 @@ const ArrangerView = ({
                       onContextMenu={(e, r) => handleRegionContextMenu(e, r, trackIndex)}
                       trackHeight={trackHeight}
                       bpm={bpm}
+                      onOpenClipEditor={onOpenClipEditor}
+                      trackIndex={trackIndex}
+                      regionIndex={regionIndex}
                     />
                   ))}
                 </div>

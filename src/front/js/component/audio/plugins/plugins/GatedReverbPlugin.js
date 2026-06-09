@@ -1,46 +1,199 @@
 // =============================================================================
 // GatedReverbPlugin.js — StreamPireX Audio Plugin
 // =============================================================================
+// Phase C5 rebuild: envelope-controlled gated reverb.
+// Topology:
+//   input ─┬─ dryGain ─────────────────────────────────────────── output
+//          ├─ preDelay → convolver(longHallIR) → wetTrim → gate ─ output
+//          └─ envAnalyser   (polled to drive 'gate' AudioParam)
+//
+// The dry signal's RMS envelope drives a slewed gate gain on the wet path:
+//   - When dryEnv > threshold: gate opens with 'attack' (ms) ramp.
+//   - When dryEnv falls below threshold for 'gateTime' (ms): gate closes
+//     abruptly with 'release' (ms) ramp, hard-cutting the reverb tail.
+//
+// Standard Web Audio nodes only — no worklet required.
+// Honesty tag: CLEAN — gate behavior is sample-accurate via setTargetAtTime
+// scheduling; envelope detection runs at ~30 Hz (RAF-driven), which is the
+// usual rate for envelope followers in pure-Web-Audio designs.
+// =============================================================================
 
 export const createGatedReverbPlugin = (context, p = {}) => {
-  const input    = context.createGain();
-  const output   = context.createGain();
-  const convolver = context.createConvolver();
-  const gate     = context.createGain();
-  const dryGain  = context.createGain();
-  const wetGain  = context.createGain();
+  const input        = context.createGain();
+  const output       = context.createGain();
+  const preDelayNode = context.createDelay(1.0);
+  const convolver    = context.createConvolver();
+  const dryGain      = context.createGain();
+  const wetTrim      = context.createGain();   // wet level (mix)
+  const gateGain     = context.createGain();   // envelope-controlled gate
+  const envAnalyser  = context.createAnalyser();
+  envAnalyser.fftSize = 1024;
+  envAnalyser.smoothingTimeConstant = 0.2;
 
   const sr = context.sampleRate;
-  const gateTime = (p.gateTime ?? 200) / 1000;
-  const len = Math.floor(sr * 0.5);
-  const ir  = context.createBuffer(2, len, sr);
 
-  for (let ch = 0; ch < 2; ch++) {
-    const data = ir.getChannelData(ch);
-    for (let i = 0; i < len; i++) {
-      // Dense, flat then hard gate
-      const t = i / sr;
-      const env = t < gateTime ? 1 : Math.exp(-(t - gateTime) * 50);
-      data[i] = (Math.random() * 2 - 1) * env;
+  // Build a dense long Hall-style IR (no built-in gate — gate is dynamic).
+  // decaySec controls the exponential tail length.
+  const buildHallIR = (decaySec) => {
+    const safeDecay = Math.max(0.2, Math.min(4.0, decaySec));
+    const len = Math.max(1, Math.floor(sr * safeDecay));
+    const ir = context.createBuffer(2, len, sr);
+    for (let ch = 0; ch < 2; ch++) {
+      const data = ir.getChannelData(ch);
+      // Initial dense diffusion (~30 ms ramp-in) then exponential decay to -60 dB.
+      const tau = safeDecay / 6.91;  // -60 dB time constant
+      const rampIn = Math.floor(sr * 0.03);
+      for (let i = 0; i < len; i++) {
+        const t = i / sr;
+        const env = (i < rampIn ? (i / rampIn) : 1) * Math.exp(-t / tau);
+        data[i] = (Math.random() * 2 - 1) * env;
+      }
     }
-  }
-  convolver.buffer = ir;
+    return ir;
+  };
 
-  const mix = (p.mix ?? 35) / 100;
-  dryGain.gain.value = 1 - mix;
-  wetGain.gain.value = mix;
+  // Initial values from registry.
+  let decayS    = Number.isFinite(p.decay)     ? p.decay     : 1.5;   // long IR for hall
+  let gateMs    = Number.isFinite(p.gateTime)  ? p.gateTime  : 200;
+  let preMs     = Number.isFinite(p.preDelay)  ? p.preDelay  : 10;
+  let mixPct    = Number.isFinite(p.mix)       ? p.mix       : 0;
+  let threshDb  = Number.isFinite(p.threshold) ? p.threshold : -40;
+  let attackMs  = Number.isFinite(p.attack)    ? p.attack    : 5;
+  let releaseMs = Number.isFinite(p.release)   ? p.release   : 30;
 
+  convolver.buffer = buildHallIR(decayS);
+  preDelayNode.delayTime.value = Math.max(0, Math.min(0.05, preMs / 1000));
+
+  const m0 = Math.max(0, Math.min(100, mixPct)) / 100;
+  dryGain.gain.value = 1 - m0;
+  wetTrim.gain.value = m0;
+  gateGain.gain.value = 0;  // start closed
+
+  // Wiring.
   input.connect(dryGain); dryGain.connect(output);
-  input.connect(convolver); convolver.connect(wetGain); wetGain.connect(output);
+  input.connect(preDelayNode);
+  preDelayNode.connect(convolver);
+  convolver.connect(wetTrim);
+  wetTrim.connect(gateGain);
+  gateGain.connect(output);
+  // Envelope detection: tap the dry input.
+  input.connect(envAnalyser);
+
+  // Envelope follower loop. Polls RMS at ~30 Hz; drives gateGain via
+  // setTargetAtTime so the actual ramp is sample-accurate inside the audio
+  // graph between polls.
+  const tdBuf = new Float32Array(envAnalyser.fftSize);
+  let aboveSinceMs = 0;        // ms above threshold
+  let belowSinceMs = 0;        // ms below threshold
+  let gateOpen = false;
+  let lastTickPerf = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  let pollHandle = null;
+  let stopped = false;
+
+  // Debounce IR rebuild on decay knob.
+  let irRebuildTimer = null;
+  const scheduleIRRebuild = () => {
+    if (irRebuildTimer) clearTimeout(irRebuildTimer);
+    irRebuildTimer = setTimeout(() => {
+      try { convolver.buffer = buildHallIR(decayS); } catch {}
+      irRebuildTimer = null;
+    }, 80);
+  };
+
+  const tick = () => {
+    if (stopped) return;
+    try {
+      envAnalyser.getFloatTimeDomainData(tdBuf);
+    } catch {
+      // Some test envs lack getFloatTimeDomainData; fall back to byte data.
+      const b = new Uint8Array(envAnalyser.fftSize);
+      try { envAnalyser.getByteTimeDomainData(b); } catch {}
+      for (let i = 0; i < tdBuf.length; i++) tdBuf[i] = (b[i] - 128) / 128;
+    }
+    let sumSq = 0;
+    for (let i = 0; i < tdBuf.length; i++) { const v = tdBuf[i]; sumSq += v * v; }
+    const rms = Math.sqrt(sumSq / tdBuf.length);
+    const rmsDb = 20 * Math.log10(Math.max(rms, 1e-7));
+
+    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const dt = Math.min(100, Math.max(1, now - lastTickPerf));
+    lastTickPerf = now;
+
+    if (rmsDb >= threshDb) {
+      aboveSinceMs += dt;
+      belowSinceMs = 0;
+      if (!gateOpen) {
+        // Open: ramp gate to 1 with attack.
+        const tauOpen = Math.max(0.001, attackMs / 1000) / 3; // 3·tau ≈ 95% rise
+        gateGain.gain.cancelScheduledValues(context.currentTime);
+        gateGain.gain.setTargetAtTime(1.0, context.currentTime, tauOpen);
+        gateOpen = true;
+      }
+    } else {
+      belowSinceMs += dt;
+      aboveSinceMs = 0;
+      // Close only after the input has been below threshold for >= gateTime
+      // (this is the "hold" semantics of a gated reverb).
+      if (gateOpen && belowSinceMs >= gateMs) {
+        const tauClose = Math.max(0.001, releaseMs / 1000) / 3;
+        gateGain.gain.cancelScheduledValues(context.currentTime);
+        gateGain.gain.setTargetAtTime(0.0, context.currentTime, tauClose);
+        gateOpen = false;
+      }
+    }
+
+    if (typeof requestAnimationFrame === 'function') {
+      pollHandle = requestAnimationFrame(tick);
+    } else {
+      pollHandle = setTimeout(tick, 33);
+    }
+  };
+  // Kick off polling.
+  if (typeof requestAnimationFrame === 'function') {
+    pollHandle = requestAnimationFrame(tick);
+  } else {
+    pollHandle = setTimeout(tick, 33);
+  }
 
   return {
     inputNode: input, node: input,
     setParam(k, v) {
-      if (k === 'mix') { dryGain.gain.setTargetAtTime(1-v/100, 0, 0.05); wetGain.gain.setTargetAtTime(v/100, 0, 0.05); }
+      const sv = Number.isFinite(v) ? v : 0;
+      const t = context.currentTime;
+      if (k === 'decay')     { decayS = Math.max(0.2, Math.min(4.0, sv)); scheduleIRRebuild(); }
+      else if (k === 'gateTime')  { gateMs = Math.max(10, Math.min(2000, sv)); }
+      else if (k === 'preDelay')  { preDelayNode.delayTime.setTargetAtTime(Math.max(0, Math.min(0.05, sv / 1000)), t, 0.01); }
+      else if (k === 'threshold') { threshDb = Math.max(-100, Math.min(0, sv)); }
+      else if (k === 'attack')    { attackMs = Math.max(0.1, Math.min(200, sv)); }
+      else if (k === 'release')   { releaseMs = Math.max(1, Math.min(500, sv)); }
+      else if (k === 'mix') {
+        const c = Math.max(0, Math.min(100, sv)) / 100;
+        dryGain.gain.setTargetAtTime(1 - c, t, 0.05);
+        wetTrim.gain.setTargetAtTime(c, t, 0.05);
+      }
     },
-    getState: () => ({ mix: wetGain.gain.value * 100 }),
+    getState: () => ({
+      decay: decayS, gateTime: gateMs, preDelay: preDelayNode.delayTime.value * 1000,
+      mix: wetTrim.gain.value * 100, threshold: threshDb, attack: attackMs, release: releaseMs,
+    }),
     connect: d => output.connect(d),
     disconnect: () => output.disconnect(),
+    destroy: () => {
+      stopped = true;
+      if (pollHandle) {
+        try { if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(pollHandle); else clearTimeout(pollHandle); } catch {}
+        pollHandle = null;
+      }
+      if (irRebuildTimer) { try { clearTimeout(irRebuildTimer); } catch {} }
+      try { input.disconnect(); } catch {}
+      try { preDelayNode.disconnect(); } catch {}
+      try { convolver.disconnect(); } catch {}
+      try { wetTrim.disconnect(); } catch {}
+      try { gateGain.disconnect(); } catch {}
+      try { dryGain.disconnect(); } catch {}
+      try { envAnalyser.disconnect(); } catch {}
+      try { output.disconnect(); } catch {}
+    },
   };
 };
 

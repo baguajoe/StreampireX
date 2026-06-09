@@ -5,28 +5,58 @@
 export const createAirEQPlugin = (context, p = {}) => {
   const input   = context.createGain();
   const output  = context.createGain();
+  const dryGain = context.createGain();
+  const wetGain = context.createGain();
   const air     = context.createBiquadFilter();
   const presence = context.createBiquadFilter();
   const hpf     = context.createBiquadFilter();
 
-  air.type = 'highshelf'; air.frequency.value = p.airFreq ?? 16000; air.gain.value = p.airGain ?? 0;
-  presence.type = 'peaking'; presence.frequency.value = p.presenceFreq ?? 8000; presence.gain.value = p.presenceGain ?? 0; presence.Q.value = 0.7;
-  hpf.type = 'highpass'; hpf.frequency.value = p.hpf ?? 40; hpf.Q.value = 0.5;
+  const clamp = (v, lo, hi, dflt) => {
+    const n = Number.isFinite(v) ? v : dflt;
+    return Math.max(lo, Math.min(hi, n));
+  };
 
-  input.connect(hpf); hpf.connect(presence); presence.connect(air); air.connect(output);
+  air.type = 'highshelf';
+  air.frequency.value = clamp(p.airFreq, 8000, 20000, 12000);
+  air.gain.value = clamp(p.air ?? p.airGain, 0, 12, 0);
+
+  presence.type = 'peaking';
+  presence.frequency.value = clamp(p.presenceFreq, 1000, 12000, 8000);
+  presence.gain.value = clamp(p.presence ?? p.presenceGain, 0, 6, 0);
+  presence.Q.value = 0.7;
+
+  hpf.type = 'highpass'; hpf.frequency.value = clamp(p.hpf, 20, 500, 40); hpf.Q.value = 0.5;
+
+  const mix0 = clamp(p.mix, 0, 100, 100) / 100;
+  dryGain.gain.value = 1 - mix0;
+  wetGain.gain.value = mix0;
+
+  input.connect(dryGain); dryGain.connect(output);
+  input.connect(hpf); hpf.connect(presence); presence.connect(air); air.connect(wetGain); wetGain.connect(output);
 
   return {
     inputNode: input, node: input,
     setParam(k, v) {
-      if (k === 'airGain')      air.gain.setTargetAtTime(v, 0, 0.01);
-      if (k === 'airFreq')      air.frequency.setTargetAtTime(v, 0, 0.01);
-      if (k === 'presenceGain') presence.gain.setTargetAtTime(v, 0, 0.01);
-      if (k === 'presenceFreq') presence.frequency.setTargetAtTime(v, 0, 0.01);
-      if (k === 'hpf')          hpf.frequency.setTargetAtTime(v, 0, 0.01);
+      switch (k) {
+        case 'air':          air.gain.setTargetAtTime(clamp(v, 0, 12, 0), 0, 0.01); break;
+        case 'airGain':      air.gain.setTargetAtTime(clamp(v, 0, 12, 0), 0, 0.01); break;
+        case 'airFreq':      air.frequency.setTargetAtTime(clamp(v, 8000, 20000, 12000), 0, 0.01); break;
+        case 'presence':     presence.gain.setTargetAtTime(clamp(v, 0, 6, 0), 0, 0.01); break;
+        case 'presenceGain': presence.gain.setTargetAtTime(clamp(v, -12, 12, 0), 0, 0.01); break;
+        case 'presenceFreq': presence.frequency.setTargetAtTime(clamp(v, 1000, 12000, 8000), 0, 0.01); break;
+        case 'hpf':          hpf.frequency.setTargetAtTime(clamp(v, 20, 500, 40), 0, 0.01); break;
+        case 'mix': {
+          const m = clamp(v, 0, 100, 100) / 100;
+          dryGain.gain.setTargetAtTime(1 - m, 0, 0.05);
+          wetGain.gain.setTargetAtTime(m, 0, 0.05);
+          break;
+        }
+      }
     },
-    getState: () => ({ airGain: air.gain.value, presenceGain: presence.gain.value }),
+    getState: () => ({ air: air.gain.value, presence: presence.gain.value, mix: wetGain.gain.value * 100 }),
     connect: d => output.connect(d),
     disconnect: () => output.disconnect(),
+    destroy: () => { try { input.disconnect(); hpf.disconnect(); presence.disconnect(); air.disconnect(); dryGain.disconnect(); wetGain.disconnect(); output.disconnect(); } catch(_){} },
   };
 };
 

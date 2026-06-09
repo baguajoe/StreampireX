@@ -8,7 +8,7 @@ export const createNotchEQPlugin = (context, p = {}) => {
   const notch  = context.createBiquadFilter();
 
   notch.type            = 'notch';
-  notch.frequency.value = p.freq ?? 1000;
+  notch.frequency.value = p.freq ?? 60;
   notch.Q.value         = p.q ?? 10;
 
   input.connect(notch); notch.connect(output);

@@ -1447,6 +1447,13 @@ class PodcastEpisode(db.Model):
     platform_cut = db.Column(db.Float, default=0.15)  # 15% platform cut by default
     creator_earnings = db.Column(db.Float, default=0.85)  # 85% for the creator by default
 
+    # Part 18c: AI transcript persistence (Deepgram Nova-2 / Whisper).
+    # Show Notes + Magic Clips read these; without them, returning users re-transcribe every visit.
+    transcript = db.Column(db.Text, nullable=True)
+    transcript_words = db.Column(db.JSON, nullable=True)
+    transcript_provider = db.Column(db.String(32), nullable=True)
+    transcript_at = db.Column(db.DateTime, nullable=True)
+
     user = db.relationship('User', backref=db.backref('podcast_episodes', lazy=True))
 
     # Method to calculate revenue for episodes
@@ -1459,8 +1466,8 @@ class PodcastEpisode(db.Model):
         db.session.commit()
         return self.total_revenue
 
-    def serialize(self):
-        return {
+    def serialize(self, include_transcript=False):
+        out = {
             "id": self.id,
             "user_id": self.user_id,
             "title": self.title,
@@ -1477,8 +1484,16 @@ class PodcastEpisode(db.Model):
             "revenue_from_ads": self.revenue_from_ads,
             "revenue_from_subscriptions": self.revenue_from_subscriptions,
             "creator_earnings": self.creator_earnings,
-            "platform_cut": self.platform_cut
+            "platform_cut": self.platform_cut,
+            # AI transcript metadata (Part 18c) — full transcript opt-in to keep payload small.
+            "has_transcript": bool(self.transcript),
+            "transcript_provider": self.transcript_provider,
+            "transcript_at": self.transcript_at.isoformat() if self.transcript_at else None,
         }
+        if include_transcript:
+            out["transcript"] = self.transcript
+            out["transcript_words"] = self.transcript_words
+        return out
 
 
 class PodcastClip(db.Model):

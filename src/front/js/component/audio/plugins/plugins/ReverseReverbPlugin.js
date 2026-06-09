@@ -10,7 +10,7 @@ export const createReverseReverbPlugin = (context, p = {}) => {
   const ir=context.createBuffer(2,len,sr);
   for(let ch=0;ch<2;ch++){ const d=ir.getChannelData(ch); for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*((i+1)/len); } // reversed env
   convolver.buffer=ir;
-  const mix=(p.mix??30)/100;
+  const mix=(p.mix??0)/100;
   dryGain.gain.value=1-mix; wetGain.gain.value=mix;
   input.connect(dryGain); dryGain.connect(output);
   input.connect(convolver); convolver.connect(wetGain); wetGain.connect(output);

@@ -1508,8 +1508,6 @@ const Home = () => {
 							<Link to="/ai-mastering">AI Mastering</Link>
 							<Link to="/ai-stem-separation">AI Stem Separation</Link>
 							<Link to="/ai-video-studio">AI Video Studio</Link>
-							<Link to="/hum-to-song">Hum to Song</Link>
-							<Link to="/ai-text-to-song">Text to Song</Link>
 							<Link to="/airadio-dj">AI Radio DJ</Link>
 							<Link to="/voice-clone-services">AI Voice Clone</Link>
 						</div>

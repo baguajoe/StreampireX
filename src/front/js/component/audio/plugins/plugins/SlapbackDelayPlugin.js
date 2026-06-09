@@ -5,8 +5,8 @@
 export const createSlapbackDelayPlugin = (context, p = {}) => {
   const input=context.createGain(), output=context.createGain();
   const delay=context.createDelay(0.2), dryGain=context.createGain(), wetGain=context.createGain();
-  delay.delayTime.value=(p.time??75)/1000;
-  const mix=(p.mix??40)/100;
+  delay.delayTime.value=(p.time??60)/1000;
+  const mix=(p.mix??0)/100;
   dryGain.gain.value=1-mix; wetGain.gain.value=mix;
   input.connect(dryGain); dryGain.connect(output);
   input.connect(delay); delay.connect(wetGain); wetGain.connect(output);

@@ -8,7 +8,7 @@ export const createResonatorPlugin = (context, p = {}) => {
   const mixer=context.createGain();
   filters.forEach(f=>{input.connect(f);f.connect(mixer);});
   const dryGain=context.createGain(), wetGain=context.createGain();
-  const mix=(p.mix??50)/100;
+  const mix=(p.mix??0)/100;
   dryGain.gain.value=1-mix; wetGain.gain.value=mix/filters.length;
   input.connect(dryGain); dryGain.connect(output);
   mixer.connect(wetGain); wetGain.connect(output);

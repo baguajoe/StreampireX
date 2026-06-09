@@ -59,11 +59,28 @@ def transcribe_audio():
     data = request.get_json()
     audio_url = data.get('audio_url')
     episode_id = data.get('episode_id')
+    # Part 18c: cached read by default; pass force=true (body or ?force=1) to re-transcribe.
+    force = bool(data.get('force')) or request.args.get('force', '').lower() in ('1', 'true', 'yes')
 
     if not audio_url:
         return jsonify({"error": "audio_url required"}), 400
 
     try:
+        # Cache hit — return persisted transcript without burning a Deepgram/Whisper call.
+        if episode_id and not force:
+            from api.models import PodcastEpisode
+            episode = PodcastEpisode.query.filter_by(id=episode_id, user_id=user_id).first()
+            if episode and episode.transcript:
+                return jsonify({
+                    'full_text': episode.transcript,
+                    'words': episode.transcript_words or [],
+                    'speakers': [],
+                    'paragraphs': [],
+                    'duration': episode.duration or 0,
+                    'model': episode.transcript_provider or 'cached',
+                    'cached': True,
+                }), 200
+
         # --- Deepgram Nova-2 (preferred: word timestamps + speaker diarization) ---
         if DEEPGRAM_API_KEY:
             result = _transcribe_deepgram(audio_url)
@@ -73,16 +90,18 @@ def transcribe_audio():
         else:
             return jsonify({"error": "No transcription API key configured"}), 500
 
-        # Save transcript to database if episode_id provided
+        # Persist to DB so Show Notes / Magic Clips / re-loads can read it later.
         if episode_id:
             from api.models import db, PodcastEpisode
             episode = PodcastEpisode.query.filter_by(
                 id=episode_id, user_id=user_id
             ).first()
             if episode:
-                # NOTE: transcript / transcript_words deferred — columns not in PodcastEpisode model.
-                # Transcript is returned in response; persistence requires DB migration.
-                pass
+                episode.transcript = result.get('full_text', '')
+                episode.transcript_words = result.get('words', [])
+                episode.transcript_provider = result.get('model')
+                episode.transcript_at = datetime.utcnow()
+                db.session.commit()
 
         return jsonify(result), 200
 
@@ -266,15 +285,18 @@ def apply_text_edits():
                 output_path, f'podcast_edited_{episode_id}_{int(datetime.utcnow().timestamp())}.wav'
             )
 
-            # Update transcript in database
+            # Update transcript and edited audio file in database.
             if episode_id:
                 from api.models import db, PodcastEpisode
                 episode = PodcastEpisode.query.filter_by(
                     id=episode_id, user_id=user_id
                 ).first()
                 if episode:
-                    # NOTE: transcript column deferred — return in response only.
                     episode.file_url = edited_url
+                    if updated_words:
+                        episode.transcript = ' '.join(w['word'] for w in updated_words)
+                        episode.transcript_words = updated_words
+                        episode.transcript_at = datetime.utcnow()
                     db.session.commit()
 
             return jsonify({
@@ -561,10 +583,8 @@ def generate_show_notes():
                 id=episode_id, user_id=user_id
             ).first()
             if episode:
-                # NOTE: summary / show_notes / seo_description / tags deferred —
-                # columns not in PodcastEpisode model. Returned in response only.
-
-                # Save chapters at podcast level (PodcastChapter has podcast_id, no episode_id)
+                # Show-notes / summary / seo / tags persistence deferred to 18d (response-only for now).
+                # Save chapters at podcast level (PodcastChapter has podcast_id, no episode_id).
                 for ch in result.get('chapters', []):
                     chapter = PodcastChapter(
                         podcast_id=episode.podcast_id,

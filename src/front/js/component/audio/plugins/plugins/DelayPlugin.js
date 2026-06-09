@@ -3,14 +3,15 @@
 // =============================================================================
 // DelayNode + feedback GainNode + BiquadFilter on feedback path.
 // Dry/wet parallel routing.
-// Params: time (ms), feedback (%), mix (%), filterCutoff (Hz)
+// Params: time (ms), feedback (%), mix (%), filter (Hz)
 // =============================================================================
 
 export const createDelayPlugin = (context, initialParams = {}) => {
-  const timeMs = initialParams.time ?? 375;
-  const feedbackPct = initialParams.feedback ?? 40;
-  const mixPct = initialParams.mix ?? 25;
-  const cutoff = initialParams.filterCutoff ?? 8000;
+  const timeMs = initialParams.time ?? 250;
+  const feedbackPct = initialParams.feedback ?? 30;
+  const mixPct = initialParams.mix ?? 0;
+  // Registry param id is `filter`; accept legacy `filterCutoff` for back-compat.
+  const cutoff = initialParams.filter ?? initialParams.filterCutoff ?? 8000;
 
   const inputGain = context.createGain();
   const dryGain = context.createGain();
@@ -61,6 +62,7 @@ export const createDelayPlugin = (context, initialParams = {}) => {
           wetGain.gain.setTargetAtTime(m, t, 0.02);
           break;
         }
+        case 'filter':
         case 'filterCutoff':
           filter.frequency.setTargetAtTime(value, t, 0.01);
           break;

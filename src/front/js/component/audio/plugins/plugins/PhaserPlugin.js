@@ -25,7 +25,7 @@ export const createPhaserPlugin = (context, p = {}) => {
 
   stages.reduce((a, b) => { a.connect(b); return b; }, input.connect(stages[0]) && stages[0]);
 
-  const mix = (p.mix ?? 50) / 100;
+  const mix = (p.mix ?? 0) / 100;
   dryGain.gain.value = 1 - mix;
   wetGain.gain.value = mix;
 

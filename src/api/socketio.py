@@ -4,7 +4,7 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask import request
 from datetime import datetime
 
-socketio = SocketIO(cors_allowed_origins="*", allow_credentials=True)
+socketio = SocketIO(cors_allowed_origins="*", allow_credentials=True, async_mode="eventlet")
 
 # -----------------------------------------------------------------------------
 # In-memory tracking

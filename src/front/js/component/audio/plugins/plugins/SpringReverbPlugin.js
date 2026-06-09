@@ -20,7 +20,7 @@ export const createSpringReverbPlugin = (context, p = {}) => {
     return { delay, feedback };
   });
 
-  const mix = (p.mix ?? 30) / 100;
+  const mix = (p.mix ?? 10) / 100;
   dryGain.gain.value = 1 - mix;
   wetGain.gain.value = mix;
 

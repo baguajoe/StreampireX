@@ -5,7 +5,9 @@
 export const createWaveshaperPlugin = (context, p = {}) => {
   const input=context.createGain(), output=context.createGain();
   const ws=context.createWaveShaper();
-  let shape=p.shape??'soft', amount=p.amount??0.5;
+  // Param-name unification: registry uses 'drive'/'curve', factory accepts both.
+  let shape=p.shape??(typeof p.curve==='string'?p.curve:'soft');
+  let amount=p.amount??p.drive??0;
   const makeCurve=(s,a)=>{ const n=256,c=new Float32Array(n);
     for(let i=0;i<n;i++){const x=(2*i/n)-1;
       if(s==='soft')c[i]=(Math.PI+a)*x/(Math.PI+a*Math.abs(x));
@@ -15,6 +17,6 @@ export const createWaveshaperPlugin = (context, p = {}) => {
   ws.curve=makeCurve(shape,amount); ws.oversample='2x';
   input.connect(ws); ws.connect(output);
   return { inputNode:input, node:input,
-    setParam(k,v){ if(k==='shape')shape=v; if(k==='amount')amount=v; ws.curve=makeCurve(shape,amount); },
+    setParam(k,v){ if(k==='shape'||k==='curve')shape=v; if(k==='amount'||k==='drive')amount=v; ws.curve=makeCurve(shape,amount); },
     getState:()=>({shape,amount}), connect:d=>output.connect(d), disconnect:()=>output.disconnect() };
 };

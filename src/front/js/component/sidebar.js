@@ -314,12 +314,7 @@ const Sidebar = ({ user }) => {
         <MenuItem to="/ai-stem-separation" className={isActive("/ai-stem-separation") ? "active" : ""}>
           🎵 <span className="sidebar-label">Stem Separation</span><MenuHint className="sidebar-hint">FREE</MenuHint>
         </MenuItem>
-        <MenuItem to="/hum-to-song" className={isActive("/hum-to-song") ? "active" : ""}>
-          🎤 <span className="sidebar-label">Hum to Song</span><MenuHint className="sidebar-hint">AI</MenuHint>
-        </MenuItem>
-        <MenuItem to="/ai-text-to-song" className={isActive("/ai-text-to-song") ? "active" : ""}>
-          🎵 <span className="sidebar-label">Text to Song</span><MenuHint className="sidebar-hint">AI</MenuHint>
-        </MenuItem>
+        {/* Part 18c: Hum to Song / Text to Song hidden — Suno-gap backend stubs (returns fake success). Re-wire in 18d. */}
         <MenuItem to="/epk-collab-hub" className={isActive("/epk-collab-hub") ? "active" : ""}>
           📋 <span className="sidebar-label">EPK & Collabs</span><MenuHint className="sidebar-hint">FREE</MenuHint>
         </MenuItem>

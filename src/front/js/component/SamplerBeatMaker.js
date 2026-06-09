@@ -1,4 +1,6 @@
 import { useStemSeparation } from '../hooks/useStemSeparation';
+// Architectural #13b: shared MIDI access — bus owns onmidimessage on every input.
+import { isMidiSupported, subscribeMidi } from '../utils/MidiBus';
 // =============================================================================
 // SamplerBeatMaker.js — Complete SPX Beat Lab / Sampler (Phase 1 + 2 + 3)
 // =============================================================================
@@ -641,16 +643,16 @@ const SamplerBeatMaker = ({
   // MIDI (Phase 3)
   // =========================================================================
 
+  // Architectural #13b: device discovery via MidiBus singleton.
   useEffect(() => {
-    if (!navigator.requestMIDIAccess) return;
-    navigator.requestMIDIAccess({ sysex: false }).then(acc => {
-      const ins = []; acc.inputs.forEach(i => ins.push(i)); setMidiInputs(ins);
-      acc.onstatechange = () => { const n = []; acc.inputs.forEach(i => n.push(i)); setMidiInputs(n); };
-    }).catch(() => { });
+    if (!isMidiSupported()) return undefined;
+    return subscribeMidi({
+      onDevicesChange: (inputs) => setMidiInputs(inputs),
+    });
   }, []);
 
   useEffect(() => {
-    if (!selMidi) return;
+    if (!selMidi?.id) return undefined;
     const handle = (msg) => {
       const [st, note, vel] = msg.data;
       const noteOn = (st & 0xF0) === 0x90 && vel > 0;
@@ -685,9 +687,8 @@ const SamplerBeatMaker = ({
         if (liveRef.current && ctxRef.current) setRecHits(p => [...p, { pad: pi, time: ctxRef.current.currentTime - recStartT.current, velocity: v }]);
       } else if (noteOff && padsRef.current[pi]?.playMode === 'hold') stopPad(pi);
     };
-    selMidi.onmidimessage = handle;
-    return () => { selMidi.onmidimessage = null; };
-  }, [selMidi, midiMap, midiLearn, midiLearnPad, playPad, stopPad, playPadKeygroup, stopPadKeygroup]);
+    return subscribeMidi({ deviceId: selMidi.id, onMessage: handle });
+  }, [selMidi?.id, midiMap, midiLearn, midiLearnPad, playPad, stopPad, playPadKeygroup, stopPadKeygroup]);
 
   // =========================================================================
   // SAMPLE LOADING

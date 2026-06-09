@@ -27,34 +27,99 @@
 .pr-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 6px 10px;
   background: linear-gradient(180deg, #111a2e 0%, #0d1520 100%);
   border-bottom: 1px solid rgba(0, 255, 200, 0.12);
-  gap: 8px;
+  gap: 0;
   flex-shrink: 0;
   flex-wrap: wrap;
   min-height: 40px;
+  position: relative; /* Bug #12-4: anchor for humanize popover */
 }
 
-.pr-toolbar-left,
-.pr-toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pr-tool-group {
+/* Bug #12-4: clusters with vertical dividers — Tool / Snap / Edit / View */
+.pr-toolbar-cluster {
   display: flex;
   align-items: center;
   gap: 4px;
+  padding: 0 12px;
+  border-right: 1px solid rgba(0, 255, 200, 0.15);
+}
+.pr-toolbar-cluster:first-child { padding-left: 0; }
+.pr-toolbar-cluster:last-child  { border-right: none; padding-right: 0; }
+
+/* Legacy aliases (kept so unrelated screens that copy these markers don't break) */
+.pr-toolbar-left, .pr-toolbar-right, .pr-tool-group {
+  display: flex; align-items: center; gap: 4px;
+}
+.pr-divider {
+  width: 1px; height: 22px; background: rgba(255,255,255,0.1); margin: 0 4px;
 }
 
-.pr-divider {
-  width: 1px;
-  height: 22px;
-  background: rgba(255, 255, 255, 0.1);
-  margin: 0 4px;
+/* Bug #12-4: tighter button variants and accent colors (replace inline styles) */
+.pr-tool-btn.pr-tool-tight { padding: 3px 6px; font-size: 0.72rem; }
+.pr-tool-btn.pr-tool-accent { font-weight: 700; color: #00ffc8; }
+.pr-tool-btn.pr-tool-warning { font-weight: 700; }
+.pr-tool-btn.pr-tool-warning.active { color: #ff9500; border-color: rgba(255,149,0,0.5); }
+.pr-tool-btn.pr-tool-danger { color: #ff6b6b; }
+
+.pr-tool-input {
+  width: 42px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #c9d1d9;
+  border-radius: 4px;
+  padding: 3px 5px;
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.pr-step-readout {
+  font-size: 0.68rem;
+  color: #ff9500;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+/* Bug #12-4: humanize popover — appears below the toolbar instead of inline */
+.pr-humanize-popover {
+  position: absolute;
+  top: 100%;
+  right: 12px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, #1a1208, #110a02);
+  border: 1px solid rgba(255,149,0,0.35);
+  border-radius: 6px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.55);
+}
+.pr-humanize-title { font-size: 0.7rem; color: #ff9500; font-weight: 700; letter-spacing: 1px; }
+.pr-humanize-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.68rem; color: #8b949e;
+}
+.pr-humanize-slider { width: 70px; accent-color: #ff9500; }
+.pr-humanize-val { color: #ff9500; min-width: 28px; text-align: right; }
+
+/* CC lane toolbar + canvas (Bug #12-4 + #12-3) */
+.pr-cc-toolbar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 2px 8px;
+  background: #0a0f1a;
+  border-top: 1px solid rgba(0,255,200,0.08);
+  flex-shrink: 0;
+}
+.pr-cc-canvas {
+  display: block;
+  width: 100%;
+  height: 60px;
+  cursor: crosshair;
+  border-top: 1px solid rgba(0,255,200,0.1);
+  flex-shrink: 0;
 }
 
 .pr-tool-btn {

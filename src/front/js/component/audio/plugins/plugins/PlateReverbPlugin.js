@@ -10,7 +10,7 @@ export const createPlateReverbPlugin = (context, p = {}) => {
   const wetGain  = context.createGain();
   const tone     = context.createBiquadFilter();
 
-  const mix   = (p.mix ?? 25) / 100;
+  const mix   = (p.mix ?? 10) / 100;
   const decay = p.decay ?? 2.0;
   const sr    = context.sampleRate;
   const len   = Math.floor(sr * decay);

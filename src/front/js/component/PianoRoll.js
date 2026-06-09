@@ -118,7 +118,7 @@ const PianoRoll = ({
       const velOffset = Math.round((Math.random() * 2 - 1) * humanizeVelocity);
       return {
         ...n,
-        start: Math.max(0, n.start + timingOffset),
+        startBeat: Math.max(0, n.startBeat + timingOffset),
         velocity: Math.max(1, Math.min(127, (n.velocity || 100) + velOffset)),
       };
     });
@@ -141,7 +141,7 @@ const PianoRoll = ({
       : [];
     const transposed = targets.map(n => ({
       ...n,
-      midi: Math.max(0, Math.min(127, (n.midi || n.note || 60) + semitones)),
+      note: Math.max(0, Math.min(127, (n.note ?? 60) + semitones)),
     }));
     const next = selectedNotes.size > 0 ? [...others, ...transposed] : transposed;
     setUndoStack(prev => [...prev, notes]);
@@ -154,8 +154,10 @@ const PianoRoll = ({
   // ── Step Input ──
 
   // ── Legato — stretch each note to fill the gap to the next note ──────────
+  // Bug #12-1: was sorting/comparing on `.beat`, which doesn't exist on notes
+  // (undefined - undefined === NaN), so legato + quantize-length silently broke.
   const applyLegato = useCallback(() => {
-    const sorted = [...notes].sort((a, b) => a.beat - b.beat || a.midi - b.midi);
+    const sorted = [...notes].sort((a, b) => a.startBeat - b.startBeat || a.note - b.note);
     const targets = selectedNotes.size > 0
       ? sorted.filter(n => selectedNotes.has(n.id))
       : sorted;
@@ -164,15 +166,15 @@ const PianoRoll = ({
     const legatoNotes = targets.map((note, i) => {
       const nextSamePitch = targets
         .slice(i + 1)
-        .find(n => n.midi === note.midi);
+        .find(n => n.note === note.note);
       if (nextSamePitch) {
-        const gap = nextSamePitch.beat - note.beat;
+        const gap = nextSamePitch.startBeat - note.startBeat;
         return { ...note, duration: Math.max(note.duration, gap - 0.01) };
       }
       return note;
     });
 
-    const next = [...others, ...legatoNotes].sort((a,b) => a.beat - b.beat);
+    const next = [...others, ...legatoNotes].sort((a,b) => a.startBeat - b.startBeat);
     pushUndo(notes);
     setNotes(next);
     onNotesChange?.(next);
@@ -189,7 +191,7 @@ const PianoRoll = ({
       ...n,
       duration: Math.max(snapDur, Math.round(n.duration / snapDur) * snapDur),
     }));
-    const next = [...others, ...quantized].sort((a,b) => a.beat - b.beat);
+    const next = [...others, ...quantized].sort((a,b) => a.startBeat - b.startBeat);
     pushUndo(notes);
     setNotes(next);
     onNotesChange?.(next);
@@ -202,9 +204,7 @@ const PianoRoll = ({
     const id = `step_${Date.now()}_${midiNote}`;
     const newNote = {
       id,
-      midi: midiNote,
       note: midiNote,
-      start: stepInputBeat,
       startBeat: stepInputBeat,
       duration: stepInputLength,
       velocity,
@@ -226,8 +226,9 @@ const PianoRoll = ({
     const canvas = ccCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const w = canvas.width;
-    const h = canvas.height;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
     ctx.clearRect(0, 0, w, h);
 
     // Background
@@ -280,8 +281,9 @@ const PianoRoll = ({
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const beat = ((x + scrollX) / canvas.width) * totalBeats;
-    const value = Math.round((1 - y / canvas.height) * 127);
+    // Bug #12-5: use logical (rect) dims — canvas.width/height are bitmap (DPR-scaled).
+    const beat = ((x + scrollX) / Math.max(1, rect.width)) * totalBeats;
+    const value = Math.round((1 - y / Math.max(1, rect.height)) * 127);
     const clamped = Math.max(0, Math.min(127, value));
     const id = `cc_${Date.now()}`;
     setCCData(prev => ({
@@ -307,9 +309,14 @@ const PianoRoll = ({
   const gridHeight = TOTAL_NOTES * NOTE_HEIGHT;
   const velLaneHeight = showVelocity ? 80 : 0;
 
-  // Sync external notes
+  // Sync external notes — Bug #12-1: translate if caller still uses legacy {midi, start} shape.
   useEffect(() => {
-    if (externalNotes) setNotes(externalNotes);
+    if (!externalNotes) return;
+    setNotes(externalNotes.map(n => ({
+      ...n,
+      note: n.note ?? n.midi,
+      startBeat: n.startBeat ?? n.start,
+    })));
   }, [externalNotes]);
 
   // Notify parent of changes
@@ -362,12 +369,14 @@ const PianoRoll = ({
   // NOTE OPERATIONS
   // ==========================================================================
 
-  const addNote = useCallback((midi, startBeat, duration = snap, velocity = DEFAULT_VELOCITY) => {
+  // Bug #12-1: canonical note shape is { id, note, startBeat, duration, velocity }
+  // — matches Voice-to-MIDI, region.notes, and project save/load.
+  const addNote = useCallback((noteNum, startBeat, duration = snap, velocity = DEFAULT_VELOCITY) => {
     pushUndo();
     const id = `n_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const newNote = { id, midi, start: startBeat, duration, velocity };
+    const newNote = { id, note: noteNum, startBeat, duration, velocity };
     setNotes(prev => [...prev, newNote]);
-    if (onPlayNote) onPlayNote(midi, velocity / 127);
+    if (onPlayNote) onPlayNote(noteNum, velocity / 127);
     return id;
   }, [snap, pushUndo, onPlayNote]);
 
@@ -395,8 +404,8 @@ const PianoRoll = ({
   const copySelected = useCallback(() => {
     const sel = notes.filter(n => selectedNotes.has(n.id));
     if (sel.length === 0) return;
-    const minStart = Math.min(...sel.map(n => n.start));
-    setClipboard(sel.map(n => ({ ...n, start: n.start - minStart })));
+    const minStart = Math.min(...sel.map(n => n.startBeat));
+    setClipboard(sel.map(n => ({ ...n, startBeat: n.startBeat - minStart })));
   }, [notes, selectedNotes]);
 
   const paste = useCallback((atBeat = 0) => {
@@ -405,7 +414,7 @@ const PianoRoll = ({
     const newNotes = clipboard.map(n => ({
       ...n,
       id: `n_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      start: n.start + atBeat,
+      startBeat: n.startBeat + atBeat,
     }));
     setNotes(prev => [...prev, ...newNotes]);
     setSelectedNotes(new Set(newNotes.map(n => n.id)));
@@ -420,8 +429,8 @@ const PianoRoll = ({
     const midi = HIGHEST_NOTE - Math.floor((y + scrollY) / NOTE_HEIGHT);
     for (let i = notes.length - 1; i >= 0; i--) {
       const n = notes[i];
-      if (midi === n.midi && beat >= n.start && beat <= n.start + n.duration) {
-        const noteEndX = beatToX(n.start + n.duration);
+      if (midi === n.note && beat >= n.startBeat && beat <= n.startBeat + n.duration) {
+        const noteEndX = beatToX(n.startBeat + n.duration);
         const isResize = x >= noteEndX - 6;
         return { note: n, index: i, isResize };
       }
@@ -437,8 +446,11 @@ const PianoRoll = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const w = canvas.width;
-    const h = canvas.height;
+    // Bug #12-5: canvas.width/height are bitmap (physical) px; the DPR sync
+    // effect installs a setTransform(dpr,...) so we draw in logical px here.
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
     ctx.clearRect(0, 0, w, h);
 
     // Background rows
@@ -514,8 +526,8 @@ const PianoRoll = ({
 
     // Notes
     for (const note of notes) {
-      const x = beatToX(note.start);
-      const y = midiToY(note.midi);
+      const x = beatToX(note.startBeat);
+      const y = midiToY(note.note);
       const w2 = note.duration * beatWidth;
 
       if (x + w2 < HEADER_WIDTH || x > w || y < -NOTE_HEIGHT || y > h) continue;
@@ -544,7 +556,7 @@ const PianoRoll = ({
       if (w2 > 30) {
         ctx.fillStyle = '#000';
         ctx.font = '9px monospace';
-        ctx.fillText(midiToName(note.midi), Math.max(x + 3, HEADER_WIDTH + 3), y + NOTE_HEIGHT - 4);
+        ctx.fillText(midiToName(note.note), Math.max(x + 3, HEADER_WIDTH + 3), y + NOTE_HEIGHT - 4);
       }
     }
 
@@ -594,8 +606,9 @@ const PianoRoll = ({
     const canvas = velCanvasRef.current;
     if (!canvas || !showVelocity) return;
     const ctx = canvas.getContext('2d');
-    const w = canvas.width;
-    const h = canvas.height;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
     ctx.clearRect(0, 0, w, h);
 
     ctx.fillStyle = '#0a0f1a';
@@ -610,7 +623,7 @@ const PianoRoll = ({
 
     // Velocity bars
     for (const note of notes) {
-      const x = beatToX(note.start);
+      const x = beatToX(note.startBeat);
       const barW = Math.max(4, note.duration * beatWidth - 2);
       const barH = (note.velocity / 127) * (h - 4);
       const selected = selectedNotes.has(note.id);
@@ -632,6 +645,39 @@ const PianoRoll = ({
     draw();
     drawVelocity();
   }, [draw, drawVelocity]);
+
+  // Bug #12-5: canvas elements default to 300×150 bitmap unless width/height
+  // attributes are set. CSS stretches that to the container, but click coords
+  // map to bitmap coords via getBoundingClientRect — so clicks land in the
+  // wrong column/row. Sync bitmap → container with DPR scaling on every resize.
+  useEffect(() => {
+    const sync = (canvas) => {
+      if (!canvas || !canvas.parentElement) return;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const w = Math.max(1, Math.floor(rect.width));
+      // Use the canvas's own bounding box for height — parent may include other lanes.
+      const ownRect = canvas.getBoundingClientRect();
+      const h = Math.max(1, Math.floor(ownRect.height || rect.height));
+      const dpr = window.devicePixelRatio || 1;
+      if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+    };
+    const all = [canvasRef.current, velCanvasRef.current, ccCanvasRef.current].filter(Boolean);
+    all.forEach(sync);
+    // Redraw after sizing so the freshly-resized bitmap shows content immediately.
+    draw(); drawVelocity(); if (showCCLane) drawCCLane();
+    if (typeof ResizeObserver === 'undefined' || !containerRef.current) return;
+    const ro = new ResizeObserver(() => {
+      all.forEach(sync);
+      draw(); drawVelocity(); if (showCCLane) drawCCLane();
+    });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [draw, drawVelocity, drawCCLane, showVelocity, showCCLane]);
 
   // ==========================================================================
   // MOUSE HANDLERS
@@ -656,7 +702,7 @@ const PianoRoll = ({
         // Start dragging existing note
         pushUndo();
         setDragState({ type: 'move', noteId: hit.note.id, startX: x, startY: y,
-          origStart: hit.note.start, origMidi: hit.note.midi });
+          origStart: hit.note.startBeat, origMidi: hit.note.note });
         setSelectedNotes(new Set([hit.note.id]));
       } else if (hit && hit.isResize) {
         pushUndo();
@@ -687,7 +733,7 @@ const PianoRoll = ({
           } else {
             pushUndo();
             setDragState({ type: 'move-selected', startX: x, startY: y,
-              origPositions: notes.filter(n => selectedNotes.has(n.id)).map(n => ({ id: n.id, start: n.start, midi: n.midi })) });
+              origPositions: notes.filter(n => selectedNotes.has(n.id)).map(n => ({ id: n.id, startBeat: n.startBeat, note: n.note })) });
           }
         }
       } else {
@@ -703,7 +749,7 @@ const PianoRoll = ({
     const y = e.clientY - rect.top;
 
     if (x > HEADER_WIDTH && tool === 'draw' && !dragState) {
-      setGhostNote({ midi: yToMidi(y), start: xToBeat(x) });
+      setGhostNote({ note: yToMidi(y), startBeat: xToBeat(x) });
     } else {
       setGhostNote(null);
     }
@@ -715,7 +761,7 @@ const PianoRoll = ({
       const dy = Math.round((dragState.startY - y) / NOTE_HEIGHT);
       const newStart = Math.max(0, Math.round((dragState.origStart + dx) / snap) * snap);
       const newMidi = Math.max(LOWEST_NOTE, Math.min(HIGHEST_NOTE, dragState.origMidi + dy));
-      updateNote(dragState.noteId, { start: newStart, midi: newMidi });
+      updateNote(dragState.noteId, { startBeat: newStart, note: newMidi });
     } else if (dragState.type === 'resize') {
       const dx = (x - dragState.startX) / beatWidth;
       const newDur = Math.max(snap, Math.round((dragState.origDuration + dx) / snap) * snap);
@@ -728,9 +774,9 @@ const PianoRoll = ({
       const dx = (x - dragState.startX) / beatWidth;
       const dy = Math.round((dragState.startY - y) / NOTE_HEIGHT);
       for (const orig of dragState.origPositions) {
-        const newStart = Math.max(0, Math.round((orig.start + dx) / snap) * snap);
-        const newMidi = Math.max(LOWEST_NOTE, Math.min(HIGHEST_NOTE, orig.midi + dy));
-        updateNote(orig.id, { start: newStart, midi: newMidi });
+        const newStart = Math.max(0, Math.round((orig.startBeat + dx) / snap) * snap);
+        const newMidi = Math.max(LOWEST_NOTE, Math.min(HIGHEST_NOTE, orig.note + dy));
+        updateNote(orig.id, { startBeat: newStart, note: newMidi });
       }
     } else if (dragState.type === 'select-box') {
       setDragState(prev => ({ ...prev, currentX: x, currentY: y }));
@@ -746,8 +792,8 @@ const PianoRoll = ({
 
       const selected = new Set();
       for (const note of notes) {
-        const nx = beatToX(note.start);
-        const ny = midiToY(note.midi);
+        const nx = beatToX(note.startBeat);
+        const ny = midiToY(note.note);
         const nw = note.duration * beatWidth;
         if (nx + nw > sx && nx < ex && ny + NOTE_HEIGHT > sy && ny < ey) {
           selected.add(note.id);
@@ -767,7 +813,7 @@ const PianoRoll = ({
 
     const beat = (x - HEADER_WIDTH + scrollX) / beatWidth;
     for (const note of notes) {
-      if (beat >= note.start && beat <= note.start + note.duration) {
+      if (beat >= note.startBeat && beat <= note.startBeat + note.duration) {
         const newVel = Math.round(Math.max(1, Math.min(127, (1 - y / h) * 127)));
         pushUndo();
         updateNote(note.id, { velocity: newVel });
@@ -870,12 +916,12 @@ const PianoRoll = ({
       // Trigger notes
       for (const note of notesRef.current) {
         const noteKey = note.id;
-        if (!playedNotes.has(noteKey) && currentBeat >= note.start && currentBeat < note.start + note.duration) {
+        if (!playedNotes.has(noteKey) && currentBeat >= note.startBeat && currentBeat < note.startBeat + note.duration) {
           playedNotes.add(noteKey);
-          if (onPlayNote) onPlayNote(note.midi, note.velocity / 127);
+          if (onPlayNote) onPlayNote(note.note, note.velocity / 127);
         }
-        if (playedNotes.has(noteKey) && currentBeat >= note.start + note.duration) {
-          if (onStopNote) onStopNote(note.midi);
+        if (playedNotes.has(noteKey) && currentBeat >= note.startBeat + note.duration) {
+          if (onStopNote) onStopNote(note.note);
         }
       }
 
@@ -901,8 +947,8 @@ const PianoRoll = ({
       for (const midi of chord.midi_notes) {
         newNotes.push({
           id: `n_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-          midi,
-          start: chord.start_beat,
+          note: midi,
+          startBeat: chord.start_beat,
           duration: chord.duration_beats,
           velocity: chord.velocity || DEFAULT_VELOCITY,
         });
@@ -924,197 +970,87 @@ const PianoRoll = ({
 
   return (
     <div className={`piano-roll ${isEmbedded ? 'embedded' : ''}`} ref={containerRef}>
-      {/* Toolbar */}
+      {/* Toolbar — Bug #12-4: grouped clusters with dividers, no inline styles. */}
       <div className="pr-toolbar">
-        <div className="pr-toolbar-left">
-          <div className="pr-tool-group">
-            <button className={`pr-tool-btn ${tool === 'draw' ? 'active' : ''}`}
-              onClick={() => setTool('draw')} title="Draw (1)">✏️</button>
-            <button className={`pr-tool-btn ${tool === 'erase' ? 'active' : ''}`}
-              onClick={() => setTool('erase')} title="Erase (2)">🗑️</button>
-            <button className={`pr-tool-btn ${tool === 'select' ? 'active' : ''}`}
-              onClick={() => setTool('select')} title="Select (3)">◻️</button>
-          </div>
-
-          <div className="pr-divider" />
-
-          <div className="pr-tool-group">
-            <button className={`pr-transport-btn ${isPlaying ? 'playing' : ''}`}
-              onClick={togglePlayback}>{isPlaying ? '⏹' : '▶'}</button>
-          </div>
-
-          <div className="pr-divider" />
-
-          <div className="pr-tool-group">
-            <label className="pr-snap-label">Snap:</label>
-            <select className="pr-select" value={snapIdx}
-              onChange={e => setSnapIdx(Number(e.target.value))}>
-              {SNAP_LABELS.map((l, i) => <option key={i} value={i}>{l}</option>)}
-            </select>
-          </div>
-
-          <div className="pr-tool-group">
-            <label className="pr-snap-label">Bars:</label>
-            <select className="pr-select" value={bars} disabled>
-              {[2, 4, 8, 16, 32].map(b => <option key={b} value={b}>{b}</option>)}
-            </select>
-          </div>
+        {/* Cluster: Tool */}
+        <div className="pr-toolbar-cluster">
+          <button className={`pr-tool-btn ${tool === 'draw' ? 'active' : ''}`}
+            onClick={() => setTool('draw')} title="Draw (1)">✏️</button>
+          <button className={`pr-tool-btn ${tool === 'erase' ? 'active' : ''}`}
+            onClick={() => setTool('erase')} title="Erase (2)">🗑️</button>
+          <button className={`pr-tool-btn ${tool === 'select' ? 'active' : ''}`}
+            onClick={() => setTool('select')} title="Select (3)">◻️</button>
+          <button className={`pr-transport-btn ${isPlaying ? 'playing' : ''}`}
+            onClick={togglePlayback} title="Play / Stop">{isPlaying ? '⏹' : '▶'}</button>
         </div>
 
-        <div className="pr-toolbar-right">
-          <div className="pr-tool-group">
-            <div className="pr-divider" />
-            <select
-              value={quantizeStrength}
-              onChange={e => setQuantizeStrength(Number(e.target.value))}
-              className="pr-tool-btn"
-              title="Quantize strength"
-              style={{ padding: '3px 5px', fontSize: '0.72rem' }}
-            >
-              <option value={100}>Q 100%</option>
-              <option value={75}>Q 75%</option>
-              <option value={50}>Q 50%</option>
-              <option value={25}>Q 25%</option>
-            </select>
-            <select
-              value={quantizeSwing}
-              onChange={e => setQuantizeSwing(Number(e.target.value))}
-              className="pr-tool-btn"
-              title="Swing"
-              style={{ padding: '3px 5px', fontSize: '0.72rem' }}
-            >
-              <option value={0}>Straight</option>
-              <option value={25}>Swing 25</option>
-              <option value={50}>Swing 50</option>
-              <option value={67}>Swing 67</option>
-            </select>
-            <button
-              className="pr-tool-btn"
-              onClick={handleQuantize}
-              title={`Quantize ${selectedNotes.size > 0 ? 'selected' : 'all'} notes to ${SNAP_LABELS[snapIdx]} grid`}
-              style={{ fontWeight: 700, color: '#00ffc8' }}
-            >
-              Q
-            </button>
-            <button
-              className="pr-tool-btn"
-              onClick={() => setShowHumanize(v => !v)}
-              title="Humanize — randomize timing and velocity for a natural feel"
-              style={{ fontWeight: 700, color: showHumanize ? '#ff9500' : undefined }}
-            >
-              HUM
-            </button>
-          </div>
-          <div className="pr-tool-group">
-            <div className="pr-divider" />
-            <button
-              className="pr-tool-btn"
-              onClick={() => handleTranspose(-12)}
-              title="Transpose down one octave"
-              style={{ fontSize: '0.7rem' }}
-            >-8ve</button>
-            <button
-              className="pr-tool-btn"
-              onClick={() => handleTranspose(-1)}
-              title="Transpose down one semitone"
-              style={{ fontSize: '0.7rem' }}
-            >-1</button>
-            <input
-              type="number"
-              min={-24}
-              max={24}
-              value={transposeAmount}
-              onChange={e => setTransposeAmount(Number(e.target.value))}
-              onKeyDown={e => { if (e.key === 'Enter') handleTranspose(transposeAmount); }}
-              style={{ width: 42, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#c9d1d9', borderRadius: 4, padding: '3px 5px', fontSize: '0.72rem', textAlign: 'center' }}
-              title="Semitones to transpose — press Enter to apply"
-            />
-            <button
-              className="pr-tool-btn"
-              onClick={() => handleTranspose(1)}
-              title="Transpose up one semitone"
-              style={{ fontSize: '0.7rem' }}
-            >+1</button>
-            <button
-              className="pr-tool-btn"
-              onClick={() => handleTranspose(12)}
-              title="Transpose up one octave"
-              style={{ fontSize: '0.7rem' }}
-            >+8ve</button>
-          </div>
-          <div className="pr-tool-group">
-            <div className="pr-divider" />
-            <button
-              className={`pr-tool-btn ${stepInputMode ? 'active' : ''}`}
-              onClick={() => { setStepInputMode(v => !v); setStepInputBeat(0); }}
-              title="Step Input — enter notes one at a time from MIDI controller without transport rolling"
-              style={{ fontWeight: 700, color: stepInputMode ? '#ff9500' : undefined, borderColor: stepInputMode ? 'rgba(255,149,0,0.5)' : undefined }}
-            >
-              STEP
-            </button>
-            {stepInputMode && (
-              <>
-                <select
-                  className="pr-tool-btn"
-                  value={stepInputLength}
-                  onChange={e => setStepInputLength(Number(e.target.value))}
-                  style={{ fontSize: '0.7rem', padding: '2px 5px' }}
-                  title="Step length"
-                >
-                  <option value={1}>1/4</option>
-                  <option value={0.5}>1/8</option>
-                  <option value={0.25}>1/16</option>
-                  <option value={0.125}>1/32</option>
-                  <option value={2}>1/2</option>
-                  <option value={4}>1 Bar</option>
-                </select>
-                <span style={{ fontSize: '0.68rem', color: '#ff9500', padding: '0 4px', whiteSpace: 'nowrap' }}>
-                  Beat {stepInputBeat.toFixed(2)}
-                </span>
-                <button
-                  className="pr-tool-btn"
-                  onClick={() => setStepInputBeat(prev => Math.max(0, prev - stepInputLength))}
-                  title="Step back"
-                  style={{ fontSize: '0.7rem' }}
-                >←</button>
-                <button
-                  className="pr-tool-btn"
-                  onClick={() => setStepInputBeat(0)}
-                  title="Reset step position to bar 1"
-                  style={{ fontSize: '0.7rem' }}
-                >⏮</button>
-              </>
-            )}
-          </div>
-          {showHumanize && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', background: 'rgba(255,149,0,0.08)', border: '1px solid rgba(255,149,0,0.25)', borderRadius: 6 }}>
-              <span style={{ fontSize: '0.7rem', color: '#ff9500', fontWeight: 700 }}>HUMANIZE</span>
-              <label style={{ fontSize: '0.68rem', color: '#8b949e', display: 'flex', alignItems: 'center', gap: 4 }}>
-                Timing
-                <input type="range" min={0} max={50} value={humanizeTiming}
-                  onChange={e => setHumanizeTiming(Number(e.target.value))}
-                  style={{ width: 70, accentColor: '#ff9500' }} />
-                <span style={{ color: '#ff9500', minWidth: 28 }}>{humanizeTiming}ms</span>
-              </label>
-              <label style={{ fontSize: '0.68rem', color: '#8b949e', display: 'flex', alignItems: 'center', gap: 4 }}>
-                Velocity
-                <input type="range" min={0} max={40} value={humanizeVelocity}
-                  onChange={e => setHumanizeVelocity(Number(e.target.value))}
-                  style={{ width: 70, accentColor: '#ff9500' }} />
-                <span style={{ color: '#ff9500', minWidth: 28 }}>±{humanizeVelocity}</span>
-              </label>
-              <button
-                className="pr-tool-btn"
-                onClick={handleHumanize}
-                style={{ fontWeight: 700, color: '#ff9500', borderColor: 'rgba(255,149,0,0.4)' }}
-              >
-                Apply
-              </button>
-            </div>
+        {/* Cluster: Snap */}
+        <div className="pr-toolbar-cluster">
+          <label className="pr-snap-label">Snap</label>
+          <select className="pr-select" value={snapIdx} onChange={e => setSnapIdx(Number(e.target.value))}>
+            {SNAP_LABELS.map((l, i) => <option key={i} value={i}>{l}</option>)}
+          </select>
+          <label className="pr-snap-label">Bars</label>
+          <select className="pr-select" value={bars} disabled>
+            {[2, 4, 8, 16, 32].map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+        </div>
+
+        {/* Cluster: Edit (Quantize / Humanize / Transpose / Step) */}
+        <div className="pr-toolbar-cluster">
+          <select value={quantizeStrength} onChange={e => setQuantizeStrength(Number(e.target.value))}
+            className="pr-tool-btn pr-tool-tight" title="Quantize strength">
+            <option value={100}>Q 100%</option>
+            <option value={75}>Q 75%</option>
+            <option value={50}>Q 50%</option>
+            <option value={25}>Q 25%</option>
+          </select>
+          <select value={quantizeSwing} onChange={e => setQuantizeSwing(Number(e.target.value))}
+            className="pr-tool-btn pr-tool-tight" title="Swing">
+            <option value={0}>Straight</option>
+            <option value={25}>Swing 25</option>
+            <option value={50}>Swing 50</option>
+            <option value={67}>Swing 67</option>
+          </select>
+          <button className="pr-tool-btn pr-tool-accent" onClick={handleQuantize}
+            title={`Quantize ${selectedNotes.size > 0 ? 'selected' : 'all'} notes to ${SNAP_LABELS[snapIdx]} grid`}>Q</button>
+          <button className={`pr-tool-btn pr-tool-warning ${showHumanize ? 'active' : ''}`}
+            onClick={() => setShowHumanize(v => !v)}
+            title="Humanize — randomize timing and velocity for a natural feel">HUM</button>
+
+          <button className="pr-tool-btn pr-tool-tight" onClick={() => handleTranspose(-12)} title="Transpose down one octave">-8ve</button>
+          <button className="pr-tool-btn pr-tool-tight" onClick={() => handleTranspose(-1)} title="Transpose down one semitone">-1</button>
+          <input type="number" min={-24} max={24} value={transposeAmount}
+            onChange={e => setTransposeAmount(Number(e.target.value))}
+            onKeyDown={e => { if (e.key === 'Enter') handleTranspose(transposeAmount); }}
+            className="pr-tool-input" title="Semitones to transpose — press Enter to apply"/>
+          <button className="pr-tool-btn pr-tool-tight" onClick={() => handleTranspose(1)} title="Transpose up one semitone">+1</button>
+          <button className="pr-tool-btn pr-tool-tight" onClick={() => handleTranspose(12)} title="Transpose up one octave">+8ve</button>
+
+          <button className={`pr-tool-btn pr-tool-warning ${stepInputMode ? 'active' : ''}`}
+            onClick={() => { setStepInputMode(v => !v); setStepInputBeat(0); }}
+            title="Step Input — enter notes one at a time from MIDI controller without transport rolling">STEP</button>
+          {stepInputMode && (
+            <>
+              <select className="pr-tool-btn pr-tool-tight" value={stepInputLength}
+                onChange={e => setStepInputLength(Number(e.target.value))} title="Step length">
+                <option value={1}>1/4</option>
+                <option value={0.5}>1/8</option>
+                <option value={0.25}>1/16</option>
+                <option value={0.125}>1/32</option>
+                <option value={2}>1/2</option>
+                <option value={4}>1 Bar</option>
+              </select>
+              <span className="pr-step-readout">Beat {stepInputBeat.toFixed(2)}</span>
+              <button className="pr-tool-btn pr-tool-tight" onClick={() => setStepInputBeat(prev => Math.max(0, prev - stepInputLength))} title="Step back">←</button>
+              <button className="pr-tool-btn pr-tool-tight" onClick={() => setStepInputBeat(0)} title="Reset step position to bar 1">⏮</button>
+            </>
           )}
-          {keyRoot && scaleName && (
-            <span className="pr-key-display">🎵 {keyRoot} {scaleName}</span>
-          )}
+        </div>
+
+        {/* Cluster: View */}
+        <div className="pr-toolbar-cluster">
+          {keyRoot && scaleName && (<span className="pr-key-display">🎵 {keyRoot} {scaleName}</span>)}
           <button className={`pr-tool-btn small ${showVelocity ? 'active' : ''}`}
             onClick={() => setShowVelocity(!showVelocity)} title="Toggle Velocity Lane">VEL</button>
           <div className="pr-zoom-group">
@@ -1124,6 +1060,24 @@ const PianoRoll = ({
           </div>
           <span className="pr-note-count">{notes.length} notes</span>
         </div>
+
+        {/* Humanize popover (still inside toolbar so keyboard tab order stays sensible). */}
+        {showHumanize && (
+          <div className="pr-humanize-popover">
+            <span className="pr-humanize-title">HUMANIZE</span>
+            <label className="pr-humanize-row">
+              Timing
+              <input type="range" min={0} max={50} value={humanizeTiming} onChange={e => setHumanizeTiming(Number(e.target.value))} className="pr-humanize-slider"/>
+              <span className="pr-humanize-val">{humanizeTiming}ms</span>
+            </label>
+            <label className="pr-humanize-row">
+              Velocity
+              <input type="range" min={0} max={40} value={humanizeVelocity} onChange={e => setHumanizeVelocity(Number(e.target.value))} className="pr-humanize-slider"/>
+              <span className="pr-humanize-val">±{humanizeVelocity}</span>
+            </label>
+            <button className="pr-tool-btn pr-tool-warning" onClick={handleHumanize}>Apply</button>
+          </div>
+        )}
       </div>
 
       {/* Main Canvas */}
@@ -1148,45 +1102,22 @@ const PianoRoll = ({
       )}
 
       {/* CC Automation Lane */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 8px', background: '#0a0f1a', borderTop: '1px solid rgba(0,255,200,0.08)' }}>
-        <button
-          className="pr-tool-btn"
-          onClick={() => setShowCCLane(v => !v)}
-          style={{ fontSize: '0.7rem', padding: '2px 8px', color: showCCLane ? '#00ffc8' : undefined }}
-          title="Toggle CC automation lane"
-        >
-          CC
-        </button>
+      <div className="pr-cc-toolbar">
+        <button className={`pr-tool-btn pr-tool-tight ${showCCLane ? 'active' : ''}`}
+          onClick={() => setShowCCLane(v => !v)} title="Toggle CC automation lane">CC</button>
         {showCCLane && (
-          <select
-            className="pr-tool-btn"
-            value={activeCCType}
-            onChange={e => setActiveCCType(Number(e.target.value))}
-            style={{ fontSize: '0.7rem', padding: '2px 6px' }}
-          >
-            {CC_TYPES.map(c => (
-              <option key={c.value} value={c.value}>CC{c.value} {c.label}</option>
-            ))}
+          <select className="pr-tool-btn pr-tool-tight" value={activeCCType}
+            onChange={e => setActiveCCType(Number(e.target.value))}>
+            {CC_TYPES.map(c => (<option key={c.value} value={c.value}>CC{c.value} {c.label}</option>))}
           </select>
         )}
         {showCCLane && (
-          <button
-            className="pr-tool-btn"
-            onClick={() => setCCData(prev => ({ ...prev, [activeCCType]: [] }))}
-            style={{ fontSize: '0.7rem', padding: '2px 8px', color: '#ff6b6b' }}
-            title="Clear this CC lane"
-          >
-            Clear
-          </button>
+          <button className="pr-tool-btn pr-tool-tight pr-tool-danger"
+            onClick={() => setCCData(prev => ({ ...prev, [activeCCType]: [] }))} title="Clear this CC lane">Clear</button>
         )}
       </div>
       {showCCLane && (
-        <canvas
-          ref={ccCanvasRef}
-          className="pr-vel-canvas"
-          style={{ height: 60, cursor: 'crosshair', borderTop: '1px solid rgba(0,255,200,0.1)' }}
-          onMouseDown={handleCCMouseDown}
-        />
+        <canvas ref={ccCanvasRef} className="pr-cc-canvas" onMouseDown={handleCCMouseDown}/>
       )}
       {/* Status Bar */}
       <div className="pr-statusbar">
