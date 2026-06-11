@@ -1677,7 +1677,7 @@ const SamplerBeatMaker = ({
     }
     // Regular pad triggers
     for (let pi = 0; pi < 16; pi++) { if (cs[pi]?.[si]) playPad(pi, stepVel[pi]?.[si] ?? 0.8, t); }
-    if (metRef.current) { const spb = scRef.current / 4; metClick(t, si % spb === 0); } // Fix #5: spb based on step count / beats
+    if (metRef.current && si % 4 === 0) metClick(t, si % 16 === 0); // click each beat (4 sixteenth-steps), accent the bar "1"
     const d = (t - ctxRef.current.currentTime) * 1000;
     setTimeout(() => setCurStep(si), Math.max(0, d));
   }, [playPad, metClick, stepVel, sliceMode, playSlice]);
@@ -1686,7 +1686,6 @@ const SamplerBeatMaker = ({
     const c = initCtx(); if (c.state === 'suspended') c.resume();
     playingRef.current = true; setIsPlaying(true);
     curStepRef.current = -1; nextStepT.current = c.currentTime + 0.05;
-    if (liveRec) recStartT.current = c.currentTime;
 
     const scheduler = () => {
       if (!playingRef.current) return;
@@ -2016,12 +2015,18 @@ const SamplerBeatMaker = ({
   // =========================================================================
 
   const startLiveRec = useCallback(() => {
+    const c = initCtx();
+    liveRef.current = true;                          // BUG 1: gate handleLiveHit immediately (don't wait for the effect)
     if (!overdub) setSteps(Array.from({ length: 16 }, () => Array(stepCount).fill(false)));
     setRecHits([]); setLiveRec(true);
+    recStartT.current = c.currentTime;               // BUG 2: set recording origin now, regardless of liveRec closure / play state
+    console.log('[REC-DEBUG] startLiveRec', { recStartT: c.currentTime, ctxState: c.state, playing: playingRef.current, overdub }); // [REC-DEBUG]
     if (!playingRef.current) startSeq();
-  }, [overdub, stepCount, startSeq]);
+  }, [overdub, stepCount, startSeq, initCtx]);
 
   const stopLiveRec = useCallback(() => {
+    liveRef.current = false;                          // stop capturing immediately
+    console.log('[REC-DEBUG] stopLiveRec recHits.length =', recHits.length, recHits); // [REC-DEBUG]
     setLiveRec(false);
     if (recHits.length > 0) {
       const sd = 60.0 / bpm / 4;
@@ -2041,8 +2046,11 @@ const SamplerBeatMaker = ({
   }, [recHits, bpm, quantVal, stepCount]);
 
   const handleLiveHit = useCallback((pi, vel = 0.8) => {
-    if (!liveRef.current || !ctxRef.current) return;
-    setRecHits(p => [...p, { pad: pi, time: ctxRef.current.currentTime - recStartT.current, velocity: vel }]);
+    const ctxT = ctxRef.current ? ctxRef.current.currentTime : null; // [REC-DEBUG]
+    const computed = ctxT != null ? ctxT - recStartT.current : null; // [REC-DEBUG]
+    console.log('[REC-DEBUG] handleLiveHit', { pad: pi, live: liveRef.current, recStartT: recStartT.current, ctxTime: ctxT, computedTime: computed }); // [REC-DEBUG]
+    if (!liveRef.current || !ctxRef.current) { console.log('[REC-DEBUG]   -> SKIPPED (live=', liveRef.current, 'ctx=', !!ctxRef.current, ')'); return; } // [REC-DEBUG]
+    setRecHits(p => { const n = [...p, { pad: pi, time: computed, velocity: vel }]; console.log('[REC-DEBUG]   -> appended, recHits.length =', n.length); return n; }); // [REC-DEBUG]
   }, []);
 
   // =========================================================================
@@ -2952,7 +2960,7 @@ const SamplerBeatMaker = ({
               setShowPadSet, ctxRef, masterRef, isPlaying,
               detectedBpm: detectedBpm || 0, detectedKey: detectedKey || null,
             }}
-            handlePadDown={(i) => { initCtx(); playPad(i); }}
+            handlePadDown={(i) => { initCtx(); playPad(i); console.log('[REC-DEBUG] padDown', i, 'live=', liveRef.current); if (liveRef.current) handleLiveHit(i); }}
             handlePadUp={(i) => { if (pads[i]?.playMode === 'hold') stopPad(i); }}
             aiProps={{
               runAiSuggest: () => { },
@@ -2974,7 +2982,7 @@ const SamplerBeatMaker = ({
               setShowPadSet, setShowKitBrowser: () => setShowLib(true),
               openChop,
             }}
-            handlePadDown={(i) => { initCtx(); playPad(i); }}
+            handlePadDown={(i) => { initCtx(); playPad(i); console.log('[REC-DEBUG] padDown', i, 'live=', liveRef.current); if (liveRef.current) handleLiveHit(i); }}
             handlePadUp={(i) => { if (pads[i]?.playMode === 'hold') stopPad(i); }}
             perfProps={{
               noteRepeatOn, setNoteRepeatOn,
@@ -3102,7 +3110,7 @@ const SamplerBeatMaker = ({
               onDragLeave: () => setDragPad(null),
               onDrop: (e, pi) => { e.preventDefault(); setDragPad(null); const f = e.dataTransfer?.files?.[0]; if (f) loadSample(pi, f); },
             }}
-            handlePadDown={(i) => { initCtx(); playPad(i); }}
+            handlePadDown={(i) => { initCtx(); playPad(i); console.log('[REC-DEBUG] padDown', i, 'live=', liveRef.current); if (liveRef.current) handleLiveHit(i); }}
             handlePadUp={(i) => { if (pads[i]?.playMode === 'hold') stopPad(i); }}
           />
         )}
@@ -3262,7 +3270,15 @@ const SamplerBeatMaker = ({
         {/* ── SOUNDS TAB ── */}
         {activeTab === 'sounds' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
-            <FreesoundBrowser onSoundSelect={(buffer, name) => { if (selectedPad !== null) loadBufferToPad(selectedPad, buffer, name); }} isEmbedded={true} />
+            <FreesoundBrowser
+              onLoadSample={(url, name, blob, padIdx) => {
+                const pi = (typeof padIdx === 'number')
+                  ? padIdx
+                  : (selectedPad !== null ? selectedPad : 0);
+                loadSample(pi, blob || url);
+              }}
+              isEmbedded={true}
+            />
           </div>
         )}
 
