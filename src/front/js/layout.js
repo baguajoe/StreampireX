@@ -148,7 +148,6 @@ import LiveShowPage from "./pages/LiveShowPage";
 import LiveStreamViewer from "./pages/LiveStreamViewer";
 import ReleaseList from "./pages/ReleaseList";
 
-import UserVideoChannelPage from "./pages/UserVideoChannelPage";
 import ArtistProfilePage from "./pages/ArtistProfilePage";
 import CollaboratorSplitPage from "./pages/CollaboratorSplitPage";
 import VideoEditor from "./pages/VideoEditor";
@@ -581,7 +580,6 @@ const AppShell = ({ user }) => {
                                             <Route path="/ai-auto-edit" element={<AIAutoEditPage />} />
                                 <Route path="/video-channel/:id" element={<VideoChannelProfile />} />
                                 <Route path="/my-video-channel" element={<MyVideoChannel />} />
-                                <Route path="/user-video-channel/:id" element={<UserVideoChannelPage />} />
                                 <Route path="/reels" element={<ReelsFeed />} />
                                 <Route path="/my-reels" element={<MyReels />} />
                                 <Route path="/upload-reel" element={<UploadReel />} />
