@@ -327,10 +327,12 @@ const SamplerBeatMaker = ({
 
   // ==== LIVE RECORDING (Phase 2) ====
   const [liveRec, setLiveRec] = useState(false);
-  const [overdub, setOverdub] = useState(false);
+  const [overdub, setOverdub] = useState(true); // additive recording by default (layer hits, don't wipe the grid each take)
   const [recHits, setRecHits] = useState([]);
+  const recHitsRef = useRef([]); // live mirror of recHits — stopLiveRec reads this (no stale-closure snapshot)
   const [quantVal, setQuantVal] = useState('1/16');
   const recStartT = useRef(0);
+  const lastHitRef = useRef({}); // { [pad]: ctxTime } — de-dupe double-fire (one physical press = one hit)
 
   // ==== MIC RECORDING ====
   const [micRec, setMicRec] = useState(false);
@@ -529,6 +531,7 @@ const SamplerBeatMaker = ({
 
   // Sync pattern ↔ steps
   useEffect(() => {
+    if (liveRef.current) return;   // don't clobber live-recorded steps mid-take
     if (patterns[curPatIdx]) {
       setSteps(patterns[curPatIdx].steps);
       setStepVel(patterns[curPatIdx].velocities);
@@ -672,8 +675,11 @@ const SamplerBeatMaker = ({
         if (noteOn) {
           const v = vel / 127;
           kgPads.forEach(({ idx }) => playPadKeygroup(idx, note, v));
-          if (liveRef.current && ctxRef.current)
-            setRecHits(p => [...p, { pad: kgPads[0].idx, time: ctxRef.current.currentTime - recStartT.current, velocity: vel / 127, midiNote: note }]);
+          if (liveRef.current && ctxRef.current) {
+            const hit = { pad: kgPads[0].idx, time: ctxRef.current.currentTime - recStartT.current, velocity: vel / 127, midiNote: note };
+            recHitsRef.current = [...recHitsRef.current, hit];
+            setRecHits(p => [...p, hit]);
+          }
         } else if (noteOff) {
           kgPads.forEach(({ idx }) => stopPadKeygroup(idx, note));
         }
@@ -684,7 +690,11 @@ const SamplerBeatMaker = ({
       const pi = midiMap[note]; if (pi === undefined) return;
       if (noteOn) {
         const v = vel / 127; playPad(pi, v);
-        if (liveRef.current && ctxRef.current) setRecHits(p => [...p, { pad: pi, time: ctxRef.current.currentTime - recStartT.current, velocity: v }]);
+        if (liveRef.current && ctxRef.current) {
+          const hit = { pad: pi, time: ctxRef.current.currentTime - recStartT.current, velocity: v };
+          recHitsRef.current = [...recHitsRef.current, hit];
+          setRecHits(p => [...p, hit]);
+        }
       } else if (noteOff && padsRef.current[pi]?.playMode === 'hold') stopPad(pi);
     };
     return subscribeMidi({ deviceId: selMidi.id, onMessage: handle });
@@ -1720,7 +1730,7 @@ const SamplerBeatMaker = ({
           }
         }
 
-        if (ns === loopE - 1 && !loopRef.current && !songRef.current) {
+        if (ns === loopE - 1 && !loopRef.current && !songRef.current && !liveRef.current) {
           playingRef.current = false; setIsPlaying(false); setCurStep(-1); return;
         }
       }
@@ -1733,6 +1743,7 @@ const SamplerBeatMaker = ({
     playingRef.current = false; setIsPlaying(false); setCurStep(-1); curStepRef.current = -1;
     if (seqTimer.current) clearTimeout(seqTimer.current); seqTimer.current = null;
     stopAll(); setSongPlaying(false); setSongPos(-1);
+    if (liveRef.current) { liveRef.current = false; setLiveRec(false); } // any stop disarms record — never leave it stuck
   }, [stopAll]);
 
   const togglePlay = useCallback(() => { playingRef.current ? stopSeq() : startSeq(); }, [startSeq, stopSeq]);
@@ -2015,42 +2026,73 @@ const SamplerBeatMaker = ({
   // =========================================================================
 
   const startLiveRec = useCallback(() => {
+    if (liveRef.current) return;                     // already recording — ignore (no empty start/stop cycles)
     const c = initCtx();
-    liveRef.current = true;                          // BUG 1: gate handleLiveHit immediately (don't wait for the effect)
+    liveRef.current = true;                          // ARM SYNCHRONOUSLY — handleLiveHit's gate must be open the
+                                                     // instant ⏺ is pressed. Never gate this behind an await.
+    if (c.state === 'suspended') { c.resume().catch(() => {}); } // fire-and-forget; awaiting it would delay the arm
     if (!overdub) setSteps(Array.from({ length: 16 }, () => Array(stepCount).fill(false)));
-    setRecHits([]); setLiveRec(true);
-    recStartT.current = c.currentTime;               // BUG 2: set recording origin now, regardless of liveRec closure / play state
-    console.log('[REC-DEBUG] startLiveRec', { recStartT: c.currentTime, ctxState: c.state, playing: playingRef.current, overdub }); // [REC-DEBUG]
+    setRecHits([]); recHitsRef.current = []; lastHitRef.current = {}; setLiveRec(true);
+    recStartT.current = c.currentTime;               // raw origin (a007b8d7 simplicity) — startLiveRec is the single source of truth
     if (!playingRef.current) startSeq();
   }, [overdub, stepCount, startSeq, initCtx]);
 
   const stopLiveRec = useCallback(() => {
+    if (!liveRef.current) return;                    // not recording — ignore stray stops
     liveRef.current = false;                          // stop capturing immediately
-    console.log('[REC-DEBUG] stopLiveRec recHits.length =', recHits.length, recHits); // [REC-DEBUG]
     setLiveRec(false);
-    if (recHits.length > 0) {
+    const hits = recHitsRef.current;                 // read the LIVE mirror, not a closure snapshot of recHits state
+    if (hits.length > 0) {
       const sd = 60.0 / bpm / 4;
       const qm = { '1/4': 4, '1/8': 2, '1/16': 1, '1/32': 0.5 };
       const qs = qm[quantVal] || 1;
+      // Wrap each hit's time into one bar so continuous recording across multiple
+      // loop passes folds onto the grid (taps at 4.3s, 5.9s, 7.0s, etc. don't vanish).
+      const loopLen = stepCount * sd;                  // bar length in seconds
+      const stepOf = (t) => {
+        const wrapped = ((t % loopLen) + loopLen) % loopLen;
+        return Math.round(Math.round(wrapped / sd / qs) * qs) % stepCount;
+      };
       setSteps(prev => {
         const u = prev.map(r => [...r]);
-        recHits.forEach(h => { const si = Math.round(Math.round(h.time / sd / qs) * qs) % stepCount; if (si >= 0 && si < stepCount) u[h.pad][si] = true; });
+        hits.forEach(h => { u[h.pad][stepOf(h.time)] = true; });
         return u;
       });
       setStepVel(prev => {
         const u = prev.map(r => [...r]);
-        recHits.forEach(h => { const si = Math.round(Math.round(h.time / (60.0 / bpm / 4) / (qm[quantVal] || 1)) * (qm[quantVal] || 1)) % stepCount; if (si >= 0 && si < stepCount) u[h.pad][si] = h.velocity; });
+        hits.forEach(h => { u[h.pad][stepOf(h.time)] = h.velocity; });
+        return u;
+      });
+      // Fix (a): commit the hits straight into the source-of-truth pattern too, in the
+      // SAME handler. Effect A (patterns → steps) copies patterns[curPatIdx].steps back
+      // into steps on any patterns/curPatIdx change (song-mode advance, pattern switch);
+      // if the stored pattern is empty it clobbers the recording. Merging here means any
+      // Effect A fire reads the hits back instead of wiping them.
+      setPatterns(prev => {
+        const u = [...prev];
+        const pat = u[curPatIdx];
+        if (pat) {
+          const ns = pat.steps.map(r => [...r]);
+          const nv = pat.velocities.map(r => [...r]);
+          hits.forEach(h => { const si = stepOf(h.time); ns[h.pad][si] = true; nv[h.pad][si] = h.velocity; });
+          u[curPatIdx] = { ...pat, steps: ns, velocities: nv };
+        }
         return u;
       });
     }
-  }, [recHits, bpm, quantVal, stepCount]);
+    stopSeq();                                        // option (b): stop cleanly so PLAY restarts the recorded pattern from step 0
+  }, [bpm, quantVal, stepCount, stopSeq, curPatIdx]);
 
   const handleLiveHit = useCallback((pi, vel = 0.8) => {
-    const ctxT = ctxRef.current ? ctxRef.current.currentTime : null; // [REC-DEBUG]
-    const computed = ctxT != null ? ctxT - recStartT.current : null; // [REC-DEBUG]
-    console.log('[REC-DEBUG] handleLiveHit', { pad: pi, live: liveRef.current, recStartT: recStartT.current, ctxTime: ctxT, computedTime: computed }); // [REC-DEBUG]
-    if (!liveRef.current || !ctxRef.current) { console.log('[REC-DEBUG]   -> SKIPPED (live=', liveRef.current, 'ctx=', !!ctxRef.current, ')'); return; } // [REC-DEBUG]
-    setRecHits(p => { const n = [...p, { pad: pi, time: computed, velocity: vel }]; console.log('[REC-DEBUG]   -> appended, recHits.length =', n.length); return n; }); // [REC-DEBUG]
+    if (!liveRef.current || !ctxRef.current) return;
+    const now = ctxRef.current.currentTime;
+    const prev = lastHitRef.current[pi];
+    const deduped = prev != null && now - prev < 0.03;
+    if (deduped) return; // ignore duplicate within 30ms
+    lastHitRef.current[pi] = now;
+    const hit = { pad: pi, time: now - recStartT.current, velocity: vel };
+    recHitsRef.current = [...recHitsRef.current, hit];  // live mirror — read by stopLiveRec
+    setRecHits(p => [...p, hit]);
   }, []);
 
   // =========================================================================
@@ -2327,6 +2369,7 @@ const SamplerBeatMaker = ({
 
   useEffect(() => {
     const kd = (e) => {
+      if (e.repeat) return; // ignore OS key auto-repeat (one physical press = one trigger)
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
       const k = e.key.toLowerCase();
       if (k === ' ') { e.preventDefault(); togglePlay(); return; }
@@ -2393,10 +2436,15 @@ const SamplerBeatMaker = ({
     }
   }, []);
   const clearPat = useCallback(() => {
+    // Leave a CLEAN transport. stopSeq() disarms recording + resets playingRef/curStepRef;
+    // we also zero nextStepT/recStartT so a post-Clear startLiveRec takes the fresh cold-start
+    // branch (recStartT = now + lead) instead of inheriting a stale already-playing origin.
+    stopSeq();
+    curStepRef.current = -1; nextStepT.current = 0; recStartT.current = 0;
     setSteps(Array.from({ length: 16 }, () => Array(stepCount).fill(false)));
     setStepVel(Array.from({ length: 16 }, () => Array(stepCount).fill(0.8)));
     setCurStep(-1);
-  }, [stepCount]);
+  }, [stepCount, stopSeq]);
   const updatePad = useCallback((pi, u) => { setPads(p => { const a = [...p]; a[pi] = { ...a[pi], ...u }; return a; }); }, []);
   const clearPad = useCallback((pi) => {
     setPads(p => { const a = [...p]; a[pi] = { ...DEFAULT_PAD, id: pi, color: PAD_COLORS[pi] }; return a; });
@@ -2848,12 +2896,14 @@ const SamplerBeatMaker = ({
 
         <div className="sampler-transport">
           <button className={`transport-btn ${isPlaying ? 'active stop' : 'play'}`} onClick={togglePlay} title="Space">{isPlaying ? '⏹' : '▶'}</button>
-          <button className={`transport-btn rec ${liveRec ? 'recording' : ''}`} onClick={() => liveRec ? stopLiveRec() : startLiveRec()} title="Live Record">⏺</button>
+          <button className={`transport-btn rec ${liveRec ? 'recording' : ''}`} onClick={() => liveRef.current ? stopLiveRec() : startLiveRec()} title="Live Record">⏺</button>
           <button className={`transport-btn ${overdub ? 'active' : ''}`} onClick={() => setOverdub(p => !p)} title="Overdub">OVR</button>
 
           <div className="bpm-control">
             <button className="bpm-nudge" onClick={() => setBpm(p => Math.max(40, p - 1))}>−</button>
-            <input type="number" className="bpm-input" value={bpm} min={40} max={300} onChange={(e) => setBpm(Math.min(300, Math.max(40, parseInt(e.target.value) || 140)))} />
+            <input type="number" className="bpm-input" value={bpm} min={40} max={300}
+              onChange={(e) => { const v = parseInt(e.target.value, 10); if (!Number.isNaN(v)) setBpm(Math.max(1, Math.min(300, v))); }}
+              onBlur={(e) => { const v = parseInt(e.target.value, 10); setBpm(Number.isNaN(v) ? 140 : Math.min(300, Math.max(40, v))); }} />
             <span className="bpm-label">BPM</span>
             <button className="bpm-nudge" onClick={() => setBpm(p => Math.min(300, p + 1))}>+</button>
           </div>
@@ -2960,7 +3010,7 @@ const SamplerBeatMaker = ({
               setShowPadSet, ctxRef, masterRef, isPlaying,
               detectedBpm: detectedBpm || 0, detectedKey: detectedKey || null,
             }}
-            handlePadDown={(i) => { initCtx(); playPad(i); console.log('[REC-DEBUG] padDown', i, 'live=', liveRef.current); if (liveRef.current) handleLiveHit(i); }}
+            handlePadDown={(i) => { initCtx(); playPad(i); if (liveRef.current) handleLiveHit(i); }}
             handlePadUp={(i) => { if (pads[i]?.playMode === 'hold') stopPad(i); }}
             aiProps={{
               runAiSuggest: () => { },
@@ -2982,7 +3032,7 @@ const SamplerBeatMaker = ({
               setShowPadSet, setShowKitBrowser: () => setShowLib(true),
               openChop,
             }}
-            handlePadDown={(i) => { initCtx(); playPad(i); console.log('[REC-DEBUG] padDown', i, 'live=', liveRef.current); if (liveRef.current) handleLiveHit(i); }}
+            handlePadDown={(i) => { initCtx(); playPad(i); if (liveRef.current) handleLiveHit(i); }}
             handlePadUp={(i) => { if (pads[i]?.playMode === 'hold') stopPad(i); }}
             perfProps={{
               noteRepeatOn, setNoteRepeatOn,
@@ -3110,7 +3160,7 @@ const SamplerBeatMaker = ({
               onDragLeave: () => setDragPad(null),
               onDrop: (e, pi) => { e.preventDefault(); setDragPad(null); const f = e.dataTransfer?.files?.[0]; if (f) loadSample(pi, f); },
             }}
-            handlePadDown={(i) => { initCtx(); playPad(i); console.log('[REC-DEBUG] padDown', i, 'live=', liveRef.current); if (liveRef.current) handleLiveHit(i); }}
+            handlePadDown={(i) => { initCtx(); playPad(i); if (liveRef.current) handleLiveHit(i); }}
             handlePadUp={(i) => { if (pads[i]?.playMode === 'hold') stopPad(i); }}
           />
         )}

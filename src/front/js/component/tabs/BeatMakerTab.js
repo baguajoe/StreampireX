@@ -10,10 +10,43 @@ import { PAD_KEY_LABELS, STEP_COUNTS, CHROMATIC_KEYS } from "../../utils/sampler
 // ✅ Adjust this import path if your VirtualPiano lives elsewhere
 import VirtualPiano from "../VirtualPiano";
 
-const BeatMakerTab = ({ engine, handlePadDown, handlePadUp }) => {
-  const [beatView, setBeatView] = useState("split"); // split | pads | seq
-  const seqContainerRef = useRef(null);
+// NOTE: PadsPanel/SequencerPanel are defined at module scope (NOT inside
+// BeatMakerTab). Defining them inline gave them a fresh function identity on
+// every render, so React unmounted+remounted the entire pad/sequencer subtree
+// on each render — i.e. ~10×/sec during playback and on every captured hit
+// during live recording. That thrash was destabilizing pad input capture.
+// Keeping them stable lets React reconcile in place.
 
+const PadsPanel = ({ engine, handlePadDown, handlePadUp }) => (
+  <div className="sbm-beats-pads">
+    <div className="sbm-beats-pad-grid">
+      {engine.pads.map((pad, i) => (
+        <div
+          key={i}
+          className={`sbm-beats-pad ${engine.activePads.has(i) ? "active" : ""} ${
+            engine.selectedPad === i ? "selected" : ""
+          } ${pad.buffer ? "loaded" : ""}`}
+          style={{ borderColor: pad.color }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            handlePadDown(i);
+          }}
+          onMouseUp={() => handlePadUp(i)}
+          onDoubleClick={() => engine.fileSelect(i)}
+          onDragOver={(e) => engine.onDragOver(e, i)}
+          onDragLeave={engine.onDragLeave}
+          onDrop={(e) => engine.onDrop(e, i)}
+        >
+          <span className="sbm-beats-pad-num">{PAD_KEY_LABELS[i]}</span>
+          <span className="sbm-beats-pad-name">{pad.buffer ? pad.name : "Empty"}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const SequencerPanel = ({ engine }) => {
+  const seqContainerRef = useRef(null);
   const steps = engine.steps;
   const stepVel = engine.stepVel;
 
@@ -21,35 +54,7 @@ const BeatMakerTab = ({ engine, handlePadDown, handlePadUp }) => {
   const bars = [];
   for (let b = 0; b < Math.ceil(engine.stepCount / 4); b++) bars.push(b);
 
-  const PadsPanel = () => (
-    <div className="sbm-beats-pads">
-      <div className="sbm-beats-pad-grid">
-        {engine.pads.map((pad, i) => (
-          <div
-            key={i}
-            className={`sbm-beats-pad ${engine.activePads.has(i) ? "active" : ""} ${
-              engine.selectedPad === i ? "selected" : ""
-            } ${pad.buffer ? "loaded" : ""}`}
-            style={{ borderColor: pad.color }}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              handlePadDown(i);
-            }}
-            onMouseUp={() => handlePadUp(i)}
-            onDoubleClick={() => engine.fileSelect(i)}
-            onDragOver={(e) => engine.onDragOver(e, i)}
-            onDragLeave={engine.onDragLeave}
-            onDrop={(e) => engine.onDrop(e, i)}
-          >
-            <span className="sbm-beats-pad-num">{PAD_KEY_LABELS[i]}</span>
-            <span className="sbm-beats-pad-name">{pad.buffer ? pad.name : "Empty"}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  const SequencerPanel = () => (
+  return (
     <div className="sbm-sequencer" ref={seqContainerRef}>
       {/* Bar ruler */}
       <div className="sbm-seq-ruler">
@@ -175,6 +180,10 @@ const BeatMakerTab = ({ engine, handlePadDown, handlePadUp }) => {
       </div>
     </div>
   );
+};
+
+const BeatMakerTab = ({ engine, handlePadDown, handlePadUp }) => {
+  const [beatView, setBeatView] = useState("split"); // split | pads | seq
 
   return (
     <div className="sbm-beats-tab">
@@ -234,7 +243,7 @@ const BeatMakerTab = ({ engine, handlePadDown, handlePadUp }) => {
         <div className="sbm-beats-content view-split">
           {/* TOP: Pads (left) + Piano (right) */}
           <div className="sbm-beats-toprow">
-            <PadsPanel />
+            <PadsPanel engine={engine} handlePadDown={handlePadDown} handlePadUp={handlePadUp} />
             <div className="sbm-beats-right">
               <div className="sbm-beats-right-inner">
                 <VirtualPiano />
@@ -244,20 +253,20 @@ const BeatMakerTab = ({ engine, handlePadDown, handlePadUp }) => {
 
           {/* BOTTOM: Sequencer full-width */}
           <div className="sbm-beats-bottomrow">
-            <SequencerPanel />
+            <SequencerPanel engine={engine} />
           </div>
         </div>
       )}
 
       {beatView === "pads" && (
         <div className="sbm-beats-content view-pads">
-          <PadsPanel />
+          <PadsPanel engine={engine} handlePadDown={handlePadDown} handlePadUp={handlePadUp} />
         </div>
       )}
 
       {beatView === "seq" && (
         <div className="sbm-beats-content view-seq">
-          <SequencerPanel />
+          <SequencerPanel engine={engine} />
         </div>
       )}
     </div>
