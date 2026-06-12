@@ -7,7 +7,7 @@
 // runtime behaviour.
 
 export const PAD_COUNT = 16;
-export const STEP_COUNTS = [8, 16, 32, 64];
+export const STEP_COUNTS = [4, 8, 16, 32, 64];
 export const DEFAULT_BPM = 140;
 export const PAD_KEY_LABELS = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16'];
 export const CHROMATIC_KEYS = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
