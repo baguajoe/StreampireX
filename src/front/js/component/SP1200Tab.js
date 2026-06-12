@@ -134,7 +134,7 @@ const applySpLowEnd = (ctx, buffer, emphasis = 0.45) => {
   return out;
 };
 
-const applySp1200Chain = (ctx, buffer, emphasis = 0.45) => {
+export const applySp1200Chain = (ctx, buffer, emphasis = 0.45) => {
   if (!buffer) return buffer;
   let b = applySpResample(ctx, buffer);
   b = applySp12bit(ctx, b);

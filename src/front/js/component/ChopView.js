@@ -48,6 +48,21 @@ import {
 // useSamplerEngine — constants now live in utils/samplerConstants.
 import { CHOP_MODES } from '../utils/samplerConstants';
 
+// Per-engine character DSP — reuses existing chains (applySp1200Chain +
+// SPXCharacterEngine.processCharacter). No new DSP is defined here.
+import { processCharacter } from './SPXCharacterEngine';
+import { applySp1200Chain } from './SP1200Tab';
+
+// Engine-character presets applied to chopped slices (preview + assign).
+const CHAR_ENGINES = [
+  { id: 'raw',     label: 'Raw — no character' },
+  { id: 'sp1200',  label: 'SP-1200 · 26kHz 12-bit grit' },
+  { id: 'spx3000', label: 'SPX-3000 · 12-bit MPC warm' },
+  { id: 'spx950',  label: 'SPX-950 · 12-bit 32kHz' },
+  { id: 'spx3200', label: 'SPX-3200 · clean 24-bit' },
+  { id: 'lofi8',   label: 'Lo-Fi · 8-bit crush' },
+];
+
 // ── Inline style helpers (LARGE / HIGH CONTRAST) ──
 const S = {
   btn: (active, color = '#00ffc8') => ({
@@ -97,6 +112,37 @@ const ChopView = ({ engine }) => {
   const [reverseOnAssign, setReverseOnAssign] = useState(false);
   const [normalizeOnAssign, setNormalizeOnAssign] = useState(false);
   const [maxTransientSlices, setMaxTransientSlices] = useState(16);
+
+  // ── Engine character (SP-1200 grit / SPX warmth / clean) ──
+  const [charEngine, setCharEngine] = useState('raw');
+  const charCacheRef = useRef({ key: null, buf: null });
+
+  // Apply the selected console engine's character DSP to a buffer (reused DSP)
+  const characterize = useCallback((ctx, buf) => {
+    if (!buf || charEngine === 'raw') return buf;
+    switch (charEngine) {
+      case 'sp1200':  return applySp1200Chain(ctx, buf);
+      case 'spx3000': return processCharacter(ctx, buf, 12, 44100);
+      case 'spx950':  return processCharacter(ctx, buf, 12, 32000);
+      case 'spx3200': return processCharacter(ctx, buf, 24, 44100);
+      case 'lofi8':   return processCharacter(ctx, buf, 8, 22050);
+      default:        return buf;
+    }
+  }, [charEngine]);
+
+  // Cached full-buffer characterization for live preview / audition
+  const getCharBuffer = useCallback(() => {
+    if (charEngine === 'raw' || !buffer) return buffer;
+    if (charCacheRef.current.key === charEngine && charCacheRef.current.buf) {
+      return charCacheRef.current.buf;
+    }
+    const out = characterize(engine.initCtx(), buffer);
+    charCacheRef.current = { key: charEngine, buf: out };
+    return out;
+  }, [charEngine, buffer, characterize, engine]);
+
+  // Reset preview cache when the source sample changes
+  useEffect(() => { charCacheRef.current = { key: null, buf: null }; }, [buffer]);
 
   // ── Undo / Redo helpers ──
   const pushUndo = useCallback((pts) => {
@@ -203,7 +249,9 @@ const ChopView = ({ engine }) => {
 
     const ctx = engine.initCtx();
     const src = ctx.createBufferSource();
-    src.buffer = (engine.previewDsp && engine.ctxRef?.current) ? engine.previewDsp(engine.ctxRef.current, buffer) : buffer;
+    src.buffer = charEngine !== 'raw'
+      ? getCharBuffer()
+      : ((engine.previewDsp && engine.ctxRef?.current) ? engine.previewDsp(engine.ctxRef.current, buffer) : buffer);
     const gain = ctx.createGain();
     gain.gain.value = (pad.volume || 0.8) * engine.masterVol;
     src.connect(gain);
@@ -215,7 +263,7 @@ const ChopView = ({ engine }) => {
       delete engine.activeSrc.current['chop_preview'];
       engine.setActiveSlice(-1);
     };
-  }, [buffer, engine, pad, stopPreview]);
+  }, [buffer, engine, pad, stopPreview, charEngine, getCharBuffer]);
 
   // ── Audition All — play slices sequentially ──
   const auditionAll = useCallback(() => {
@@ -236,7 +284,9 @@ const ChopView = ({ engine }) => {
         try { engine.activeSrc.current['chop_preview'].source.stop(); } catch (e) {}
       }
       const src = ctx.createBufferSource();
-      src.buffer = (engine.previewDsp && engine.ctxRef?.current) ? engine.previewDsp(engine.ctxRef.current, buffer) : buffer;
+      src.buffer = charEngine !== 'raw'
+      ? getCharBuffer()
+      : ((engine.previewDsp && engine.ctxRef?.current) ? engine.previewDsp(engine.ctxRef.current, buffer) : buffer);
       const gain = ctx.createGain();
       gain.gain.value = (pad.volume || 0.8) * engine.masterVol;
       src.connect(gain);
@@ -248,7 +298,7 @@ const ChopView = ({ engine }) => {
       auditionTimer.current = setTimeout(playNext, range.duration * 1000 + 50);
     };
     playNext();
-  }, [buffer, engine, pad, stopPreview]);
+  }, [buffer, engine, pad, stopPreview, charEngine, getCharBuffer]);
 
   // ── Canvas click: preview / add manual point ──
   const handleCanvasClick = useCallback((e) => {
@@ -420,9 +470,10 @@ const ChopView = ({ engine }) => {
     let result = buf;
     if (reverseOnAssign) result = reverseBuffer(result);
     if (normalizeOnAssign) result = normalizeBuffer(result);
-    if (fadeEdges) result = applyFadeEdges(result);
+    if (charEngine !== 'raw') result = characterize(engine.initCtx(), result); // engine grit/warmth/clean
+    if (fadeEdges) result = applyFadeEdges(result); // fade last = anti-click
     return result;
-  }, [reverseOnAssign, normalizeOnAssign, fadeEdges, reverseBuffer, normalizeBuffer, applyFadeEdges]);
+  }, [reverseOnAssign, normalizeOnAssign, fadeEdges, charEngine, characterize, engine, reverseBuffer, normalizeBuffer, applyFadeEdges]);
 
   // ── Assign all slices to pads ──
   const assignToPads = useCallback(() => {
@@ -685,6 +736,18 @@ const ChopView = ({ engine }) => {
             🎚 Fade Edges
           </button>
 
+          <div style={S.divider} />
+
+          {/* Engine character — baked into preview + assigned slices */}
+          <label style={S.label} title="Apply a console engine's character DSP to slices (preview + assign)">
+            🎛 Engine:
+            <select value={charEngine}
+              onChange={(e) => { setCharEngine(e.target.value); charCacheRef.current = { key: null, buf: null }; }}
+              style={S.select}>
+              {CHAR_ENGINES.map(ce => <option key={ce.id} value={ce.id}>{ce.label}</option>)}
+            </select>
+          </label>
+
           <div style={{ flex: 1 }} />
 
           {/* Slice count badge */}
@@ -798,9 +861,10 @@ const ChopView = ({ engine }) => {
           )}
 
           {/* Processing indicators */}
-          {(reverseOnAssign || normalizeOnAssign || fadeEdges) && (
+          {(reverseOnAssign || normalizeOnAssign || fadeEdges || charEngine !== 'raw') && (
             <span style={{ fontSize: 12, color: '#556', fontStyle: 'italic' }}>
               Processing: {[
+                charEngine !== 'raw' && `🎛 ${CHAR_ENGINES.find(c => c.id === charEngine)?.label.split(' ')[0]}`,
                 reverseOnAssign && '🔄Rev',
                 normalizeOnAssign && '📊Norm',
                 fadeEdges && '🎚Fade',
