@@ -71,7 +71,7 @@ export default function FreesoundBrowser({ onLoadSample }) {
       setPlaying(null);
       return;
     }
-    const url = sound.previews?.['preview-hq-mp3'] || sound.previews?.['preview-lq-mp3'];
+    const url = sound.preview_hq_mp3 || sound.preview_lq_mp3;
     if (!url) return;
     if (audioRef.current) { audioRef.current.pause(); }
     audioRef.current = new Audio(url);
@@ -87,14 +87,15 @@ export default function FreesoundBrowser({ onLoadSample }) {
       if (!res.ok) throw new Error('Download failed');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      onLoadSample?.(url, sound.name, blob);
+      onLoadSample?.(url, sound.name, blob, targetPad);        // route to selected pad
+      setTargetPad(t => Math.min(15, t + 1));                  // auto-advance to next pad
     } catch(e) {
       // Fallback: use preview URL directly
-      const url = sound.previews?.['preview-hq-mp3'];
-      if (url) onLoadSample?.(url, sound.name);
+      const url = sound.preview_hq_mp3;
+      if (url) { onLoadSample?.(url, sound.name, undefined, targetPad); setTargetPad(t => Math.min(15, t + 1)); }
       else alert('Could not load sample: ' + e.message);
     } finally { setLoadingPad(null); }
-  }, [onLoadSample]);
+  }, [onLoadSample, targetPad]);
 
   const s = {
     container: { display:'flex', flexDirection:'column', height:'100%', background:'#06060f', color:'#e0e0e0', fontFamily:'JetBrains Mono, monospace', fontSize:11 },
@@ -164,7 +165,7 @@ export default function FreesoundBrowser({ onLoadSample }) {
             <div style={s.info}>
               <div style={s.name} title={sound.name}>{sound.name}</div>
               <div style={s.meta}>
-                by {sound.username} · {sound.duration?.toFixed(1)}s · ⭐{sound.avg_rating?.toFixed(1)} · ↓{sound.num_downloads?.toLocaleString()}
+                by {sound.username} · {sound.duration?.toFixed(1)}s · ⭐{sound.rating?.toFixed(1)} · ↓{sound.downloads?.toLocaleString()}
               </div>
               <div style={{...s.meta, color:'#4a5568', marginTop:1}}>
                 {(sound.tags||[]).slice(0,4).join(' · ')}
