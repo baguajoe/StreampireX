@@ -8613,7 +8613,7 @@ registerProcessor('${WORKLET_NAME}', SPXMasterWallProcessor);
         {/* BEAT MAKER */}
         {viewMode === "beatmaker" && (
           <SamplerBeatMaker onExport={handleBeatExport} onClose={() => setViewMode("arrange")} isEmbedded={true}
-            onSendToArrange={(audioBuffer, name) => { const idx = selectedTrackIndex; updateTrack(idx, { audioBuffer, name: name || tracks[idx].name }); setViewMode("arrange"); setStatus(`Beat bounced to Track ${idx + 1}`); }}
+            onSendToArrange={(audioBuffer, name) => { const idx = selectedTrackIndex; const audioUrl = URL.createObjectURL(audioBufferToWav(audioBuffer)); updateTrack(idx, { audioBuffer, audio_url: audioUrl, name: name || tracks[idx].name }); createRegionFromImport(idx, audioBuffer, name || "Beat", audioUrl); setViewMode("arrange"); setStatus(`Beat bounced to Track ${idx + 1}`); }}
             incomingSample={window.__spx_sampler_export || null} projectBpm={bpm} projectKey={pianoRollKey} projectScale={pianoRollScale} projectId={projectId}
             onBpmSync={newBpm => { setBpm(newBpm); setStatus(`✓ BPM synced: ${newBpm}`); }}
             onKeySync={(key, scale) => { setPianoRollKey(key); setPianoRollScale(scale); setStatus(`✓ Key synced: ${key} ${scale}`); }}
