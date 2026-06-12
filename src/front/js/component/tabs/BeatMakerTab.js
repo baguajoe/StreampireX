@@ -182,8 +182,18 @@ const SequencerPanel = ({ engine }) => {
   );
 };
 
-const BeatMakerTab = ({ engine, handlePadDown, handlePadUp }) => {
+const BeatMakerTab = ({ engine, handlePadDown, handlePadUp, recordHit }) => {
   const [beatView, setBeatView] = useState("split"); // split | pads | seq
+
+  // Record every played piano note onto the CURRENTLY SELECTED pad's row, so the
+  // user picks the target sound (drum or melodic) via the pad selection and plays
+  // it in. Defaults to pad 0 when nothing is selected. recordHit is the engine's
+  // live-record gate (handleLiveHit), so this only fires while armed.
+  const handlePianoNote = ({ velocity }) => {
+    if (typeof recordHit !== "function") return;
+    const row = engine.selectedPad ?? 0;
+    recordHit(row, velocity ?? 0.8);
+  };
 
   return (
     <div className="sbm-beats-tab">
@@ -246,7 +256,7 @@ const BeatMakerTab = ({ engine, handlePadDown, handlePadUp }) => {
             <PadsPanel engine={engine} handlePadDown={handlePadDown} handlePadUp={handlePadUp} />
             <div className="sbm-beats-right">
               <div className="sbm-beats-right-inner">
-                <VirtualPiano />
+                <VirtualPiano onNoteOn={handlePianoNote} />
               </div>
             </div>
           </div>

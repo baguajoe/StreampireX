@@ -199,7 +199,7 @@ const buildKeyboardLayout = (baseOctave) => {
   return keys;
 };
 
-const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) => {
+const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false, onNoteOn }) => {
   const [instrument, setInstrument] = useState('piano');
   const [baseOctave, setBaseOctave] = useState(4);
   const [volume, setVolume] = useState(0.7);
@@ -312,7 +312,14 @@ const VirtualPiano = ({ audioContext, onRecordingComplete, embedded = false }) =
     activeVoicesRef.current[noteId] = { oscs, voiceGain, filter, envelope: env };
 
     setActiveNotes(prev => new Set([...prev, noteId]));
-  }, [instrument, getCtx, reverbMix]);
+
+    // Notify host (e.g. Beat Lab live-record) that a note was triggered. Fires for
+    // mouse, computer-keyboard, and MIDI input since all three funnel through noteOn.
+    if (onNoteOn) {
+      const midi = Math.round(12 * Math.log2(freq / 440) + 69);
+      onNoteOn({ noteId, freq, midi, velocity });
+    }
+  }, [instrument, getCtx, reverbMix, onNoteOn]);
 
   // ── Note Off ──
   const noteOff = useCallback((noteId) => {

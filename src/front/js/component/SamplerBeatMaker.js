@@ -2090,10 +2090,22 @@ const SamplerBeatMaker = ({
     const deduped = prev != null && now - prev < 0.03;
     if (deduped) return; // ignore duplicate within 30ms
     lastHitRef.current[pi] = now;
-    const hit = { pad: pi, time: now - recStartT.current, velocity: vel };
+    const t = now - recStartT.current;
+    const hit = { pad: pi, time: t, velocity: vel };
     recHitsRef.current = [...recHitsRef.current, hit];  // live mirror — read by stopLiveRec
     setRecHits(p => [...p, hit]);
-  }, []);
+
+    // Live feedback: light the quantized cell immediately so hits show up mid-record
+    // instead of only after Stop & Quantize. Same math as stopLiveRec, so the final
+    // quantize lands on these exact cells (idempotent).
+    const sd = 60.0 / bpm / 4;
+    const qs = ({ '1/4': 4, '1/8': 2, '1/16': 1, '1/32': 0.5 })[quantVal] || 1;
+    const loopLen = stepCount * sd;
+    const wrapped = ((t % loopLen) + loopLen) % loopLen;
+    const si = Math.round(Math.round(wrapped / sd / qs) * qs) % stepCount;
+    setSteps(prev => { const u = prev.map(r => [...r]); u[pi][si] = true; return u; });
+    setStepVel(prev => { const u = prev.map(r => [...r]); u[pi][si] = vel; return u; });
+  }, [bpm, quantVal, stepCount]);
 
   // =========================================================================
   // WAVEFORM CHOP (Phase 2)
@@ -3162,6 +3174,7 @@ const SamplerBeatMaker = ({
             }}
             handlePadDown={(i) => { initCtx(); playPad(i); if (liveRef.current) handleLiveHit(i); }}
             handlePadUp={(i) => { if (pads[i]?.playMode === 'hold') stopPad(i); }}
+            recordHit={(pi, vel = 0.8) => { if (liveRef.current) handleLiveHit(pi, vel); }}
           />
         )}
 
