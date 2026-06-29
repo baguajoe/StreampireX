@@ -527,12 +527,12 @@ function SPXCutFxPanel({ state, actions, selectors, drag }) {
     return LUT_PACK.some(l => l.name.toLowerCase().includes(q));
   }, [search, searchActive]);
   const effOpen = {
-    spx190:      searchActive ? filteredSPX190.length > 0 : effOpen.spx190,
-    spx300:      searchActive ? filteredSPX300.length > 0 : effOpen.spx300,
-    luts:        searchActive ? lutMatches : effOpen.luts,
-    videoFx:     searchActive ? videoFxMatches : effOpen.videoFx,
-    audioFx:     searchActive ? audioFxMatches : effOpen.audioFx,
-    transitions: searchActive ? transitionsMatches : effOpen.transitions,
+    spx190:      searchActive ? filteredSPX190.length > 0 : sectionOpen.spx190,
+    spx300:      searchActive ? filteredSPX300.length > 0 : sectionOpen.spx300,
+    luts:        searchActive ? lutMatches : sectionOpen.luts,
+    videoFx:     searchActive ? videoFxMatches : sectionOpen.videoFx,
+    audioFx:     searchActive ? audioFxMatches : sectionOpen.audioFx,
+    transitions: searchActive ? transitionsMatches : sectionOpen.transitions,
   };
 
   return (
