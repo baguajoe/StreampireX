@@ -132,7 +132,7 @@ export default function SPXScriptPage() {
   const closeAllMenus = () => { setShowExportMenu(false); setShowImportMenu(false); setShowDrafts(false); };
 
   // Offline
-  const { isOffline, lastSaved, saveStatus, syncQueue, forceSave, clearLocal, loadLocal, listLocalScripts } =
+  const { isOffline, lastSaved, saveStatus, cloudStatus, cloudError, syncQueue, forceSave, clearLocal, loadLocal, listLocalScripts } =
     useScriptOffline(script.scriptId, script, setScript, comic, setComic);
 
   // Collaboration
@@ -237,7 +237,8 @@ export default function SPXScriptPage() {
 
         <div className="spx-script-spacer" />
 
-        <SPXOfflineIndicator isOffline={isOffline} saveStatus={saveStatus} lastSaved={lastSaved}
+        <SPXOfflineIndicator isOffline={isOffline} saveStatus={saveStatus}
+          cloudStatus={cloudStatus} cloudError={cloudError} lastSaved={lastSaved}
           syncQueue={syncQueue} forceSave={forceSave} clearLocal={clearLocal}
           listLocalScripts={listLocalScripts} onLoadLocalScript={() => { const l = loadLocal(); if (l) setScript(l); }} />
 

@@ -9,6 +9,8 @@ import React, { useState } from "react";
 export default function SPXOfflineIndicator({
   isOffline,
   saveStatus,
+  cloudStatus = "idle",
+  cloudError = null,
   lastSaved,
   syncQueue,
   forceSave,
@@ -26,21 +28,30 @@ export default function SPXOfflineIndicator({
     }
   };
 
+  // Honest two-layer status: local (localStorage) vs cloud (backend draft).
+  // Only ever claim "Saved to cloud" on a real 200 from the sync.
   const label = () => {
-    if (isOffline) return "● OFFLINE";
-    switch (saveStatus) {
-      case "saving": return "↑ Saving...";
-      case "saved": return "✓ Saved";
-      case "error": return "⚠ Save error";
-      case "offline": return "● Offline";
-      default: return "✓ Auto-save on";
+    if (isOffline) return "● Offline — saved locally";
+    switch (cloudStatus) {
+      case "syncing": return "↑ Syncing…";
+      case "synced": return "✓ Saved to cloud";
+      case "error": return "⚠ Cloud save failed — local only";
+      case "offline": return "● Offline — saved locally";
+      case "unauthenticated": return "✓ Saved locally · sign in to sync";
+      default:
+        // No cloud attempt yet this session — reflect the local layer only.
+        if (saveStatus === "saving") return "↑ Saving…";
+        if (saveStatus === "error") return "⚠ Save error";
+        if (saveStatus === "saved") return "✓ Saved locally";
+        return "✓ Auto-save on";
     }
   };
 
   const color = () => {
-    if (isOffline || saveStatus === "offline") return "#FF6600";
-    if (saveStatus === "error") return "#ff4444";
-    if (saveStatus === "saving") return "#8888aa";
+    if (isOffline) return "#FF6600";
+    if (cloudStatus === "error" || saveStatus === "error") return "#ff4444";
+    if (cloudStatus === "syncing" || saveStatus === "saving") return "#8888aa";
+    if (cloudStatus === "unauthenticated" || cloudStatus === "offline") return "#FF6600";
     return "#00ffc8";
   };
 
@@ -79,9 +90,20 @@ export default function SPXOfflineIndicator({
             <div className="spx-offline-status-row">
               <span className="spx-offline-status-label">Status</span>
               <span style={{ color: color(), fontSize: 11, fontWeight: 700 }}>
-                {isOffline ? "Offline — changes saved locally" : "Online — syncing to cloud"}
+                {isOffline ? "Offline — saved locally"
+                  : cloudStatus === "synced" ? "Synced to cloud"
+                  : cloudStatus === "syncing" ? "Syncing to cloud…"
+                  : cloudStatus === "error" ? "Cloud sync failed — saved locally only"
+                  : cloudStatus === "unauthenticated" ? "Saved locally — sign in to back up to cloud"
+                  : "Saved locally"}
               </span>
             </div>
+            {cloudStatus === "error" && cloudError && (
+              <div className="spx-offline-status-row">
+                <span className="spx-offline-status-label">Cloud error</span>
+                <span style={{ fontSize: 11, color: "#ff4444" }}>{cloudError}</span>
+              </div>
+            )}
             {lastSaved && (
               <div className="spx-offline-status-row">
                 <span className="spx-offline-status-label">Last saved</span>

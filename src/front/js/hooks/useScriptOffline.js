@@ -16,12 +16,20 @@ import { useState, useEffect, useRef, useCallback } from "react";
 const LOCAL_KEY = (id) => `spx_script_${id}`;
 const QUEUE_KEY = (id) => `spx_script_queue_${id}`;
 const COMIC_KEY = (id) => `spx_comic_${id}`;
+// Maps a client scriptId -> the backend draft's numeric PK, so repeat saves
+// UPDATE the same row instead of inserting a new draft every autosave.
+// Note: deliberately NOT prefixed `spx_script_` so listLocalScripts ignores it.
+const DRAFTID_KEY = (id) => `spx_cloud_draftid_${id}`;
 const AUTO_SAVE_INTERVAL = 3000; // 3 seconds
 
 export function useScriptOffline(scriptId, script, setScript, comic, setComic) {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [lastSaved, setLastSaved] = useState(null);
-  const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved | error | offline
+  const [saveStatus, setSaveStatus] = useState("idle"); // local layer: idle | saving | saved | error | offline
+  // Cloud layer status — kept distinct so the indicator never claims a cloud
+  // save that didn't happen. idle | syncing | synced | error | offline | unauthenticated
+  const [cloudStatus, setCloudStatus] = useState("idle");
+  const [cloudError, setCloudError] = useState(null);
   const [syncQueue, setSyncQueue] = useState([]);
   const autoSaveTimer = useRef(null);
   const isDirty = useRef(false);
@@ -68,6 +76,9 @@ export function useScriptOffline(scriptId, script, setScript, comic, setComic) {
   // ── Load from localStorage on mount ────────────────────────────────────
   useEffect(() => {
     if (!scriptId || !setScript) return;
+    // New script context — clear any stale cloud status until the next sync.
+    setCloudStatus("idle");
+    setCloudError(null);
     const local = loadLocal();
     if (local && local.elements?.length > 0) {
       // Only restore if local is newer than what's loaded
@@ -102,9 +113,10 @@ export function useScriptOffline(scriptId, script, setScript, comic, setComic) {
       setLastSaved(new Date());
       setSaveStatus(isOffline ? "offline" : "saved");
 
-      // Queue for backend sync if offline
+      // Queue for backend sync if offline; otherwise sync (which drives cloudStatus)
       if (isOffline) {
         queueForSync({ type: "script", scriptId, payload });
+        setCloudStatus("offline");
       } else {
         syncToBackend(payload);
       }
@@ -156,21 +168,68 @@ export function useScriptOffline(scriptId, script, setScript, comic, setComic) {
 
   // ── Backend sync ────────────────────────────────────────────────────────
 
+  // Returns { ok, ... } and drives cloudStatus/cloudError. Never throws.
   const syncToBackend = useCallback(async (payload) => {
-    if (!navigator.onLine || !scriptId) return;
+    if (!scriptId) return { ok: false, reason: "no-script" };
+    if (!navigator.onLine) {
+      setCloudStatus("offline");
+      return { ok: false, reason: "offline" };
+    }
+    const token = localStorage.getItem("token");
+    if (!token) {
+      // Not signed in — we can only save locally. Surface this honestly
+      // rather than implying the work was backed up to the cloud.
+      setCloudStatus("unauthenticated");
+      setCloudError(null);
+      return { ok: false, reason: "no-token" };
+    }
+
+    setCloudStatus("syncing");
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/script/save-draft`, {
+      // Backend contract: { id?, title, format, content }. The full script
+      // document goes under `content`; a missing `content` is what was 400ing.
+      const body = {
+        title: (payload.title || "Untitled Script").slice(0, 255),
+        format: payload.format || "screenplay",
+        content: payload,
+      };
+      const existingDraftId = localStorage.getItem(DRAFTID_KEY(scriptId));
+      if (existingDraftId) body.id = Number(existingDraftId);
+
+      const resp = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/script/save-draft`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(body),
       });
+
+      if (!resp.ok) {
+        // If the tracked draft was deleted server-side, drop the stale mapping
+        // so the next save creates a fresh draft instead of 404ing forever.
+        if (resp.status === 404 && existingDraftId) {
+          localStorage.removeItem(DRAFTID_KEY(scriptId));
+        }
+        let msg = `HTTP ${resp.status}`;
+        try { const j = await resp.json(); if (j && j.error) msg = j.error; } catch (_) {}
+        setCloudStatus("error");
+        setCloudError(msg);
+        return { ok: false, reason: "http", status: resp.status, message: msg };
+      }
+
+      const data = await resp.json().catch(() => ({}));
+      // Remember the backend PK so subsequent saves UPDATE this same draft.
+      if (data && data.draft && data.draft.id != null) {
+        localStorage.setItem(DRAFTID_KEY(scriptId), String(data.draft.id));
+      }
+      setCloudStatus("synced");
+      setCloudError(null);
+      return { ok: true, draft: data && data.draft };
     } catch (e) {
-      // Will retry on next save
+      setCloudStatus("error");
+      setCloudError(e.message || "Network error");
+      return { ok: false, reason: "network", message: e.message };
     }
   }, [scriptId]);
 
@@ -180,11 +239,8 @@ export function useScriptOffline(scriptId, script, setScript, comic, setComic) {
 
     const failed = [];
     for (const item of queue) {
-      try {
-        await syncToBackend(item.payload);
-      } catch (e) {
-        failed.push(item);
-      }
+      const result = await syncToBackend(item.payload);
+      if (!result || !result.ok) failed.push(item);
     }
 
     // Clear or keep failed items
@@ -232,6 +288,8 @@ export function useScriptOffline(scriptId, script, setScript, comic, setComic) {
     isOffline,
     lastSaved,
     saveStatus,
+    cloudStatus,
+    cloudError,
     syncQueue,
     forceSave,
     clearLocal,
