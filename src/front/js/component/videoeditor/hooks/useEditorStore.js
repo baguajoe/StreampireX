@@ -292,6 +292,7 @@ function editorReducer(state, action) {
         trackId, file, startTime, duration, inPoint: clipIn = 0,
         outPoint: clipOut = null, name, mediaType, src,
         linkGroup = null, waveformData = null,
+        source_url = null, public_id = null,
       } = action.payload;
 
       const clip = {
@@ -300,6 +301,8 @@ function editorReducer(state, action) {
         name:        name || (file ? file.name : 'Clip'),
         mediaType:   mediaType || 'video',
         src:         src || (file ? trackBlobUrl(URL.createObjectURL(file)) : ''),
+        source_url,                   // R2 URL once uploaded (null until then)
+        public_id,                    // R2 key for backend renderer (null until uploaded)
         startTime:   clampTime(startTime),
         duration:    duration || 5,
         inPoint:     clipIn,
@@ -348,6 +351,7 @@ function editorReducer(state, action) {
           const clip = {
             id: generateClipId(), trackId: vTrack.id,
             name: file.name, mediaType: 'video', src: trackBlobUrl(URL.createObjectURL(file)),
+            source_url: null, public_id: null,
             startTime, duration: clipDuration, inPoint: mIn, outPoint: mIn + clipDuration,
             linkGroup: mode === 'both' ? linkGroup : null,
             effects: [], waveformData: null,
@@ -362,6 +366,7 @@ function editorReducer(state, action) {
           const clip = {
             id: generateClipId(), trackId: aTrack.id,
             name: file.name, mediaType: 'audio', src: trackBlobUrl(URL.createObjectURL(file)),
+            source_url: null, public_id: null,
             startTime, duration: clipDuration, inPoint: mIn, outPoint: mIn + clipDuration,
             linkGroup: mode === 'both' ? linkGroup : null,
             effects: [], waveformData: null,

@@ -209,11 +209,13 @@ export function useClipDrag({ actions, selectors, state }) {
     // Use HTML5 drag API for media bin → timeline drops
     e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('application/spxcut-media', JSON.stringify({
-      name:      mediaItem.name,
-      src:       mediaItem.src,
-      mediaType: mediaItem.mediaType,
-      duration:  mediaItem.duration,
-      file:      null, // File objects aren't serializable; handle via ref
+      name:       mediaItem.name,
+      src:        mediaItem.src,
+      mediaType:  mediaItem.mediaType,
+      duration:   mediaItem.duration,
+      source_url: mediaItem.source_url || null,
+      public_id:  mediaItem.public_id || null,
+      file:       null, // File objects aren't serializable; handle via ref
     }));
     // Store file ref separately
     dragRef.current.draggedMediaItem = mediaItem;
@@ -233,12 +235,14 @@ export function useClipDrag({ actions, selectors, state }) {
 
     actions.addClip({
       trackId,
-      name:      mediaData.name,
-      src:       mediaData.src,
-      mediaType: mediaData.mediaType,
-      duration:  mediaData.duration || 5,
+      name:       mediaData.name,
+      src:        mediaData.src,
+      mediaType:  mediaData.mediaType,
+      duration:   mediaData.duration || 5,
       startTime,
-      file:      mediaData.file,
+      file:       mediaData.file,
+      source_url: mediaData.source_url || null,
+      public_id:  mediaData.public_id || null,
     });
 
     dragRef.current.draggedMediaItem = null;

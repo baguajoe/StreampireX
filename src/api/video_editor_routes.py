@@ -11,9 +11,9 @@ from datetime import datetime
 
 video_editor_bp = Blueprint('video_editor', __name__)
 
-R2_ENDPOINT   = os.environ.get('R2_ENDPOINT_URL', '')
-R2_ACCESS_KEY = os.environ.get('R2_ACCESS_KEY', '')
-R2_SECRET_KEY = os.environ.get('R2_SECRET_KEY', '')
+R2_ENDPOINT   = os.environ.get('R2_ENDPOINT_URL') or f"https://{os.environ.get('R2_ACCOUNT_ID','')}.r2.cloudflarestorage.com"
+R2_ACCESS_KEY = os.environ.get('R2_ACCESS_KEY_ID', '')
+R2_SECRET_KEY = os.environ.get('R2_SECRET_ACCESS_KEY', '')
 R2_BUCKET     = os.environ.get('R2_BUCKET_NAME', 'streampirex-media')
 R2_PUBLIC_URL = os.environ.get('R2_PUBLIC_URL', 'https://pub-3a956be9429449469ec53b73495e.r2.dev')
 

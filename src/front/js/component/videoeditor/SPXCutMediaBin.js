@@ -32,6 +32,11 @@ function SPXCutMediaBin({ state, actions, drag }) {
         duration:  0,
         size:      file.size,
         thumb:     null,
+        // Cloud upload state — blob src is used for instant local UX,
+        // source_url/public_id get filled in once the R2 upload resolves.
+        uploadState: 'uploading',   // uploading | ready | failed
+        source_url:  null,
+        public_id:   null,
       };
 
       // Get duration for video/audio
@@ -63,6 +68,42 @@ function SPXCutMediaBin({ state, actions, drag }) {
       }
 
       setItems(prev => [...prev, item]);
+
+      // ── Upload to R2 so the backend renderer can fetch it on export ──
+      // Keep the blob src for instant preview; patch in cloud fields on success.
+      uploadMediaItem(item);
+    };
+
+    // POST the File to the existing /api/video-editor/upload endpoint.
+    // Patches the bin item's uploadState + source_url/public_id (+ server duration).
+    const uploadMediaItem = (item) => {
+      const base = process.env.REACT_APP_BACKEND_URL || '';
+      const token = localStorage.getItem('token');
+      const form = new FormData();
+      form.append('file', item.file, item.name);
+
+      fetch(`${base}/api/video-editor/upload`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      })
+        .then(res => res.ok ? res.json() : Promise.reject(new Error(`Upload failed (${res.status})`)))
+        .then(data => {
+          const asset = data && data.asset;
+          if (!asset || !asset.url) throw new Error('Upload response missing asset');
+          setItems(prev => prev.map(i => i.id === item.id ? {
+            ...i,
+            uploadState: 'ready',
+            source_url:  asset.url,
+            public_id:   asset.r2_key,
+            // Prefer server ffprobe duration when available; keep client value otherwise.
+            duration:    (asset.duration && asset.duration > 0) ? asset.duration : i.duration,
+          } : i));
+        })
+        .catch(err => {
+          console.warn('[SPX Cut] media upload failed:', err);
+          setItems(prev => prev.map(i => i.id === item.id ? { ...i, uploadState: 'failed' } : i));
+        });
     };
 
     window.addEventListener('spxcut:import', handler);
