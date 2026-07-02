@@ -5,37 +5,24 @@
  * Zero inline CSS.
  */
 import React, { useState, useCallback, useRef } from 'react';
+import { buildExportPayload, getUnreadyClips } from './hooks/buildExportPayload';
 
+// v1 export resolutions — only the four the backend renderer supports.
+// `res` is the exact string the backend's res_map expects.
 const EXPORT_PRESETS = [
-  { label: '4K UHD',      w: 3840, h: 2160, fps: 24, codec: 'h264',  bitrate: 40000 },
-  { label: '4K DCI',      w: 4096, h: 2160, fps: 24, codec: 'h264',  bitrate: 50000 },
-  { label: '1080p 60',    w: 1920, h: 1080, fps: 60, codec: 'h264',  bitrate: 16000 },
-  { label: '1080p 30',    w: 1920, h: 1080, fps: 30, codec: 'h264',  bitrate: 8000  },
-  { label: '1080p 24',    w: 1920, h: 1080, fps: 24, codec: 'h264',  bitrate: 6000  },
-  { label: '720p 60',     w: 1280, h: 720,  fps: 60, codec: 'h264',  bitrate: 8000  },
-  { label: '720p 30',     w: 1280, h: 720,  fps: 30, codec: 'h264',  bitrate: 5000  },
-  { label: 'Instagram',   w: 1080, h: 1080, fps: 30, codec: 'h264',  bitrate: 3500  },
-  { label: 'TikTok/9:16', w: 1080, h: 1920, fps: 30, codec: 'h264',  bitrate: 4000  },
-  { label: 'Twitter',     w: 1280, h: 720,  fps: 30, codec: 'h264',  bitrate: 5000  },
-  { label: 'YouTube 4K',  w: 3840, h: 2160, fps: 30, codec: 'h265',  bitrate: 35000 },
-  { label: 'ProRes 422',  w: 1920, h: 1080, fps: 24, codec: 'prores',bitrate: 147000},
-  { label: 'ProRes 4444', w: 1920, h: 1080, fps: 24, codec: 'prores4444', bitrate: 330000 },
-  { label: 'DNxHD 145',   w: 1920, h: 1080, fps: 24, codec: 'dnxhd', bitrate: 145000 },
-  { label: 'GIF (512px)', w: 512,  h: 288,  fps: 15, codec: 'gif',   bitrate: 0 },
+  { label: '480p',  res: '480p',  w: 854,  h: 480,  fps: 30 },
+  { label: '720p',  res: '720p',  w: 1280, h: 720,  fps: 30 },
+  { label: '1080p', res: '1080p', w: 1920, h: 1080, fps: 30 },
+  { label: '4K',    res: '4k',    w: 3840, h: 2160, fps: 30 },
 ];
 
-const CODECS   = ['h264', 'h265', 'vp9', 'av1', 'prores', 'prores4444', 'dnxhd', 'gif'];
-const FORMATS  = ['mp4', 'mov', 'mkv', 'webm', 'avi', 'mxf', 'gif'];
-const PROFILES = ['baseline', 'main', 'high', 'high10'];
+// Backend remuxes to mp4 by default; these are the container choices it accepts via settings.format.
+const FORMATS  = ['mp4', 'mov', 'mkv', 'webm'];
 
 function SPXCutExportModal({ state, actions, selectors }) {
-  const [activePreset, setActivePreset] = useState(4); // 1080p 24 default
-  const [settings, setSettings] = useState({ ...EXPORT_PRESETS[4] });
+  const [activePreset, setActivePreset] = useState(2); // 1080p default
+  const [settings, setSettings] = useState({ ...EXPORT_PRESETS[2] });
   const [format,   setFormat]   = useState('mp4');
-  const [profile,  setProfile]  = useState('high');
-  const [twoPass,  setTwoPass]  = useState(false);
-  const [audioCodec, setAudioCodec] = useState('aac');
-  const [audioBitrate, setAudioBitrate] = useState(192);
   const [filename, setFilename] = useState(state.projectName || 'export');
   const [exportTo, setExportTo] = useState('local'); // local | r2
   const [progress, setProgress] = useState(0);
@@ -61,87 +48,81 @@ function SPXCutExportModal({ state, actions, selectors }) {
 
   const startExport = useCallback(async () => {
     if (status === 'rendering' || status === 'uploading') return;
+
+    const preset = EXPORT_PRESETS[activePreset] || EXPORT_PRESETS[2];
+
+    // ── Readiness gate ──────────────────────────────────────────
+    // Block until every video clip has a backend-fetchable source.
+    const payload = buildExportPayload(state.tracks, {
+      resolution: preset.res,
+      frameRate:  settings.fps,
+      format,
+    });
+    const videoClipCount = payload.timeline.tracks.reduce((n, t) => n + t.clips.length, 0);
+    if (videoClipCount === 0) {
+      setStatus('error');
+      setProgress(0);
+      setLog('');
+      appendLog('[ERROR] No video clips to export — add clips to a video track first.');
+      return;
+    }
+    const unready = getUnreadyClips(state.tracks);
+    if (unready.length) {
+      setStatus('error');
+      setProgress(0);
+      setLog('');
+      appendLog(`[ERROR] ${unready.length} clip(s) still uploading — wait for upload to finish: ${unready.join(', ')}`);
+      return;
+    }
+
     setStatus('rendering');
     setProgress(0);
     setLog('');
     appendLog(`[SPX Cut] Starting export — ${filename}.${format}`);
-    appendLog(`[SPX Cut] Resolution: ${settings.w}x${settings.h} @ ${settings.fps}fps`);
-    appendLog(`[SPX Cut] Codec: ${settings.codec} | Bitrate: ${settings.bitrate}k`);
-    appendLog(`[SPX Cut] Audio: ${audioCodec} @ ${audioBitrate}k`);
+    appendLog(`[SPX Cut] Resolution: ${preset.res} (${preset.w}x${preset.h}) @ ${settings.fps}fps`);
+    appendLog(`[SPX Cut] ${videoClipCount} video clip(s) → rendering on server...`);
 
     try {
-      // Build export data
-      const exportData = {
-        tracks:    state.tracks,
-        duration:  state.duration,
-        inPoint:   state.inPoint,
-        outPoint:  state.outPoint,
-        settings:  { ...settings, format, profile, twoPass, audioCodec, audioBitrate },
-        filename:  `${filename}.${format}`,
-      };
+      setProgress(20);
+      appendLog('[Server] Uploading timeline & rendering (FFmpeg concat)...');
 
-      appendLog('[FFmpeg] Initializing encoder...');
-      setProgress(5);
+      const resp = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/video-editor/export`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
 
-      // Simulate FFmpeg progress (real integration via useFFmpeg.js)
-      const steps = [
-        '[FFmpeg] Loading media files...',
-        '[FFmpeg] Applying color grade...',
-        '[FFmpeg] Applying effects...',
-        '[FFmpeg] Encoding video stream...',
-        '[FFmpeg] Encoding audio stream...',
-        '[FFmpeg] Muxing streams...',
-        '[FFmpeg] Writing output file...',
-      ];
-
-      for (let i = 0; i < steps.length; i++) {
-        await new Promise(r => setTimeout(r, 400 + Math.random() * 200));
-        appendLog(steps[i]);
-        setProgress(Math.round(10 + (i / (steps.length - 1)) * 80));
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data.success) {
+        throw new Error(data.error || `Export failed (${resp.status})`);
       }
 
-      setProgress(90);
+      setProgress(100);
+      setStatus('done');
+      appendLog(`[Server] ${data.message || 'Export complete!'}`);
+      if (data.file_size) appendLog(`[Server] Output: ${(data.file_size / 1048576).toFixed(1)} MB · ${data.resolution} · .${data.format}`);
+      appendLog(`[Server] URL: ${data.export_url}`);
 
-      if (exportTo === 'r2') {
-        appendLog('[R2] Uploading to Cloudflare R2...');
-        setStatus('uploading');
-        // POST to Flask backend: /api/video/upload_r2
-        const formData = new FormData();
-        formData.append('filename', `${filename}.${format}`);
-        formData.append('project_id', state.projectId || 'unknown');
-        const resp = await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/video/upload_r2`, {
-          method: 'POST',
-          body: formData,
-          headers: localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {},
-        });
-        if (!resp.ok) throw new Error(`R2 upload failed: ${resp.statusText}`);
-        const data = await resp.json();
-        appendLog(`[R2] Upload complete: ${data.url}`);
-        setProgress(100);
-        setStatus('done');
-      } else {
-        // Local download — in browser context trigger a blob download
-        appendLog('[Export] Preparing download...');
-        // Real: get blob from FFmpeg.wasm output; here we create a placeholder
-        const dummyBlob = new Blob(['SPX Cut Export Placeholder'], { type: 'video/mp4' });
-        const url = URL.createObjectURL(dummyBlob);
+      if (exportTo === 'local') {
+        // Download the real rendered file from R2.
+        appendLog('[Export] Starting download...');
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `${filename}.${format}`;
+        a.href = data.export_url;
+        a.download = `${filename}.${data.format || format}`;
+        a.target = '_blank';
+        a.rel = 'noopener';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        // Delay revoke so download has time to complete
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-        appendLog(`[Export] Download started: ${filename}.${format}`);
-        setProgress(100);
-        setStatus('done');
       }
     } catch (err) {
       appendLog(`[ERROR] ${err.message}`);
       setStatus('error');
     }
-  }, [status, filename, format, settings, profile, twoPass, audioCodec, audioBitrate, exportTo, state, appendLog]);
+  }, [status, activePreset, filename, format, settings, exportTo, state, appendLog]);
 
   const close = useCallback(() => {
     actions.setExportModal(false);
@@ -162,14 +143,6 @@ function SPXCutExportModal({ state, actions, selectors }) {
         </div>
 
         <div className="spxcut-modal-body">
-
-          {/* Beta warning */}
-          <div className="spxcut-beta-warning">
-            <div className="spxcut-beta-warning-title">⚠ Export is in beta</div>
-            <div className="spxcut-beta-warning-msg">
-              Output is currently a placeholder file. Server-side rendering coming soon.
-            </div>
-          </div>
 
           {/* Preset buttons */}
           <div className="spxcut-export-section">
@@ -192,17 +165,7 @@ function SPXCutExportModal({ state, actions, selectors }) {
             <div className="spxcut-export-section-title">Video</div>
             <div className="spxcut-form-row">
               <span className="spxcut-form-label">Resolution</span>
-              <input
-                className="spxcut-form-input input-w70"
-                type="number" value={settings.w}
-                onChange={e => updateSetting('w', parseInt(e.target.value))}
-              />
-              <span className="spxcut-form-unit-x">×</span>
-              <input
-                className="spxcut-form-input input-w70"
-                type="number" value={settings.h}
-                onChange={e => updateSetting('h', parseInt(e.target.value))}
-              />
+              <span className="spxcut-range-hint">{settings.w} × {settings.h} ({settings.res})</span>
             </div>
             <div className="spxcut-form-row">
               <span className="spxcut-form-label">Frame Rate</span>
@@ -213,53 +176,9 @@ function SPXCutExportModal({ state, actions, selectors }) {
               </select>
             </div>
             <div className="spxcut-form-row">
-              <span className="spxcut-form-label">Codec</span>
-              <select className="spxcut-form-select" value={settings.codec} onChange={e => updateSetting('codec', e.target.value)}>
-                {CODECS.map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
-              </select>
-            </div>
-            <div className="spxcut-form-row">
-              <span className="spxcut-form-label">Bitrate</span>
-              <input
-                className="spxcut-form-input"
-                type="number" value={settings.bitrate}
-                onChange={e => updateSetting('bitrate', parseInt(e.target.value))}
-              />
-              <span className="spxcut-form-unit-suffix">kbps</span>
-            </div>
-            <div className="spxcut-form-row">
-              <span className="spxcut-form-label">Profile</span>
-              <select className="spxcut-form-select" value={profile} onChange={e => setProfile(e.target.value)}>
-                {PROFILES.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-            <div className="spxcut-form-row">
               <span className="spxcut-form-label">Format</span>
               <select className="spxcut-form-select" value={format} onChange={e => setFormat(e.target.value)}>
                 {FORMATS.map(f => <option key={f} value={f}>.{f.toUpperCase()}</option>)}
-              </select>
-            </div>
-            <div className="spxcut-form-row">
-              <label className="spxcut-form-checkbox">
-                <input type="checkbox" checked={twoPass} onChange={e => setTwoPass(e.target.checked)} />
-                2-Pass Encoding (slower, better quality)
-              </label>
-            </div>
-          </div>
-
-          {/* Audio settings */}
-          <div className="spxcut-export-section">
-            <div className="spxcut-export-section-title">Audio</div>
-            <div className="spxcut-form-row">
-              <span className="spxcut-form-label">Codec</span>
-              <select className="spxcut-form-select" value={audioCodec} onChange={e => setAudioCodec(e.target.value)}>
-                {['aac','mp3','opus','flac','pcm'].map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
-              </select>
-            </div>
-            <div className="spxcut-form-row">
-              <span className="spxcut-form-label">Bitrate</span>
-              <select className="spxcut-form-select" value={audioBitrate} onChange={e => setAudioBitrate(parseInt(e.target.value))}>
-                {[96,128,160,192,256,320].map(b => <option key={b} value={b}>{b} kbps</option>)}
               </select>
             </div>
           </div>
@@ -316,14 +235,20 @@ function SPXCutExportModal({ state, actions, selectors }) {
           <button className="spxcut-modal-btn" onClick={close} disabled={isExporting}>
             Cancel
           </button>
-          <button
-            className="spxcut-modal-btn mbtn-export"
-            onClick={startExport}
-            disabled={isExporting || state.duration === 0}
-            title={state.duration === 0 ? 'Add clips to timeline first' : 'Start export'}
-          >
-            {isExporting ? (status === 'uploading' ? '⬆ Uploading...' : '⏳ Rendering...') : '▶ Export'}
-          </button>
+          {status === 'done' ? (
+            <button className="spxcut-modal-btn mbtn-export" onClick={close}>
+              ✓ Done
+            </button>
+          ) : (
+            <button
+              className="spxcut-modal-btn mbtn-export"
+              onClick={startExport}
+              disabled={isExporting || state.duration === 0}
+              title={state.duration === 0 ? 'Add clips to timeline first' : 'Start export'}
+            >
+              {isExporting ? (status === 'uploading' ? '⬆ Uploading...' : '⏳ Rendering...') : '▶ Export'}
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -18,6 +18,10 @@ function SPXCutMediaBin({ state, actions, drag }) {
   const [dragOver,   setDragOver]   = useState(false);
   const binRef = useRef(null);
   const resizerRef = useRef(null);
+  // Mirror the latest items so a drag's live-getter can read the CURRENT bin item
+  // at drop time (post-upload patch replaces the object; a dragstart snapshot goes stale).
+  const itemsRef = useRef([]);
+  itemsRef.current = items;
 
   // ── Listen for import events (from header file input) ─────
   useEffect(() => {
@@ -99,6 +103,15 @@ function SPXCutMediaBin({ state, actions, drag }) {
             // Prefer server ffprobe duration when available; keep client value otherwise.
             duration:    (asset.duration && asset.duration > 0) ? asset.duration : i.duration,
           } : i));
+          // Reconcile clips already dropped on the timeline before this upload
+          // resolved (drag captured a null-source snapshot). Matched by the stable
+          // bin item id — blob src diverges between bin item and clip, so it can't
+          // be used as a join key.
+          actions.resolveClipMedia(item.id, {
+            source_url: asset.url,
+            public_id:  asset.r2_key,
+            duration:   (asset.duration && asset.duration > 0) ? asset.duration : item.duration,
+          });
         })
         .catch(err => {
           console.warn('[SPX Cut] media upload failed:', err);
@@ -156,7 +169,14 @@ function SPXCutMediaBin({ state, actions, drag }) {
   const onItemDoubleClick = useCallback((item) => {
     if (item.mediaType === 'video' || item.mediaType === 'audio') {
       window.dispatchEvent(new CustomEvent('spxcut:opensource', {
-        detail: { file: item.file, src: item.src, duration: item.duration }
+        // Carry the stable id + already-uploaded cloud refs so an inserted clip
+        // inherits them (reconcile keys on mediaItemId; no re-upload needed).
+        detail: {
+          file: item.file, src: item.src, duration: item.duration,
+          mediaItemId: item.id,
+          source_url:  item.source_url || null,
+          public_id:   item.public_id || null,
+        }
       }));
     }
   }, []);
@@ -213,7 +233,7 @@ function SPXCutMediaBin({ state, actions, drag }) {
               key={item.id}
               className={`spxcut-media-item${selected === item.id ? ' media-selected' : ''}`}
               draggable
-              onDragStart={(e) => drag.startMediaDrag(e, item)}
+              onDragStart={(e) => drag.startMediaDrag(e, item, () => itemsRef.current.find(i => i.id === item.id) || item)}
               onClick={() => setSelected(item.id)}
               onDoubleClick={() => onItemDoubleClick(item)}
               title={`${item.name} — Double-click to open in Source Monitor`}

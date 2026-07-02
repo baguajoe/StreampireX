@@ -205,10 +205,11 @@ export function useClipDrag({ actions, selectors, state }) {
   }, [actions]);
 
   // ── Media Bin Drag to Timeline ────────────────────────────
-  const startMediaDrag = useCallback((e, mediaItem) => {
+  const startMediaDrag = useCallback((e, mediaItem, getLiveMediaItem) => {
     // Use HTML5 drag API for media bin → timeline drops
     e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('application/spxcut-media', JSON.stringify({
+      mediaItemId: mediaItem.id,   // stable join key for reconcile (blob src is unreliable)
       name:       mediaItem.name,
       src:        mediaItem.src,
       mediaType:  mediaItem.mediaType,
@@ -217,8 +218,12 @@ export function useClipDrag({ actions, selectors, state }) {
       public_id:  mediaItem.public_id || null,
       file:       null, // File objects aren't serializable; handle via ref
     }));
-    // Store file ref separately
+    // Store the dragstart snapshot + a getter that reads the LIVE bin item at
+    // drop time. If an upload's 200 resolves between dragstart and drop, the bin
+    // item object is replaced (setItems), so the snapshot's source_url stays null
+    // forever — the getter re-reads the current object so the drop sees cloud refs.
     dragRef.current.draggedMediaItem = mediaItem;
+    dragRef.current.getLiveMediaItem = getLiveMediaItem || (() => mediaItem);
   }, []);
 
   const handleTimelineDropRef = useRef(null);
@@ -226,8 +231,14 @@ export function useClipDrag({ actions, selectors, state }) {
     e.preventDefault();
     const raw = e.dataTransfer.getData('application/spxcut-media');
     if (!raw) return;
-    const mediaData = dragRef.current.draggedMediaItem;
-    if (!mediaData) return;
+    const snapshot = dragRef.current.draggedMediaItem;
+    if (!snapshot) return;
+    // Prefer the LIVE bin item (may have been patched to ready post-200); fall
+    // back to the dragstart snapshot. Merge per-field so a null on either object
+    // never clobbers a populated value — whichever has the resolved cloud ref wins,
+    // regardless of timing. Same defensive spirit as RESOLVE_CLIP_MEDIA's ?? guards.
+    const live = dragRef.current.getLiveMediaItem ? dragRef.current.getLiveMediaItem() : null;
+    const mediaData = live || snapshot;
 
     const rect = e.currentTarget.getBoundingClientRect();
     const relX = e.clientX - rect.left + timelineScrollLeft - trackHeaderWidth;
@@ -235,17 +246,19 @@ export function useClipDrag({ actions, selectors, state }) {
 
     actions.addClip({
       trackId,
-      name:       mediaData.name,
-      src:        mediaData.src,
-      mediaType:  mediaData.mediaType,
-      duration:   mediaData.duration || 5,
+      mediaItemId: (live && live.id) || snapshot.id || null,  // stable join key for reconcile
+      name:       mediaData.name       || snapshot.name,
+      src:        mediaData.src         || snapshot.src,
+      mediaType:  mediaData.mediaType   || snapshot.mediaType,
+      duration:   mediaData.duration    || snapshot.duration || 5,
       startTime,
-      file:       mediaData.file,
-      source_url: mediaData.source_url || null,
-      public_id:  mediaData.public_id || null,
+      file:       mediaData.file        || snapshot.file,
+      source_url: (live && live.source_url) || snapshot.source_url || null,
+      public_id:  (live && live.public_id)  || snapshot.public_id  || null,
     });
 
     dragRef.current.draggedMediaItem = null;
+    dragRef.current.getLiveMediaItem = null;
   };
 
   const handleTimelineDrop = useCallback((e, trackId, timelineScrollLeft, trackHeaderWidth) => {

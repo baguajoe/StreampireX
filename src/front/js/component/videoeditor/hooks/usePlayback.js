@@ -62,7 +62,7 @@ export function usePlayback({ state, actions }) {
 
     actions.setPlayhead(nextPlayhead);
     rafRef.current = requestAnimationFrame(tick);
-  }, [actions]);
+  }, [actions.setPlayhead]);
 
   useEffect(() => {
     if (state.isPlaying) {
@@ -94,6 +94,17 @@ export function usePlayback({ state, actions }) {
       }
     });
   }, [state.playhead, state.isPlaying, state.tracks]);
+
+  // ── Hard-stop every media element when playback stops ─────
+  // The play path calls el.play() on in-range elements; the sync effect above
+  // only pauses elements it successfully maps back to a clip (it returns early
+  // on a clip-lookup miss), so an element can be left running on its own media
+  // clock — audio keeps playing after pause. Pause the exact set the play path
+  // started (videoRefs.current), unconditionally, whenever isPlaying is false.
+  useEffect(() => {
+    if (state.isPlaying) return;
+    Object.values(videoRefs.current).forEach(el => { if (el && !el.paused) el.pause(); });
+  }, [state.isPlaying]);
 
   // ── Play/Pause toggle ─────────────────────────────────────
   const togglePlay = useCallback(() => {

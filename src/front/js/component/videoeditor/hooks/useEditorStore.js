@@ -292,12 +292,13 @@ function editorReducer(state, action) {
         trackId, file, startTime, duration, inPoint: clipIn = 0,
         outPoint: clipOut = null, name, mediaType, src,
         linkGroup = null, waveformData = null,
-        source_url = null, public_id = null,
+        source_url = null, public_id = null, mediaItemId = null,
       } = action.payload;
 
       const clip = {
         id:          generateClipId(),
         trackId,
+        mediaItemId,                  // stable link to originating bin item (null for INSERT_MEDIA clips)
         name:        name || (file ? file.name : 'Clip'),
         mediaType:   mediaType || 'video',
         src:         src || (file ? trackBlobUrl(URL.createObjectURL(file)) : ''),
@@ -338,7 +339,11 @@ function editorReducer(state, action) {
     case 'INSERT_MEDIA': {
       // Insert video+audio pair from source monitor into timeline at playhead
       const prevTracks = cloneTracks(state.tracks);
-      const { file, mediaDuration, mode, inPoint: mIn = 0, outPoint: mOut } = action.payload;
+      const {
+        file, mediaDuration, mode, inPoint: mIn = 0, outPoint: mOut,
+        // Inherited from the originating bin item (null when opened as a raw file).
+        mediaItemId = null, source_url: insSourceUrl = null, public_id: insPublicId = null,
+      } = action.payload;
       const clipDuration = (mOut !== undefined ? mOut : mediaDuration) - mIn;
       const startTime = state.playhead;
       const linkGroup = `link_${Date.now()}`;
@@ -349,9 +354,9 @@ function editorReducer(state, action) {
         const vTrack = getDefaultVideoTrack(tracks);
         if (vTrack) {
           const clip = {
-            id: generateClipId(), trackId: vTrack.id,
+            id: generateClipId(), trackId: vTrack.id, mediaItemId,
             name: file.name, mediaType: 'video', src: trackBlobUrl(URL.createObjectURL(file)),
-            source_url: null, public_id: null,
+            source_url: insSourceUrl, public_id: insPublicId,
             startTime, duration: clipDuration, inPoint: mIn, outPoint: mIn + clipDuration,
             linkGroup: mode === 'both' ? linkGroup : null,
             effects: [], waveformData: null,
@@ -364,9 +369,9 @@ function editorReducer(state, action) {
         const aTrack = getDefaultAudioTrack(tracks);
         if (aTrack) {
           const clip = {
-            id: generateClipId(), trackId: aTrack.id,
+            id: generateClipId(), trackId: aTrack.id, mediaItemId,
             name: file.name, mediaType: 'audio', src: trackBlobUrl(URL.createObjectURL(file)),
-            source_url: null, public_id: null,
+            source_url: insSourceUrl, public_id: insPublicId,
             startTime, duration: clipDuration, inPoint: mIn, outPoint: mIn + clipDuration,
             linkGroup: mode === 'both' ? linkGroup : null,
             effects: [], waveformData: null,
@@ -653,6 +658,33 @@ function editorReducer(state, action) {
       return { ...state, tracks, isDirty: true, undoStack: [...state.undoStack.slice(-49), prevTracks], redoStack: [] };
     }
 
+    case 'RESOLVE_CLIP_MEDIA': {
+      // Background reconcile: a bin upload resolved AFTER its clip was already
+      // placed on the timeline. Patch every clip linked to the same bin item
+      // (by stable mediaItemId — blob src is NOT a reliable join key) with the
+      // cloud refs so the export gate sees them as ready.
+      // Intentionally NOT undoable — this is an automatic upload event, not a
+      // user edit; an undo here would null source_url back out and re-break the clip.
+      const { matchId, source_url = null, public_id = null, duration } = action.payload;
+      if (!matchId) return state;
+      let changed = false;
+      const tracks = state.tracks.map(t => ({
+        ...t,
+        clips: t.clips.map(c => {
+          if (c.mediaItemId !== matchId) return c;
+          changed = true;
+          return {
+            ...c,
+            source_url: source_url ?? c.source_url,
+            public_id:  public_id  ?? c.public_id,
+            duration:   (duration && duration > 0) ? duration : c.duration,
+          };
+        }),
+      }));
+      if (!changed) return state;
+      return { ...state, tracks, duration: computeDuration(tracks), isDirty: true };
+    }
+
     default:
       return state;
   }
@@ -726,6 +758,7 @@ export function useEditorStore() {
     updateTransform:  useCallback((clipId, transform) => dispatch({ type: 'UPDATE_CLIP_TRANSFORM', payload: { clipId, transform } }), []),
     unlinkGroup:      useCallback(linkGroup => dispatch({ type: 'UNLINK_GROUP', payload: linkGroup }), []),
     renameClip:       useCallback((clipId, name) => dispatch({ type: 'RENAME_CLIP', payload: { clipId, name } }), []),
+    resolveClipMedia: useCallback((matchId, fields) => dispatch({ type: 'RESOLVE_CLIP_MEDIA', payload: { matchId, ...fields } }), []),
 
     // Undo/Redo
     undo:             useCallback(() => dispatch({ type: 'UNDO' }), []),

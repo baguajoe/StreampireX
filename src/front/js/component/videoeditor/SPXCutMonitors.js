@@ -22,7 +22,13 @@ function SourceMonitor({ state, actions, selectors }) {
 
   useEffect(() => {
     const h = (e) => {
-      setSourceFile({ file: e.detail.file, src: e.detail.src });
+      setSourceFile({
+        file: e.detail.file, src: e.detail.src,
+        // Cloud refs inherited from the originating bin item (null when opened raw via 📂).
+        mediaItemId: e.detail.mediaItemId || null,
+        source_url:  e.detail.source_url || null,
+        public_id:   e.detail.public_id || null,
+      });
       setSourceDuration(e.detail.duration || 0);
       setSrcIn(null); setSrcOut(null); setSourceTime(0);
     };
@@ -57,7 +63,14 @@ function SourceMonitor({ state, actions, selectors }) {
 
   const insertIntoTimeline = useCallback((mode) => {
     if (!sourceFile) return;
-    actions.insertMedia({ file: sourceFile.file, mediaDuration: sourceDuration, mode, inPoint: srcIn || 0, outPoint: srcOut || sourceDuration });
+    actions.insertMedia({
+      file: sourceFile.file, mediaDuration: sourceDuration, mode,
+      inPoint: srcIn || 0, outPoint: srcOut || sourceDuration,
+      // Inherit the bin item's stable id + cloud refs so the export gate/reconcile see it.
+      mediaItemId: sourceFile.mediaItemId || null,
+      source_url:  sourceFile.source_url || null,
+      public_id:   sourceFile.public_id || null,
+    });
   }, [sourceFile, sourceDuration, srcIn, srcOut, actions]);
 
   const onInOutBarClick = useCallback((e) => {
@@ -77,7 +90,7 @@ function SourceMonitor({ state, actions, selectors }) {
         <div className="spxcut-monitor-header-btns">
           <button className="spxcut-monitor-hbtn" onClick={() => document.getElementById('spxcut-source-input')?.click()}>📂</button>
           <input id="spxcut-source-input" type="file" accept="video/*,audio/*" className="spxcut-visually-hidden"
-            onChange={e => { const f = e.target.files[0]; if (f) { setSourceFile(prev => { if (prev?.src) revokeIfOwned(prev.src); return { file: f, src: trackBlobUrl(URL.createObjectURL(f)) }; }); e.target.value = ''; } }} />
+            onChange={e => { const f = e.target.files[0]; if (f) { setSourceFile(prev => { if (prev?.src) revokeIfOwned(prev.src); return { file: f, src: trackBlobUrl(URL.createObjectURL(f)), mediaItemId: null, source_url: null, public_id: null }; }); e.target.value = ''; } }} />
         </div>
       </div>
 
